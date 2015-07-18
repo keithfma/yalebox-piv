@@ -6,21 +6,23 @@
 % the background in a image prior to PIV analysis or other applications.
 %
 % Sand is identified by a reference color (color_ref, the average color or
-% sand) in (RGB? CMYK? Other?) colorspace, a tolerance (color_tol, a
-% normalized distance to the reference color in ND colorspace), and a
-% smoothing radius (smooth_rad, radius of moving average filter in pixels).
+% sand) in 24-bit RGB (e.g. 24-bit Truecolor), a tolerance (color_tol, a
+% maximum distance to the reference color in normalized RGB colorspace),
+% and a smoothing radius (smooth_rad, radius of moving average filter in
+% pixels).
 %
 % A pixel is sand if:
 %
-% ||smoothed_pixel(r,g,b) - color_ref(r,g,b)|| < color_tol
+% ||smoothed_pixel(r,g,b) - color_ref(r,g,b)|| / 255 < color_tol
 %
 % Arguments:
 %
 %   image_file = String. Filename of image to be analyzed.
-%   color_ref = 3 element vector.
-%   color_tol = Scalar. Color tolerance as a normalized distance in ()
-%               colorspace, valid range is [0,1]
-%   smooth_rad = Scalar. Radius of smoothing filter in pixels.    
+%   color_ref = 3 element vector. 24-bit RGB representation of the average
+%               color of sand.
+%   color_tol = Scalar. Color tolerance as distance in normalized RGB
+%               colorspace (where 0-255 is rescaled to 0-1 for each axis), valid range is [XXX]
+%   smooth_rad = Scalar. Radius of smoothing filter in pixels, can be fractional.    
 %
 % Keith Ma, July 2015
 
@@ -30,7 +32,7 @@ color_ref = [0, 0, 0];
 color_tol = 0.5;
 smooth_rad = 10;
 
-%% check for sane inputs
+%% read in data, check for sane inputs
 
 assert(exist(image_file, 'file') == 2, 'image_file is not a valid filename');
 
@@ -43,4 +45,16 @@ assert(color_tol >= 0 && color_tol <= 1, 'color_tol is not in the range [0,1]');
 
 assert(numel(smooth_rad) == 1, 'smooth_rad is not a scalar');
 
-%% read in data
+img = imread(image_file);
+assert(isa(img, 'uint8') && size(img,3) == 3, 'image is not 24-bit RGB');
+
+%% smooth image
+
+filt = fspecial('disk', smooth_rad);
+img_smooth = imfilter(img, filt);
+
+%% compute normalized distances...
+
+
+
+
