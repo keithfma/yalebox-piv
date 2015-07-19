@@ -1,5 +1,5 @@
-function [mask] = create_mask(img, entropy_radius, open_radius, bw_threshold)
-% function [mask] = create_mask(img, entropy_radius, open_radius, bw_threshold)
+function [mask] = sand_mask(img, entropy_radius, open_radius, bw_threshold)
+% function [mask] = sand_mask(img, entropy_radius, open_radius, bw_threshold)
 %
 % Create a logical mask for a color image (image_file) that is TRUE where
 % there is sand and FALSE elsewhere. This can be used to remove (set to 0)
@@ -59,4 +59,3 @@ img = imopen(img, s);
 img = img-min(img(:));
 img = img./max(img(:));
 mask = im2bw(img, bw_threshold);
-
