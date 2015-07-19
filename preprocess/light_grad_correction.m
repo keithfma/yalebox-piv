@@ -5,11 +5,15 @@ function [correct, img_correct] = light_grad_correction(img, mask, loess_frac, c
 % x-direction lighting gradients. 
 %
 % Arguments:
-%   img = 
-%   mask = 
-%   loess_frac = 
-%   correct = 
-%   img_correct = 
+%   img = 3D matrix, double. RGB image converted to double, range is arbitrary
+%   mask = 1D matrix, logical. TRUE where pixels are sand, FALSE elsewhere,
+%       as produced by sand_mask()
+%   loess_frac = Scalar, double. Parameter to loess(), defined there as
+%       "smoothing (fraction of series to include in weighted local fit)
+%       typically 0.25 to 1.0"
+%   correct = Vector, double. Additive correction factor to remove
+%       gradients, can be both input and output.
+%   img_correct = 3D matrix, double. Corrected RGB image.
 %
 % Usage:
 %   Compute and apply:
@@ -52,7 +56,6 @@ end
     
 assert(isa(img, 'double'), 'img is not of type double');
 assert(size(img,3) == 3, 'img is not a 3D array (RGB)');
-assert(max(img(:)) <= 1 && min(img(:)) >= 0, 'img is not in the range [0,1]');
 
 assert(isa(mask, 'logical'), 'mask is not of type logical');
 assert(size(mask,1) == size(img, 1) && size(mask,2) == size(img, 2), ...
@@ -66,15 +69,11 @@ end
 if nargin == 4
     assert(min(size(correct)) == 1 && max(size(correct)) == size(img,2), ...
         'correct is not a vector with size(img,1) elements');
-    assert(min(correct) >= -1 && max(correct) <= 1, ...
-        'correct is not in the range [-1, 1]');
 end
 
 %% extract average intensity of sand pixels as (x, intensity) points
 
-img_gray = double(rgb2gray(img));
-img_gray = img_gray-min(img_gray(:));
-img_gray = img_gray./max(img_gray(:));
+img_gray = rgb2gray(img);
 img_gray(~mask) = NaN;
 intens = nanmean(img_gray,1);
  
