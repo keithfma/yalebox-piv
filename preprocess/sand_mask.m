@@ -15,7 +15,7 @@ function [mask] = sand_mask(img, entropy_radius, open_radius, bw_threshold)
 %   (4) Convert to a T/F mask by simple thresholding
 %
 % Arguments:
-%   img = MxNx3 matrix of type uint8, a 24-bit (Truecolor) RGB image 
+%   img = MxNx3 matrix. RGB image, type double, normalized to the range [0, 1]
 %   entropy_radius = Scalar. Radius of neighboorhood included in the
 %       entropy filter calculation for each pixel, [pixels]
 %   open_radius = Scalar. Radius of the structuring element used for the
@@ -25,15 +25,11 @@ function [mask] = sand_mask(img, entropy_radius, open_radius, bw_threshold)
 %
 % Keith Ma, July 2015
 
-% % DEBUG: Run as a script with predefined inputs
-% img = imread('test_data/test_a_00_crop.png');
-% entropy_radius = 9; % pixels
-% open_radius = 36; % pixels
-% bw_threshold = 0.75; % normalized
-
 %% read in data, check for sane inputs
 
-assert(isa(img, 'uint8') && size(img,3) == 3, 'image is not 24-bit RGB');
+assert(isa(img, 'double'), 'img is not of type double');
+assert(size(img,3) == 3, 'img is not a 3D array (RGB)');
+assert(max(img(:)) <= 1 && min(img(:)) >= 0, 'img is not in the range [0,1]');
 
 assert(numel(entropy_radius) == 1, 'entropy_radius is not a scalar');
 assert(entropy_radius >= 0, 'entropy_radius is not positive');
