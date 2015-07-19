@@ -25,4 +25,4 @@ img(repmat(~mask, [1, 1, 3])) = 0;
 
 [correct, img_correct] = light_grad_correction(img, mask, loess_frac);
 
-imshow(img_correct)
+stretch_color(img_correct, mask)
