@@ -1,49 +1,63 @@
-function [] = stretch_color(img, mask)
+function [img_stretch] = stretch_color(img, mask)
 % Stretch colors to make full use of the available range. Threshold values
 % are computed as a function of x using a sliding window quantile filter.
 
 % Arguments
-upper_limit = 0.975;
-lower_limit = 0.025;
-bin_width = 50; % pixels
+lower_limit = 0.01; % quantile
+upper_limit = 0.99; % quantile
+%width = 100; % pixels
 
-%% setup bins
-bin_center = 1:bin_width:size(img,2);
-
-bin_start = bin_center-bin_width/2;
-bin_start = max(bin_start, 1);
-bin_start = floor(bin_start);
-
-bin_stop = bin_start+bin_width;
-bin_stop = min(bin_stop, size(img,2));
-bin_stop = ceil(bin_stop);
-
-bin_start(end) = bin_stop(end)-bin_width;
-
-bin_center = (bin_start+bin_stop)/2;
-
-
-%% get bin quantiles at upper_limit and lower_limit 
-
+% DEBUG: grayscale
 img = rgb2gray(img);
-upper = nan(size(bin_center));
-lower = nan(size(bin_center));
-for i = 1:numel(bin_center)
-    img_sub = img(:, bin_start(i):bin_stop(i));
-    mask_sub = mask(:, bin_start(i):bin_stop(i));
-    bin_data = img_sub(mask_sub);
-    limits = quantile(bin_data(:), [lower_limit, upper_limit]);
-    lower(i) = limits(1);
-    upper(i) = limits(2);    
+
+%% sliding window quantiles 
+ 
+% ncol = size(img,2);
+% x = 1:ncol;
+% lower = nan(size(x));
+% upper = nan(size(x));
+% for i = x
+%     start = floor(max(1, i-width/2));
+%     stop = ceil(min(ncol, i+width/2));
+%     img_sub = img(:,start:stop);
+%     mask_sub = mask(:,start:stop);
+%     tmp = quantile(img_sub(mask_sub), [lower_limit, upper_limit]);
+%     lower(i) = tmp(1);
+%     upper(i) = tmp(2);
+% end
+
+%% get correction from smoothed per-column quantiles
+
+ncol = size(img,2);
+x = 1:ncol;
+lower = nan(size(x));
+upper = nan(size(x));
+for i = x
+    img_sub = img(:,i);
+    mask_sub = mask(:,i);
+    tmp = quantile(img_sub(mask_sub), [lower_limit, upper_limit]);
+    lower(i) = tmp(1);
+    upper(i) = tmp(2);
 end
 
+x_fit = downsample(x,10);
+if x_fit(end) ~= x(end); 
+    x_fit(end+1) = x(end);
+end
 
+lower_fit = loess(x, lower, x_fit, 0.25, 1, 0);
+upper_fit = loess(x, upper, x_fit, 0.25, 1, 0);
 
-%% correct range
+lower_smooth = interp1(x_fit, lower_fit, x, 'linear');
+upper_smooth = interp1(x_fit, upper_fit, x, 'linear');
 
-keyboard
+stretch_min = lower_smooth;
+stretch_rng = upper_smooth-lower_smooth;
 
+%% apply stretch
 
-
+img_stretch = img-repmat(stretch_min, size(img,1), 1);
+img_stretch = img_stretch./repmat(stretch_rng, size(img,1), 1);
+img_stretch(:) = min(1, max(0, img_stretch(:)));
 
 
