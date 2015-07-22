@@ -23,6 +23,6 @@ mask = sand_mask(img, entropy_radius, open_radius, bw_threshold);
 
 img(repmat(~mask, [1, 1, 3])) = 0;
 
-[correct, img_correct] = light_grad_correction(img, mask, loess_frac);
-
-stretch_color(img_correct, mask)
+% [correct, img_correct] = light_grad_correction(img, mask, loess_frac);
+% 
+% stretch_color(img_correct, mask)
