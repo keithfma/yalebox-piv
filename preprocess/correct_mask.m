@@ -15,13 +15,14 @@ function [mask] = correct_mask(img, entropy_radius, open_radius, bw_threshold)
 %   (4) Convert to a T/F mask by simple thresholding
 %
 % Arguments:
-%   img = MxNx3 matrix. RGB image, type double, normalized to the range [0, 1]
+%   img = Double, 3D matrix. RGB image, normalized to the range [0, 1]
 %   entropy_radius = Scalar. Radius of neighboorhood included in the
 %       entropy filter calculation for each pixel, [pixels]
 %   open_radius = Scalar. Radius of the structuring element used for the
 %       morphological opening filter, [pixels]
 %   bw_threshold = Scalar in the range [0,1], threshold value used to
 %       convert mask image from grayscale to black-and-white.
+%   mask = Logical, 2D matrix. TRUE where there is sand, FALSE elsewhere
 %
 % Keith Ma, July 2015
 

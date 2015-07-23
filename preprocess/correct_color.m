@@ -2,17 +2,31 @@ function [baseline, scale] = correct_color(img, mask, width, step, quant, lfrac)
 % function [baseline, scale] = correct_color(img, mask, width, step, quant, lfrac)
 %
 % Compute color baseline and scale corrections for masked sandbox image.
+% Specifically, sandbox images frequently have lateral gradients (with
+% respect to x) in brightness and contrast. This function computes upper
+% and lower quantiles as a function of x using a sliding window, and uses
+% smooth curves fit to these data to adjust the baseline and range of the
+% intensity data. The mask matrix makes it possible to include only the
+% sand region in the quantiles. In pseudocode, the color correction is:
+%
+%   corrected_image = (original_image-baseline)*scale
+%   corrected_image = min(1, corrected_image)
+%   corrected_image = max(0, corrected_image)
 %
 % Arguments:
 %
-% img = 
-% mask = 
-% width =
-% step = 
-% quant = 
-% lfrac = 
-% baseline = 
-% scale = 
+%   img = 3D matrix, double, RGB image, normalized to the range [0, 1]
+%   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
+%   width = Scalar, double, width of the sliding window for quantile
+%       calculations, in (whole) pixels
+%   step = Scalar, double, spacing of windows for quantile calculations, in
+%       (whole) pixels
+%   quant = 2-element vector, double, [lower, upper] quantiles to be
+%       calculated (and truncated by the correction), in the range 0 to 1
+%   lfrac = Scalar, double, parameter to LOESS smooth curve fitting
+%       algorithm, the fraction of the dataset to include in each local fit
+%   baseline = Vector, 1x(size(img,2)), baseline to be subtracted from the image
+%   scale = Vector, 1x(size(img,2)), scaling factor to multiply the image by
 %
 % Keith Ma, July 2015
 
