@@ -1,4 +1,4 @@
-function [correct, img_correct] = light_grad_correction(img, mask, loess_frac, correct);
+function [correct, img_correct] = light_grad_correction(img, mask, loess_frac, correct)
 % function [correct, img_correct] = light_grad_correction(img, mask, loess_frac, correct);
 %
 % Compute and/or apply lighting correction factor as a function of x for undesirable

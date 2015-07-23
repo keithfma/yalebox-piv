@@ -1,4 +1,4 @@
-function [img_correct] = lighting_correction(img, mask, width, step, quant, lfrac)
+function [imgc] = lighting_correction(img, mask, width, step, quant, lfrac)
 %
 % Compute and apply color baseline and scale corrections for masked
 % sandbox image.
@@ -26,8 +26,8 @@ end
 if nargin <=3 || isempty(step)
     step = 50; %default
 else
-    assert(numel(width) == 1, 'step is not a scalar');
-    assert(mod(width,1) == 0, 'step is not an integer');
+    assert(numel(step) == 1, 'step is not a scalar');
+    assert(mod(step,1) == 0, 'step is not an integer');
 end
 
 if nargin <=4 || isempty(quant)
@@ -49,4 +49,9 @@ end
 
 %% apply corrections
 
-
+%% debug
+imgc = [];
+fprintf('width = %.1f\n', width);
+fprintf('step = %.1f\n', step);
+fprintf('quant = [%.3f, %.3f]\n', quant(1), quant(2));
+fprintf('lfrac = %.3f\n', lfrac);
