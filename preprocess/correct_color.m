@@ -1,7 +1,7 @@
-function [imgc, param] = lighting_correction(img, mask, width, step, quant, lfrac)
+function [baseline, scale] = correct_color(img, mask, width, step, quant, lfrac)
+% function [baseline, scale] = correct_color(img, mask, width, step, quant, lfrac)
 %
-% Compute and apply color baseline and scale corrections for masked
-% sandbox image.
+% Compute color baseline and scale corrections for masked sandbox image.
 %
 % Arguments:
 %
@@ -11,8 +11,8 @@ function [imgc, param] = lighting_correction(img, mask, width, step, quant, lfra
 % step = 
 % quant = 
 % lfrac = 
-% imgc = 
-% param = 
+% baseline = 
+% scale = 
 %
 % Keith Ma, July 2015
 
@@ -87,20 +87,3 @@ bot = interp1(x, bot, 1:ncol, 'linear');
 % corrections
 baseline = bot;
 scale = 1./(top-bot);
-
-
-%% apply corrections
-
-imgc = img;
-imgc = bsxfun(@minus, img, baseline);
-imgc = bsxfun(@times, imgc, scale);
-imgc = min(1, max(0, imgc));
-
-%% package parameters for output
-
-if nargout > 1
-    param.width = width;
-    param.step = step;
-    param.quant = quant;
-    param.lfrac = lfrac;
-end

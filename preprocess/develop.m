@@ -2,12 +2,9 @@
 
 % NOTES:
 
-
-
-
 %% define input variables
 
-img_file = 'test_data/test_a_00_crop.png';
+img_file = 'test_data/test_b_04.png';
 entropy_radius = 9;
 open_radius = 36; 
 bw_threshold = 0.75;
@@ -19,10 +16,5 @@ img = img./255;
 
 %% test
 
-mask = sand_mask(img, entropy_radius, open_radius, bw_threshold);
-
+mask = correct_mask(img, entropy_radius, open_radius, bw_threshold);
 img(repmat(~mask, [1, 1, 3])) = 0;
-
-% [correct, img_correct] = light_grad_correction(img, mask, loess_frac);
-% 
-% stretch_color(img_correct, mask)
