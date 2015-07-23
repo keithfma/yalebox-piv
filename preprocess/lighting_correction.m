@@ -1,9 +1,18 @@
-function [imgc] = lighting_correction(img, mask, width, step, quant, lfrac)
+function [imgc, param] = lighting_correction(img, mask, width, step, quant, lfrac)
 %
 % Compute and apply color baseline and scale corrections for masked
 % sandbox image.
 %
 % Arguments:
+%
+% img = 
+% mask = 
+% width =
+% step = 
+% quant = 
+% lfrac = 
+% imgc = 
+% param = 
 %
 % Keith Ma, July 2015
 
@@ -44,14 +53,54 @@ else
     assert(max(lfrac) >=  0 && min(lfrac) <= 1, 'lfrac is not in the range 0-1');
 end    
 
-%% windowed quantiles
+%% get corrections from windowed quantiles
+
+% convert image to grayscale
+imgg = rgb2gray(img);
+
+% get windows
+ncol = size(img,2);
+x = 1:step:ncol;
+x0 = max(1, x-ceil(width/2));
+x1 = min(ncol, x+ceil(width/2));
+
+% compute quantiles
+nx = numel(x);
+top = nan(1, nx);
+bot = nan(1, nx);
+for i = 1:nx
+    imgg_win = imgg(:,x0(i):x1(i));
+    mask_win = mask(:,x0(i):x1(i));
+    tmp = quantile(imgg_win(mask_win), quant);
+    bot(i) = tmp(1);
+    top(i) = tmp(2);
+end
+
+% smooth quantiles
+top = loess(x, top, x, lfrac, 1, 0);
+bot = loess(x, bot, x, lfrac, 1, 0);
+
+% upscale smooth quantiles
+top = interp1(x, top, 1:ncol, 'linear');
+bot = interp1(x, bot, 1:ncol, 'linear');
+
+% corrections
+baseline = bot;
+scale = 1./(top-bot);
 
 
 %% apply corrections
 
-%% debug
-imgc = [];
-fprintf('width = %.1f\n', width);
-fprintf('step = %.1f\n', step);
-fprintf('quant = [%.3f, %.3f]\n', quant(1), quant(2));
-fprintf('lfrac = %.3f\n', lfrac);
+imgc = img;
+imgc = bsxfun(@minus, img, baseline);
+imgc = bsxfun(@times, imgc, scale);
+imgc = min(1, max(0, imgc));
+
+%% package parameters for output
+
+if nargout > 1
+    param.width = width;
+    param.step = step;
+    param.quant = quant;
+    param.lfrac = lfrac;
+end
