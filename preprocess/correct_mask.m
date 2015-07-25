@@ -48,7 +48,9 @@ assert(bw_threshold >= 0 && bw_threshold <= 1, ...
 img = rgb2gray(img);
 
 nhood = getnhood(strel('disk', entropy_radius)); 
-img = entropyfilt(img, nhood);
+entr = entropyfilt(img, nhood);
+
+keyboard
 
 s = strel('disk', open_radius);
 img = imopen(img, s);
