@@ -1,5 +1,5 @@
-%function [mask] = correct_mask(rgb, hue_lim, value_lim, entropy_lim,
-%                               median_window, entropy_window, opening_radius)
+function [mask] = correct_mask_b(rgb, hue_lim, value_lim, entropy_lim, ...
+                               median_window, entropy_window, opening_radius)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -114,5 +114,6 @@ mask = imfill(mask, 'holes');
 mask = mask(:, 2:end-1);
 
 % clean up edges with morphological opening filter 
-disk = strel('disk', morph_radius);
+% NOTE: CLOSE TOO? ORDER?
+disk = strel('disk', opening_radius);
 mask = imopen(mask, disk);
