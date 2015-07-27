@@ -1,18 +1,38 @@
-%function [] = correct_mask(img_rgb)
+%function [mask] = correct_mask(image_rgb, hue_range, value_range, entropy_range,
+%                               median_window, entropy_window, opening_radius)
 %
-% Create a logical mask for a color image (image_file) that is TRUE where
-% there is sand and FALSE elsewhere. This can be used to remove (set to 0)
-% the background in a image prior to PIV analysis or other applications.
+% Create a logical mask for a color image that is TRUE where there is sand and
+% FALSE elsewhere. This can be used to remove (set to 0) the background in a
+% image prior to PIV analysis or other applications.
 %
-% Sand is identified by remapping colors, filtering, and thresholding -
-% using a combination of "hue" and "value" bands in HSV colorspace. Default
-% values for the various parameters were effective for the test data used
-% in development, but may well be inadequate for other images.
+% Sand is identified by remapping to HSV colorspace, filtering and thresholding
+% the "hue" and "value" bands, . Default values for the various parameters were
+% effective for the test data used in development, but may well be inadequate
+% for other images.
 %
 % Arguments:
+%
 %   im_rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
 %       MATLAB with imread()
 %
+%   hue_range = 2-element vector, double, range [0, 1]. [minimum, maximum] HSV
+%     "hue" included as sand in the mask. Default = [0.0, 0.5]
+%
+%   value_range = 2-element vector, double, range [0,1]. [minimum, maximum] HSV
+%     "value" included as sand in the mask, . Default = [0.0, 0.5]
+%
+%   entropy_range = 2-element vector, double, range [0, 1]. [minimum, maximum]
+%     entropy included as sand in the mask. Default = [0.5, 1.0]
+%
+%   median_window = scalar, integer, window size in pixels for median filter
+%     applied to all bands
+%
+%   entropy_window = scalar, integer, window size in pixels for entropy filter
+%
+%   opening_radius = scalar, double, radius of disk structuring element used in
+%     mophological opening filter
+%
+% Keith Ma, July 2015
 
 % DEBUG
 median_size = 25;
