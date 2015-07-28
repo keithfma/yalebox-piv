@@ -13,59 +13,63 @@ function [baseline, scale] = correct_color(img, mask, width, step, quant, lfrac)
 %   corrected_image = min(1, corrected_image)
 %   corrected_image = max(0, corrected_image)
 %
+% All arguments are required - default values are used where inputs are []
+%
 % Arguments:
 %
 %   img = 3D matrix, double, RGB image, normalized to the range [0, 1]
+%
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
+%
 %   width = Scalar, double, width of the sliding window for quantile
 %       calculations, in (whole) pixels
+%
 %   step = Scalar, double, spacing of windows for quantile calculations, in
 %       (whole) pixels
+%
 %   quant = 2-element vector, double, [lower, upper] quantiles to be
 %       calculated (and truncated by the correction), in the range 0 to 1
+%
 %   lfrac = Scalar, double, parameter to LOESS smooth curve fitting
 %       algorithm, the fraction of the dataset to include in each local fit
+%
 %   baseline = Vector, 1x(size(img,2)), baseline to be subtracted from the image
+%
 %   scale = Vector, 1x(size(img,2)), scaling factor to multiply the image by
 %
 % Keith Ma, July 2015
 
-%% check for sane inputs
+% set defaults
+if isempty(width); width = 200; end 
+if isempty(step); step = 50; end
+if isempty(quant); quant = [0.01, 0.99]; end
+if isempty(lfrac); lfrac = 0.2; end
 
-assert(isa(img, 'double'), 'img is not of type double');
-assert(size(img,3) == 3, 'img is not a 3D array (RGB)');
-
-assert(isa(mask, 'logical'), 'mask is not of type logical');
+% check for sane inputs
+assert(isa(img, 'double'), ...
+    'img is not of type double');
+assert(size(img,3) == 3, ...
+    'img is not a 3D array (RGB)');
+assert(isa(mask, 'logical'), ...
+    'mask is not of type logical');
 assert(size(mask,1) == size(img, 1) && size(mask,2) == size(img, 2), ...
     'mask and image dimensions do not match');
-
-if nargin <= 2 || isempty(width)
-    width = 200; % default
-else
-    assert(numel(width) == 1, 'width is not a scalar');
-    assert(mod(width,1) == 0, 'width is not an integer');
-end
-
-if nargin <=3 || isempty(step)
-    step = 50; %default
-else
-    assert(numel(step) == 1, 'step is not a scalar');
-    assert(mod(step,1) == 0, 'step is not an integer');
-end
-
-if nargin <=4 || isempty(quant)
-    quant = [0.01, 0.99]; %default
-else
-    assert(numel(quant) == 2, 'quant is not a 2-element vector');
-    assert(max(quant) >=  0 && min(quant) <= 1, 'quant is not in the range 0-1');
-end
-
-if nargin <= 5 || isempty(lfrac)
-    lfrac = 0.2;
-else
-    assert(numel(lfrac) == 1, 'lfrac is not a scalar');
-    assert(max(lfrac) >=  0 && min(lfrac) <= 1, 'lfrac is not in the range 0-1');
-end    
+assert(numel(width) == 1, ...
+    'width is not a scalar');
+assert(mod(width,1) == 0, ...
+    'width is not an integer');
+assert(numel(step) == 1, ...
+    'step is not a scalar');
+assert(mod(step,1) == 0, ...
+    'step is not an integer');
+assert(numel(quant) == 2, ...
+    'quant is not a 2-element vector');
+assert(max(quant) >=  0 && min(quant) <= 1, ...
+    'quant is not in the range 0-1');
+assert(numel(lfrac) == 1, ...
+    'lfrac is not a scalar');
+assert(max(lfrac) >=  0 && min(lfrac) <= 1, ...
+    'lfrac is not in the range 0-1');
 
 %% get corrections from windowed quantiles
 
