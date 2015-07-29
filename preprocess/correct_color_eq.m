@@ -1,4 +1,4 @@
-function [] = correct_color_eq(rgb, mask, width)
+function [valeq] = correct_color_eq(rgb, mask, width, nbin)
 
 % convert image to 2D intensity matrix
 hsv = rgb2hsv(rgb);
@@ -17,7 +17,7 @@ for i = 1:ncol
     % extract sand pixels in window and equalize
     val_win = val(:, ind);
     mask_win = mask(:, ind);
-    eql = histeq(val_win(mask_win));
+    eql = histeq(val_win(mask_win), nbin);
     val_win(mask_win) = eql;
     
     % get corrected column
