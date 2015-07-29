@@ -17,7 +17,8 @@ function [baseline, scale] = correct_color(rgb, mask, width, npts, quant, lfrac)
 %
 % Arguments:
 %
-%   rgb = 3D matrix, double, TRUECOLOR RGB 
+%   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
+%       MATLAB with imread()
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
@@ -33,9 +34,11 @@ function [baseline, scale] = correct_color(rgb, mask, width, npts, quant, lfrac)
 %   lfrac = Scalar, double, parameter to LOESS smooth curve fitting
 %       algorithm, the fraction of the dataset to include in each local fit
 %
-%   baseline = Vector, 1x(size(img,2)), baseline to be subtracted from the image
+%   baseline = 2D matrix, size(img, 1) x size(img, 2), baseline to be subtracted
+%       from the image
 %
-%   scale = Vector, 1x(size(img,2)), scaling factor to multiply the image by
+%   scale = 2D matrix, size(img, 1) x size(img, 2), scaling factor to multiply 
+%       the image by
 %
 % Keith Ma, July 2015
 

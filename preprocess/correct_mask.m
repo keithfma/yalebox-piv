@@ -15,7 +15,7 @@ function [mask] = correct_mask(rgb, hue_lim, value_lim, entropy_lim, ...
 %
 % Arguments:
 %
-%   im = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
+%   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
 %       MATLAB with imread()
 %
 %   hue_lim = 2-element vector, double, range [0, 1]. [minimum, maximum] HSV
