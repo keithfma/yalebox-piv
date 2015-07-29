@@ -1,17 +1,13 @@
-function [baseline, scale] = correct_color(rgb, mask, width, npts, quant, lfrac)
-% function [baseline, scale] = correct_color(rgb, mask, width, npts, quant, lfrac)
+function [eql] = correct_color_eq(rgb, mask, width)
+% function [eql] = correct_color(rgb, mask, width)
 %
-% Compute color baseline and scale corrections for masked sandbox image.
-% Specifically, sandbox images frequently have lateral gradients (with
-% respect to x) in brightness and contrast. This function computes upper
-% and lower quantiles as a function of x using a sliding window, and uses
-% smooth curves fit to these data to adjust the baseline and range of the
-% intensity data. The mask matrix makes it possible to include only the
-% sand region in the quantiles. In pseudocode, the color correction is:
+% Compute and apply local histogram-equalization color corrections.
+% Corrections are computed for each column based on the histogram for sand
+% pixels within "width" columns. This sliding-window approach corrects for
+% lighting gradients in the x-direction (but not the y-direction). For
+% details on the equalization algorithm, see:
 %
-%   corrected_image = (original_image-baseline)*scale
-%   corrected_image = min(1, corrected_image)
-%   corrected_image = max(0, corrected_image)
+% http://fourier.eng.hmc.edu/e161/lectures/contrast_transform/node2.html
 %
 % All arguments are required - default values are used where inputs are []
 %
@@ -22,31 +18,13 @@ function [baseline, scale] = correct_color(rgb, mask, width, npts, quant, lfrac)
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
-%   width = Scalar, double, width of the sliding window for quantile
-%       calculations, in (whole) pixels
-%
-%   npts = Scalar, integer, number of linearly spaced points at which
-%       quantiles are computed.
-%
-%   quant = 2-element vector, double, [lower, upper] quantiles to be
-%       calculated (and truncated by the correction), in the range 0 to 1
-%
-%   lfrac = Scalar, double, parameter to LOESS smooth curve fitting
-%       algorithm, the fraction of the dataset to include in each local fit
-%
-%   baseline = 2D matrix, size(img, 1) x size(img, 2), baseline to be subtracted
-%       from the image
-%
-%   scale = 2D matrix, size(img, 1) x size(img, 2), scaling factor to multiply 
-%       the image by
+%   width = Scalar, double, half-width of the sliding window for quantile
+%       calculations, in (whole) pixels, default = 50; 
 %
 % Keith Ma, July 2015
 
 % set defaults
-if isempty(width); width = 200; end 
-if isempty(npts); npts = 100; end
-if isempty(quant); quant = [0.01, 0.99]; end
-if isempty(lfrac); lfrac = 0.2; end
+if isempty(width); width = 50; end
 
 % check for sane inputs
 assert(isa(rgb, 'uint8') && size(rgb,3) == 3, ...
@@ -57,42 +35,33 @@ assert(size(mask,1) == size(rgb, 1) && size(mask,2) == size(rgb, 2), ...
     'mask and rgb dimensions do not match');
 assert(numel(width) == 1 && mod(width,1) == 0, ...
     'width is not a scalar integer');
-assert(numel(npts) == 1 && mod(npts,1) == 0, ...
-    'npts is not a scalar integer');
-assert(numel(quant) == 2 && max(quant) >=  0 && min(quant) <= 1, ...
-    'quant is not a 2-element vector in the range 0-1');
-assert(numel(lfrac) == 1 && max(lfrac) >=  0 && min(lfrac) <= 1, ...
-    'lfrac is not a scalar in the range 0-1');
 
 % convert image to 2D intensity matrix
 hsv = rgb2hsv(rgb);
 val = hsv(:,:,3);
 [nrow, ncol] = size(val);
 
-% create bins, truncated at image edges
-
-x = linspace(1, ncol, npts);
-x0 = max(1, round(x-width));
-x1 = min(ncol, round(x+width));
-
-% windowed quantiles for intensity
-top = nan(1, npts);
-bot = nan(1, npts);
-for i = 1:npts
-    val_win = val(:,x0(i):x1(i));
-    mask_win = mask(:,x0(i):x1(i));
-    tmp = quantile(val_win(mask_win), quant);
-    bot(i) = tmp(1);
-    top(i) = tmp(2);
+% equalize histogram, column-by-column
+eql = zeros([nrow, ncol]);
+for i = 1:ncol
+    
+    % window indices, with symetric padding
+    ind = (i-width):(i+width);
+    ind(ind<=0) = abs(ind(ind<=0))+2;
+    ind(ind>ncol) = 2*ncol-ind(ind>ncol);
+    
+    % mask for sand pixels in col and in window
+    mask_col = false(size(mask));
+    mask_col(:,i) = mask(:,i);
+    mask_win = false(size(mask));
+    mask_win(:,ind) = mask(:,ind);
+    
+    % lookup table (empirical cdf for sand pixels in window)
+    [new, old] = ecdf(val(mask_win));
+    
+    % correct using lookup table
+    eql(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
 end
 
-% smooth and upscale quantiles
-top = loess(x, top, x, lfrac, 1, 0);
-top = interp1(x, top, 1:ncol, 'linear');
-
-bot = loess(x, bot, x, lfrac, 1, 0);
-bot = interp1(x, bot, 1:ncol, 'linear');
-
-% correction matrices from smooth quantiles
-baseline = repmat(bot,          nrow, 1);
-scale =    repmat(1./(top-bot), nrow, 1);
+% add a tiny offset so that no sand pixels are exactly zero
+eql(mask & eql==0) = eql(mask & eql==0)+1e-5;
