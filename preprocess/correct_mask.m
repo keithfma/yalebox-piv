@@ -28,7 +28,7 @@ function [mask] = correct_mask(rgb, hue_lim, value_lim, entropy_lim, ...
 %     entropy included as sand in the mask. Default = [0.5, 1.0]
 %
 %   median_window = scalar, integer, window size in pixels for median filter
-%     applied to all bands. Default = 25.
+%     applied to mask. Default = 25.
 %
 %   entropy_window = scalar, integer, window size in pixels for entropy filter.
 %     Default = 9.
@@ -37,15 +37,6 @@ function [mask] = correct_mask(rgb, hue_lim, value_lim, entropy_lim, ...
 %     mophological opening filter. Default = 10.
 %
 % Keith Ma, July 2015
-
-%% DEBUG
-%median_size = 25;
-%entropy_size = 9;
-%hue_range = [0, 0.4]; % min, max
-%value_range = [0, 0.5];
-%entropy_range = [0.5, 1]; 
-%morph_radius = 10;
-%% END DEBUG
 
 % set default values
 if isempty(hue_lim); hue_lim = [0.0, 0.5]; end
@@ -56,8 +47,10 @@ if isempty(entropy_window); entropy_window = 9; end
 if isempty(opening_radius); opening_radius = 10; end
 
 % check for sane arguments, set default values
-assert(isa(rgb, 'uint8'), 'img_rgb is not type "uint8"');
-assert(size(rgb,3) == 3, 'img_rgb is not 3-dimensional');
+assert(isa(rgb, 'uint8'), ...
+    'img_rgb is not type "uint8"');
+assert(size(rgb,3) == 3, ...
+    'img_rgb is not 3-dimensional');
 assert(numel(hue_lim)==2 && min(size(hue_lim)) == 1, ...
     'hue_lim is not a 2-element vector');
 assert(min(hue_lim) >= 0 && max(hue_lim) <= 1, ...
@@ -85,11 +78,6 @@ hue = hsv(:,:,1);
 value = hsv(:,:,3);
 entropy = entropyfilt(value, true(entropy_window));
 
-% smooth, preseving edges with median filter
-hue = medfilt2(hue, median_window*[1, 1]);
-value = medfilt2(value, median_window*[1, 1]);
-entropy = medfilt2(entropy, median_window*[1, 1]);
-
 % normalize range to [0,1]
 hue = hue-min(hue(:)); hue = hue./max(hue(:));
 value = value-min(value(:)); value = value./max(value(:));
@@ -103,6 +91,9 @@ entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 % create mask
 mask = hue_mask & value_mask & entropy_mask;
 
+% smooth, preseving edges with median filter
+mask = medfilt2(mask, median_window*[1, 1]);
+
 % fill holes - top and bottom
 wall = true(1, size(mask,2));
 mask = [wall; mask; wall];
@@ -115,7 +106,6 @@ mask = [wall, mask, wall];
 mask = imfill(mask, 'holes');
 mask = mask(:, 2:end-1);
 
-% clean up edges with morphological opening filter 
-% NOTE: CLOSE TOO? ORDER?
+% clean up edges with morphological filters 
 disk = strel('disk', opening_radius);
-mask = imopen(mask, disk);
+mask = imopen(imclose(mask, disk), disk);
