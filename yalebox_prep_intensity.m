@@ -1,5 +1,5 @@
-function [out] = yalebox_prep_intensity(rgb, mask, width)
-% function [out] = yalebox_prep_intensity(rgb, mask, width)
+function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
+% function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
 %
 % Compute and apply local histogram-equalization color corrections.
 % Corrections are computed for each column based on the histogram for sand
@@ -23,6 +23,10 @@ function [out] = yalebox_prep_intensity(rgb, mask, width)
 %
 %   out = 2D matrix, size(mask), double, normalized intensity image derived from
 %     rgb, histogram is approximately uniform
+%
+%   prm = Struct,  contains all of the parameters (input and internally
+%       computed), included so that default values can be recovered.
+%       Structure member variables are: width, tiny
 %
 % Keith Ma, July 2015
 
@@ -67,4 +71,9 @@ for i = 1:ncol
 end
 
 % add a tiny offset so that no sand pixels are exactly zero
-out(mask & out==0) = out(mask & out==0)+1e-5;
+tiny = 1e-5;
+out(mask & out==0) = out(mask & out==0)+tiny;
+
+% prepare parameter struct
+prm.width = width;
+prm.tiny = tiny;

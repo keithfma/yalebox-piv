@@ -30,14 +30,8 @@ function [x, y, prm] = yalebox_prep_world_coord(woco_image, npts, show)
 %
 %   prm = Struct, contains all of the parameters (input and internally
 %       computed), included so that default values can be recovered.
-%       Structure member varaibles are:
-%       
-%       prm.woco_image
-%       prm.npts
-%       prm.x_scale
-%       prm.x_offset
-%       prm.y_scale
-%       prm.y_offset
+%       Structure member variables are: woco_image, npts, x_scale,
+%       x_offset, y_scale, y_offset
 %
 % Keith Ma, July 2015
 
