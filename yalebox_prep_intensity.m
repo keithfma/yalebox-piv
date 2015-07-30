@@ -1,5 +1,5 @@
-function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
-% function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
+function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
+% function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
 %
 % Compute and apply local histogram-equalization color corrections.
 % Corrections are computed for each column based on the histogram for sand
@@ -21,12 +21,13 @@ function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
 %   width = Scalar, double, half-width of the sliding window for quantile
 %       calculations, in (whole) pixels, default = 50; 
 %
-%   out = 2D matrix, size(mask), double, normalized intensity image derived from
+%   img = 2D matrix, size(mask), double, normalized intensity image derived from
 %     rgb, histogram is approximately uniform
 %
 %   prm = Struct, contains all of the parameters (input and internally
 %       computed), included so that default values can be recovered.
-%       Structure member variables are: width, tiny
+%       Structure member variables are: width. (note: the struct is
+%       unecessary, but used to keep the syntax inline with other tools).
 %
 % Keith Ma, July 2015
 
@@ -49,7 +50,7 @@ val = hsv(:,:,3);
 [nrow, ncol] = size(val);
 
 % equalize histogram, column-by-column
-out = zeros([nrow, ncol]);
+img = zeros([nrow, ncol]);
 for i = 1:ncol
     
     % window indices, with symetric padding
@@ -67,13 +68,12 @@ for i = 1:ncol
     [new, old] = ecdf(val(mask_win));
     
     % correct using lookup table
-    out(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
+    img(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
 end
 
 % add a tiny offset so that no sand pixels are exactly zero
 tiny = 1e-5;
-out(mask & out==0) = out(mask & out==0)+tiny;
+img(mask & img==0) = img(mask & img==0)+tiny;
 
 % prepare parameter struct
 prm.width = width;
-prm.tiny = tiny;
