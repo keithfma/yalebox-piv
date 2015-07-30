@@ -1,4 +1,4 @@
-function [x, y] = yalebox_prep_world_coord(woco_image, npts)
+function [x, y] = yalebox_prep_world_coord(woco_image, npts, show)
 %
 %
 % Arguments:
@@ -6,6 +6,8 @@ function [x, y] = yalebox_prep_world_coord(woco_image, npts)
 %   woco_image = String, filename of the world coordinate grid image.
 %
 %   npts = Integer, number of control points to define 
+%
+%   show = True to display image in world coordinates
 %
 %   x = 1D vector, length == number of columns in coordinage grid image,
 %       double, world coordinate x-position in meters 
@@ -24,9 +26,9 @@ imshow(im)
 hold on
 
 % select npts control points interactively
-ctrl_pt_obj = impoint();
+pts = impoint();
 for i = 2:npts
-    ctrl_pt_obj(end+1) = impoint(); %#ok
+    pts(end+1) = impoint(); %#ok
 end
 while 1
     if input('Enter (1) when all control points are correct: ') == 1
@@ -35,25 +37,29 @@ while 1
 end
 
 % get control point positions in image coordinates (col, row)
-ctrl_pt_image = nan(npts, 2);
+xp = nan(npts,1);
+yp = nan(npts,1);
 for i = 1:npts
-    ctrl_pt_image(i,:) = ctrl_pt_obj(i).getPosition();
-    delete(ctrl_pt_obj(i));
+    tmp = pts(i).getPosition();
+    xp(i) = tmp(1);
+    yp(i) = tmp(2);
+    delete(pts(i));
 end
 
 % review control points and enter positions in world coordinate (x, y)
-ctrl_pt_world = nan(npts, 2);
+xw = nan(npts,1);
+yw = nan(npts,1);
 i = 1;
 while i <= npts
     
     % request x, y position from user
-    this = plot(ctrl_pt_image(i,1), ctrl_pt_image(i,2), '*r');
+    this = plot(xp(i), yp(i), '*r');
     try 
         tmp = inputdlg({'X', 'Y'}, 'Input world coordinates in meters as X, Y');
         delete(this);
-        ctrl_pt_world(i, 1) = str2num(tmp{1});
-        ctrl_pt_world(i, 2) = str2num(tmp{2});
-    catch err
+        xw(i) = str2num(tmp{1});
+        yw(i) = str2num(tmp{2});
+    catch
         if isempty(tmp) 
             return
         else
@@ -62,34 +68,34 @@ while i <= npts
     end
     
     % next point
-    plot(ctrl_pt_image(i,1), ctrl_pt_image(i,2), '*k');
-    text(ctrl_pt_image(i,1), ctrl_pt_image(i,2), ...
-        sprintf('%.2f, %.2f', ctrl_pt_world(i,1), ctrl_pt_world(i,2)),...
+    plot(xp(i), yp(i), '*k');
+    text(xp(i), yp(i), ...
+        sprintf('%.2f, %.2f', xw(i), yw(i)),...
         'VerticalAlignment', 'Bottom',...
         'HorizontalAlignment', 'Center');
     i = i+1;
 end
 
-% best-fit for transformation equation world = m*pixel+b
+% best-fit for transformation equation world = scale*pixel+offset
+tmp = [xp, ones(npts,1)]\xw;
+x_scale = tmp(1);
+x_offset = tmp(2);
 
-% x-dir
-param = [ctrl_pt_image(:,1), ones(npts,1)]\ctrl_pt_world(i,:);
-
-keyboard
-% % x-dir
-% A = [ones(npts,1), xp(:), yp(:)];
-% param = A\xw;
-% xw0 = param(1);
-% Jp2w(1,1) = param(2);
-% Jp2w(1,2) = param(3);
-% 
-% % y-dir
-% param = A\yw;
-% yw0fit = param(1);
-% Jp2w(2,1) = param(2);
-% Jp2w(2,2) = param(3);
-
+tmp = [yp, ones(npts,1)]\yw;
+y_scale = tmp(1);
+y_offset = tmp(2);
 
 % create coordinate vectors
+x = (1:size(im,2))*x_scale+x_offset;
+y = (1:size(im,1))*y_scale+y_offset;
 
-keyboard
+% (optional) show image with best-fit world coordinates
+if show
+    figure()
+    imagesc(x,y,rgb2gray(im));
+    colormap(gray);
+    grid on
+    title('Best-fit world coordinates')
+    xlabel('X, meters');
+    ylabel('Y, meters');
+end
