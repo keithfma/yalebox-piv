@@ -1,9 +1,11 @@
-function [x, y] = yalebox_prep_world_coord(woco_image)
+function [x, y] = yalebox_prep_world_coord(woco_image, npts)
 %
 %
 % Arguments:
 %
 %   woco_image = String, filename of the world coordinate grid image.
+%
+%   npts = Integer, number of control points to define 
 %
 %   x = 1D vector, length == number of columns in coordinage grid image,
 %       double, world coordinate x-position in meters 
@@ -14,21 +16,23 @@ function [x, y] = yalebox_prep_world_coord(woco_image)
 % Keith Ma, July 2015
 
 % check for sane arguments
+% npts >= 4
 
 % display coordinate grid image
 im = imread(woco_image);
 imshow(im)
 hold on
 
-% select control points interactively - minimum of 4 points, no maximum
-ctrl_pt_obj = [impoint(), impoint(), impoint()];
+% select npts control points interactively
+ctrl_pt_obj = impoint();
+for i = 2:npts
+    ctrl_pt_obj(end+1) = impoint(); %#ok
+end
 while 1
-    ctrl_pt_obj(end+1) = impoint();
-    if input('Enter (1) to stop adding points: ') == 1;
+    if input('Enter (1) when all control points are correct: ') == 1
         break
     end
 end
-npts = numel(ctrl_pt_obj);
 
 % get control point positions in image coordinates (col, row)
 ctrl_pt_image = nan(npts, 2);
@@ -37,7 +41,7 @@ for i = 1:npts
     delete(ctrl_pt_obj(i));
 end
 
-% review control points and enter positions
+% review control points and enter positions in world coordinate (x, y)
 ctrl_pt_world = nan(npts, 2);
 i = 1;
 while i <= npts
@@ -61,11 +65,9 @@ while i <= npts
     i = i+1;
 end
 
-
 % best-fit scale and offset parameters
 
 
 % create coordinate vectors
-
 
 keyboard
