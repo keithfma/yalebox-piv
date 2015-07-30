@@ -1,5 +1,5 @@
-function [mask] = correct_mask_manual(rgb)
-% function [mask] = correct_mask_manual(rgb)
+function [mask] = yalebox_prep_mask_manual(rgb)
+% function [mask] = yalebox_prep_mask_manual(rgb)
 %
 % Interactively create a mask to black out region(s) of an image.
 %

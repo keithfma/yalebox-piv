@@ -1,5 +1,5 @@
-function [eql] = correct_color_eq(rgb, mask, width)
-% function [eql] = correct_color(rgb, mask, width)
+function [out] = yalebox_prep_intensity(rgb, mask, width)
+% function [out] = yalebox_prep_intensity(rgb, mask, width)
 %
 % Compute and apply local histogram-equalization color corrections.
 % Corrections are computed for each column based on the histogram for sand
@@ -20,6 +20,9 @@ function [eql] = correct_color_eq(rgb, mask, width)
 %
 %   width = Scalar, double, half-width of the sliding window for quantile
 %       calculations, in (whole) pixels, default = 50; 
+%
+%   out = 2D matrix, size(mask), double, normalized intensity image derived from
+%     rgb, histogram is approximately uniform
 %
 % Keith Ma, July 2015
 
@@ -42,7 +45,7 @@ val = hsv(:,:,3);
 [nrow, ncol] = size(val);
 
 % equalize histogram, column-by-column
-eql = zeros([nrow, ncol]);
+out = zeros([nrow, ncol]);
 for i = 1:ncol
     
     % window indices, with symetric padding
@@ -60,8 +63,8 @@ for i = 1:ncol
     [new, old] = ecdf(val(mask_win));
     
     % correct using lookup table
-    eql(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
+    out(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
 end
 
 % add a tiny offset so that no sand pixels are exactly zero
-eql(mask & eql==0) = eql(mask & eql==0)+1e-5;
+out(mask & out==0) = out(mask & out==0)+1e-5;

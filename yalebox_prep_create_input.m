@@ -1,5 +1,4 @@
-function [] = create_piv_input(input_file, image_files, param)
-% function [] = create_piv_input(files, param)
+function [] = yalebox_prep_create_input(input_file, image_files, param)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
