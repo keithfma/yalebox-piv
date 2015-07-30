@@ -70,7 +70,24 @@ while i <= npts
     i = i+1;
 end
 
-% best-fit scale and offset parameters
+% best-fit for transformation equation world = m*pixel+b
+
+% x-dir
+param = [ctrl_pt_image(:,1), ones(npts,1)]\ctrl_pt_world(i,:);
+
+keyboard
+% % x-dir
+% A = [ones(npts,1), xp(:), yp(:)];
+% param = A\xw;
+% xw0 = param(1);
+% Jp2w(1,1) = param(2);
+% Jp2w(1,2) = param(3);
+% 
+% % y-dir
+% param = A\yw;
+% yw0fit = param(1);
+% Jp2w(2,1) = param(2);
+% Jp2w(2,2) = param(3);
 
 
 % create coordinate vectors
