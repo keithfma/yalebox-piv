@@ -50,10 +50,10 @@ while i <= npts
     this = plot(ctrl_pt_image(i,1), ctrl_pt_image(i,2), '*r');
     try 
         tmp = inputdlg({'X', 'Y'}, 'Input world coordinates in meters as X, Y');
-        
         delete(this);
-        ctrl_pt_world(i, :) = str2num(cell2mat(tmp));
-    catch
+        ctrl_pt_world(i, 1) = str2num(tmp{1});
+        ctrl_pt_world(i, 2) = str2num(tmp{2});
+    catch err
         if isempty(tmp) 
             return
         else
