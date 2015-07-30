@@ -1,5 +1,9 @@
-function [mask] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, ...
-                               median_window, entropy_window, opening_radius, show)
+function [mask, prm] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, ...
+                                entropy_lim, median_window, entropy_window, ...
+                                opening_radius, show)
+% function [mask, prm] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, ...
+%                                 entropy_lim, median_window, entropy_window, ...
+%                                 opening_radius, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -39,6 +43,11 @@ function [mask] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, .
 %
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
+%
+%   prm = Struct, contains all of the parameters (input and internally
+%       computed), included so that default values can be recovered.
+%       Structure member variables are: hue_lim, value_lim, entropy_lim,
+%       median_window, entropy_window, opening_radius
 %
 % Keith Ma, July 2015
 
@@ -131,3 +140,11 @@ if show
     subplot(2,1,1); imagesc(rgb2gray(rgb)); title('original'); set(gca,'XTick', [], 'YTick',[])
     subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
 end
+
+% prepare parameter struct
+prm.hue_lim = hue_lim;
+prm.value_lim = value_lim;
+prm.entropy_lim = entropy_lim; 
+prm.median_window = median_window;
+prm.entropy_window = entropy_window;
+prm.opening_radius = opening_radius;

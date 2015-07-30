@@ -24,7 +24,7 @@ function [out, prm] = yalebox_prep_intensity(rgb, mask, width)
 %   out = 2D matrix, size(mask), double, normalized intensity image derived from
 %     rgb, histogram is approximately uniform
 %
-%   prm = Struct,  contains all of the parameters (input and internally
+%   prm = Struct, contains all of the parameters (input and internally
 %       computed), included so that default values can be recovered.
 %       Structure member variables are: width, tiny
 %
