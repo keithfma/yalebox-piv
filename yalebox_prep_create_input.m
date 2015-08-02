@@ -65,35 +65,35 @@ end
 % create netcdf file
 ncid = netcdf.create(input_file, 'NETCDF4');
 
+% add global attributes 
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord x_scale', x_scale);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord y_scale', y_scale);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord x_offset', x_offset);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord y_offset', y_offset);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto value_lim', value_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto entropy_lim', entropy_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto median_window', median_window);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto entropy_window', entropy_window);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto morph_radius', morph_radius);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_intensity histeq_width', histeq_width);
+
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
 y_dimid = netcdf.defDim(ncid, 'y', numel(y));
 s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
 
-% create groups with attributes
-p_grpid = netcdf.defGrp(ncid, 'preprocess');
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x_scale', x_scale);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y_scale', y_scale);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x_offset', x_offset);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y_offset', y_offset);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto hue_lim', hue_lim);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto value_lim', value_lim);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entropy_lim', entropy_lim);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto median_window', median_window);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entropy_window', entropy_window);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto morph_radius', morph_radius);
-netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_intensity histeq_width', histeq_width);
 
 % mask_manual
 
@@ -117,13 +117,13 @@ i_varid = netcdf.defVar(ncid, 'intensity', 'NC_DOUBLE', D3);
 netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
 netcdf.putAtt(ncid, i_varid, 'units', '1');
 
-ma_varid = netcdf.defVar(p_grpid, 'mask_auto', 'NC_BYTE', D3);
-netcdf.putAtt(p_grpid, ma_varid, 'long_name', 'sand mask, automatic');
-netcdf.putAtt(p_grpid, ma_varid, 'units', 'boolean');
+ma_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', D3);
+netcdf.putAtt(ncid, ma_varid, 'long_name', 'sand mask, automatic');
+netcdf.putAtt(ncid, ma_varid, 'units', 'boolean');
 
-mm_varid = netcdf.defVar(p_grpid, 'mask_manual', 'NC_BYTE', D2);
-netcdf.putAtt(p_grpid, mm_varid, 'long_name', 'sand mask, manual');
-netcdf.putAtt(p_grpid, mm_varid, 'units', 'boolean');
+mm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', D2);
+netcdf.putAtt(ncid, mm_varid, 'long_name', 'sand mask, manual');
+netcdf.putAtt(ncid, mm_varid, 'units', 'boolean');
 
 % finish netcdf creation
 netcdf.endDef(ncid);
@@ -134,7 +134,7 @@ ncid = netcdf.open(input_file, 'WRITE');
 netcdf.putVar(ncid, x_varid, x);
 netcdf.putVar(ncid, y_varid, y);
 netcdf.putVar(ncid, s_varid, 0:nimage-1);
-netcdf.putVar(p_grpid, mm_varid, uint8(mask_manual'));
+netcdf.putVar(ncid, mm_varid, uint8(mask_manual'));
 netcdf.close(ncid);
 
 % loop over all images
@@ -152,13 +152,9 @@ for i = 1:nimage
     % equalize intensity
     intensity = yalebox_prep_intensity(rgb, mask_auto & mask_manual, histeq_width);
     
-    % % debug
-    % mask_auto = i*ones(size(mask_manual));
-    % intensity = i*ones(size(mask_manual));
-    
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
-    netcdf.putVar(p_grpid, ma_varid, [0, 0, i-1], [image_w, image_h, 1], uint8(mask_auto'));
+    netcdf.putVar(ncid, ma_varid, [0, 0, i-1], [image_w, image_h, 1], uint8(mask_auto'));
     netcdf.putVar(ncid, i_varid, [0, 0, i-1], [image_w, image_h, 1], intensity');
     netcdf.close(ncid);
     
