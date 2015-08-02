@@ -1,5 +1,5 @@
-function mask = yalebox_prep_mask_manual(rgb)
-% function mask = yalebox_prep_mask_manual(rgb)
+function mask_manual = yalebox_prep_mask_manual(rgb)
+% function mask_manual = yalebox_prep_mask_manual(rgb)
 %
 % Interactively create a mask to black out region(s) of an image.
 %
@@ -50,5 +50,5 @@ while 1
     
 end
     
-% invert mask
-mask = ~mask;
+% invert mask and rename
+mask_manual = ~mask;

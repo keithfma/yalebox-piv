@@ -1,9 +1,9 @@
-function img = yalebox_prep_intensity(rgb, mask, width)
-% function img = yalebox_prep_intensity(rgb, mask, width)
+function img = yalebox_prep_intensity(rgb, mask, histeq_width)
+% function img = yalebox_prep_intensity(rgb, mask, histeq_width)
 %
 % Compute and apply local histogram-equalization color corrections.
 % Corrections are computed for each column based on the histogram for sand
-% pixels within "width" columns. This sliding-window approach corrects for
+% pixels within "histeq_width" columns. This sliding-window approach corrects for
 % lighting gradients in the x-direction (but not the y-direction). For
 % details on the equalization algorithm, see:
 %
@@ -16,7 +16,7 @@ function img = yalebox_prep_intensity(rgb, mask, width)
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
-%   width = Scalar, double, half-width of the sliding window for quantile
+%   histeq_width = Scalar, double, half-width of the sliding window for quantile
 %       calculations, in (whole) pixels.
 %
 %   img = 2D matrix, size(mask), double, normalized intensity image derived from
@@ -31,8 +31,8 @@ assert(isa(mask, 'logical'), ...
     'mask is not of type logical ');
 assert(size(mask,1) == size(rgb, 1) && size(mask,2) == size(rgb, 2), ...
     'mask and rgb dimensions do not match');
-assert(numel(width) == 1 && mod(width,1) == 0, ...
-    'width is not a scalar integer');
+assert(numel(histeq_width) == 1 && mod(histeq_width,1) == 0, ...
+    'histeq_width is not a scalar integer');
 
 % convert image to 2D intensity matrix
 hsv = rgb2hsv(rgb);
@@ -44,7 +44,7 @@ img = zeros([nrow, ncol]);
 for i = 1:ncol
     
     % window indices, with symetric padding
-    ind = (i-width):(i+width);
+    ind = (i-histeq_width):(i+histeq_width);
     ind(ind<=0) = abs(ind(ind<=0))+2;
     ind(ind>ncol) = 2*ncol-ind(ind>ncol);
     
