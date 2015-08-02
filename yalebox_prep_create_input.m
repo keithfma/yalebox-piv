@@ -7,12 +7,6 @@ function [] = yalebox_prep_create_input(input_file, image_files, ...
 % performs masking and color correction, and saves the results and metadata
 % in a netCDF file.
 %
-% All input parameters for the subroutines are included in the param
-% struct, and must be explicitly specified. Typically, one would first
-% experiment on a subset of images from an experiment to determine
-% successful settings, then construct the param mask and run this function
-% to process the entire series.
-%
 % Arguments:
 % 
 % input_file = String, filename of the netCDF input file to be created. 
@@ -30,8 +24,11 @@ function [] = yalebox_prep_create_input(input_file, image_files, ...
 % 
 % histeq_width = Select input argument from yalebox_prep_intensity()
 %
-% PIV input file format:
-%
+% PIV input netCDF format:
+%   groups: root, preprocess, data
+%   dimensions: root/x, root/y, root/step
+%   variables: preprocess/input_file, mask_auto, mask_manual, data/intensity
+%   attributes: preprocess/* for all preprocessing parameters
 %
 % Keith Ma, July 2015
 
