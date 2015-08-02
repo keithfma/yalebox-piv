@@ -140,20 +140,21 @@ netcdf.close(ncid);
 % loop over all images
 for i = 1:nimage
     
-    
     % read in original image
     this_file = [image_path filesep image_names{i}];
     rgb = imread(this_file);
     
     % compute automatic mask
-    
-    % merge (constant) manual mask
+    mask_auto = yalebox_prep_mask_auto(rgb, ...
+                        hue_lim, value_lim, entropy_lim, ...
+                        median_window, entropy_window, morph_radius);
     
     % equalize intensity
+    intensity = yalebox_prep_intensity(rgb, mask_auto & mask_manual, histeq_width);
     
-    % debug
-    mask_auto = i*ones(size(mask_manual));
-    intensity = i*ones(size(mask_manual));
+    % % debug
+    % mask_auto = i*ones(size(mask_manual));
+    % intensity = i*ones(size(mask_manual));
     
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
