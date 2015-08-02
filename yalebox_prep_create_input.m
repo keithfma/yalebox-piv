@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_files, ...
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, ...
                     x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, ...
                     hue_lim, value_lim, entropy_lim, median_window, ...
                     entropy_window, opening_radius, histeq_width)
@@ -11,7 +11,9 @@ function [] = yalebox_prep_create_input(input_file, image_files, ...
 % 
 % input_file = String, filename of the netCDF input file to be created. 
 %
-% images_files = Cell array of strings, cells must contain filenames for
+% image_path = String, path to folder containing the images.
+%
+% images_names = Cell array of strings, cells must contain filenames for
 %   successive images in the experiment image series. 
 %
 % x, y, x_scale, y_scale, x_offset, y_offset = Output arguments from
@@ -25,9 +27,9 @@ function [] = yalebox_prep_create_input(input_file, image_files, ...
 % histeq_width = Select input argument from yalebox_prep_intensity()
 %
 % PIV input netCDF format:
-%   groups: root, preprocess, data
+%   groups: root, preprocess, input
 %   dimensions: root/x, root/y, root/step
-%   variables: preprocess/input_file, mask_auto, mask_manual, data/intensity
+%   variables: preprocess/input_file, mask_auto, mask_manual, input/intensity
 %   attributes: preprocess/* for all preprocessing parameters
 %
 % Keith Ma, July 2015
