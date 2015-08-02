@@ -24,9 +24,9 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 % histeq_width = Select input argument from yalebox_prep_intensity()
 %
 % PIV input netCDF format:
-%   groups: root, preprocess, input
-%   dimensions: root/x, root/y, root/step
-%   variables: preprocess/input_file, mask_auto, mask_manual, input/intensity
+%   groups: preprocess
+%   dimensions: x, y, step
+%   variables: preprocess/mask_auto, preprocess/mask_manual, x, y, step, intensity
 %   attributes: preprocess/* for all preprocessing parameters
 %
 % Keith Ma, July 2015
@@ -125,29 +125,34 @@ mm_varid = netcdf.defVar(p_grpid, 'mask_manual', 'NC_BYTE', D2);
 netcdf.putAtt(p_grpid, mm_varid, 'long_name', 'sand mask, manual');
 netcdf.putAtt(p_grpid, mm_varid, 'units', 'boolean');
 
-f_varid = netcdf.defVar(p_grpid, 'orig_file', 'NC_CHAR', s_dimid);
-netcdf.putAtt(p_grpid, f_varid, 'long_name', 'file name before preprocessing');
-netcdf.putAtt(p_grpid, f_varid, 'units', 'string');
-
 % finish netcdf creation
 netcdf.endDef(ncid);
+netcdf.close(ncid);
 
-% define attributes
-
+% populate coordinate vectors
+ncid = netcdf.open(input_file, 'WRITE');
+netcdf.putVar(ncid, x_varid, x);
+netcdf.putVar(ncid, y_varid, y);
+netcdf.putVar(ncid, s_varid, 1:nimage);
 netcdf.close(ncid);
 
 % loop over all images
-
-% open netcdf file
-
-% read in original image
-
-% compute automatic mask
-
-% equalize intensity
-
-% save results
-
-% close netcdf file
-
+for i = 1:nimage
+    
+    
+    % read in original image
+    this_file = [image_path filesep image_names{i}];
+    rgb = imread(this_file);
+    
+    % compute automatic mask
+    
+    % merge (constant) manual mask
+    
+    % equalize intensity
+    
+    % save results
+    ncid = netcdf.open(input_file, 'WRITE');
+    netcdf.close(ncid);
+    
+end
 % end loop
