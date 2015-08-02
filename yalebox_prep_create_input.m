@@ -1,7 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, ...
-                    x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, ...
-                    hue_lim, value_lim, entropy_lim, median_window, ...
-                    entropy_window, opening_radius, histeq_width)
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, histeq_width)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -22,7 +19,7 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, ...
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
 % hue_lim, value_lim, entropy_lim, median_window, entropy_window,
-%   opening_radius = Select input arguments from yalebox_prep_mask_auto()
+%   morph_radius = Select input arguments from yalebox_prep_mask_auto()
 % 
 % histeq_width = Select input argument from yalebox_prep_intensity()
 %
@@ -44,10 +41,14 @@ assert(isa(image_path, 'char') && exist(image_path, 'dir') == 7, ...
 assert(isa(image_names, 'cell'), ...
     'image_names is not a cell array');
 
-% check that all images exist and have the expected size and type
-nimage = numel(image_names);
+% check that coordinate vectors match image dimensions
 image_w = size(mask_manual, 2);
 image_h = size(mask_manual, 1);
+assert(numel(x) == image_w && numel(y) == image_h, ...
+    'coordinate vectors and image are not the same size');
+
+% check that all images exist and have the expected size and type
+nimage = numel(image_names);
 for i = 1:nimage
     try
         this_file = [image_path filesep image_names{i}];
@@ -61,36 +62,92 @@ for i = 1:nimage
     end
 end
 
-% % check parameter struct members 
-% 
-% 
-%        
-% 
-% 
-% % check that all of the image files exist
-% 
-% % check that image and mask dimensions match the coordinate vectors
-% 
-% 
-% % for i = 1:numel(image_files)
-% %     assert(exist(image_files{i}, 'file') == 2, ...
-% %         sprintf('image_files{%i} does not exist', i));
-% %    
-% %     info = iminfo(image_files{i});
-% %     if i>1
-% %         assert(info.Width == info_prev.Width && info.Height == info_prev.Height, ...
-% %             sprintf('image_files{%i} is not the same size as the previous image', i));
-% %     end
-% %     info_prev = info;
-% % end
-% %         
-%         
-% % CHECK THE CONTENTS OF THE PARAM MATRIX
-% 
-% % init netcdf file
-% % ADD PARAMETERS
-% % ADD DIMENSIONS AND VARIABLES
-% 
-% % loop over all images
-% 
-% % read in original image
+% create netcdf file
+ncid = netcdf.create(input_file, 'NETCDF4');
+
+% create dimensions
+x_dimid = netcdf.defDim(ncid, 'x', numel(x));
+y_dimid = netcdf.defDim(ncid, 'y', numel(y));
+s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
+
+% create groups with attributes
+p_grpid = netcdf.defGrp(ncid, 'preprocess');
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord x_scale', x_scale);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord y_scale', y_scale);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord x_offset', x_offset);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_world_coord y_offset', y_offset);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto value_lim', value_lim);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto entropy_lim', entropy_lim);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto median_window', median_window);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto entropy_window', entropy_window);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto morph_radius', morph_radius);
+netcdf.putAtt(p_grpid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_intensity histeq_width', histeq_width);
+
+% mask_manual
+
+% define variables with attributes
+D3 = [x_dimid, y_dimid, s_dimid];
+D2 = [x_dimid, y_dimid];
+
+x_varid = netcdf.defVar(ncid, 'x', 'NC_DOUBLE', x_dimid);
+netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
+netcdf.putAtt(ncid, x_varid, 'units', 'meters');
+
+y_varid = netcdf.defVar(ncid, 'y', 'NC_DOUBLE', y_dimid);
+netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
+netcdf.putAtt(ncid, y_varid, 'units', 'meters');
+
+s_varid = netcdf.defVar(ncid, 'step', 'NC_DOUBLE', s_dimid);
+netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
+netcdf.putAtt(ncid, s_varid, 'units', '1');
+
+i_varid = netcdf.defVar(ncid, 'intensity', 'NC_DOUBLE', D3);
+netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
+netcdf.putAtt(ncid, i_varid, 'units', '1');
+
+ma_varid = netcdf.defVar(p_grpid, 'mask_auto', 'NC_BYTE', D3);
+netcdf.putAtt(p_grpid, ma_varid, 'long_name', 'sand mask, automatic');
+netcdf.putAtt(p_grpid, ma_varid, 'units', 'boolean');
+
+mm_varid = netcdf.defVar(p_grpid, 'mask_manual', 'NC_BYTE', D2);
+netcdf.putAtt(p_grpid, mm_varid, 'long_name', 'sand mask, manual');
+netcdf.putAtt(p_grpid, mm_varid, 'units', 'boolean');
+
+f_varid = netcdf.defVar(p_grpid, 'orig_file', 'NC_CHAR', s_dimid);
+netcdf.putAtt(p_grpid, f_varid, 'long_name', 'file name before preprocessing');
+netcdf.putAtt(p_grpid, f_varid, 'units', 'string');
+
+% finish netcdf creation
+netcdf.endDef(ncid);
+
+% define attributes
+
+netcdf.close(ncid);
+
+% loop over all images
+
+% open netcdf file
+
+% read in original image
+
+% compute automatic mask
+
+% equalize intensity
+
+% save results
+
+% close netcdf file
+
+% end loop

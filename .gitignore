@@ -1,4 +1,5 @@
 *~
 .*.swp
 test_data
-preprocess/matlab.mat
+matlab.mat
+*.nc

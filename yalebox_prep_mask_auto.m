@@ -1,10 +1,10 @@
 function mask = yalebox_prep_mask_auto(rgb, ...
                         hue_lim, value_lim, entropy_lim, ...
-                        median_window, entropy_window, opening_radius, show)
+                        median_window, entropy_window, morph_radius, show)
 %
 % function mask = yalebox_prep_mask_auto(rgb, ...
 %                         hue_lim, value_lim, entropy_lim, ...
-%                         median_window, entropy_window, opening_radius, show)
+%                         median_window, entropy_window, morph_radius, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -31,8 +31,8 @@ function mask = yalebox_prep_mask_auto(rgb, ...
 %
 %   entropy_window = scalar, integer, window size in pixels for entropy filter.
 %
-%   opening_radius = scalar, double, radius of disk structuring element used in
-%     mophological opening filter. 
+%   morph_radius = scalar, double, radius of disk structuring element used in
+%     mophological opening/closing filter. 
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
@@ -63,8 +63,8 @@ assert(numel(median_window) == 1 && median_window > 0 && ...
 assert(numel(entropy_window) == 1 && entropy_window > 0 && ...
     round(entropy_window) == entropy_window, ...
     'entropy_window is not a positive integer');
-assert(numel(opening_radius) == 1 && opening_radius > 0, ...
-    'opening_radius is not a positive scalar');
+assert(numel(morph_radius) == 1 && morph_radius > 0, ...
+    'morph_radius is not a positive scalar');
 if nargin == 7; show = false; end
 assert(numel(show) == 1 && ismember(show, [0, 1]), ...
     'show is not 1 or 0');
@@ -104,7 +104,7 @@ mask = imfill(mask, 'holes');
 mask = mask(:, 2:end-1);
 
 % clean up edges with morphological filters 
-disk = strel('disk', opening_radius);
+disk = strel('disk', morph_radius);
 mask = imopen(imclose(mask, disk), disk);
 
 % (optional) plot to facilitate parameter selection
