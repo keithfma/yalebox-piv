@@ -58,7 +58,7 @@ for i = 1:nimage
         assert(info.BitDepth == 24, ...
             sprintf('incorrect bit depth in image %s', this_file));
     catch 
-        error(sprintf('Unable to read image %i: %s', i, this_file));
+        error('Unable to read image %i: %s', i, this_file);
     end
 end
 
@@ -133,7 +133,7 @@ netcdf.close(ncid);
 ncid = netcdf.open(input_file, 'WRITE');
 netcdf.putVar(ncid, x_varid, x);
 netcdf.putVar(ncid, y_varid, y);
-netcdf.putVar(ncid, s_varid, 1:nimage);
+netcdf.putVar(ncid, s_varid, 0:nimage-1);
 netcdf.putVar(p_grpid, mm_varid, uint8(mask_manual'));
 netcdf.close(ncid);
 
@@ -153,10 +153,12 @@ for i = 1:nimage
     
     % debug
     mask_auto = i*ones(size(mask_manual));
+    intensity = i*ones(size(mask_manual));
     
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
     netcdf.putVar(p_grpid, ma_varid, [0, 0, i-1], [image_w, image_h, 1], uint8(mask_auto'));
+    netcdf.putVar(ncid, i_varid, [0, 0, i-1], [image_w, image_h, 1], intensity');
     netcdf.close(ncid);
     
 end
