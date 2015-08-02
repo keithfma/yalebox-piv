@@ -60,11 +60,13 @@ for i = 1:ncol
     mask_win = false(size(mask));
     mask_win(:,ind) = mask(:,ind);
     
-    % lookup table (empirical cdf for sand pixels in window)
-    [new, old] = ecdf(val(mask_win));
-    
     % correct using lookup table
-    img(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
+    sand = val(mask_win);
+    if ~isempty(sand)
+        [new, old] = ecdf(sand);
+        img(mask_col) = interp1(old(2:end), new(2:end), val(mask_col));
+    end
+    
 end
 
 % add a tiny offset so that no sand pixels are exactly zero
