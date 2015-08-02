@@ -94,9 +94,6 @@ x_dimid = netcdf.defDim(ncid, 'x', numel(x));
 y_dimid = netcdf.defDim(ncid, 'y', numel(y));
 s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
 
-
-% mask_manual
-
 % define variables with attributes
 D3 = [x_dimid, y_dimid, s_dimid];
 D2 = [x_dimid, y_dimid];
