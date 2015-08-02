@@ -1,5 +1,5 @@
-function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
-% function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
+function img = yalebox_prep_intensity(rgb, mask, width)
+% function img = yalebox_prep_intensity(rgb, mask, width)
 %
 % Compute and apply local histogram-equalization color corrections.
 % Corrections are computed for each column based on the histogram for sand
@@ -9,8 +9,6 @@ function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
 %
 % http://fourier.eng.hmc.edu/e161/lectures/contrast_transform/node2.html
 %
-% All arguments are required - default values are used where inputs are []
-%
 % Arguments:
 %
 %   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
@@ -19,20 +17,12 @@ function [img, prm] = yalebox_prep_intensity(rgb, mask, width)
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
 %   width = Scalar, double, half-width of the sliding window for quantile
-%       calculations, in (whole) pixels, default = 50; 
+%       calculations, in (whole) pixels.
 %
 %   img = 2D matrix, size(mask), double, normalized intensity image derived from
 %     rgb, histogram is approximately uniform
 %
-%   prm = Struct, contains all of the parameters (input and internally
-%       computed), included so that default values can be recovered.
-%       Structure member variables are: width. (note: the struct is
-%       unecessary, but used to keep the syntax inline with other tools).
-%
 % Keith Ma, July 2015
-
-% set defaults
-if isempty(width); width = 50; end
 
 % check for sane inputs
 assert(isa(rgb, 'uint8') && size(rgb,3) == 3, ...
@@ -74,6 +64,3 @@ end
 % add a tiny offset so that no sand pixels are exactly zero
 tiny = 1e-5;
 img(mask & img==0) = img(mask & img==0)+tiny;
-
-% prepare parameter struct
-prm.width = width;

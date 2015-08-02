@@ -1,5 +1,8 @@
-function [x, y, prm] = yalebox_prep_world_coord(woco_image, npts, show)
-% function [x, y, prm] = yalebox_prep_world_coord(woco_image, npts, show)
+function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
+                yalebox_prep_world_coord(woco_image, npts, show)
+%
+% function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
+%                 yalebox_prep_world_coord(woco_image, npts, show)
 %
 % Compute the best-fit cartesian coordinate system for the coordinate grid
 % image "woco_image". As a result of previous preprocessing steps (i.e.
@@ -18,32 +21,31 @@ function [x, y, prm] = yalebox_prep_world_coord(woco_image, npts, show)
 %
 %   npts = Integer, number of control points to define, must be >= 4 to
 %       provide sufficient infomation to fit four coordinate transformation
-%       parameters, default = 4
+%       parameters
 %
-%   show = True to display image in world coordinates, default = true
+%   show = (Optional) Scalar, logical flag, set true to display image in
+%       world coordinates, default = false
 %
 %   x = 1D vector, length == number of columns in coordinage grid image,
 %       double, world coordinate x-position in meters 
 %
 %   y = 1D vector, length == number of rows in coordinage grid image,
 %       double, world coordinate y-position in meters 
+% 
+%   x_scale, y_scale = Scalar, double, scaling factor to convert length in
+%       pixels to meters, units are meters/pixel
 %
-%   prm = Struct, contains all of the parameters (input and internally
-%       computed), included so that default values can be recovered.
-%       Structure member variables are: woco_image, npts, x_scale,
-%       x_offset, y_scale, y_offset
+%   x_offset, y_offset = Scalar double, offset to be added to properly set
+%       the origin, units are meters
 %
 % Keith Ma, July 2015
-
-% set defaults
-if isempty(npts); npts = 4; end
-if isempty(show); show = true; end
 
 % check for sane arguments
 assert(isa(woco_image, 'char') && exist(woco_image, 'file') == 2, ...
     'woco_image is not a valid filename');
 assert(numel(npts) == 1 && mod(npts, 1) == 0 && npts >= 4, ...
     'npts is not a scalar integer greater than 4.');
+if nargin == 2; show = false; end
 assert(numel(show) == 1 && (show == 1 || show == 0), ...
     'show is not a scalar logical flag.');
 
@@ -84,8 +86,8 @@ while i <= npts
     try 
         tmp = inputdlg({'X', 'Y'}, 'Input world coordinates in meters as X, Y');
         delete(this);
-        xw(i) = str2num(tmp{1});
-        yw(i) = str2num(tmp{2});
+        xw(i) = str2double(tmp{1});
+        yw(i) = str2double(tmp{2});
     catch
         if isempty(tmp) 
             return
@@ -126,12 +128,3 @@ if show
     xlabel('X, meters');
     ylabel('Y, meters');
 end
-
-% prepare parameter struct
-prm.woco_image = woco_image;
-prm.npts = npts;
-prm.x_scale = x_scale;
-prm.x_offset = x_offset;
-prm.y_scale = y_scale;
-prm.y_offset = y_offset;
-

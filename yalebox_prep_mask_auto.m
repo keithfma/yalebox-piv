@@ -1,9 +1,10 @@
-function [mask, prm] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, ...
-                                entropy_lim, median_window, entropy_window, ...
-                                opening_radius, show)
-% function [mask, prm] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, ...
-%                                 entropy_lim, median_window, entropy_window, ...
-%                                 opening_radius, show)
+function mask = yalebox_prep_mask_auto(rgb, ...
+                        hue_lim, value_lim, entropy_lim, ...
+                        median_window, entropy_window, opening_radius, show)
+%
+% function mask = yalebox_prep_mask_auto(rgb, ...
+%                         hue_lim, value_lim, entropy_lim, ...
+%                         median_window, entropy_window, opening_radius, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -11,54 +12,35 @@ function [mask, prm] = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, ...
 % remapping to HSV colorspace, filtering and thresholding the "hue" and "value"
 % bands.
 %
-% All arguments MUST be provided. Default values will be used for any arguments
-% set to the empty matrix []. The default values were effective for test data
-% used in development, but are unlikely to work for all images. 
-%
 % Arguments:
 %
 %   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
 %       MATLAB with imread()
 %
 %   hue_lim = 2-element vector, double, range [0, 1]. [minimum, maximum] HSV
-%     "hue" included as sand in the mask. Default = [0.0, 0.5]
+%     "hue" included as sand in the mask.
 %
 %   value_lim = 2-element vector, double, range [0,1]. [minimum, maximum] HSV
-%     "value" included as sand in the mask, . Default = [0.0, 0.5]
+%     "value" included as sand in the mask.
 %
 %   entropy_lim = 2-element vector, double, range [0, 1]. [minimum, maximum]
-%     entropy included as sand in the mask. Default = [0.5, 1.0]
+%     entropy included as sand in the mask. 
 %
 %   median_window = scalar, integer, window size in pixels for median filter
-%     applied to mask. Default = 25.
+%     applied to mask.
 %
 %   entropy_window = scalar, integer, window size in pixels for entropy filter.
-%     Default = 9.
 %
 %   opening_radius = scalar, double, radius of disk structuring element used in
-%     mophological opening filter. Default = 10.
+%     mophological opening filter. 
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
-%       facilitate the parameter selection process, default = false().
+%       facilitate the parameter selection process, default = false.
 %
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
 %
-%   prm = Struct, contains all of the parameters (input and internally
-%       computed), included so that default values can be recovered.
-%       Structure member variables are: hue_lim, value_lim, entropy_lim,
-%       median_window, entropy_window, opening_radius
-%
 % Keith Ma, July 2015
-
-% set default values
-if isempty(hue_lim); hue_lim = [0.0, 0.5]; end
-if isempty(value_lim); value_lim = [0.0, 0.5]; end
-if isempty(entropy_lim); entropy_lim = [0.5, 1.0]; end
-if isempty(median_window); median_window = 25; end
-if isempty(entropy_window); entropy_window = 9; end
-if isempty(opening_radius); opening_radius = 10; end
-if isempty(show); show = false(); end
 
 % check for sane arguments, set default values
 assert(isa(rgb, 'uint8') && size(rgb,3) == 3, ...
@@ -83,6 +65,7 @@ assert(numel(entropy_window) == 1 && entropy_window > 0 && ...
     'entropy_window is not a positive integer');
 assert(numel(opening_radius) == 1 && opening_radius > 0, ...
     'opening_radius is not a positive scalar');
+if nargin == 7; show = false; end
 assert(numel(show) == 1 && ismember(show, [0, 1]), ...
     'show is not 1 or 0');
 
@@ -140,11 +123,3 @@ if show
     subplot(2,1,1); imagesc(rgb2gray(rgb)); title('original'); set(gca,'XTick', [], 'YTick',[])
     subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
 end
-
-% prepare parameter struct
-prm.hue_lim = hue_lim;
-prm.value_lim = value_lim;
-prm.entropy_lim = entropy_lim; 
-prm.median_window = median_window;
-prm.entropy_window = entropy_window;
-prm.opening_radius = opening_radius;
