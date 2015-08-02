@@ -105,7 +105,7 @@ mask = mask(:, 2:end-1);
 
 % clean up edges with morphological filters 
 disk = strel('disk', morph_radius);
-mask = imopen(imclose(mask, disk), disk);
+mask = imclose(imopen(mask, disk), disk);
 
 % (optional) plot to facilitate parameter selection
 if show
