@@ -129,11 +129,12 @@ netcdf.putAtt(p_grpid, mm_varid, 'units', 'boolean');
 netcdf.endDef(ncid);
 netcdf.close(ncid);
 
-% populate coordinate vectors
+% populate constant variables
 ncid = netcdf.open(input_file, 'WRITE');
 netcdf.putVar(ncid, x_varid, x);
 netcdf.putVar(ncid, y_varid, y);
 netcdf.putVar(ncid, s_varid, 1:nimage);
+netcdf.putVar(p_grpid, mm_varid, uint8(mask_manual'));
 netcdf.close(ncid);
 
 % loop over all images
@@ -150,8 +151,12 @@ for i = 1:nimage
     
     % equalize intensity
     
+    % debug
+    mask_auto = i*ones(size(mask_manual));
+    
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
+    netcdf.putVar(p_grpid, ma_varid, [0, 0, i-1], [image_w, image_h, 1], uint8(mask_auto'));
     netcdf.close(ncid);
     
 end
