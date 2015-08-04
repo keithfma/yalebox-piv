@@ -94,8 +94,9 @@ x_dimid = netcdf.defDim(ncid, 'x', numel(x));
 y_dimid = netcdf.defDim(ncid, 'y', numel(y));
 s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
 
-% define variables with attributes
+% define variables with attributes, compression, and chunking
 D3 = [x_dimid, y_dimid, s_dimid];
+C3 = [numel(x), numel(y), 1];
 D2 = [x_dimid, y_dimid];
 
 x_varid = netcdf.defVar(ncid, 'x', 'NC_DOUBLE', x_dimid);
@@ -113,14 +114,19 @@ netcdf.putAtt(ncid, s_varid, 'units', '1');
 i_varid = netcdf.defVar(ncid, 'intensity', 'NC_DOUBLE', D3);
 netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
 netcdf.putAtt(ncid, i_varid, 'units', '1');
+netcdf.defVarDeflate(ncid, i_varid, true, true, 1);
+netcdf.defVarChunking(ncid, i_varid, 'CHUNKED', C3);
 
 ma_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', D3);
 netcdf.putAtt(ncid, ma_varid, 'long_name', 'sand mask, automatic');
 netcdf.putAtt(ncid, ma_varid, 'units', 'boolean');
+netcdf.defVarDeflate(ncid, ma_varid, true, true, 1);
+netcdf.defVarChunking(ncid, ma_varid, 'CHUNKED', C3);
 
 mm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', D2);
 netcdf.putAtt(ncid, mm_varid, 'long_name', 'sand mask, manual');
 netcdf.putAtt(ncid, mm_varid, 'units', 'boolean');
+netcdf.defVarDeflate(ncid, mm_varid, true, true, 1);
 
 % finish netcdf creation
 netcdf.endDef(ncid);
