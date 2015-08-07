@@ -1,5 +1,5 @@
-function mask = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, show)
-% function mask = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, show)
+function mask = yalebox_prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, show)
+% function mask = yalebox_prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -9,8 +9,7 @@ function mask = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, med
 %
 % Arguments:
 %
-%   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
-%       MATLAB with imread()
+%   hsv = 3D matrix, double, Color image in HSV colorspace.
 %
 %   hue_lim = 2-element vector, double, range [0, 1]. [minimum, maximum] HSV
 %     "hue" included as sand in the mask.
@@ -38,8 +37,8 @@ function mask = yalebox_prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, med
 % Keith Ma, July 2015
 
 % check for sane arguments, set default values
-%assert(isa(rgb, 'uint8') && size(rgb,3) == 3, ...
-%    'img_rgb is not a 24-bit RGB image');
+assert(isa(hsv, 'double') && size(hsv,3) == 3, ...
+    'hsv is not a HSV image');
 assert(numel(hue_lim)==2 && min(size(hue_lim)) == 1, ...
     'hue_lim is not a 2-element vector');
 assert(min(hue_lim) >= 0 && max(hue_lim) <= 1, ...
@@ -65,12 +64,10 @@ assert(numel(show) == 1 && ismember(show, [0, 1]), ...
     'show is not 1 or 0');
 
 % get hue, value, and entropy, normalized to the range [0, 1]
-hsv = rgb2hsv(rgb); 
 hue = hsv(:,:,1);
 value = hsv(:,:,3);
 entropy = entropyfilt(value, true(entropy_window));
 
-% normalize range to [0,1]
 hue = hue-min(hue(:)); hue = hue./max(hue(:));
 value = value-min(value(:)); value = value./max(value(:));
 entropy = entropy-min(entropy(:)); entropy = entropy./max(entropy(:));
@@ -115,6 +112,6 @@ if show
     
     figure()    
     colormap(gray);
-    subplot(2,1,1); imagesc(rgb2gray(rgb)); title('original'); set(gca,'XTick', [], 'YTick',[])
+    subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
     subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
 end
