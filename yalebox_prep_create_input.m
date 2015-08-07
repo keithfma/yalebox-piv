@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, num_tiles)
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, num_tiles)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -18,8 +18,8 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 %
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
-% hue_lim, value_lim, entropy_lim, median_window, entropy_window,
-%   morph_radius = Select input arguments from yalebox_prep_mask_auto()
+% hue_lim, val_lim, entr_lim, med_win, entr_win,
+%   morph_rad = Select input arguments from yalebox_prep_mask_auto()
 %
 % num_tiles = Input argument from yalebox_prep_intensity()
 %
@@ -78,15 +78,15 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto hue_lim', hue_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto value_lim', value_lim);
+    'yalebox_prep_mask_auto val_lim', val_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entropy_lim', entropy_lim);
+    'yalebox_prep_mask_auto entr_lim', entr_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto median_window', median_window);
+    'yalebox_prep_mask_auto med_win', med_win);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entropy_window', entropy_window);
+    'yalebox_prep_mask_auto entr_win', entr_win);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto morph_radius', morph_radius);
+    'yalebox_prep_mask_auto morph_rad', morph_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_intensity num_tiles', num_tiles);
 
@@ -151,7 +151,7 @@ for i = 1:nimage
     hsv = rgb2hsv(rgb);
     
     % compute automatic mask
-    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius);
+    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad);
     
     % equalize intensity
     intensity = yalebox_prep_intensity(hsv, mask_auto, num_tiles);
