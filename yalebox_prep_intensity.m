@@ -1,5 +1,5 @@
-function img = yalebox_prep_intensity(rgb, mask, num_tiles, show)
-% function img = yalebox_prep_intensity(rgb, mask, show)
+function img = yalebox_prep_intensity(hsv, mask, num_tiles, show)
+% function img = yalebox_prep_intensity(hsv, mask, num_tiles, show)
 %
 % Apply local histogram-equalization color correction, ignoring non-sand
 % pixels. This is done using a modified version of MATLAB's adapthisteq()
@@ -7,8 +7,7 @@ function img = yalebox_prep_intensity(rgb, mask, num_tiles, show)
 %
 % Arguments:
 %
-%   rgb = 3D matrix, uint8, a 24-bit "Truecolor" RGB image, as read into
-%       MATLAB with imread()
+%   hsv = 3D matrix, double, Color image in HSV colorspace.
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
@@ -26,11 +25,11 @@ function img = yalebox_prep_intensity(rgb, mask, num_tiles, show)
 % Keith Ma, July 2015
 
 % check for sane inputs
-assert(isa(rgb, 'uint8') && size(rgb,3) == 3, ...
-     'rgb is not a Truecolor (24-bit) RGB image');
+assert(isa(hsv, 'double') && size(hsv,3) == 3, ...
+    'hsv is not a HSV image');
 assert(isa(mask, 'logical'), ...
     'mask is not of type logical ');
-assert(size(mask,1) == size(rgb, 1) && size(mask,2) == size(rgb, 2), ...
+assert(size(mask,1) == size(hsv, 1) && size(mask,2) == size(hsv, 2), ...
     'mask and rgb dimensions do not match');
 assert(numel(num_tiles) == 2 & ...
     mod(num_tiles(1), 1) == 0 & ...
@@ -44,13 +43,8 @@ assert(numel(show) == 1 && (show == 0 || show == 1), ...
 clip_limit = 1;
 num_bins = 1e4;
 
-% rgb -> intensity, apply mask
-hsv = rgb2hsv(rgb);
-val = hsv(:,:,3);
-val(~mask) = 0;
-
 % local histogram equalization (CLAHE) ignoring non-sand pixels
-img = adapthisteq(val, ...
+img = masked_adapthisteq(hsv(:,:,3), mask, ...
         'NumTiles', num_tiles, ...
         'NBins', num_bins, ...
         'ClipLimit', clip_limit, ...
@@ -65,7 +59,7 @@ if show
     figure()
     subplot(2,1,1)
     title('original intensity')
-    imagesc(val); 
+    imagesc(hsv(:,:,3)); 
     caxis([0,1]);
     subplot(2,1,2)
     title('equalized intensity')
