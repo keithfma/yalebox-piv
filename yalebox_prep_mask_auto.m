@@ -1,5 +1,5 @@
-function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, show)
-% function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, show)
+function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
+% function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -19,8 +19,6 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, med_win,
 %
 %   entr_lim = 2-element vector, double, range [0, 1]. [minimum, maximum]
 %     entropy included as sand in the mask. 
-% 
-%   med_win = Scalar, integer, window size in pixels for median filter.
 %
 %   entr_win = scalar, integer, window size in pixels for entropy filter.
 %
@@ -50,9 +48,6 @@ validateattributes(val_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}
 validateattributes(entr_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}, ...
     'yalebox_prep_mask_auto', 'entr_lim');
 
-validateattributes(med_win, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
-    'yalebox_prep_mask_auto', 'med_win');
-
 validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
     'yalebox_prep_mask_auto', 'entr_win');
 
@@ -79,9 +74,6 @@ entropy_mask = entropy >= entr_lim(1) & entropy <= entr_lim(2);
 
 % create mask
 mask = hue_mask & value_mask & entropy_mask;
-
-% smooth, preseving edges with median filter
-mask = medfilt2(mask, med_win*[1, 1]);
 
 % fill holes - top and bottom
 wall = true(1, size(mask,2));

@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, num_tiles)
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_rad, num_tiles)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -17,8 +17,8 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 %
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
-% hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad = Select input 
-%   arguments from yalebox_prep_mask_auto()
+% hue_lim, val_lim, entr_lim, entr_win, morph_rad = Select input arguments 
+%   from yalebox_prep_mask_auto()
 %
 % num_tiles = Input argument from yalebox_prep_intensity()
 %
