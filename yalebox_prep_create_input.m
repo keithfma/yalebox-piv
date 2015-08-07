@@ -90,6 +90,14 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_intensity num_tiles', num_tiles);
 
+% add yalebox-piv git revision as attribute
+git_dir = fileparts(mfilename('fullpath'));
+git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
+[stat, git_rev] = system(git_cmd);
+assert(stat == 0, 'Failed to find yalebox-piv git revision number');
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_piv git revision', git_rev);
+    
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
 y_dimid = netcdf.defDim(ncid, 'y', numel(y));

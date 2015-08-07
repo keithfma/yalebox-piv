@@ -34,7 +34,7 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win
 % Keith Ma, July 2015
 
 % check for sane arguments, set default values
-narginchk(7,8);
+narginchk(6,7);
 
 validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1}, ...
     'yalebox_prep_intensity', 'hsv');
@@ -54,7 +54,7 @@ validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
 validateattributes(morph_rad, {'numeric'}, {'scalar', 'positive'}, ...
     'yalebox_prep_mask_auto', 'morph_rad');
 
-if nargin == 7; show = false; end
+if nargin == 6; show = false; end
 validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
     'yalebox_prep_world_coord', 'show');
 
