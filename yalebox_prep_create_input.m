@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, histeq_width)
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius, num_tiles)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -20,8 +20,8 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 %
 % hue_lim, value_lim, entropy_lim, median_window, entropy_window,
 %   morph_radius = Select input arguments from yalebox_prep_mask_auto()
-% 
-% histeq_width = Select input argument from yalebox_prep_intensity()
+%
+% num_tiles = Input argument from yalebox_prep_intensity()
 %
 % PIV input netCDF format:
 %   groups: preprocess
@@ -57,7 +57,8 @@ for i = 1:nimage
             sprintf('incorrect dimensions in image %s', this_file));
         assert(info.BitDepth == 24, ...
             sprintf('incorrect bit depth in image %s', this_file));
-    catch 
+    catch err
+        err
         error('Unable to read image %i: %s', i, this_file);
     end
 end
@@ -87,7 +88,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto morph_radius', morph_radius);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_intensity histeq_width', histeq_width);
+    'yalebox_prep_intensity num_tiles', num_tiles);
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
@@ -145,15 +146,15 @@ for i = 1:nimage
     
     % read in original image
     this_file = [image_path filesep image_names{i}];
+    fprintf('%s\n', this_file);
     rgb = imread(this_file);
+    hsv = rgb2hsv(rgb);
     
     % compute automatic mask
-    mask_auto = yalebox_prep_mask_auto(rgb, ...
-                        hue_lim, value_lim, entropy_lim, ...
-                        median_window, entropy_window, morph_radius);
+    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, median_window, entropy_window, morph_radius);
     
     % equalize intensity
-    intensity = yalebox_prep_intensity(rgb, mask_auto & mask_manual, histeq_width);
+    intensity = yalebox_prep_intensity(hsv, mask_auto, num_tiles);
     
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
