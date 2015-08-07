@@ -30,15 +30,17 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 %
 % Keith Ma, July 2015
 
-% check for sane arguments - only arguments that are unique to this
-%   function are checked, those that are passed to the yalebox_prep_*
-%   functions are checked in this procedues.
-assert(isa(input_file, 'char'), ...
-    'input_file is not a string.');
-assert(isa(image_path, 'char') && exist(image_path, 'dir') == 7, ...
-    'image_path is not a directory');
-assert(isa(image_names, 'cell'), ...
-    'image_names is not a cell array');
+% check for sane arguments - pass-through arguments are not checked
+narginchk(15, 15);
+
+validateattributes(input_file, {'char'}, {'vector'}, ...
+    'yalebox_prep_create_input', 'input_file');
+
+validateattributes(image_path, {'char'}, {'vector'}, ...
+    'yalebox_prep_create_input', 'image_path');
+
+validateattributes(image_names, {'cell'}, {'vector'}, ...
+    'yalebox_prep_create_input', 'image_names');
 
 % check that coordinate vectors match image dimensions
 image_w = size(mask_manual, 2);
@@ -56,8 +58,7 @@ for i = 1:nimage
             sprintf('incorrect dimensions in image %s', this_file));
         assert(info.BitDepth == 24, ...
             sprintf('incorrect bit depth in image %s', this_file));
-    catch err
-        err
+    catch
         error('Unable to read image %i: %s', i, this_file);
     end
 end
