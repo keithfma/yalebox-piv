@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+#  Template submission script for the BU SCC cluster scheduler
+#
+# -N yalebox_prep
+# -P glaciermod
+# -l h_rt=48:00:00
+# -j y
+
+# setup runtime environment
+module load matlab/2014b
+export MATLABPATH=/projectnb/glaciermod/sandbox-piv/:$MATLABPATH
+
+# define parameters
+param_file=fault_ss_01_sidef_param.mat
+input_file_work=$TMPDIR/tmp.nc
+input_file_dest=/projectnb/glaciermod/sandbox-tmp/input/fault_ss_01_sidef_in.nc
+image_path=/projectnb/glaciermod/sandbox-tmp/fault_ss_01/sidef/
+image_wild=$image_path'/fault_ss_01_sidef_*.png'
+
+matlab -singleCompThread -nodisplay << EOF
+load $param_file
+d = dir("$image_wild"); image_names = {d.name};
+echo yalebox_prep_create_input on
+yalebox_prep_create_input("$input_file_work", "$image_path", image_names, ...
+  x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, med_win, ...
+  entr_win, morph_rad, num_tiles);
+movefile("$input_file_work", "$input_file_dest");
+exit
+EOF
+
