@@ -1,8 +1,6 @@
-function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
-                yalebox_prep_world_coord(woco_image, npts, show)
+function [x, y, scale, offset] = yalebox_prep_world_coord(woco_image, npts, show)
+% function [x, y, scale, offset] = yalebox_prep_world_coord(woco_image, npts, show)
 %
-% function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
-%                 yalebox_prep_world_coord(woco_image, npts, show)
 %
 % Compute the best-fit cartesian coordinate system for the coordinate grid
 % image "woco_image". As a result of previous preprocessing steps (i.e.
@@ -11,8 +9,8 @@ function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
 % descrbed with four free parameters, and the x- and y-direction transforms
 % are independent. Specifically, the transformation is:
 %
-%   x_world = x_pixel*x_scale + x_offset
-%   y_world = y_pixel*y_scale + y_offset
+%   x_world = x_pixel*scale(1) + offset(1)
+%   y_world = y_pixel*scale(1) + offset(2)
 %
 % Arguments:
 %
@@ -32,22 +30,26 @@ function [x, y, x_scale, y_scale, x_offset, y_offset] = ...
 %   y = 1D vector, length == number of rows in coordinage grid image,
 %       double, world coordinate y-position in meters 
 % 
-%   x_scale, y_scale = Scalar, double, scaling factor to convert length in
-%       pixels to meters, units are meters/pixel
+%   scale = 2-element vector, double, scaling factor to convert length in
+%       pixels to meters for [x, y] axes, units are meters/pixel
 %
-%   x_offset, y_offset = Scalar double, offset to be added to properly set
-%       the origin, units are meters
+%   offset = Scalar double, offset to be added to properly set
+%       the origin for [x, y] axes, units are meters
 %
 % Keith Ma, July 2015
 
 % check for sane arguments
-assert(isa(woco_image, 'char') && exist(woco_image, 'file') == 2, ...
-    'woco_image is not a valid filename');
-assert(numel(npts) == 1 && mod(npts, 1) == 0 && npts >= 4, ...
-    'npts is not a scalar integer greater than 4.');
+narginchk(2, 3);
+
+validateattributes(woco_image, {'char'}, {'vector'}, ...
+    'yalebox_prep_world_coord', 'woco_image');
+
+validateattributes(npts, {'numeric'}, {'scalar', 'integer', '>=', 4}, ...
+    'yalebox_prep_world_coord', 'npts');
+
 if nargin == 2; show = false; end
-assert(numel(show) == 1 && (show == 1 || show == 0), ...
-    'show is not a scalar logical flag.');
+validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
+    'yalebox_prep_world_coord', 'show');
 
 % display coordinate grid image
 im = imread(woco_image);
@@ -117,6 +119,10 @@ y_offset = tmp(2);
 % create coordinate vectors
 x = (1:size(im,2))*x_scale+x_offset;
 y = (1:size(im,1))*y_scale+y_offset;
+
+% prepare output variables
+scale = [x_scale, y_scale];
+offset = [x_offset, y_offset];
 
 % (optional) show image with best-fit world coordinates
 if show

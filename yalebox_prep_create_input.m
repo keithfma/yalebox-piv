@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, x_scale, y_scale, x_offset, y_offset, mask_manual, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, num_tiles)
+function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad, num_tiles)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -13,13 +13,12 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 % images_names = Cell array of strings, cells must contain filenames for
 %   successive images in the experiment image series. 
 %
-% x, y, x_scale, y_scale, x_offset, y_offset = Output arguments from
-%   yalebox_prep_world_coord().
+% x, y, scale, offset = Output arguments from yalebox_prep_world_coord().
 %
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
-% hue_lim, val_lim, entr_lim, med_win, entr_win,
-%   morph_rad = Select input arguments from yalebox_prep_mask_auto()
+% hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad = Select input 
+%   arguments from yalebox_prep_mask_auto()
 %
 % num_tiles = Input argument from yalebox_prep_intensity()
 %
@@ -68,13 +67,13 @@ ncid = netcdf.create(input_file, 'NETCDF4');
 
 % add global attributes 
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x_scale', x_scale);
+    'yalebox_prep_world_coord x scale', scale(1));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y_scale', y_scale);
+    'yalebox_prep_world_coord y scale', scale(2));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x_offset', x_offset);
+    'yalebox_prep_world_coord x offset', offset(1));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y_offset', y_offset);
+    'yalebox_prep_world_coord y offset', offset(2));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto hue_lim', hue_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
