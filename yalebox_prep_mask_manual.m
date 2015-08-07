@@ -1,23 +1,22 @@
-function mask_manual = yalebox_prep_mask_manual(image_file)
-% function mask_manual = yalebox_prep_mask_manual(image_file)
+function mask_manual = yalebox_prep_mask_manual(img)
+% function mask_manual = yalebox_prep_mask_manual(img)
 %
 % Interactively create a mask to black out region(s) of an image.
 %
 % Arguments:
 %
-%   img = String, image filename
+%   img = Matrix, image data that can be displayed by imshow
 %
-%   mask = 2D matrix, logical, true where there is sand and false
+%   mask_manual = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
 %
 % Keith Ma, July 2015
 
 % check for sane arguments
-validateattributes(image_file, {'char'}, {'vector'}, ...
-    'yalebox_prep_mask_manual', 'image_file');
+validateattributes(img, {'numeric'}, {'3d', '2d'}, ...
+    'yalebox_prep_mask_manual', 'img');
 
 % init image and mask
-img = imread(image_file);
 imgm = img;
 mask = false(size(img,1), size(img,2));
 
