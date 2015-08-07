@@ -2,22 +2,24 @@
 #
 #  Template submission script for the BU SCC cluster scheduler
 #
-# -N yalebox_prep
-# -P glaciermod
-# -l h_rt=48:00:00
-# -j y
+##$ -N yalebox_prep
+##$ -P glaciermod
+#$ -l h_rt=48:00:00
+#$ -j y
+
+# define parameters
+yalebox_prep_path=/projectnb/glaciermod/sandbox-piv/
+param_file=
+input_file_work=$TMPDIR/tmp.nc
+input_file_dest=
+image_path=
+image_wild=$image_path'/*'
 
 # setup runtime environment
 module load matlab/2014b
-export MATLABPATH=/projectnb/glaciermod/sandbox-piv/:$MATLABPATH
+export MATLABPATH=$yalebox_prep_path:$MATLABPATH
 
-# define parameters
-param_file=fault_ss_01_sidef_param.mat
-input_file_work=$TMPDIR/tmp.nc
-input_file_dest=/projectnb/glaciermod/sandbox-tmp/input/fault_ss_01_sidef_in.nc
-image_path=/projectnb/glaciermod/sandbox-tmp/fault_ss_01/sidef/
-image_wild=$image_path'/fault_ss_01_sidef_*.png'
-
+# run
 matlab -singleCompThread -nodisplay << EOF
 load $param_file
 d = dir("$image_wild"); image_names = {d.name};
