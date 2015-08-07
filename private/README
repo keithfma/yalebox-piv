@@ -1,0 +1,3 @@
+This folder contains MATLAB components needed by modified versions of MATLAB
+toolbox functions. The exact files depend on the MATLAB version in use.
+Currently using MATLAB 2014b.

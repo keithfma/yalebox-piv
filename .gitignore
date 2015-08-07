@@ -3,3 +3,7 @@
 test_data
 matlab.mat
 *.nc
+private/grayxform.mexa64
+private/grayxformmex.mexa64
+private/imhistc.mexa64
+
