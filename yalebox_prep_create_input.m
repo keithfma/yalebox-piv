@@ -31,7 +31,7 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 % Keith Ma, July 2015
 
 % check for sane arguments - pass-through arguments are not checked
-narginchk(15, 15);
+narginchk(14, 14);
 
 validateattributes(input_file, {'char'}, {'vector'}, ...
     'yalebox_prep_create_input', 'input_file');
@@ -45,6 +45,8 @@ validateattributes(image_names, {'cell'}, {'vector'}, ...
 % check that coordinate vectors match image dimensions
 image_w = size(mask_manual, 2);
 image_h = size(mask_manual, 1);
+
+
 assert(numel(x) == image_w && numel(y) == image_h, ...
     'coordinate vectors and image are not the same size');
 
@@ -82,8 +84,6 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto entr_lim', entr_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto med_win', med_win);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto entr_win', entr_win);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto morph_rad', morph_rad);
@@ -108,19 +108,19 @@ D3 = [x_dimid, y_dimid, s_dimid];
 C3 = [numel(x), numel(y), 1];
 D2 = [x_dimid, y_dimid];
 
-x_varid = netcdf.defVar(ncid, 'x', 'NC_DOUBLE', x_dimid);
+x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
 netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
 netcdf.putAtt(ncid, x_varid, 'units', 'meters');
 
-y_varid = netcdf.defVar(ncid, 'y', 'NC_DOUBLE', y_dimid);
+y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
 netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
 netcdf.putAtt(ncid, y_varid, 'units', 'meters');
 
-s_varid = netcdf.defVar(ncid, 'step', 'NC_DOUBLE', s_dimid);
+s_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', s_dimid);
 netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
 netcdf.putAtt(ncid, s_varid, 'units', '1');
 
-i_varid = netcdf.defVar(ncid, 'intensity', 'NC_DOUBLE', D3);
+i_varid = netcdf.defVar(ncid, 'intensity', 'NC_FLOAT', D3);
 netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
 netcdf.putAtt(ncid, i_varid, 'units', '1');
 netcdf.defVarDeflate(ncid, i_varid, true, true, 1);
@@ -155,11 +155,10 @@ for i = 1:nimage
     % read in original image
     this_file = [image_path filesep image_names{i}];
     fprintf('%s\n', this_file);
-    rgb = imread(this_file);
-    hsv = rgb2hsv(rgb);
+    hsv = rgb2hsv(imread(this_file));    
     
     % compute automatic mask
-    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, med_win, entr_win, morph_rad);
+    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad);
     
     % equalize intensity
     intensity = yalebox_prep_intensity(hsv, mask_auto, num_tiles);
