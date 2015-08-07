@@ -174,10 +174,16 @@ if int16ClassChange
   out = uint16toint16mex(out);
 end
 
+% (Keith Ma: remove pad from mask)
 if ~isempty(noPadRect) %do we need to remove padding?
   out = out(noPadRect.ulRow:noPadRect.lrRow, ...
             noPadRect.ulCol:noPadRect.lrCol);
+  mask = mask(noPadRect.ulRow:noPadRect.lrRow, ...
+            noPadRect.ulCol:noPadRect.lrCol);      
 end
+
+% (Keith Ma: set masked pixels to the minimum value)
+out(~mask) = selectedRange(1);
 
 %-----------------------------------------------------------------------------
 
@@ -202,7 +208,7 @@ for col=1:numTiles(2),
 
     % for speed, call MEX file directly thus avoiding costly
     % input parsing of imhist
-    tileHist = imhistc(tile(tile_mask), numBins, 1, fullRange(2)); 
+    tileHist = imhistc(tile, numBins, 1, fullRange(2)); 
     
     tileHist = clipHistogram(tileHist, clipLimit, numBins);
     
@@ -617,7 +623,11 @@ if  ~(rowDiv && colDiv && rowEven && colEven)
   
   I = padarray(I,[padRowPre  padColPre ],'symmetric','pre');
   I = padarray(I,[padRowPost padColPost],'symmetric','post');
-
+  
+  % (Keith Ma: also pad the mask to match)
+  mask = padarray(mask,[padRowPre  padColPre ],'symmetric','pre');
+  mask = padarray(mask,[padRowPost padColPost],'symmetric','post');
+  
   %UL corner (Row, Col), LR corner (Row, Col)
   noPadRect.ulRow = padRowPre+1;
   noPadRect.ulCol = padColPre+1;
