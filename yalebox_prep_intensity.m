@@ -44,9 +44,10 @@ assert(numel(show) == 1 && (show == 0 || show == 1), ...
 clip_limit = 1;
 num_bins = 1e4;
 
-% convert image to 2D intensity matrix
+% rgb -> intensity, apply mask
 hsv = rgb2hsv(rgb);
 val = hsv(:,:,3);
+val(~mask) = 0;
 
 % local histogram equalization (CLAHE) ignoring non-sand pixels
 img = adapthisteq(val, ...
