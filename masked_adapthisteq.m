@@ -10,9 +10,13 @@ function out = adapthisteq(varargin)
 %   in homogeneous areas, can be limited in order to avoid amplifying the
 %   noise which might be present in the image.
 %
-%   J = ADAPTHISTEQ(I) Performs CLAHE on the intensity image I.
+%   (Keith Ma: This edited version includes a mask array, which is used to
+%   explicitly ignore masked regions when equalizing the contrast.)
 %
-%   J = ADAPTHISTEQ(I,PARAM1,VAL1,PARAM2,VAL2...) sets various parameters.
+%   J = ADAPTHISTEQ(I, mask) Performs CLAHE on the intensity image I,
+%   ignoring all pixels labeled as FALSE in the mask variable.
+%
+%   J = ADAPTHISTEQ(I, mask PARAM1,VAL1,PARAM2,VAL2...) sets various parameters.
 %   Parameter names can be abbreviated, and case does not matter. Each 
 %   string parameter is followed by a value as indicated below:
 %
@@ -116,6 +120,8 @@ function out = adapthisteq(varargin)
 
 %   Copyright 1993-2012 The MathWorks, Inc.
 
+%   Minor modifications by Keith Ma, August 2015
+
 %   References:
 %      Karel Zuiderveld, "Contrast Limited Adaptive Histogram Equalization",
 %      Graphics Gems IV, p. 474-485, code: p. 479-484
@@ -151,7 +157,8 @@ function out = adapthisteq(varargin)
 %
 %-----------------------------------------------------------------------------
 
-[I, selectedRange, fullRange, numTiles, dimTile, clipLimit, numBins, ...
+% (Keith Ma: added mask to input parsing routine)
+[I, mask, selectedRange, fullRange, numTiles, dimTile, clipLimit, numBins, ...
  noPadRect, distribution, alpha, int16ClassChange] = parseInputs(varargin{:});
 
 tileMappings = makeTileMappings(I, numTiles, dimTile, numBins, clipLimit, ...
@@ -406,11 +413,11 @@ end %over tile rows
 
 %-----------------------------------------------------------------------------
 
-function [I, selectedRange, fullRange, numTiles, dimTile, clipLimit,...
+function [I, mask, selectedRange, fullRange, numTiles, dimTile, clipLimit,...
           numBins, noPadRect, distribution, alpha, ...
           int16ClassChange] = parseInputs(varargin)
 
-narginchk(1,13);
+narginchk(2,14);
 
 I = varargin{1};
 validateattributes(I, {'uint8', 'uint16', 'double', 'int16', 'single'}, ...
@@ -428,6 +435,9 @@ end
 if any(size(I) < 2)
   error(message('images:adapthisteq:inputImageTooSmall'))
 end
+
+mask = varargin{2};
+validateattributes(mask, {'logical'}, {'2d', 'size', [size(I, 1), size(I, 2)]}); 
 
 %Other options
 %%%%%%%%%%%%%%
@@ -460,7 +470,7 @@ validStrings = {'NumTiles','ClipLimit','NBins','Distribution',...
 if nargin > 1
   done = false;
 
-  idx = 2;
+  idx = 3;
   while ~done
     input = varargin{idx};
     inputStr = validatestring(input, validStrings,mfilename,'PARAM',idx);
