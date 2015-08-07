@@ -1,12 +1,11 @@
-function mask_manual = yalebox_prep_mask_manual(img)
-% function mask_manual = yalebox_prep_mask_manual(img)
+function mask_manual = yalebox_prep_mask_manual(image_file)
+% function mask_manual = yalebox_prep_mask_manual(image_file)
 %
 % Interactively create a mask to black out region(s) of an image.
 %
 % Arguments:
 %
-%   img = Variable format, either 3D matrix, uint8, a 24-bit "Truecolor"
-%       RGB image, or 2D matrix, double, range [0,1] intensity image
+%   img = String, image filename
 %
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
@@ -14,13 +13,15 @@ function mask_manual = yalebox_prep_mask_manual(img)
 % Keith Ma, July 2015
 
 % check for sane arguments
-assert( (isa(img, 'uint8') && size(img,3) == 3) | ...
-        (isa(img, 'double') && ismatrix(img)), ...
-     'img_rgb is not a 24-bit RGB image');
+validateattributes(image_file, {'char'}, {'vector'}, ...
+    'yalebox_prep_mask_manual', 'image_file');
 
-% initialize mask and figure
-mask = false(size(img,1), size(img,2));
+% init image and mask
+img = imread(image_file);
 imgm = img;
+mask = false(size(img,1), size(img,2));
+
+% init figure
 figure()
 subplot(2,1,1)
 imshow(img); title('original');
