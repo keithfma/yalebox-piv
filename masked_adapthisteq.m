@@ -1,4 +1,4 @@
-function out = adapthisteq(varargin)
+function out = masked_adapthisteq(varargin)
 %ADAPTHISTEQ Contrast-limited Adaptive Histogram Equalization (CLAHE).
 %   ADAPTHISTEQ enhances the contrast of images by transforming the
 %   values in the intensity image I.  Unlike HISTEQ, it operates on small
@@ -161,7 +161,8 @@ function out = adapthisteq(varargin)
 [I, mask, selectedRange, fullRange, numTiles, dimTile, clipLimit, numBins, ...
  noPadRect, distribution, alpha, int16ClassChange] = parseInputs(varargin{:});
 
-tileMappings = makeTileMappings(I, numTiles, dimTile, numBins, clipLimit, ...
+% (Keith Ma: added mask to mapping function)
+tileMappings = makeTileMappings(I, mask, numTiles, dimTile, numBins, clipLimit, ...
                                 selectedRange, fullRange, distribution, alpha);
 
 %Synthesize the output image based on the individual tile mappings. 
@@ -181,10 +182,10 @@ end
 %-----------------------------------------------------------------------------
 
 function tileMappings = ...
-    makeTileMappings(I, numTiles, dimTile, numBins, clipLimit,...
+    makeTileMappings(I, mask, numTiles, dimTile, numBins, clipLimit,...
                      selectedRange, fullRange, distribution, alpha)
 
-numPixInTile = prod(dimTile);
+% numPixInTile = prod(dimTile); % (Keith Ma: depends on the mask, moved into loop)
 
 tileMappings = cell(numTiles);
 
@@ -194,11 +195,14 @@ for col=1:numTiles(2),
   imgRow = 1;
   for row=1:numTiles(1),
     
-    tile = I(imgRow:imgRow+dimTile(1)-1,imgCol:imgCol+dimTile(2)-1);
+    tile_I = I(imgRow:imgRow+dimTile(1)-1,imgCol:imgCol+dimTile(2)-1);
+    tile_mask = mask(imgRow:imgRow+dimTile(1)-1,imgCol:imgCol+dimTile(2)-1);
+    tile = tile_I(tile_mask);
+    numPixInTile = numel(tile);
 
     % for speed, call MEX file directly thus avoiding costly
     % input parsing of imhist
-    tileHist = imhistc(tile, numBins, 1, fullRange(2)); 
+    tileHist = imhistc(tile(tile_mask), numBins, 1, fullRange(2)); 
     
     tileHist = clipHistogram(tileHist, clipLimit, numBins);
     
@@ -632,6 +636,10 @@ dimTile = dimI ./ numTiles;
 %the minimum value minClipLimit would uniformly distribute the image pixels
 %across the entire histogram, which would result in the lowest possible
 %contrast value
+%
+% (Keith Ma: Note that the number of pixels is variable in this masked
+% version, this change probably breaks the clipping feature, which
+% thankfully does not matter in my application)
 numPixInTile = prod(dimTile);
 minClipLimit = ceil(numPixInTile/numBins);
 clipLimit = minClipLimit + round(normClipLimit*(numPixInTile-minClipLimit));
