@@ -30,7 +30,6 @@ nx = numel(x); dx = abs(x(1)-x(2));
 ny = numel(y); dy = abs(y(1)-y(2));
 ns = numel(step);
 
-
 % get shape annotations
 tri_pos = get_tri_pos(tri_tip_xy, tri_side_len, x, y);
 
@@ -78,18 +77,15 @@ pos = nan(nt, 6);
 for i = 1:nt
    rr = interp1(y, 1:ny, tip(i,2), 'linear', 'extrap'); 
    cc = interp1(x, 1:nx, tip(i,1), 'linear', 'extrap');
-   
-   % tip at top
-   if abs(rr-ny) < abs(rr)
+      
+   if abs(rr-ny) < abs(rr) % tip at top
        pos(i,:) = [cc,          rr,                  ...
                    cc+len/2/dx, rr-sqrt(3)/2*len/dy, ...
-                   cc-len/2/dx, rr-sqrt(3)/2*len/dy];
-       
-   % tip at bottom
-   else
-       % not implemented yet
-   end
+                   cc-len/2/dx, rr-sqrt(3)/2*len/dy];       
    
+   else % tip at bottom
+       pos(i,:) = [cc,          rr,                  ...
+                   cc+len/2/dx, rr+sqrt(3)/2*len/dy, ...
+                   cc-len/2/dx, rr+sqrt(3)/2*len/dy];
+   end   
 end
-
-
