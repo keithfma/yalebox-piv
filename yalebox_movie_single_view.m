@@ -8,9 +8,8 @@ function [] = yalebox_movie_single_view(input_file, output_file)
 % Keith Ma, August 2015
 
 % debug arguments
-tri_tip_xy = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
-tri_side_len = 0.01; % m
-
+tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
+tri_len = 0.01; % m
 title_str = 'Party Time';
 
 % internal parameters
@@ -34,11 +33,6 @@ nx = numel(x); dx = abs(x(1)-x(2));
 ny = numel(y); dy = abs(y(1)-y(2));
 ns = numel(step);
 
-% prepare annotation arguments
-tri_pos = get_tri_pos(tri_tip_xy, tri_side_len, x, y);
-
-
-
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
 % movie_writer.MJ2BitDepth = 16;
@@ -52,10 +46,9 @@ for i = 1
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
         
     % add s-point triangles
-    frame = insertShape(intens, 'FilledPolygon', tri_pos, ...
-        'Color', tri_color, ...
-        'Opacity', tri_opacity);
-    
+    frame = yalebox_movie_add_spt(intens, x, y, tri_tip, tri_len, ...
+        tri_color, tri_opacity);
+
     frame = insertText(frame, [nx/2, 1], title_str, ...
         'FontSize', title_font_size, ...
         'TextColor', title_font_color, ...
