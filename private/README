@@ -1,3 +1,10 @@
 This folder contains MATLAB components needed by modified versions of MATLAB
 toolbox functions. The exact files depend on the MATLAB version in use.
-Currently using MATLAB 2014b.
+
+MATLAB R2014b Linux 64-bit:
+  imhistc.mexa64
+  grayxformmex.mexa64
+
+MATLAB R2014a Linux 64 bit:
+  imhistc.mexa64
+  grayxform.mexa64
