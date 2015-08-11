@@ -7,11 +7,13 @@ function [] = yalebox_movie_single_view(input_file, output_file)
 %
 % Keith Ma, August 2015
 
-% define parameters
-len_tri = 0.01; % m
-color_tri = 'yellow';
-opacity = 0.7;
+% debug arguments
+tri_tip_xy = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
+tri_side_len = 0.01; % m
 
+% internal parameters
+tri_color = 'yellow';
+tri_opacity = 0.7;
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -28,21 +30,9 @@ nx = numel(x); dx = abs(x(1)-x(2));
 ny = numel(y); dy = abs(y(1)-y(2));
 ns = numel(step);
 
+
 % get shape annotations
-
-spt_r = interp1(y, 1:ny, 0, 'linear', 'extrap');
-spt_c = interp1(x, 1:nx, 0, 'linear', 'extrap');
-if abs(spt_r-ny) < abs(spt_r) % spt at image top
-    pos_tri = [spt_c, spt_r, ...
-               spt_c+len_tri/2/dx, spt_r-sqrt(3)/2*len_tri/dy, ...
-               spt_c-len_tri/2/dx, spt_r-sqrt(3)/2*len_tri/dy];
-else % spt at image bottom
-end
-
-shape_pos = {pos_tri};
-shape_color = {color_tri};
-
-
+tri_pos = get_tri_pos(tri_tip_xy, tri_side_len, x, y);
 
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
@@ -57,10 +47,10 @@ for i = 1
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
         
     % add annotations using insertShape and similar
-    intens = insertShape(intens, 'FilledPolygon', shape_pos, ...
-        'Color', shape_color, 'Opacity', opacity);
-    
-    
+    intens = insertShape(intens, 'FilledPolygon', tri_pos, ...
+        'Color', tri_color, ...
+        'Opacity', tri_opacity);
+        
     % create frame    
 end
 
@@ -69,3 +59,37 @@ netcdf.close(ncid);
 % movie_writer.close();
 
 keyboard
+
+% helper functions --------------------------------------------------------
+
+function pos = get_tri_pos(tip, len, x, y)
+%
+% Return position argument used by insertShape to draw s-point triangles
+%
+
+% init
+nx = numel(x);
+ny = numel(y);
+nt = size(tip, 1); % 1 triangle per row
+dx = abs(x(1)-x(2));
+dy = abs(y(1)-y(2));
+pos = nan(nt, 6); 
+
+for i = 1:nt
+   rr = interp1(y, 1:ny, tip(i,2), 'linear', 'extrap'); 
+   cc = interp1(x, 1:nx, tip(i,1), 'linear', 'extrap');
+   
+   % tip at top
+   if abs(rr-ny) < abs(rr)
+       pos(i,:) = [cc,          rr,                  ...
+                   cc+len/2/dx, rr-sqrt(3)/2*len/dy, ...
+                   cc-len/2/dx, rr-sqrt(3)/2*len/dy];
+       
+   % tip at bottom
+   else
+       % not implemented yet
+   end
+   
+end
+
+
