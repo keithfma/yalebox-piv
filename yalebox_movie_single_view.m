@@ -11,9 +11,13 @@ function [] = yalebox_movie_single_view(input_file, output_file)
 tri_tip_xy = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
 tri_side_len = 0.01; % m
 
+title_str = 'Party Time';
+
 % internal parameters
-tri_color = 'yellow';
+tri_color = 'red';
 tri_opacity = 0.7;
+title_font_size = 20;
+title_font_color = 'red';
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -30,8 +34,10 @@ nx = numel(x); dx = abs(x(1)-x(2));
 ny = numel(y); dy = abs(y(1)-y(2));
 ns = numel(step);
 
-% get shape annotations
+% prepare annotation arguments
 tri_pos = get_tri_pos(tri_tip_xy, tri_side_len, x, y);
+
+
 
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
@@ -45,10 +51,16 @@ for i = 1
     % read intensity image
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
         
-    % add annotations using insertShape and similar
-    intens = insertShape(intens, 'FilledPolygon', tri_pos, ...
+    % add s-point triangles
+    frame = insertShape(intens, 'FilledPolygon', tri_pos, ...
         'Color', tri_color, ...
         'Opacity', tri_opacity);
+    
+    frame = insertText(frame, [nx/2, 1], title_str, ...
+        'FontSize', title_font_size, ...
+        'TextColor', title_font_color, ...
+        'BoxOpacity', 0, ...
+        'AnchorPoint', 'CenterTop');
         
     % create frame    
 end
