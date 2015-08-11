@@ -9,28 +9,40 @@ function [] = yalebox_movie_single_view(input_file, output_file)
 
 % define parameters
 
-% open netcdf, get coordinate vectors
-ncid = netcdf.open(input_nc, 'NOWRITE');
-x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
-y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
-step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
+% get netcdf ids
+ncid = netcdf.open(input_file, 'NOWRITE');
+x_id = netcdf.inqVarID(ncid, 'x');
+y_id = netcdf.inqVarID(ncid, 'y');
+step_id = netcdf.inqVarID(ncid, 'step');
+intens_id = netcdf.inqVarID(ncid, 'intensity');
 
-% prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
-movie_writer = VideoWriter(output_file, 'Archival');
-movie_writer.MJ2BitDepth = 16;
-movie_writer.FrameRate = 10; % frames/second
-movie_writer.open();
+% get coordinate vectors
+x = netcdf.getVar(ncid, x_id);
+y = netcdf.getVar(ncid, y_id);
+step = netcdf.getVar(ncid, step_id);
+nx = numel(x);
+ny = numel(y);
+ns = numel(step);
+
+% % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
+% movie_writer = VideoWriter(output_file, 'Archival');
+% movie_writer.MJ2BitDepth = 16;
+% movie_writer.FrameRate = 10; % frames/second
+% movie_writer.open();
 
 % loop: read data, annotate images, create frames
-nframes = numel(step);
-nframes = 1;
-for i = 1:nframes
-    % read intensity image    
+%for i = 1:ns
+for i = 1    
+    % read intensity image
+    intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
+    
     % add annotations using insertShape and similar
+    
     % create frame    
 end
 
-% finalize movie
-movie_writer.close();
+% finalize
+netcdf.close(ncid);
+% movie_writer.close();
 
 keyboard
