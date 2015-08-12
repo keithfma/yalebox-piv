@@ -32,16 +32,6 @@ x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
 y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
 
-% % make sure image top is at row 1
-% if y(1) < y(end)
-%     flip = true;
-%     y = y(end:-1:1);
-% else 
-%     flip = false;
-% end
-%     % make sure image top is at row 1
-%     if flip; intens = flipud(intens); end
-
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
 % movie_writer.MJ2BitDepth = 16;

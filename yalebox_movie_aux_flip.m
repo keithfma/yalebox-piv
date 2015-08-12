@@ -5,8 +5,14 @@ function [fimg, fy] = yalebox_movie_aux_flip(img, y)
 %
 % Arguments:
 %
+% 
+%
 % Keith Ma, August 2015
 
-% debug
-fimg = img;
-fy = y;
+if y(1) < y(end)
+    fy = y(end:-1:1);
+    fimg = flipud(img);
+else 
+    fy = y;
+    fimg = img;
+end

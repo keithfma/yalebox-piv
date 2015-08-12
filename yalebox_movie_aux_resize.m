@@ -27,25 +27,29 @@ ny = numel(y);
 if nx > max_dim(1) || ny > max_dim(2) % resize
     
     [scale, ii] = min(max_dim(:)./[nx; ny]);
-    if scale<1 
-        if ii==1 % resize to max width
+    if scale<1
+        
+        % resize to max width
+        if ii==1 
             rimg = imresize(img, [NaN, max_dim(1)],...
                 'Method', 'lanczos3',...            
                 'Antialiasing', true);
-            rx = imresize(x(:), [max_dim(1), 1],...
-                'Method', 'lanczos3',...            
-                'Antialiasing', true);
-            ry = y;
-            
-        else % resize to max height
+        
+        % resize to max height
+        else 
             rimg = imresize(img, [max_dim(2), NaN],...
                 'Method', 'lanczos3',...            
                 'Antialiasing', true);
-            rx = x;
-            ry = imresize(y(:), [max_dim(2), 1],...
-                'Method', 'lanczos3',...            
-                'Antialiasing', true);
         end
+        
+        % resize coordinate vectors to match        
+        rx = imresize(x(:), [size(rimg,2), 1],...
+            'Method', 'lanczos3',...            
+            'Antialiasing', true);            
+        ry = imresize(y(:), [size(rimg,1), 1],...
+            'Method', 'lanczos3',...            
+            'Antialiasing', true);
+        
     end
     
     % trim values interpolated outside of valid [0, 1] range
