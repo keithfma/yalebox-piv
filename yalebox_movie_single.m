@@ -13,12 +13,15 @@ tri_len = 0.01; % m
 title_str = 'Party Time';
 
 % internal parameters
+movie_max_dim = [1920, 1080];
+
 tri_color = 'red';
 tri_opacity = 0.7;
+
 title_font_size = 72;
 title_font_color = 'red';
 title_box_color = 'white';
-title_box_opacity = 0;
+title_box_opacity = 1;
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -31,17 +34,16 @@ intens_id = netcdf.inqVarID(ncid, 'intensity');
 x = netcdf.getVar(ncid, x_id);
 y = netcdf.getVar(ncid, y_id);
 step = netcdf.getVar(ncid, step_id);
-nx = numel(x); dx = abs(x(1)-x(2));
-ny = numel(y); dy = abs(y(1)-y(2));
-ns = numel(step);
 
-% make sure image top is at row 1
-if y(1) < y(end)
-    flip = true;
-    y = y(end:-1:1);
-else 
-    flip = false;
-end
+% % make sure image top is at row 1
+% if y(1) < y(end)
+%     flip = true;
+%     y = y(end:-1:1);
+% else 
+%     flip = false;
+% end
+%     % make sure image top is at row 1
+%     if flip; intens = flipud(intens); end
 
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
@@ -50,19 +52,22 @@ end
 % movie_writer.open();
 
 % loop: read data, annotate images, create frames
-%for i = 1:ns
+%for i = 1:numel(step)
 for i = 1    
 
     % read intensity image
-    intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
+    intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
     
-    % make sure image top is at row 1
-    if flip; intens = flipud(intens); end
+    % downscale and flip if needed
+    frame = yalebox_movie_aux_resize(intens, x, y, max_mov_dim);
+    
+    scale = min([numel(x), numel(y)]./movie_max_dim);
+    
     
     % add annotations (triangles, scale, title, counter)
-    frame = yalebox_movie_add_spt(intens, x, y, tri_tip, tri_len, ...
+    frame = yalebox_movie_aux_add_spt(intens, x, y, tri_tip, tri_len, ...
         tri_color, tri_opacity);
-    frame = yalebox_movie_add_title(frame, title_str, title_font_size, ...
+    frame = yalebox_movie_aux_add_title(frame, title_str, title_font_size, ...
         title_font_color, title_box_color, title_box_opacity);
 
     % add frame to movie object   
