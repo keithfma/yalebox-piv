@@ -1,11 +1,12 @@
 function img_a = yalebox_movie_add_spt(img, x, y, tip, len, clr, opac)
+% function img_a = yalebox_movie_add_spt(img, x, y, tip, len, clr, opac)
 %
 % Superimpose s-point triangles on the input image. Wrapper function for
 % the MATLAB function insertShape from the Computer Vision System Toolbox.
 %
 % Arguments:
 %
-%   imag_a = 3D matrix, the output annotated image
+%   img_a = 3D matrix, the output annotated image
 %
 %   img = 2D or 3D matrix, the input image to be annotated 
 %

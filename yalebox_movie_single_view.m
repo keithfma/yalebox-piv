@@ -15,8 +15,10 @@ title_str = 'Party Time';
 % internal parameters
 tri_color = 'red';
 tri_opacity = 0.7;
-title_font_size = 20;
+title_font_size = 72;
 title_font_color = 'red';
+title_box_color = 'white';
+title_box_opacity = 0;
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -33,6 +35,14 @@ nx = numel(x); dx = abs(x(1)-x(2));
 ny = numel(y); dy = abs(y(1)-y(2));
 ns = numel(step);
 
+% make sure image top is at row 1
+if y(1) < y(end)
+    flip = true;
+    y = y(end:-1:1);
+else 
+    flip = false;
+end
+
 % % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
 % movie_writer = VideoWriter(output_file, 'Archival');
 % movie_writer.MJ2BitDepth = 16;
@@ -42,20 +52,21 @@ ns = numel(step);
 % loop: read data, annotate images, create frames
 %for i = 1:ns
 for i = 1    
+
     % read intensity image
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [nx, ny, 1])';
-        
-    % add s-point triangles
+    
+    % make sure image top is at row 1
+    if flip; intens = flipud(intens); end
+    
+    % add annotations (triangles, scale, title, counter)
     frame = yalebox_movie_add_spt(intens, x, y, tri_tip, tri_len, ...
         tri_color, tri_opacity);
+    frame = yalebox_movie_add_title(frame, title_str, title_font_size, ...
+        title_font_color, title_box_color, title_box_opacity);
 
-    frame = insertText(frame, [nx/2, 1], title_str, ...
-        'FontSize', title_font_size, ...
-        'TextColor', title_font_color, ...
-        'BoxOpacity', 0, ...
-        'AnchorPoint', 'CenterTop');
-        
-    % create frame    
+    % add frame to movie object   
+    
 end
 
 % finalize
@@ -63,34 +74,3 @@ netcdf.close(ncid);
 % movie_writer.close();
 
 keyboard
-
-% helper functions --------------------------------------------------------
-
-function pos = get_tri_pos(tip, len, x, y)
-%
-% Return position argument used by insertShape to draw s-point triangles
-%
-
-% init
-nx = numel(x);
-ny = numel(y);
-nt = size(tip, 1); % 1 triangle per row
-dx = abs(x(1)-x(2));
-dy = abs(y(1)-y(2));
-pos = nan(nt, 6); 
-
-for i = 1:nt
-   rr = interp1(y, 1:ny, tip(i,2), 'linear', 'extrap'); 
-   cc = interp1(x, 1:nx, tip(i,1), 'linear', 'extrap');
-      
-   if abs(rr-ny) < abs(rr) % tip at top
-       pos(i,:) = [cc,          rr,                  ...
-                   cc+len/2/dx, rr-sqrt(3)/2*len/dy, ...
-                   cc-len/2/dx, rr-sqrt(3)/2*len/dy];       
-   
-   else % tip at bottom
-       pos(i,:) = [cc,          rr,                  ...
-                   cc+len/2/dx, rr+sqrt(3)/2*len/dy, ...
-                   cc-len/2/dx, rr+sqrt(3)/2*len/dy];
-   end   
-end
