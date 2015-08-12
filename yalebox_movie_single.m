@@ -57,6 +57,7 @@ for i = 1
     
     % resize and reshape image as needed
     [frame, xf, yf] = yalebox_movie_aux_resize(intens, x, y, max_mov_dim);
+    [frame, yf] = yalebox_movie_aux_flip(frame, yf);
     
     % add annotations (triangles, scale, title, counter)
     frame = yalebox_movie_aux_add_spt(frame, xf, yf, tri_tip, tri_len, ...
