@@ -1,5 +1,5 @@
-function img_a = yalebox_movie_aux_add_title(img, str, fsize, fclr, bclr, bopac)
-% function img_a = yalebox_movie_aux_add_title(img, str, fsize, fclr, bclr, bopac)
+function img_a = yalebox_movie_aux_title(img, str, fsize, fclr, bclr, bopac)
+% function img_a = yalebox_movie_aux_title(img, str, fsize, fclr, bclr, bopac)
 %
 % Add title annotation to the top side of the input image using the MATLAB
 % insertText function. Assumes that the top of the image is at row == 1.
