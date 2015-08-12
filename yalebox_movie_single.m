@@ -23,6 +23,13 @@ title_font_color = 'red';
 title_box_color = 'white';
 title_box_opacity = 1;
 
+scale_upleft = [0.1, 0.8]; % normalized
+scale_width = 0.1; % m
+scale_height = 0.05; % m
+
+
+function aimg = yalebox_movie_aux_scalebar(img, x, y, ulc, wid, ht, bclr, fclr, fsize)
+
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
 intens_id = netcdf.inqVarID(ncid, 'intensity');
