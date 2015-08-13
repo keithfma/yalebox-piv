@@ -1,4 +1,4 @@
-function [] = yalebox_movie_single(input_file, output_file, show_frame)
+function [] = yalebox_movie_single(input_file, output_file, p, show_frame)
 %
 % input_file = String, path to input netCDF file as produced by
 %   yalebox_prep_create_input().
@@ -10,40 +10,6 @@ function [] = yalebox_movie_single(input_file, output_file, show_frame)
 %   values.
 %
 % Keith Ma, August 2015
-
-% debug arguments
-tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
-tri_len = 0.01; % m
-title_str = {'Loose Sand', 'Compacted Sand', 'Sieved Sand'};
-title_str_start = [0, 146, 341]; 
-scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
-scale_label = '10 cm';
-count_pos = [0.3, 0.15];
-threshold = 0;
-decay_factor = 0;
-
-% define internal parameters
-max_mov_dim = [1920, 1080];
-
-tri_color = 'red';
-tri_opacity = 0.7;
-
-title_size = 72;
-title_color = 'red';
-title_box_color = 'white';
-title_box_opacity = 1;
-
-scale_color = 'red';
-scale_opacity = 1;
-scale_text_size = 72;
-scale_text_color = 'red';
-scale_box_color = 'white';
-scale_box_opacity = 1;
-
-count_size = 72;
-count_color = 'red';
-count_box_color = 'white';
-count_box_opac = 1;
 
 % parse inputs
 if nargin < 3;
@@ -68,7 +34,7 @@ step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
 if make_movie
     movie_writer = VideoWriter(output_file, 'Archival');
     movie_writer.MJ2BitDepth = 16;
-    movie_writer.FrameRate = 10; % frames/second
+    movie_writer.FrameRate = p.frame_rate; % frames/second
     movie_writer.open();
 end
 
@@ -87,28 +53,28 @@ for i = 1:numel(step)
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
     
     % apply threshold and decay
-    intens(intens<threshold) = 0;
-    intens = intens + intens_prev*decay_factor;
+    intens(intens<p.threshold) = 0;
+    intens = intens + intens_prev*p.decay_factor;
     intens_prev = intens; % prep for next frame
     
     % resize and reshape image as needed
-    [frame, xf, yf] = yalebox_movie_aux_resize(intens, x, y, max_mov_dim);
+    [frame, xf, yf] = yalebox_movie_aux_resize(intens, x, y, p.max_dim);
     [frame, yf] = yalebox_movie_aux_flip(frame, yf);
     
     % add annotations (triangles, scale, title, counter)
-    frame = yalebox_movie_aux_spoint(frame, xf, yf, tri_tip, tri_len, ...
-        tri_color, tri_opacity);
+    frame = yalebox_movie_aux_spoint(frame, xf, yf, p.tri_tip, p.tri_len, ...
+        p.tri_color, p.tri_opacity);
     
-    title_ind = find(step(i) >= title_str_start , 1, 'last');    
-    frame = yalebox_movie_aux_title(frame, title_str{title_ind}, title_size, ...
-        title_color, title_box_color, title_box_opacity);
+    title_ind = find(step(i) >= p.title_str_start , 1, 'last');    
+    frame = yalebox_movie_aux_title(frame, p.title_str{title_ind}, ...
+        p.title_size, p.title_color, p.title_box_color, p.title_box_opacity);
     
-    frame = yalebox_movie_aux_scalebar(frame, xf, yf, scale_label, scale_pos, ...
-        scale_color, scale_opacity, scale_text_size, scale_text_color, ...
-        scale_box_color, scale_box_opacity);
+    frame = yalebox_movie_aux_scalebar(frame, xf, yf, p.scale_label, ...
+        p.scale_pos, p.scale_color, p.scale_opacity, p.scale_text_size, ...
+        p.scale_text_color, p.scale_box_color, p.scale_box_opacity);
     
-    frame = yalebox_movie_aux_counter(frame, xf, yf, step(i), count_pos, ...
-        count_size, count_color, count_box_color, count_box_opac);
+    frame = yalebox_movie_aux_counter(frame, xf, yf, step(i), p.count_pos, ...
+        p.count_size, p.count_color, p.count_box_color, p.count_box_opac);
 
     % add frame to movie
     if make_movie
