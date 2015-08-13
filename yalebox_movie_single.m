@@ -16,6 +16,8 @@ title_str = 'Title';
 scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
 scale_label = '10 cm';
 
+count_pos = [0.3, 0.15];
+
 % internal parameters
 max_mov_dim = [1920, 1080];
 
@@ -33,6 +35,11 @@ scale_text_size = 72;
 scale_text_color = 'red';
 scale_box_color = 'white';
 scale_box_opacity = 1;
+
+count_size = 72;
+count_color = 'red';
+count_box_color = 'white';
+count_box_opac = 1;
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -63,11 +70,16 @@ for i = 1
     % add annotations (triangles, scale, title, counter)
     frame = yalebox_movie_aux_spoint(frame, xf, yf, tri_tip, tri_len, ...
         tri_color, tri_opacity);
+    
     frame = yalebox_movie_aux_title(frame, title_str, title_size, ...
         title_color, title_box_color, title_box_opacity);
+    
     frame = yalebox_movie_aux_scalebar(frame, xf, yf, scale_label, scale_pos, ...
         scale_color, scale_opacity, scale_text_size, scale_text_color, ...
         scale_box_color, scale_box_opacity);
+    
+    frame = yalebox_movie_aux_counter(frame, xf, yf, step(i), count_pos, ...
+        count_size, count_color, count_box_color, count_box_opac);
 
     % add frame to movie object   
     
