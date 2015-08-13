@@ -19,6 +19,8 @@ title_str_start = [0, 146, 341];
 scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
 scale_label = '10 cm';
 count_pos = [0.3, 0.15];
+threshold = 0;
+decay_factor = 0;
 
 % define internal parameters
 max_mov_dim = [1920, 1080];
@@ -71,6 +73,7 @@ if make_movie
 end
 
 % loop: read data, annotate images, create frames
+intens_prev = zeros(numel(y), numel(x));
 for i = 1:numel(step)
 
     if ~make_movie && step(i) ~= show_frame
@@ -82,6 +85,11 @@ for i = 1:numel(step)
  
     % read intensity image
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
+    
+    % apply threshold and decay
+    intens(intens<threshold) = 0;
+    intens = intens + intens_prev*decay_factor;
+    intens_prev = intens; % prep for next frame
     
     % resize and reshape image as needed
     [frame, xf, yf] = yalebox_movie_aux_resize(intens, x, y, max_mov_dim);
