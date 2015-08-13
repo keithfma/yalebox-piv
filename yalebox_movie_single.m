@@ -12,7 +12,7 @@ function [] = yalebox_movie_single(input_file, output_file, p, show_frame)
 % Keith Ma, August 2015
 
 % parse inputs
-if nargin < 3;
+if nargin < 4;
     show_frame = [];
 end
 if isempty(show_frame)
