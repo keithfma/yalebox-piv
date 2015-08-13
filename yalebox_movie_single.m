@@ -10,15 +10,12 @@ function [] = yalebox_movie_single(input_file, output_file)
 % debug arguments
 tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
 tri_len = 0.01; % m
-
 title_str = 'Title';
-
 scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
 scale_label = '10 cm';
-
 count_pos = [0.3, 0.15];
 
-% internal parameters
+% define internal parameters
 max_mov_dim = [1920, 1080];
 
 tri_color = 'red';
@@ -50,15 +47,18 @@ x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
 y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
 
-% % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
-% movie_writer = VideoWriter(output_file, 'Archival');
-% movie_writer.MJ2BitDepth = 16;
-% movie_writer.FrameRate = 10; % frames/second
-% movie_writer.open();
+% prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
+movie_writer = VideoWriter(output_file, 'Archival');
+movie_writer.MJ2BitDepth = 16;
+movie_writer.FrameRate = 10; % frames/second
+movie_writer.open();
 
 % loop: read data, annotate images, create frames
-%for i = 1:numel(step)
-for i = 1    
+for i = 1:numel(step)
+%for i = 1    
+
+    % update user
+    fprintf('step: %i\n', step(i));
 
     % read intensity image
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
@@ -81,12 +81,13 @@ for i = 1
     frame = yalebox_movie_aux_counter(frame, xf, yf, step(i), count_pos, ...
         count_size, count_color, count_box_color, count_box_opac);
 
-    % add frame to movie object   
+    % add frame to movie
+    writeVideo(movie_writer, im2frame(double(frame)));
     
 end
 
 % finalize
 netcdf.close(ncid);
-% movie_writer.close();
+movie_writer.close();
 
-keyboard
+% write parameters to file...

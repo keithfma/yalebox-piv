@@ -30,8 +30,6 @@ function img_a = yalebox_movie_aux_counter(img, x, y, count, pos, fsize, fclr, b
 %
 % Keith Ma, August 2015
 
-
-
 % get dimensions
 nx = numel(x);
 ny = numel(y);
