@@ -1,9 +1,13 @@
-function [] = yalebox_movie_single(input_file, output_file)
+function [] = yalebox_movie_single(input_file, output_file, show_frame)
 %
 % input_file = String, path to input netCDF file as produced by
 %   yalebox_prep_create_input().
 %
 % output_file = String path to output video file, without file extension
+%
+% show_frame = OPTIONAL, show a single frame at step == show_frame, do not
+%   process other frames or make a movie, used for testing parameter
+%   values.
 %
 % Keith Ma, August 2015
 
@@ -39,6 +43,16 @@ count_color = 'red';
 count_box_color = 'white';
 count_box_opac = 1;
 
+% parse inputs
+if nargin < 3;
+    show_frame = [];
+end
+if isempty(show_frame)
+    make_movie = true;
+else
+    make_movie = false;
+end
+
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
 intens_id = netcdf.inqVarID(ncid, 'intensity');
@@ -49,14 +63,19 @@ y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
 
 % prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
-movie_writer = VideoWriter(output_file, 'Archival');
-movie_writer.MJ2BitDepth = 16;
-movie_writer.FrameRate = 10; % frames/second
-movie_writer.open();
+if make_movie
+    movie_writer = VideoWriter(output_file, 'Archival');
+    movie_writer.MJ2BitDepth = 16;
+    movie_writer.FrameRate = 10; % frames/second
+    movie_writer.open();
+end
 
 % loop: read data, annotate images, create frames
 for i = 1:numel(step)
-%for i = 1    
+
+    if ~make_movie && step(i) ~= show_frame
+        continue
+    end
 
     % update user
     fprintf('step: %i\n', step(i));
@@ -84,12 +103,16 @@ for i = 1:numel(step)
         count_size, count_color, count_box_color, count_box_opac);
 
     % add frame to movie
-    writeVideo(movie_writer, im2frame(double(frame)));
+    if make_movie
+        writeVideo(movie_writer, im2frame(double(frame)));
+    end
     
 end
 
 % finalize
 netcdf.close(ncid);
-movie_writer.close();
-
-% write parameters to file...
+if make_movie
+    movie_writer.close();
+else
+    imshow(frame);
+end
