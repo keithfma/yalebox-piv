@@ -10,7 +10,8 @@ function [] = yalebox_movie_single(input_file, output_file)
 % debug arguments
 tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
 tri_len = 0.01; % m
-title_str = 'Title';
+title_str = {'Loose Sand', 'Compacted Sand', 'Sieved Sand'};
+title_str_start = [0, 146, 341]; 
 scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
 scale_label = '10 cm';
 count_pos = [0.3, 0.15];
@@ -59,7 +60,7 @@ for i = 1:numel(step)
 
     % update user
     fprintf('step: %i\n', step(i));
-
+ 
     % read intensity image
     intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
     
@@ -71,7 +72,8 @@ for i = 1:numel(step)
     frame = yalebox_movie_aux_spoint(frame, xf, yf, tri_tip, tri_len, ...
         tri_color, tri_opacity);
     
-    frame = yalebox_movie_aux_title(frame, title_str, title_size, ...
+    title_ind = find(step(i) >= title_str_start , 1, 'last');    
+    frame = yalebox_movie_aux_title(frame, title_str{title_ind}, title_size, ...
         title_color, title_box_color, title_box_opacity);
     
     frame = yalebox_movie_aux_scalebar(frame, xf, yf, scale_label, scale_pos, ...
