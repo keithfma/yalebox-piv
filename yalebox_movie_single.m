@@ -10,7 +10,11 @@ function [] = yalebox_movie_single(input_file, output_file)
 % debug arguments
 tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m
 tri_len = 0.01; % m
-title_str = 'Party Time';
+
+title_str = 'Title';
+
+scale_pos = [-0.1, 0.15, 0.1, 0.01]; % [x, y, width, height], in world coords
+scale_label = '10 cm';
 
 % internal parameters
 max_mov_dim = [1920, 1080];
@@ -18,17 +22,17 @@ max_mov_dim = [1920, 1080];
 tri_color = 'red';
 tri_opacity = 0.7;
 
-title_font_size = 72;
-title_font_color = 'red';
+title_size = 72;
+title_color = 'red';
 title_box_color = 'white';
 title_box_opacity = 1;
 
-scale_upleft = [0.1, 0.8]; % normalized
-scale_width = 0.1; % m
-scale_height = 0.05; % m
-
-
-function aimg = yalebox_movie_aux_scalebar(img, x, y, ulc, wid, ht, bclr, fclr, fsize)
+scale_color = 'red';
+scale_opacity = 1;
+scale_text_size = 72;
+scale_text_color = 'red';
+scale_box_color = 'white';
+scale_box_opacity = 1;
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');
@@ -59,8 +63,11 @@ for i = 1
     % add annotations (triangles, scale, title, counter)
     frame = yalebox_movie_aux_spoint(frame, xf, yf, tri_tip, tri_len, ...
         tri_color, tri_opacity);
-    frame = yalebox_movie_aux_title(frame, title_str, title_font_size, ...
-        title_font_color, title_box_color, title_box_opacity);
+    frame = yalebox_movie_aux_title(frame, title_str, title_size, ...
+        title_color, title_box_color, title_box_opacity);
+    frame = yalebox_movie_aux_scalebar(frame, xf, yf, scale_label, scale_pos, ...
+        scale_color, scale_opacity, scale_text_size, scale_text_color, ...
+        scale_box_color, scale_box_opacity);
 
     % add frame to movie object   
     

@@ -25,8 +25,6 @@ function img_a = yalebox_movie_aux_title(img, str, fsize, fclr, bclr, bopac)
 %
 % Keith Ma, August 2015
 
-% check for sane inputs
-
 % get postion
 pos = [size(img,2)/2, 1];
 
