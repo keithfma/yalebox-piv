@@ -1,4 +1,4 @@
-function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_rad, num_tiles)
+function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_rad, num_tiles)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -34,13 +34,13 @@ function [] = yalebox_prep_create_input(input_file, image_path, image_names, x, 
 narginchk(14, 14);
 
 validateattributes(input_file, {'char'}, {'vector'}, ...
-    'yalebox_prep_create_input', 'input_file');
+    'yalebox_prep', 'input_file');
 
 validateattributes(image_path, {'char'}, {'vector'}, ...
-    'yalebox_prep_create_input', 'image_path');
+    'yalebox_prep', 'image_path');
 
 validateattributes(image_names, {'cell'}, {'vector'}, ...
-    'yalebox_prep_create_input', 'image_names');
+    'yalebox_prep', 'image_names');
 
 % check that coordinate vectors match image dimensions
 image_w = size(mask_manual, 2);

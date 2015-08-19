@@ -1,7 +1,7 @@
 function [] = yalebox_movie_single(input_file, output_file, p, show_frame)
 %
 % input_file = String, path to input netCDF file as produced by
-%   yalebox_prep_create_input().
+%   yalebox_prep().
 %
 % output_file = String path to output video file, without file extension
 %
