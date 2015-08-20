@@ -107,6 +107,26 @@ netcdf.putAtt(out.ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(out.ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_piv:view', view);
 
+% generate image pair indices and output step coordinate vector
+nim = length(in.s);
+ind0 = 1:inter_pair_step:nim;
+ind1 = ind0+intra_pair_step;
+ind0 = ind0(ind1<=nim);
+ind1 = ind1(ind1<=nim);
+out.s = (in.s(ind0) + in.s(ind1))/2; % midpoints
+
+% add dimensions and vars to output netcdf
+npiv = length(out.s);
+out.sdimid = netcdf.defDim(out.ncid, 'step', npiv);
+out.sid = netcdf.defVar(out.ncid, 'step', 'NC_DOUBLE', out.sdimid);
+netcdf.putVar(out.ncid, out.sid, out.s);
+
+
+keyboard
+
+
+
+
 % loop: analyze each image pair
 
 % finalize files
