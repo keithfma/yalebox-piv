@@ -1,0 +1,19 @@
+% Skeleton for re-implementation of yalebox PIV analysis routine
+
+% debug parameters
+data_dir = '/home/kfm/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/';
+
+% input arguments, hard-coded for debug
+data0 = double(imread([data_dir, 'img1.png']))/double(uint16(inf));
+data1 = double(imread([data_dir, 'img2.png']))/double(uint16(inf));
+
+% validate input arguments
+data0 = single(data0);
+validateattributes(data0,...
+    {'double'},...
+    {'2d', 'real', 'nonnan', 'nonnegative', '<=' 1}, ...
+    'yalebox_piv_step', 'data0');
+validateattributes(data1,...
+    {'double'},...
+    {'2d', 'real', 'nonnan', 'nonnegative', '<=' 1}, ...
+    'yalebox_piv_step', 'data1');
