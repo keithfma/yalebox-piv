@@ -1,4 +1,4 @@
-function [x,y,u,v,cval,mask] = yalebox_piv_step(SETTINGS)
+function [x,y,u,v,cval,mask] = sandboxpiv(SETTINGS)
 % function [x,y,u,v,cval,mask] = sandboxpiv(SETTINGS)
 %
 % PIV implementation following summary work by Raffel et al 2007 (Particle

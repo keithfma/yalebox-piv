@@ -124,6 +124,13 @@ netcdf.putVar(out.ncid, out.sid, out.s);
 
 keyboard
 
+%         % Align center of the first row of sample windows with the lower edge of the sand (upper edge of the image).
+%         [sc sr] = meshgrid(1:SPC(pass):nc,nr:-SPC(pass):1); % sample window centers        
+%         [nsr,nsc] = size(sr); % dimensions of sampling grid        
+%         toEdgeFromCenter = round( (S(pass)-1) /2); % distance from the center of a sample window to the center rounded to a whole number 
+%         sllc = sc(1,:)-toEdgeFromCenter; % lower left corners of sample cells in r,c coords, whole numbers
+%         sllr = sr(:,1)-toEdgeFromCenter;                  
+
 
 
 
