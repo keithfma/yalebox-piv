@@ -114,13 +114,13 @@ ind1 = ind0+intra_pair_step;
 ind0 = ind0(ind1<=nim);
 ind1 = ind1(ind1<=nim);
 
-% add step dim to output netcdf
-out.s = (in.s(ind0) + in.s(ind1))/2; % midpoints
+% get coordinate vectors
+out.s = (in.s(ind0) + in.s(ind1))/2; % step at midpoints
+
+% add dimensions to output netcdf
 out.sdimid = netcdf.defDim(out.ncid, 'step', length(out.s));
 out.sid = netcdf.defVar(out.ncid, 'step', 'NC_DOUBLE', out.sdimid);
 netcdf.putVar(out.ncid, out.sid, out.s);
-
-% add x and y dims to output netcdf
 
 keyboard
 
