@@ -30,9 +30,11 @@ function [] = yalebox_piv_step()
 %       for the output grid. If any element is set to 0, the number of points
 %       will be chosen such that the aspect ratio is approximately 1 (in pixel
 %       coordinates).
+%   
+%   verbose = Scalar, logical, flag to enable (true) or disable (false) verbose
+%       output messages.
 %
-% (NOTE: may wish to include an option to equalize the grid if one of these is
-% left empty)
+% (NOTE: add a 'dryrun' mode that does everything but PIV, printing verbose outputs and returning ancillary variables)
 
 %
 % Arguments, output:
@@ -83,10 +85,15 @@ npass = 2;
 samplen = [51, 25];
 yrez = [100, 200];
 xrez = [0, 0];
+verbose = true;
 
+
+if verbose; summarize_inputs(ini, fin, x, y, npass, samplen, xrez, yrez); end
 
 % check and preprocess input arguments
 [xrez, yrez] = parse_inputs(ini, fin, x, y, npass, samplen, xrez, yrez);
+
+
 
 end
 
@@ -138,6 +145,29 @@ for ii = 1:npass
         error('Unknown grid dimensions (both NaN) for pass %i', ii);
     end            
 end
+
+end
+
+function [] = summarize_inputs(ini, fin, x, y, npass, samplen, xrez, yrez)
+%
+% Display values (or a summary of them) for the input arguments
+
+fprintf('Input argument summary -----------\n');
+fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
+    size(ini, 1), size(ini, 2), min(ini(:)), max(ini(:)), ...
+    sum(ini(:) ~= 0)/numel(ini)*100);
+fprintf('fin: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
+    size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
+    sum(fin(:) ~= 0)/numel(fin)*100);
+fprintf('x: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(x), min(x), max(x), abs(x(2)-x(1)));
+fprintf('y: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(y), min(y), max(y), abs(y(2)-y(1)));
+fprintf('npass: %i\n', npass);
+fprintf('samplen: %s\n', sprintf('%i  ', samplen));
+fprintf('xrez: %s\n', sprintf('%i  ', xrez));
+fprintf('yrez: %s\n', sprintf('%i  ', yrez));
+fprintf('----------\n');
 
 end
 
