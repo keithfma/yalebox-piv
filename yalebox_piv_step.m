@@ -30,6 +30,23 @@ function [] = yalebox_piv_step()
 %       for the output grid. If any element is set to 0, the number of points
 %       will be chosen such that the aspect ratio is approximately 1 (in pixel
 %       coordinates).
+%
+%   uu_max = Vector, length == npass, integer, maximum x-direction displacement
+%       in [pixels], used to set the size of the PIV search window.
+%
+%   uu_min = Vector, length == npass, integer, minimum x-direction displacement
+%       in [pixels], used to set the size of the PIV search window, note that
+%       this value will typically be negative to allow for displacements in the
+%       negative x-direction.
+%
+%   vv_max = Vector, length == npass, integer, maximum y-direction displacement
+%       in [pixels], used to set the size of the PIV search window.
+%
+%   vv_min = Vector, length == npass, integer, minimum y-direction displacement
+%       in [pixels], used to set the size of the PIV search window, note that
+%       this value will typically be negative to allow for displacements in the
+%       negative y-direction.
+
 %   
 %   verbose = Scalar, logical, flag to enable (true) or disable (false) verbose
 %       output messages.
@@ -43,15 +60,6 @@ function [] = yalebox_piv_step()
 %
 % References:
 
-% max_u_pos = Vector, length == npass, maximum displacement for each pass 
-%   in the positive x-direction, units = [m]
-%
-% max_u_neg = Vector, length == npass, " " negative x-direction " "
-%
-% max_v_pos = Vector, length == npass, " " positive y-direction " "
-%
-% max_v_neg = Vector, length == npass, " " negative y-direction " "
-%
 % validate = Scalar, logical, flag to enable (true) or disable (false) vector 
 %   validation/interpolation
 %
@@ -82,14 +90,19 @@ samplen = [51, 25];
 yrez = [100, 200];
 xrez = [0, 0];
 verbose = true;
-
-
-if verbose; summarize_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez); end
+uu_max = [20, 10];
+uu_min = -uu_max;
+vv_max = [20, 10];
+vv_min = -vv_max;
 
 % check and preprocess input arguments
+verbose_inputs(verbose, 'raw inputs', ...
+    ini, fin, xx, yy, npass, samplen, xrez, yrez); 
+
 [xrez, yrez] = parse_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez);
 
-
+verbose_inputs(verbose, 'preprocessed inputs', ...
+    ini, fin, xx, yy, npass, samplen, xrez, yrez); 
 
 end
 
@@ -144,26 +157,38 @@ end
 
 end
 
-function [] = summarize_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez)
+% verbose message subroutines --------------------------------------------------
+
+function verbose_sep()
+% Print a separator line for verbose output messages
+
+fprintf('----------\n');
+
+end
+
+function verbose_inputs(verbose, msg, ini, fin, xx, yy, npass, samplen,...
+                        xrez, yrez)
 %
 % Display values (or a summary of them) for the input arguments
 
-fprintf('Input argument summary -----------\n');
-fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
-    size(ini, 1), size(ini, 2), min(ini(:)), max(ini(:)), ...
-    sum(ini(:) ~= 0)/numel(ini)*100);
-fprintf('fin: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
-    size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
-    sum(fin(:) ~= 0)/numel(fin)*100);
-fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-    length(xx), min(xx), max(xx), abs(xx(2)-xx(1)));
-fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-    length(yy), min(yy), max(yy), abs(yy(2)-yy(1)));
-fprintf('npass: %i\n', npass);
-fprintf('samplen: %s\n', sprintf('%i  ', samplen));
-fprintf('xrez: %s\n', sprintf('%i  ', xrez));
-fprintf('yrez: %s\n', sprintf('%i  ', yrez));
-fprintf('----------\n');
+if verbose
+    verbose_sep;
+    fprintf('%s\n', msg);
+    fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
+        size(ini, 1), size(ini, 2), min(ini(:)), max(ini(:)), ...
+        sum(ini(:) ~= 0)/numel(ini)*100);
+    fprintf('fin: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
+        size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
+        sum(fin(:) ~= 0)/numel(fin)*100);
+    fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+        length(xx), min(xx), max(xx), abs(xx(2)-xx(1)));
+    fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+        length(yy), min(yy), max(yy), abs(yy(2)-yy(1)));
+    fprintf('npass: %i\n', npass);
+    fprintf('samplen: %s\n', sprintf('%i  ', samplen));
+    fprintf('xrez: %s\n', sprintf('%i  ', xrez));
+    fprintf('yrez: %s\n', sprintf('%i  ', yrez));
+end
 
 end
 
