@@ -116,7 +116,7 @@ validateattributes(samplen, ...
     mfilename, 'samplen');
 validateattributes(xrez, ...
     {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nc}, ...
-    mfilename, 'xrez');
+    mfilename,  'xrez');
 validateattributes(yrez, ...
     {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nr}, ...
     mfilename, 'yrez');
@@ -136,16 +136,7 @@ for ii = 1:npass
     elseif xrez(ii) == 0 && yrez(ii) == 0
         % both grids are unknown, error    
         error('Unknown grid dimensions (both NaN) for pass %i', ii);
-    end        
-    % debug {
-    xpts = linspace(1, nc, xrez(ii));
-    xspc = xpts(2)-xpts(1);
-    ypts = linspace(1, nr, yrez(ii));
-    yspc = ypts(2)-ypts(1);
-    fprintf('xrez = %i, yrez = %i, xspc = %f, yspc = %f\n',...
-        xrez(ii), yrez(ii), xspc, yspc);
-    % } debug
-    
+    end            
 end
 
 end
