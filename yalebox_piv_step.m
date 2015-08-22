@@ -9,10 +9,10 @@ function [] = yalebox_piv_step()
 %   fin = 2D matrix, double, range 0 to 1, normalize grayscale image from
 %       the end of the step to be analyzed.
 %
-%   x = Vector, double, increasing, x-direction coordinate vector, length
+%   xx = Vector, double, increasing, x-direction coordinate vector, length
 %       must match the columns in ini and fin.
 %
-%   y = Vector, double, increasing, y-direction coordinate vector, length
+%   yy = Vector, double, increasing, y-direction coordinate vector, length
 %       must match the rows in ini and fin.
 %
 %   npass = Scalar, integer, number of PIV grid refinement passes
@@ -39,14 +39,10 @@ function [] = yalebox_piv_step()
 %
 % Arguments, output:
 % 
-% x,y,u,v
+% xx,yy,u,v
 %
 % References:
 
-% spc = Vector, length == npass, integer, distance between samples for each
-%   pass, units: [pixels]. Note that if spc == win the sample windows do
-%   not overlap or have gaps between them.
-%
 % max_u_pos = Vector, length == npass, maximum displacement for each pass 
 %   in the positive x-direction, units = [m]
 %
@@ -79,8 +75,8 @@ data_dir = '/home/kfm/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/
 % input arguments, hard-coded for debug
 ini = flipud(double(imread([data_dir, 'img1.png']))/double(uint16(inf)));
 fin = flipud(double(imread([data_dir, 'img2.png']))/double(uint16(inf)));
-x = (1:size(ini,2))/1e3;
-y = (1:size(ini,1))/1e3;
+xx = (1:size(ini,2))/1e3;
+yy = (1:size(ini,1))/1e3;
 npass = 2;
 samplen = [51, 25];
 yrez = [100, 200];
@@ -88,16 +84,16 @@ xrez = [0, 0];
 verbose = true;
 
 
-if verbose; summarize_inputs(ini, fin, x, y, npass, samplen, xrez, yrez); end
+if verbose; summarize_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez); end
 
 % check and preprocess input arguments
-[xrez, yrez] = parse_inputs(ini, fin, x, y, npass, samplen, xrez, yrez);
+[xrez, yrez] = parse_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez);
 
 
 
 end
 
-function [xrez, yrez] = parse_inputs(ini, fin, x, y, npass, samplen, xrez, yrez)
+function [xrez, yrez] = parse_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez)
 %
 % Check and preprocess input arguments
 
@@ -109,12 +105,12 @@ validateattributes(ini,...
 validateattributes(fin,...
     {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]}, ...
     mfilename, 'fin');
-validateattributes(x, ...
+validateattributes(xx, ...
     {'double'}, {'vector', 'real', 'nonnan', 'increasing', 'numel', nc}, ...
-    mfilename, 'x');
-validateattributes(y, ...
+    mfilename, 'xx');
+validateattributes(yy, ...
     {'double'}, {'vector', 'real', 'nonnan', 'increasing', 'numel', nr}, ...
-    mfilename, 'y');
+    mfilename, 'yy');
 validateattributes(npass, ...
     {'numeric'}, {'scalar', 'integer', 'nonnegative'}, ...
     mfilename, 'npass');
@@ -148,7 +144,7 @@ end
 
 end
 
-function [] = summarize_inputs(ini, fin, x, y, npass, samplen, xrez, yrez)
+function [] = summarize_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez)
 %
 % Display values (or a summary of them) for the input arguments
 
@@ -159,10 +155,10 @@ fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
 fprintf('fin: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
     size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
     sum(fin(:) ~= 0)/numel(fin)*100);
-fprintf('x: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-    length(x), min(x), max(x), abs(x(2)-x(1)));
-fprintf('y: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-    length(y), min(y), max(y), abs(y(2)-y(1)));
+fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(xx), min(xx), max(xx), abs(xx(2)-xx(1)));
+fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(yy), min(yy), max(yy), abs(yy(2)-yy(1)));
 fprintf('npass: %i\n', npass);
 fprintf('samplen: %s\n', sprintf('%i  ', samplen));
 fprintf('xrez: %s\n', sprintf('%i  ', xrez));
