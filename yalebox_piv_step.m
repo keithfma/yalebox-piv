@@ -54,6 +54,10 @@ function [] = yalebox_piv_step()
 %       validation, ignored if validate == false
 %
 %   epsthresh = " "
+%
+%   data_min_frac = Scalar, double, in the range [0, 1] inclusive, minimum
+%       fraction of sample window that must contain data to proceed with PIV, 
+%       assumes that no-data pixels are set to 0
 %   
 %   verbose = Scalar, logical, flag to enable (true) or disable (false) verbose
 %       output messages.
@@ -69,8 +73,6 @@ function [] = yalebox_piv_step()
 
 
 %
-% min_sand_frac = Scalar, double. Minimum fraction of sample window that must contain 
-%   sand to proceed with PIV
 %
 % intra_pair_step = Integer.  Step between images in the same pair (1=adjacent) 
 %
@@ -96,13 +98,15 @@ vmin = -vmax+1;
 validate = true;
 eps0 = 1.1;
 epsthresh = 2.2;
+data_min_frac = 0.5;
 % } debug
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
-    xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh); 
+    xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
+    data_min_frac); 
 
 check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
-    vmax, validate, eps0, epsthresh);
+    vmax, validate, eps0, epsthresh, data_min_frac);
 
 [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), size(ini,2));
 
@@ -110,12 +114,14 @@ check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
 [vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
 
 print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
-    samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh); 
+    samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
+    data_min_frac); 
 
 end
 
 function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
-                  umin, umax, vmin, vmax, validate, eps0, epsthresh)
+                  umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
+                  data_min_frac)
 % Check for sane input argument properties, exit with error if they do not match
 % expectations.
               
@@ -165,6 +171,9 @@ validateattributes(eps0, ...
 validateattributes(epsthresh, ...
     {'double'}, {'scalar', 'real', 'nonnegative', 'nonnan', 'finite'}, ...
     mfilename, 'epsthresh');
+validateattributes(data_min_frac, ...
+    {'double'}, {'scalar', 'nonnegative', '<=', 1, 'nonnan', 'finite'}, ...
+    mfilename, 'data_min_frac');
 
 end
 
@@ -211,9 +220,9 @@ fprintf('----------\n');
 
 end
 
-function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen,...
-                        xrez, yrez, umin, umax, vmin, vmax, validate, eps0, ...
-                        epsthresh)
+function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen, ...
+             xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
+             data_min_frac)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -238,8 +247,9 @@ if verbose
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
     fprintf('validate: %i\n', validate);
-    fprintf('eps0: %.2f\n', eps0);
-    fprintf('epsthresh: %.2f\n', epsthresh);
+    fprintf('eps0: %.3f\n', eps0);
+    fprintf('epsthresh: %.3f\n', epsthresh);
+    fprintf('data_min_frac: %.3f\n', data_min_frac);
 end
 
 end
