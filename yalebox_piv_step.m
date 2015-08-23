@@ -31,19 +31,19 @@ function [] = yalebox_piv_step()
 %       will be chosen such that the aspect ratio is approximately 1 (in pixel
 %       coordinates).
 %
-%   uu_max = Vector, length == npass, integer, maximum x-direction displacement
-%       in [pixels], used to set the size of the PIV search window.
+%   umax = Vector, length == npass, maximum x-direction displacement
+%       in world coordinates, used to set the size of the PIV search window.
 %
-%   uu_min = Vector, length == npass, integer, minimum x-direction displacement
-%       in [pixels], used to set the size of the PIV search window, note that
+%   umin = Vector, length == npass, minimum x-direction displacement
+%       in world coordinates, used to set the size of the PIV search window, note that
 %       this value will typically be negative to allow for displacements in the
 %       negative x-direction.
 %
-%   vv_max = Vector, length == npass, integer, maximum y-direction displacement
-%       in [pixels], used to set the size of the PIV search window.
+%   vmax = Vector, length == npass maximum y-direction displacement
+%       in world coordinates, used to set the size of the PIV search window.
 %
-%   vv_min = Vector, length == npass, integer, minimum y-direction displacement
-%       in [pixels], used to set the size of the PIV search window, note that
+%   vmin = Vector, length == npass minimum y-direction displacement
+%       in world coordinates, used to set the size of the PIV search window, note that
 %       this value will typically be negative to allow for displacements in the
 %       negative y-direction.
 
@@ -77,40 +77,42 @@ function [] = yalebox_piv_step()
 %
 % view = String. Select 'side' or 'top' view.
 
-% debug parameters
+% debug { 
 data_dir = '/home/kfm/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/';
-
-% input arguments, hard-coded for debug
 ini = flipud(double(imread([data_dir, 'img1.png']))/double(uint16(inf)));
 fin = flipud(double(imread([data_dir, 'img2.png']))/double(uint16(inf)));
-xx = (1:size(ini,2))/1e3;
+xx = fliplr((1:size(ini,2))/1e3);
 yy = (1:size(ini,1))/1e3;
 npass = 2;
 samplen = [51, 25];
 yrez = [100, 200];
 xrez = [0, 0];
 verbose = true;
-uu_max = [20, 10];
-uu_min = -uu_max;
-vv_max = [20, 10];
-vv_min = -vv_max;
+umax = [20, 10];
+umin = -umax+1;
+vmax = [20, 10];
+vmin = -vmax+1;
+% } debug
 
-% check and preprocess input arguments
-verbose_inputs(verbose, 'raw inputs', ...
-    ini, fin, xx, yy, npass, samplen, xrez, yrez); 
+print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
+    xrez, yrez, umin, umax, vmin, vmax); 
 
-[xrez, yrez] = parse_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez);
+check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
+    vmax);
 
-verbose_inputs(verbose, 'preprocessed inputs', ...
-    ini, fin, xx, yy, npass, samplen, xrez, yrez); 
+[xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), size(ini,2));
+
+[umin, umax] = uv_lim_world_to_pixel(umin, umax, xx);
+[vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
+
+print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
+    samplen, xrez, yrez, umin, umax, vmin, vmax); 
 
 end
 
-function [xrez, yrez] = parse_inputs(ini, fin, xx, yy, npass, samplen, xrez, yrez)
-%
-% Check and preprocess input arguments
-
-% validate input arguments
+function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
+                  umin, umax, vmin, vmax)
+              
 validateattributes(ini,...
     {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1}, ...
     mfilename, 'ini');
@@ -119,10 +121,10 @@ validateattributes(fin,...
     {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]}, ...
     mfilename, 'fin');
 validateattributes(xx, ...
-    {'double'}, {'vector', 'real', 'nonnan', 'increasing', 'numel', nc}, ...
+    {'double'}, {'vector', 'real', 'nonnan', 'numel', nc}, ...
     mfilename, 'xx');
 validateattributes(yy, ...
-    {'double'}, {'vector', 'real', 'nonnan', 'increasing', 'numel', nr}, ...
+    {'double'}, {'vector', 'real', 'nonnan', 'numel', nr}, ...
     mfilename, 'yy');
 validateattributes(npass, ...
     {'numeric'}, {'scalar', 'integer', 'nonnegative'}, ...
@@ -136,9 +138,25 @@ validateattributes(xrez, ...
 validateattributes(yrez, ...
     {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nr}, ...
     mfilename, 'yrez');
+validateattributes(umin, ...
+    {'double'}, {'numel', npass}, ...
+    mfilename, 'umin');
+validateattributes(umax, ...
+    {'double'}, {'numel', npass}, ...
+    mfilename, 'umax');
+validateattributes(vmin, ...
+    {'double'}, {'numel', npass}, ...
+    mfilename, 'vmin');
+validateattributes(vmax, ...
+    {'double'}, {'numel', npass}, ...
+    mfilename, 'vmax');
 
-% approximately equalize any unknown grid dimensions 
-for ii = 1:npass
+end
+
+function [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, nr, nc)
+% Approximately equalize any unknown grid dimensions 
+
+for ii = 1:length(xrez)
     if xrez(ii) ~= 0 && yrez(ii) == 0
         % match unknown y-grid to known x-grid 
         pts = linspace(1, nc, xrez(ii));
@@ -157,22 +175,34 @@ end
 
 end
 
+function [uvmin, uvmax] = uv_lim_world_to_pixel(uvmin, uvmax, xy)
+% Convert displacement limits from world to pixel coordinates, one direction at
+% a time. Sort to preserve the correct min/max regardless of the world
+% coordinate axis polarity.
+
+dxy = xy(2)-xy(1); 
+uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
+uvmin = uvminmax(:,1);
+uvmax = uvminmax(:,2);
+
+end
+
 % verbose message subroutines --------------------------------------------------
 
-function verbose_sep()
+function print_sep()
 % Print a separator line for verbose output messages
 
 fprintf('----------\n');
 
 end
 
-function verbose_inputs(verbose, msg, ini, fin, xx, yy, npass, samplen,...
-                        xrez, yrez)
+function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen,...
+                        xrez, yrez, umin, umax, vmin, vmax)
 %
 % Display values (or a summary of them) for the input arguments
 
 if verbose
-    verbose_sep;
+    print_sep;
     fprintf('%s\n', msg);
     fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
         size(ini, 1), size(ini, 2), min(ini(:)), max(ini(:)), ...
@@ -181,13 +211,17 @@ if verbose
         size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
         sum(fin(:) ~= 0)/numel(fin)*100);
     fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-        length(xx), min(xx), max(xx), abs(xx(2)-xx(1)));
+        length(xx), min(xx), max(xx), xx(2)-xx(1));
     fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-        length(yy), min(yy), max(yy), abs(yy(2)-yy(1)));
+        length(yy), min(yy), max(yy), yy(2)-yy(1));
     fprintf('npass: %i\n', npass);
     fprintf('samplen: %s\n', sprintf('%i  ', samplen));
     fprintf('xrez: %s\n', sprintf('%i  ', xrez));
     fprintf('yrez: %s\n', sprintf('%i  ', yrez));
+    fprintf('umin: %s\n', sprintf('%.2f  ', umin));
+    fprintf('umax: %s\n', sprintf('%.2f  ', umax));
+    fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
+    fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
 end
 
 end
