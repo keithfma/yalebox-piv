@@ -46,7 +46,14 @@ function [] = yalebox_piv_step()
 %       in world coordinates, used to set the size of the PIV search window, note that
 %       this value will typically be negative to allow for displacements in the
 %       negative y-direction.
-
+%
+%   validate = Scalar, logical, flag to enable (true) or disable (false) vector
+%       validation using the normalized median filter.
+%
+%   eps0 = Scalar, double, parameter to normalized median filter used for vector
+%       validation, ignored if validate == false
+%
+%   epsthresh = " "
 %   
 %   verbose = Scalar, logical, flag to enable (true) or disable (false) verbose
 %       output messages.
@@ -60,13 +67,7 @@ function [] = yalebox_piv_step()
 %
 % References:
 
-% validate = Scalar, logical, flag to enable (true) or disable (false) vector 
-%   validation/interpolation
-%
-% eps_0 = Scalar, double, parameter to normalized median filter used for vector 
-%   validation, ignored if validate == false;
-%
-% eps_thresh = Scalar, double  " "
+
 %
 % min_sand_frac = Scalar, double. Minimum fraction of sample window that must contain 
 %   sand to proceed with PIV
@@ -92,13 +93,16 @@ umax = [20, 10];
 umin = -umax+1;
 vmax = [20, 10];
 vmin = -vmax+1;
+validate = true;
+eps0 = 1.1;
+epsthresh = 2.2;
 % } debug
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
-    xrez, yrez, umin, umax, vmin, vmax); 
+    xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh); 
 
 check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
-    vmax);
+    vmax, validate, eps0, epsthresh);
 
 [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), size(ini,2));
 
@@ -106,12 +110,14 @@ check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
 [vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
 
 print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
-    samplen, xrez, yrez, umin, umax, vmin, vmax); 
+    samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh); 
 
 end
 
 function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
-                  umin, umax, vmin, vmax)
+                  umin, umax, vmin, vmax, validate, eps0, epsthresh)
+% Check for sane input argument properties, exit with error if they do not match
+% expectations.
               
 validateattributes(ini,...
     {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1}, ...
@@ -150,6 +156,15 @@ validateattributes(vmin, ...
 validateattributes(vmax, ...
     {'double'}, {'numel', npass}, ...
     mfilename, 'vmax');
+validateattributes(validate, ...
+    {'logical'}, {'scalar'}, ...
+    mfilename, 'validate');
+validateattributes(eps0, ...
+    {'double'}, {'scalar', 'real', 'nonnegative', 'nonnan', 'finite'}, ...
+    mfilename, 'eps0');
+validateattributes(epsthresh, ...
+    {'double'}, {'scalar', 'real', 'nonnegative', 'nonnan', 'finite'}, ...
+    mfilename, 'epsthresh');
 
 end
 
@@ -197,8 +212,8 @@ fprintf('----------\n');
 end
 
 function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen,...
-                        xrez, yrez, umin, umax, vmin, vmax)
-%
+                        xrez, yrez, umin, umax, vmin, vmax, validate, eps0, ...
+                        epsthresh)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -222,6 +237,9 @@ if verbose
     fprintf('umax: %s\n', sprintf('%.2f  ', umax));
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
+    fprintf('validate: %i\n', validate);
+    fprintf('eps0: %.2f\n', eps0);
+    fprintf('epsthresh: %.2f\n', epsthresh);
 end
 
 end
