@@ -122,14 +122,36 @@ uu = zeros(length(yy), length(xx));
 vv = zeros(length(yy), length(xx));
 
 % loop over PIV passes
-for ii = 1:npass
+for pp = 1:npass
     
-    print_pass(verbose, ii, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
+    print_pass(verbose, pp, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
     
-    [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(ii), xrez(ii), xx, yy, cc, ...
+    [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
                                            rr, uu, vv);
-                                 
-                                       
+
+    % loop over sample grid
+    for ii = 1:xrez(pp)
+        for jj = 1:yrez(pp)
+            
+            % (next: loop over correlation-based-correction samples)
+            
+            % get sample and interrogation windows, padded if needed
+            
+            % compute correlation
+            
+            % (next: accumulate correlation-based-correction samples)
+            
+            % (next: end loop over correlation-based-correction samples)
+            
+            % find the correlation plane maximum with subpixel accuracy
+            
+            % get displacement
+            
+            % identify and interpolate outliers
+            
+        end
+    end
+    
 end
  
 end
