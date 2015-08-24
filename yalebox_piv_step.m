@@ -1,6 +1,14 @@
-function [x,y,u,v,cval,mask] = yalebox_piv_step()
-% Skeleton for re-implementation of yalebox PIV analysis routine
-
+function [] = yalebox_piv_step()
+% Re-implementation of yalebox PIV analysis routine
+%
+% Notes:
+%
+% Sample grid does not fall on integer pixels - the sample windows are
+% constructed so that they are samplen pixels wide, and the grid point is as
+% close to the center as possible, given that the data are discrete, the window
+% center may be as much as 0.5 pixels from the grid point, this is almost
+% certainly negligible, but worth noting.
+%
 % Arguments, input:
 %
 %   ini = 2D matrix, double, range 0 to 1, normalize grayscale image from
@@ -17,9 +25,8 @@ function [x,y,u,v,cval,mask] = yalebox_piv_step()
 %
 %   npass = Scalar, integer, number of PIV grid refinement passes
 %
-%   samplen = Vector, length === npass, double, side length of
-%       the square sample window, elements must be odd so that windows can be
-%       symmetric around the center point
+%   samplen = Vector, length === npass, double, side length of the square sample
+%       window
 %
 %   xrez = Vector, length == npass, integer, grid points in the x-direction
 %       for the output grid. If any element is set to 0, the number of points
@@ -104,380 +111,26 @@ print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
     samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
     data_min_frac); 
 
-% debug {
-% rename or define old variables so that old version works without modification
-S = samplen; 
-SPC = nan(npass, 1); % arbitrarily based on y-dir resolution
+% % debug {
+% npass = 1;
+% % } debug
+
+% initialize pixel grid and displacements for sample_grid()
+rr = 1:length(yy);
+cc = 1:length(xx);
+uu = zeros(length(yy), length(xx));
+vv = zeros(length(yy), length(xx));
+
+% loop over PIV passes
 for ii = 1:npass
-    tmp = linspace(1, size(ini,1), yrez(ii));
-    SPC(ii) = tmp(2)-tmp(1);
+    
+    print_pass(verbose, ii, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
+    
+    [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(ii), xrez(ii), xx, yy, cc, ...
+                                           rr, uu, vv);
+                                 
+                                       
 end
-SPC = round(SPC);
-ML = abs(umin);
-MR = abs(umax);
-MU = abs(vmin);
-MD = abs(vmax);
-validate_nmed = validate;
-epsilon0 = eps0;
-epsilonthresh = epsthresh;
-validate_nstd = 0;
-nstd = NaN;
-im1 = ini;
-im2 = fin;
-[nr, nc] = size(im1);
-CBC.nnbr = [4, 4];
-CBC.offsetfrac = 0.2;
-maskfrac = data_min_frac;
-SETTINGS.view = 'side';
-% } debug
-
-% try
-    
-    % iterative grid refinement loop
-    for pass = 1:npass
-        
-        fprintf('-Pass %i of %i\n-window size = %ix%i, grid spacing = %i\n-correlation-based correction neighbors = %i, spacing = %i\n',...
-            pass,npass,S(pass),S(pass),SPC(pass),CBC.nnbr(pass),ceil(CBC.offsetfrac*S(pass)));
-        
-        CBCnwin = CBC.nnbr(pass)+1; % total number of windows to compute
-        
-        % define sampling grid
-        if pass>1 % mask previous output, store old positions for displacement interpolation
-            
-            u = u.*mask; % sets masked regions to 0
-            v = v.*mask;
-            oldsc = sc; % takes truncated windows into account
-            oldsr = sr;
-            oldu = u;
-            oldv = v;
-        end
-        
-        % TEST
-        % Align center of the first row of sample windows with the lower edge of the sand (upper edge of the image).
-        [sc sr] = meshgrid(1:SPC(pass):nc,nr:-SPC(pass):1); % sample window centers        
-        [nsr,nsc] = size(sr); % dimensions of sampling grid        
-        toEdgeFromCenter = round( (S(pass)-1) /2); % distance from the center of a sample window to the center rounded to a whole number 
-        sllc = sc(1,:)-toEdgeFromCenter; % lower left corners of sample cells in r,c coords, whole numbers
-        sllr = sr(:,1)-toEdgeFromCenter;         
-        
-        % initial guess for displacement field
-        if pass==1 % first pass, no information
-            u = zeros(nsr,nsc); % x-dir offset (intrinsic pixel units), ZEROS FOR NO DATA, SUBJECT TO CHANGE
-            v = zeros(nsr,nsc); % y-dir offset " "
-            
-        else % refine data from previous pass
-            
-            % crude interpolation to fill in outside the measured data (allows later use of linear,cubic,spline interpolation without introducing spurious edge gradients)
-            % must interpolate to the image boundaries as well
-            hasdata = oldu~=0 | oldv~=0; % use only points with measured data to construct the interpolant
-            olduTSI = TriScatteredInterp(oldsc(hasdata),oldsr(hasdata),oldu(hasdata),'nearest');
-            oldvTSI = TriScatteredInterp(oldsc(hasdata),oldsr(hasdata),oldv(hasdata),'nearest');
-            
-            [intsc intsr] = meshgrid(unique([1,sc(1,:),nc]),unique([nr,sr(:,1)',1])); % old sample positions AND points on image boundaries, so no NaNs appear outside the convex hull of the data in later interpolation step
-            oldu = olduTSI(intsc,intsr);
-            oldv = oldvTSI(intsc,intsr);
-            
-            % improved interpolation to refined grid
-            u = interp2(intsc,intsr,oldu,sc,sr); % linear
-            v = interp2(intsc,intsr,oldv,sc,sr);
-            
-        end
-        
-        % setup correlation-based-correction (CBC)
-        CBCoffset = ceil(S(pass)*CBC.offsetfrac); % offset between central and adjacent sample windows for correlation plane correction
-        
-        switch CBC.nnbr(pass) % get offsets to each neighboring window
-            
-            case 8 % all 8 neighbors included
-                [CBCoffr CBCoffc] = ind2sub([3,3],1:9);
-                
-            case 4 % 4 neighbors included (NESW)
-                [CBCoffr CBCoffc] = ind2sub([3,3],[2 4 5 6 8]);
-                
-            case 1 % 1 neighbor included (E only, but this is arbitrary)
-                [CBCoffr CBCoffc] = ind2sub([3,3],[5 8]);
-                
-            case 0 % no CBR
-                [CBCoffr CBCoffc] = ind2sub([3,3],5);
-                
-        end
-        CBCoffr = (CBCoffr-2)*CBCoffset;
-        CBCoffc = (CBCoffc-2)*CBCoffset;
-
-        % pad images with 0's to accomodate all possible displacements, take correlation plane summation into account
-        npadt = max( round( -min(v(:))+MD(pass)+CBCoffset+toEdgeFromCenter ), CBCoffset+toEdgeFromCenter ); % top pad = min vertical velocity + downwards search range + correlation plane offset
-        npadb = max( round( max(v(:))+MU(pass)+CBCoffset+toEdgeFromCenter ), CBCoffset+toEdgeFromCenter ); % bottom pad = max vertical velocity + upwards search range + " "
-        npadl = max( round( -min(u(:))+ML(pass)+CBCoffset+toEdgeFromCenter ), CBCoffset+toEdgeFromCenter ); % left pad = min leftward velocity + leftwards search range + " "
-        npadr = max( round( max(u(:))+MR(pass)+CBCoffset+toEdgeFromCenter ), CBCoffset+toEdgeFromCenter ); % right pad = max rightward velocity + rightwards search range + " "
-        
-        im1pad = [zeros(npadt,nc+npadl+npadr);...
-            zeros(nr,npadl), im1, zeros(nr,npadr);...
-            zeros(npadb,nc+npadl+npadr)];
-        
-        im2pad = [zeros(npadt,nc+npadl+npadr);...
-            zeros(nr,npadl), im2, zeros(nr,npadr);...
-            zeros(npadb,nc+npadl+npadr)];
-                
-        % allocate other vars
-        cval = zeros(nsr,nsc); % correlation value, not including subpixel offsets
-        mask = true(nsr,nsc); % one where displacement can be computed, 0 where it cannot
-        
-        % compute vectors for all samples
-        fprintf('--Computing displacements\n');
-        flag = false(nsr,nsc); % flags for discarded vectors
-        
-        
-%        parfor i = 1:nsr
-         for i = 1:nsr
-            for j = 1:nsc
-                
-                % fractional masking
-                centerwinr = ( sllr(i) : sllr(i)+S(pass)-1 )+npadt; % sample window rows, [min max]
-                centerwinc = ( sllc(j) : sllc(j)+S(pass)-1 )+npadl; % " " cols [min max]
-                centerwin = im1pad(centerwinr,centerwinc);
-                
-                if sum(sum(centerwin~=0))/numel(centerwin) < maskfrac % don't bother computing if the central window doesn't contain sufficient sand
-                    mask(i,j) = 0;
-                    continue
-                end
-                
-                % get offsets, assuming the full range exists - these are approximate for neighboring windows in the CBC routine (which is right)                
-                offr = round(v(i,j))+(-MD(pass):MU(pass)); % Error corrected
-                offc = round(u(i,j))+(-ML(pass):MR(pass));
-                
-                % get size of the correlation plane
-                ncr = numel(offr);
-                ncc = numel(offc);
-                
-                % reset vars
-                localcor = zeros(ncr,ncc,9);
-                
-                % get correlation planes
-                for p = 1:CBCnwin
-                    
-                    %  get sample window
-                    sampwinr = ( sllr(i) : sllr(i)+S(pass)-1 )+npadt+CBCoffr(p); % sample window rows, [min max]
-                    sampwinc = ( sllc(j) : sllc(j)+S(pass)-1 )+npadl+CBCoffc(p); % " " cols [min max]
-                    sampwin = im1pad(sampwinr,sampwinc);
-                    
-                    % fractional masking
-                    if sum(sum(sampwin~=0))/numel(sampwin) < maskfrac
-                        
-                        % continue % don't compute this window if it doesn't contain sufficient sand
-                                               
-                        % find a random position that DOES work, unless iteration becomes ridiculous
-                        randitr = 1;
-                        itrlimit = 1000;
-                        while randitr <= itrlimit 
-                            
-                            % choose a random position wihtin the allowed offset range
-                            randomoffsetr = round(rand(1)*CBCoffset);
-                            randomoffsetc = round(rand(1)*CBCoffset);
-                            
-                            %  get sample window
-                            sampwinr = ( sllr(i) : sllr(i)+S(pass)-1 )+npadt+randomoffsetr; % sample window rows, [min max]
-                            sampwinc = ( sllc(j) : sllc(j)+S(pass)-1 )+npadl+randomoffsetc; % " " cols [min max]
-                            sampwin = im1pad(sampwinr,sampwinc);
-                            
-                            if sum(sum(sampwin~=0))/numel(sampwin) >= maskfrac % success!
-                                break
-                            else % keep looping 
-                                randitr = randitr+1;
-                            end
-                            
-                            if randitr==itrlimit
-                                fprintf('Skipping a CBC window, too many iteration trying to find a suitable window\n');
-                            end
-                            
-                            
-                        end
-                    
-                    end
-                    
-                    % get padded interrogation window
-                    intrwinr = (sampwinr(1)+min(offr):sampwinr(end)+max(offr));
-                    intrwinc = (sampwinc(1)+min(offc):sampwinc(end)+max(offc));
-                    intrwin = im2pad(intrwinr,intrwinc);
-                    
-                    fullcor = normxcorr2(sampwin,intrwin);
-                    localcor(:,:,p) = fullcor(S(pass):end-S(pass)+1,S(pass):end-S(pass)+1);
-                    
-                end
-                               
-                % add local correlation planes
-                cor = sum(localcor,3);
-                
-                
-                
-                %%  Sub-pixel estimation
-                
-                % 9-point Gaussian (Nobach & Honkanen 2005, Experiments in Fluids)
-                [~, ind] = max(cor(:)); % find max of corr plane
-                [r,c] = ind2sub(size(cor),ind);
-                
-                if r~=1 && r~=ncr && c~=1 && c~=ncc % compute if the peak is in the interior of the correlation plane
-                    
-                    % offset the normalized correlation plane so there are no negative values as required by the gaussian peak model
-                    coroffset = abs(min(cor(:)));
-                    cor = cor+coroffset;
-                    
-                    % compute coefficients (could displose of loops, but it is easier this way!)
-                    c10 = 0; c01 = 0; c11 = 0; c20 = 0; c02 = 0; c00 = 0;
-                    for ii = -1:1
-                        for jj = -1:1
-                            logterm = log(cor(r+jj,c+ii));
-                            c10 = c10 + ii*logterm/6;
-                            c01 = c01 + jj*logterm/6;
-                            c11 = c11 + ii*jj*logterm/4;
-                            c20 = c20 + (3*ii^2-2)*logterm/6;
-                            c02 = c02 + (3*jj^2-2)*logterm/6;
-                            c00 = c00 + (5-3*ii^2-3*jj^2)*logterm/9;
-                        end
-                    end
-                    
-                    % compute sub-pixel displacement
-                    dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
-                    dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
-                    cval(i,j) = exp( c00-c20*dc^2-c11*dc*dr-c02*dr^2 )-coroffset; % remove offset from cval
-                    
-                    % apply subpixel displacement
-                    if abs(dr)<1 && abs(dc)<1 % subpixel estimation worked, there is a nice peak
-                        u(i,j) = offc(c)+dc;
-                        v(i,j) = offr(r)+dr;
-                    else % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
-                        flag(i,j) = 1;
-                        
-                    end
-                    
-                else % drop vector and interpolate: lack of subpixel displacement will cause spurious gradients in the dataset
-                    flag(i,j) = 1;
-                    
-                end
-
-                
-            end
-        end
-        
-        %% Vector Validation
-        
-        if validate_nmed || validate_nstd
-            
-            fprintf('--Vector validation\n');
-            
-            
-            if validate_nmed % SHOULD BE CHECK FOR BUGS
-                
-                fprintf('---Normalized median filter\n')
-                
-                % identify spurious vectors using normalized median filter of Westerweel & Scarano.
-                for i = 1:nsr
-                    for j = 1:nsc
-                        
-                        if mask(i,j)==0 % skip if no vector
-                            continue
-                        end
-                        
-                        % extract values
-                        subu = u(max(i-1,1):min(i+1,nsr),max(j-1,1):min(j+1,nsc)); % center and 8-neighbors (if available)
-                        subv = v(max(i-1,1):min(i+1,nsr),max(j-1,1):min(j+1,nsc));
-                        center = subu==u(i,j);
-                        adju = subu(~center); adjv = subv(~center); % neighbors only
-                        hasdata = adju~=0 | adjv~=0; % drop any 0s
-                        adju = adju(hasdata); adjv = adjv(hasdata);
-                        
-                        if isempty(adju) || isempty(adjv); % no valid neighbors, skip
-                            continue
-                        end
-                        
-                        % get the median magnitude adjacent vector
-                        medind = ceil(numel(adju)/2); % choose the index of the median value (discrete) in a sorted list
-                        adjmag = sqrt( adju.^2+adjv.^2 );
-                        [~, sortind] = sort(adjmag);
-                        adju = adju(sortind); adjv = adjv(sortind);
-                        umed = adju(medind);
-                        vmed = adjv(medind);
-                        
-                        % get the median magnitude residual vector
-                        res = sqrt( (u(i,j)-adju).^2+(v(i,j)-adjv).^2 ); % magnitude of resisdual vectors
-                        [res] = sort(res);
-                        resmed = res(medind);
-                        
-                        testval = sqrt( (u(i,j)-umed)^2+(v(i,j)-vmed)^2 )/(resmed+epsilon0);
-                        
-                        if testval>epsilonthresh % bad vector
-                            flag(i,j) = 1;
-                        end
-                        
-                    end
-                end
-                
-            end
-            
-            if validate_nstd
-                
-                fprintf('---Standard deviation filter\n');
-                
-                meanu = mean(u(mask));
-                meanv = mean(v(mask));
-                stdu = std(u(mask));
-                stdv = std(v(mask));
-                flag(mask) = max(flag(mask), abs(u(mask)-meanu)>nstd*stdu | abs(v(mask)-meanv)>nstd*stdv);
-                
-            end
-            
-        end
-        
-        % report percentage of vector discarded
-        fprintf('---Vectors discarded: %i, %.1f%%\n',sum(flag(:)),sum(flag(:))/sum(mask(:))*100);
-        
-        % drop rejected vectors
-        u(flag) = 0;
-        v(flag) = 0;
-        
-        
-    end
-    
-    %% Finishing steps
-    
-    
-    % remove masking at the base (s-point support, etc, these points should be filled via interpolation)
-    if strcmp(SETTINGS.view,'side')==1
-        mask = [ones(1,size(mask,2)); mask]; % paste a row of ones below (in world coords) the mask, blacked-out regions at the bed become holes
-        mask = bwfill(mask,'holes'); % fill the holes created above
-        mask = mask(2:end,:); % strip off the added row, holes are filled
-    end
-    
-    % interpolate dropped vectors ... step 1: extrapolate to pad data (build out its convex hull to contain all possible points)
-    pdist = SPC(pass); % distance out from data to create extrapolated pad
-    pr = [ (sr(1,:)+pdist)'; sr(:,end); (sr(end,:)-pdist)'; sr(:,1) ]; % positions of pad data points
-    pc = [ sc(1,:)'; sc(:,end)+pdist; sc(end,:)'; sc(:,1)-pdist ];
-    
-    hasdata = u~=0 | v~=0; % use only points with measured data to construct the interpolant
-    uTSI = TriScatteredInterp(sc(hasdata),sr(hasdata),u(hasdata),'nearest');
-    vTSI = TriScatteredInterp(sc(hasdata),sr(hasdata),v(hasdata),'nearest');
-    pu = uTSI(pc,pr); % extrapolate to pad
-    pv = vTSI(pc,pr);
-    
-    % interpolate dropped vectors ... step 2: interpolate using data and pad
-    uTSI = TriScatteredInterp([sc(hasdata); pc], [sr(hasdata); pr], [u(hasdata); pu],'linear');
-    vTSI = TriScatteredInterp([sc(hasdata); pc], [sr(hasdata); pr], [v(hasdata); pv],'linear');
-    u = uTSI(sc,sr);
-    v = vTSI(sc,sr);
-    
-    % mask displacement matrices
-    u = u.*mask;
-    v = v.*mask;
-    
-    % rename coordinate grids - the grids returned are the centers of the samping windows.
-    x = sc;
-    y = sr;
-   
-    
-% catch err
-%     disp(err)
-%     keyboard
-% end
-
  
 end
 
@@ -573,6 +226,48 @@ uvmax = round(uvminmax(:,2));
 
 end
 
+function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
+% [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
+%
+% Compute sample coordinate grid for the new pass in both pixel and world
+% coordinates, and interpolate the previously computed displacements to the new
+% grid. The grid is linearly spaced over the model domain, including edges.
+% Output values refer to sample window center locations, which are are not in
+% general integers. Note that this approach assumes the coordinate system is
+% linear (can interpolate from low-res to high-res)
+%
+% Arguments:
+%
+%   nr1, nc1 = Scalars, integers, number of rows and columns in the new sample
+%       grid for the new pass
+%
+%   x0, y0 = Vectors, x-dir (a.k.a column-dir) and y-dir (a.k.a row-dir) world
+%       coordinates for the previous pass. 
+%
+%   c0, r0 = Vectors, x-dir (a.k.a. row-dir) and y-dir (a.k.a. row-dir) pixel
+%       coordinates for the sample grid from the previous pass
+%
+%   u0, v0 = Matrices, x-dir and y-dir displacements computed on the sample grid
+%       for the previous pass 
+%
+%   x1, y1, c1, r1, u1, v1 = Same as the above, but for the new pass.
+
+% new pixel sample grid
+r1 = linspace(1, max(r0), nr1);
+c1 = linspace(1, max(c0), nc1);
+
+% new world sample grid
+y1 = interp1(r0, y0, r1, 'linear');
+x1 = interp1(c0, x0, c1, 'linear');
+
+% interpolate displacements from previous pass to current grid
+[c1mat, r1mat] = meshgrid(c1, r1);
+u1 = interp2(c0, r0, u0, c1mat, r1mat);
+v1 = interp2(c0, r0, v0, c1mat, r1mat);
+
+end
+
+
 % verbose message subroutines --------------------------------------------------
 
 function print_sep()
@@ -615,8 +310,19 @@ if verbose
 end
 
 end
- 
- 
 
-% 
-% 
+function [] = print_pass(verbose, ind, npass, samplen, yrez, xrez, umax, ...
+                  umin, vmax, vmin)
+% Display parameters for PIV "ind" or "npass"
+
+if verbose
+    print_sep;
+    fprintf('PIV pass %i of %i\n', ind, npass);
+    fprintf('samplen = %i\n', samplen(ind));
+    fprintf('xrez = %i\tyrez = %i\n', xrez(ind), yrez(ind));
+    fprintf('umax = %.2f\tumin = %.2f\n', umax(ind), umin(ind));
+    fprintf('vmax = %.2f\tvmin = %.2f\n', vmax(ind), vmin(ind));
+end
+
+end
+
