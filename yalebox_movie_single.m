@@ -87,6 +87,10 @@ end
 netcdf.close(ncid);
 if make_movie
     movie_writer.close();
+    fprintf('Run the following command to re-encode as an MP4 video:\n');
+    fprintf('\tavconv <original video> -c:v libx264 -aspect:v %f <new mp4 video>\n', ...
+        size(frame, 2)/size(frame, 1));    
 else
     imshow(frame);
 end
+
