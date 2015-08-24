@@ -135,7 +135,8 @@ for pp = 1:npass
             
             % (next: loop over correlation-based-correction samples)
             
-            % get sample and interrogation windows, padded if needed
+            % get sample and interrogation windows
+            sampwin = sample_window(ini, rr(jj), cc(ii), samplen(pp));
             
             % compute correlation
             
@@ -286,6 +287,41 @@ x1 = interp1(c0, x0, c1, 'linear');
 [c1mat, r1mat] = meshgrid(c1, r1);
 u1 = interp2(c0, r0, u0, c1mat, r1mat);
 v1 = interp2(c0, r0, v0, c1mat, r1mat);
+
+end
+
+function [win] = sample_window(data, rpt, cpt, slength)
+% Get sample window for a single sample grid point. Sample windows are squares
+% with pre-defined side length, approximately centered on the sample grid point,
+% zero-padded if necessary.
+%
+% Arguments:
+%
+%   data = 2D Matrix, initial model state data
+%
+%   rpt = Scalar, double, row-position of the sample point (window center)
+%
+%   cpt = Scalar, double, row-position of the sample point (window center)
+%
+%   slength = Scalar, integer, side length of square sample window
+
+rmin = ceil(rpt-slength/2);
+rmax = rmin+slength-1;
+rind = rmin:rmax;
+npad_bot = find(rind > 0, 1, 'first')-1;
+npad_top = slength-find(rind <= size(data,1), 1, 'last');
+
+cmin = ceil(cpt-slength/2);
+cmax = cmin+slength-1;
+cind = cmin:cmax;
+npad_left = find(cind > 0, 1, 'first')-1;
+npad_right = slength-find(cind <= size(data,2), 1, 'last');
+
+
+
+% debug {
+win =[];
+% } debug
 
 end
 
