@@ -131,6 +131,8 @@ for pp = 1:npass
     
     [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
                                            rr, uu, vv);
+                                       
+    nsamp = samplen(pp)*samplen(pp);
 
     % loop over sample grid
     for ii = 1:xrez(pp)
@@ -140,7 +142,8 @@ for pp = 1:npass
             
             samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
             
-            data_frac = sum(samp(:) == nodata);
+            data_frac = sum(samp(:) == nodata)/nsamp;
+            fprintf('%i, [%i, %i], %f\n', samplen(pp), size(samp,1), size(samp, 2), data_frac);
             if data_frac < data_min_frac;
                 uu(jj, ii) = nodata; % ATTN
                 vv(jj, ii) = nodata; % ATTN
@@ -149,8 +152,8 @@ for pp = 1:npass
             
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
-                                       umin+uu(ii), umax+uu(ii), ...
-                                       vmin+vv(ii), vmax+vv(ii));
+                                       umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
+                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
             
             % compute correlation
             
@@ -332,27 +335,8 @@ cadj = round(cmin)-cmin;
 cmin = cmin +cadj;
 cmax = cpt+slen/2+cadj;
 
-% get pad size and restrict window indices to valid range
-pl = max(0, 1-rmin);
-rmin = max(1, rmin);
-
-nr = size(data, 1);
-pr = max(0, rmax-nr);
-rmax = min(nr, rmax);
-
-pb = max(0, 1-cmin);
-cmin = max(1, cmin);
-
-nc = size(data, 2);
-pt = max(0, cmax-nc);
-cmax = min(nc, cmax);
-
-% extract data and add pad
-sub = data(rmin:rmax, cmin:cmax);
-[snr, snc] = size(sub);
-win = [zeros(pt, pl+snc+pr);
-       zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pb, pl+snc+pr)];
+% extract subset, including pad if needed
+win = get_win_data_pad(data, rmin, rmax, cmin, cmax);
 
 end
 
@@ -387,22 +371,63 @@ function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax
 %       interrogation window giving y-direction displacements in pixel
 %       coordinates.
 
-% get window center, offset based on estimated displacement
-
-% get window index range shifted to nearest whole pixel
+% get window index, with range expanded to nearest whole pixel
+cmin = floor(cpt+umin);
+cmax = ceil(cpt+umax);
+rmin = floor(rpt+vmin);
+rmax = ceil(rpt+vmax);
 
 % get displacements from sample center to rows and cols of interrogation window
+uwin = (cmin:cmax)-cpt;
+vwin = (rmin:rmax)-rpt;
+
+% extract subset, including pad if needed
+win = get_win_data_pad(data, rmin, rmax, cmin, cmax);
+
+end
+
+function [win] = get_win_data_pad(data, r0, r1, c0, c1)
+% Extract subset of data in the range (r0:r1, c0:c1), padding with zeros
+% where the indices extend beyond the limits of the data
+%
+%   data = 2D Matrix, data from which a subset is to be extracted
+%
+%   r0, r1 = Scalar, integer, rows requested for the subset, if these lie
+%       outside the range [1, size(data,1], the output matrix will be padded
+%       with zeros to maintain the requested size
+%
+%   c0, c1 = Scalar, integer, columns requested for the subset, if these lie
+%       outside the range [1, size(data,1], the output matrix will be padded
+%       with zeros to maintain the requested size
 
 % get pad size and restrict window indices to valid range
+pl = max(0, 1-r0);
+r0 = max(1, r0);
 
-% extract data and add pad 
+nr = size(data, 1);
+pr = max(0, r1-nr);
+r1 = min(nr, r1);
 
+pb = max(0, 1-c0);
+c0 = max(1, c0);
+
+nc = size(data, 2);
+pt = max(0, c1-nc);
+c1 = min(nc, c1);
+
+% extract data and add pad
+sub = data(r0:r1, c0:c1);
+[snr, snc] = size(sub);
+win = [zeros(pt, pl+snc+pr);
+       zeros(snr, pl), sub, zeros(snr, pr);
+       zeros(pb, pl+snc+pr)];
+   
 % debug {
-win = [];
-uwin = [];
-vwin = [];
+imagesc(data); caxis([0,1]); axis equal; hold on;
+plot([c0, c0, c1, c1, c0], [r0, r1, r1, r0, r0], 'LineWidth', 2, 'Color', 'k');
+hold off; drawnow; pause(0.25);
 % } debug
-
+    
 end
 
 % verbose message subroutines --------------------------------------------------
