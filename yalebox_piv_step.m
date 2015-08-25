@@ -142,8 +142,7 @@ for pp = 1:npass
             
             samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
             
-            data_frac = sum(samp(:) == nodata)/nsamp;
-            fprintf('%i, [%i, %i], %f\n', samplen(pp), size(samp,1), size(samp, 2), data_frac);
+            data_frac = 1-sum(samp(:) == nodata)/nsamp;
             if data_frac < data_min_frac;
                 uu(jj, ii) = nodata; % ATTN
                 vv(jj, ii) = nodata; % ATTN
@@ -325,15 +324,15 @@ function [win] = get_samp_win(data, rpt, cpt, slen)
 %       and perhaps some zero padding
 
 % get window index range shifted to nearest whole pixel
-rmin = rpt-slen/2;
+rmin = rpt-(slen-1)/2;
 radj = round(rmin)-rmin;
-rmin = rmin +radj;
-rmax = rpt+slen/2+radj;
+rmin = rmin+radj;
+rmax = rpt+(slen-1)/2+radj;
 
-cmin = cpt-slen/2;
+cmin = cpt-(slen-1)/2;
 cadj = round(cmin)-cmin;
 cmin = cmin +cadj;
-cmax = cpt+slen/2+cadj;
+cmax = cpt+(slen-1)/2+cadj;
 
 % extract subset, including pad if needed
 win = get_win_data_pad(data, rmin, rmax, cmin, cmax);
@@ -422,11 +421,11 @@ win = [zeros(pt, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pb, pl+snc+pr)];
    
-% debug {
-imagesc(data); caxis([0,1]); axis equal; hold on;
-plot([c0, c0, c1, c1, c0], [r0, r1, r1, r0, r0], 'LineWidth', 2, 'Color', 'k');
-hold off; drawnow; pause(0.25);
-% } debug
+% % debug {
+% imagesc(data); caxis([0,1]); axis equal; hold on;
+% plot([c0, c0, c1, c1, c0], [r0, r1, r1, r0, r0], 'LineWidth', 2, 'Color', 'k');
+% hold off; drawnow; pause(0.25);
+% % } debug
     
 end
 
