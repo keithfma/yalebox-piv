@@ -83,7 +83,7 @@ load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 1;
 samplen = [50];
 yrez = [25];
-xrez = [10];
+xrez = [50];
 verbose = true;
 umax = [0.02];
 umin = [-0.02];
@@ -156,10 +156,7 @@ for pp = 1:npass
                                        vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
             
             % compute correlation, trimming to valid range (see help)
-            fullxcr = normxcorr2(samp,intr);            
-            npre = floor(samplen(pp)/2); % pre-pad
-            npost = samplen(pp)-npre-1; % post-pad
-            xcr = fullxcr( (1+npre):(end-npost), (1+npre):(end-npost) );
+            xcr = get_cross_corr(samp, intr);
                       
             % NOTE: add an optional function to display correlation planes,
             % would be very useful in selecting PIV parameters.
@@ -185,10 +182,14 @@ for pp = 1:npass
         end
     end
     
-    keyboard
+    % convert displacements from pixel to world coordinates
     
 end
  
+% debug {
+keyboard
+% } debug
+
 end
 
 function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
@@ -437,7 +438,7 @@ sub = data(r0:r1, c0:c1);
 [snr, snc] = size(sub);
 win = [zeros(pt, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pb, pl+snc+pr)];
+       zeros(pb, pl+snc+pr)];   
    
 % % debug {
 % imagesc(data); caxis([0,1]); axis equal; hold on;
@@ -445,6 +446,29 @@ win = [zeros(pt, pl+snc+pr);
 % hold off; drawnow; pause(0.01);
 % % } debug
     
+end
+
+function [xcorr] = get_cross_corr(aa, bb)
+% Compute normalized cross correlation, and crop to the extent of larger
+% matrix (bb). Allows for non-square aa, although that is not needed at
+% this time.
+%
+% Arguments:
+%   aa = 2D matrix, double, smaller 'template' matrix, as used here, this
+%       is the sample window
+%
+%   bb = 2D matrix, double, larger matrix, as used here, this is the
+%       interrogation windo
+
+fullxcorr = normxcorr2(aa, bb);
+
+% compute pad size in both dimensions
+aaSize = size(aa);
+npre = floor(aaSize/2); % pre-pad
+npost = aaSize-npre-1; % post-pad
+
+xcorr = fullxcorr( (1+npre(1)):(end-npost(1)), (1+npre(2)):(end-npost(2)) );
+            
 end
 
 % verbose message subroutines --------------------------------------------------
