@@ -92,7 +92,7 @@ vmin = -vmax;
 validate = true;
 eps0 = 1.1;
 epsthresh = 2.2;
-data_min_frac = 0.5;
+data_min_frac = 0.3;
 % } debug
 
 % parameters
@@ -131,17 +131,18 @@ for pp = 1:npass
     
     [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
                                            rr, uu, vv);
-                                       
     nsamp = samplen(pp)*samplen(pp);
-
-    % loop over sample grid
+                                       
+    % loop over sample grid    
     for ii = 1:xrez(pp)
         for jj = 1:yrez(pp)
             
             % (next: loop over correlation-based-correction samples)
             
+            % get sample window
             samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
             
+            % skip if there is too little data in the sample window
             data_frac = 1-sum(samp(:) == nodata)/nsamp;
             if data_frac < data_min_frac;
                 uu(jj, ii) = nodata; % ATTN
@@ -150,7 +151,7 @@ for pp = 1:npass
             end
             
             % get interrogation window
-            [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
+            [intr, uintr, vintr] = get_intr_win(fin, cc(jj), rr(ii), ...
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                                        vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
             
@@ -160,7 +161,7 @@ for pp = 1:npass
             
             % (next: end loop over correlation-based-correction samples)
             
-            % find the correlation plane maximum with subpixel accuracy
+            % find the correlation plane maximum (with subpixel accuracy)
             
             % get displacement
             
@@ -335,7 +336,7 @@ cmin = cmin +cadj;
 cmax = cpt+(slen-1)/2+cadj;
 
 % extract subset, including pad if needed
-win = get_win_data_pad(data, rmin, rmax, cmin, cmax);
+win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
 end
 
@@ -381,11 +382,11 @@ uwin = (cmin:cmax)-cpt;
 vwin = (rmin:rmax)-rpt;
 
 % extract subset, including pad if needed
-win = get_win_data_pad(data, rmin, rmax, cmin, cmax);
+win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
 end
 
-function [win] = get_win_data_pad(data, r0, r1, c0, c1)
+function [win] = get_padded_subset(data, r0, r1, c0, c1)
 % Extract subset of data in the range (r0:r1, c0:c1), padding with zeros
 % where the indices extend beyond the limits of the data
 %
