@@ -164,14 +164,7 @@ for pp = 1:npass
                       
             % NOTE: add an optional function to display correlation planes,
             % would be very useful in selecting PIV parameters.
-                        
-             % debug { 
-             % simple peak finding
-             
-
-             % } debug
-
-            
+                                    
             % (next: accumulate correlation-based-correction samples)
             
             % (next: end loop over correlation-based-correction samples)
@@ -180,8 +173,8 @@ for pp = 1:npass
             [rpeak, cpeak] = find_peak(xcr);
             
             % get displacement in pixel coordinates
-            vv(jj, ii) = vintr(rpeak);
-            uu(jj, ii) = uintr(cpeak);
+            vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
+            uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
             
             % identify and interpolate outliers
             
