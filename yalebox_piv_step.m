@@ -142,8 +142,8 @@ for pp = 1:npass
             
             data_frac = sum(samp(:) == nodata);
             if data_frac < data_min_frac;
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
+                uu(jj, ii) = nodata; % ATTN
+                vv(jj, ii) = nodata; % ATTN
                 continue
             end
             
@@ -400,7 +400,7 @@ function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax
 % debug {
 win = [];
 uwin = [];
-vwim = [];
+vwin = [];
 % } debug
 
 end
