@@ -80,15 +80,15 @@ function [] = yalebox_piv_step()
  
 % debug { 
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [53, 27];
-yrez = [0, 0];
-xrez = [50, 100];
+npass = 1;
+samplen = [50];
+yrez = [25];
+xrez = [10];
 verbose = true;
-umax = [0.02, 0.01];
-umin = -umax;
-vmax = [0.02, 0.01];
-vmin = -vmax;
+umax = [0.02];
+umin = [-0.02];
+vmax = [0.01];
+vmin = [-0.01];
 validate = true;
 eps0 = 1.1;
 epsthresh = 2.2;
@@ -114,9 +114,9 @@ print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
     samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
     data_min_frac); 
 
-% % debug {
-% npass = 1;
-% % } debug
+% debug {
+npass = 1;
+% } debug
 
 % initialize pixel grid and displacements for sample_grid()
 rr = 1:length(yy);
@@ -155,7 +155,22 @@ for pp = 1:npass
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                                        vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
             
-            % compute correlation
+            % compute correlation, trimming to valid range (see help)
+            fullxcr = normxcorr2(samp,intr);            
+            npre = floor(samplen(pp)/2); % pre-pad
+            npost = samplen(pp)-npre-1; % post-pad
+            xcr = fullxcr( (1+npre):(end-npost), (1+npre):(end-npost) );
+                      
+            % NOTE: add an optional function to display correlation planes,
+            % would be very useful in selecting PIV parameters.
+                        
+             % debug { 
+             % simple peak finding
+             [rpeak, cpeak] = find(xcr == max(xcr(:)));
+             vv(jj, ii) = vintr(rpeak);
+             uu(jj, ii) = uintr(cpeak);
+             % } debug
+
             
             % (next: accumulate correlation-based-correction samples)
             
@@ -169,6 +184,8 @@ for pp = 1:npass
             
         end
     end
+    
+    keyboard
     
 end
  
@@ -197,7 +214,7 @@ validateattributes(npass, ...
     {'numeric'}, {'scalar', 'integer', 'nonnegative'}, ...
     mfilename, 'npass');
 validateattributes(samplen, ...
-    {'numeric'}, {'numel', npass, 'integer', 'odd', 'positive', 'nonnan', }, ...
+    {'numeric'}, {'numel', npass, 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'samplen');
 validateattributes(xrez, ...
     {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nc}, ...
@@ -425,7 +442,7 @@ win = [zeros(pt, pl+snc+pr);
 % % debug {
 % imagesc(data); caxis([0,1]); axis equal; hold on;
 % plot([c0, c0, c1, c1, c0], [r0, r1, r1, r0, r0], 'LineWidth', 2, 'Color', 'k');
-% hold off; drawnow; pause(0.25);
+% hold off; drawnow; pause(0.01);
 % % } debug
     
 end
