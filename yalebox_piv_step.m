@@ -77,7 +77,7 @@ function [] = yalebox_piv_step()
 % xx,yy,u,v
 %
 % References:
-
+ 
 % debug { 
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 2;
@@ -94,6 +94,9 @@ eps0 = 1.1;
 epsthresh = 2.2;
 data_min_frac = 0.5;
 % } debug
+
+% parameters
+nodata = 0; % value used to indicate "no data"
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
     xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
@@ -135,8 +138,16 @@ for pp = 1:npass
             
             % (next: loop over correlation-based-correction samples)
             
-            % get sample and interrogation windows
             sampwin = sample_window(ini, rr(jj), cc(ii), samplen(pp));
+            
+            data_frac = sum(sampwin(:) == nodata);
+            if data_frac < data_min_frac;
+                uu(ii, jj) = NaN;
+                vv(ii, jj) = NaN;
+                continue
+            end
+            
+            % get interrogation window
             
             % compute correlation
             
@@ -290,7 +301,7 @@ v1 = interp2(c0, r0, v0, c1mat, r1mat);
 
 end
 
-function [win] = sample_window(data, rpt, cpt, slength)
+function [win] = sample_window(data, rpt, cpt, slen)
 % Get sample window for a single sample grid point. Sample windows are squares
 % with pre-defined side length, approximately centered on the sample grid point,
 % zero-padded if necessary.
@@ -303,25 +314,40 @@ function [win] = sample_window(data, rpt, cpt, slength)
 %
 %   cpt = Scalar, double, row-position of the sample point (window center)
 %
-%   slength = Scalar, integer, side length of square sample window
+%   slen = Scalar, integer, side length of square sample window
 
-rmin = ceil(rpt-slength/2);
-rmax = rmin+slength-1;
-rind = rmin:rmax;
-npad_bot = find(rind > 0, 1, 'first')-1;
-npad_top = slength-find(rind <= size(data,1), 1, 'last');
+% get window index range shifted to nearest whole pixel
+rmin = rpt-slen/2;
+radj = round(rmin)-rmin;
+rmin = rmin +radj;
+rmax = rpt+slen/2+radj;
 
-cmin = ceil(cpt-slength/2);
-cmax = cmin+slength-1;
-cind = cmin:cmax;
-npad_left = find(cind > 0, 1, 'first')-1;
-npad_right = slength-find(cind <= size(data,2), 1, 'last');
+cmin = cpt-slen/2;
+cadj = round(cmin)-cmin;
+cmin = cmin +cadj;
+cmax = cpt+slen/2+cadj;
 
+% get pad size and restrict window indices to valid range
+pl = max(0, 1-rmin);
+rmin = max(1, rmin);
 
+nr = size(data, 1);
+pr = max(0, rmax-nr);
+rmax = min(nr, rmax);
 
-% debug {
-win =[];
-% } debug
+pb = max(0, 1-cmin);
+cmin = max(1, cmin);
+
+nc = size(data, 2);
+pt = max(0, cmax-nc);
+cmax = min(nc, cmax);
+
+% extract data and add pad
+sub = data(rmin:rmax, cmin:cmax);
+[snr, snc] = size(sub);
+win = [zeros(pt, pl+snc+pr);
+       zeros(snr, pl), sub, zeros(snr, pr);
+       zeros(pb, pl+snc+pr)];
 
 end
 
