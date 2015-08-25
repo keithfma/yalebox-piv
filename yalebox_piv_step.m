@@ -401,19 +401,19 @@ function [win] = get_win_data_pad(data, r0, r1, c0, c1)
 %       with zeros to maintain the requested size
 
 % get pad size and restrict window indices to valid range
-pl = max(0, 1-r0);
-r0 = max(1, r0);
-
-nr = size(data, 1);
-pr = max(0, r1-nr);
-r1 = min(nr, r1);
-
-pb = max(0, 1-c0);
+pl = max(0, 1-c0);
 c0 = max(1, c0);
 
 nc = size(data, 2);
-pt = max(0, c1-nc);
+pr = max(0, c1-nc);
 c1 = min(nc, c1);
+
+pb = max(0, 1-r0);
+r0 = max(1, r0);
+
+nr = size(data, 1);
+pt = max(0, r1-nr);
+r1 = min(nr, r1);
 
 % extract data and add pad
 sub = data(r0:r1, c0:c1);
