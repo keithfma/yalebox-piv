@@ -138,9 +138,9 @@ for pp = 1:npass
             
             % (next: loop over correlation-based-correction samples)
             
-            sampwin = sample_window(ini, rr(jj), cc(ii), samplen(pp));
+            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
             
-            data_frac = sum(sampwin(:) == nodata);
+            data_frac = sum(samp(:) == nodata);
             if data_frac < data_min_frac;
                 uu(ii, jj) = NaN;
                 vv(ii, jj) = NaN;
@@ -148,6 +148,9 @@ for pp = 1:npass
             end
             
             % get interrogation window
+            [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
+                                       umin+uu(ii), umax+uu(ii), ...
+                                       vmin+vv(ii), vmax+vv(ii));
             
             % compute correlation
             
@@ -301,7 +304,7 @@ v1 = interp2(c0, r0, v0, c1mat, r1mat);
 
 end
 
-function [win] = sample_window(data, rpt, cpt, slen)
+function [win] = get_samp_win(data, rpt, cpt, slen)
 % Get sample window for a single sample grid point. Sample windows are squares
 % with pre-defined side length, approximately centered on the sample grid point,
 % zero-padded if necessary.
@@ -310,11 +313,13 @@ function [win] = sample_window(data, rpt, cpt, slen)
 %
 %   data = 2D Matrix, initial model state data
 %
-%   rpt = Scalar, double, row-position of the sample point (window center)
-%
-%   cpt = Scalar, double, row-position of the sample point (window center)
+%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
+%       center)
 %
 %   slen = Scalar, integer, side length of square sample window
+%
+%   win = 2D matrix, double, sample window containing a subset of the input data
+%       and perhaps some zero padding
 
 % get window index range shifted to nearest whole pixel
 rmin = rpt-slen/2;
@@ -351,6 +356,54 @@ win = [zeros(pt, pl+snc+pr);
 
 end
 
+function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax)
+%
+% Get interrogation window for a single sample grid point. Interrogation windows
+% are rectangular, with shape approximately defined by the specified minimum and
+% maximum displacements. The exact displacements corresponding to each element
+% in the window are returned as coordinate vectors.
+%
+% Arguments:
+%
+%   data = 2D Matrix, final model state data
+%
+%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
+%       center)
+%
+%   umin, umax = Scalar, double, minimum, maximum x-direction displacements in
+%       pixel coordinates
+%
+%   vmin, vmax = Scalar, double, minimum, maximum y-direction displacements in
+%       pixel coordinates
+%
+%   win = 2D matrix, double, interrogation window containing a subset of the
+%       input data and perhaps some zero padding
+%
+%   uwin = Vector, length == size(win,2), coordinate vector for the
+%       interrogation window giving x-direction displacements in pixel
+%       coordinates.
+%
+%   vwin = Vector, length == size(win,1), coordinate vector for the
+%       interrogation window giving y-direction displacements in pixel
+%       coordinates.
+
+% get window center, offset based on estimated displacement
+
+% get window index range shifted to nearest whole pixel
+
+% get displacements from sample center to rows and cols of interrogation window
+
+% get pad size and restrict window indices to valid range
+
+% extract data and add pad 
+
+% debug {
+win = [];
+uwin = [];
+vwim = [];
+% } debug
+
+end
 
 % verbose message subroutines --------------------------------------------------
 
