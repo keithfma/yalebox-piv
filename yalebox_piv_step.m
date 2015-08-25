@@ -167,9 +167,8 @@ for pp = 1:npass
                         
              % debug { 
              % simple peak finding
-             [rpeak, cpeak] = find(xcr == max(xcr(:)));
-             vv(jj, ii) = vintr(rpeak);
-             uu(jj, ii) = uintr(cpeak);
+             
+
              % } debug
 
             
@@ -177,9 +176,12 @@ for pp = 1:npass
             
             % (next: end loop over correlation-based-correction samples)
             
-            % find the correlation plane maximum (with subpixel accuracy)
+            % find the correlation plane maximum (next: with subpixel accuracy)
+            [rpeak, cpeak] = find_peak(xcr);
             
-            % get displacement
+            % get displacement in pixel coordinates
+            vv(jj, ii) = vintr(rpeak);
+            uu(jj, ii) = uintr(cpeak);
             
             % identify and interpolate outliers
             
@@ -475,6 +477,13 @@ npost = aaSize-npre-1; % post-pad
 
 xcorr = fullxcorr( (1+npre(1)):(end-npost(1)), (1+npre(2)):(end-npost(2)) );
             
+end
+
+function [rpk, cpk] = find_peak(zz)
+% Find the position of the peak in matrix zz (next: with subpixel accuracy)
+
+[rpk, cpk] = find(zz == max(zz(:)));
+
 end
 
 % verbose message subroutines --------------------------------------------------
