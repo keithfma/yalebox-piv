@@ -77,6 +77,12 @@ function [] = yalebox_piv_step()
 % xx,yy,u,v
 %
 % References:
+%
+% [2] Nobach, H., & Honkanen, M. (2005). Two-dimensional Gaussian
+% regression for sub-pixel displacement estimation in particle image
+% velocimetry or particle position estimation in particle tracking
+% velocimetry. Experiments in Fluids, 38(4), 511-515.
+% doi:10.1007/s00348-005-0942-3
  
 % debug { 
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -149,8 +155,8 @@ for pp = 1:npass
             % skip if there is too little data in the sample window
             data_frac = 1-sum(samp(:) == nodata)/nsamp;
             if data_frac < data_min_frac;
-                uu(jj, ii) = nodata; % ATTN
-                vv(jj, ii) = nodata; % ATTN
+                uu(jj, ii) = 0; % ATTN
+                vv(jj, ii) = 0; % ATTN
                 continue
             end
             
@@ -169,7 +175,7 @@ for pp = 1:npass
             
             % (next: end loop over correlation-based-correction samples)
             
-            % find the correlation plane maximum (next: with subpixel accuracy)
+            % find the correlation plane maximum with subpixel accuracy
             [rpeak, cpeak] = find_peak(xcr);
             
             % get displacement in pixel coordinates
@@ -473,9 +479,70 @@ xcorr = fullxcorr( (1+npre(1)):(end-npost(1)), (1+npre(2)):(end-npost(2)) );
 end
 
 function [rpk, cpk] = find_peak(zz)
-% Find the position of the peak in matrix zz (next: with subpixel accuracy)
+% Find the position of the peak in matrix zz with subpixel accuracy. Peakl
+% location is determined from an explicit solution of two-dimensional
+% Gaussian regression (see [2]). If the peak cannot be fit at subpixel
+% accuracy, no peak is returned (see Arguments). This choice reflects the
+% fact that a lack of subpixel displacement causes spurious gradients - it
+% is preferable to drop the vector and interpolate.
+%
+% Arguments:
+%   zz = 2D matrix, data plane in which to locate the peak
+%
+%   rpk = Scalar, double, row-coordinate location of the peak, set to -1 if
+%       the peak cannot be fit.
+%
+%   cpk = Scalar, double, column-coordinate location of the peak, set to -1
+%       if the peak cannot be fit
 
 [rpk, cpk] = find(zz == max(zz(:)));
+
+% peak is at the edge of the matrix, cannot compute subpixel location
+if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
+    rpk = -1;
+    cpk = -1;
+    return
+end
+    
+% offset to eliminate non-positive (gaussian is always positive)
+zz = zz-min(zz(:))+eps;
+
+% compute coefficients 
+c10 = 0; 
+c01 = 0; 
+c11 = 0; 
+c20 = 0; 
+c02 = 0; 
+c00 = 0;
+for ii = -1:1
+    for jj = -1:1
+        logterm = log(zz(rpk+jj,cpk+ii));
+        c10 = c10 + ii*logterm/6;
+        c01 = c01 + jj*logterm/6;
+        c11 = c11 + ii*jj*logterm/4;
+        c20 = c20 + (3*ii^2-2)*logterm/6;
+        c02 = c02 + (3*jj^2-2)*logterm/6;
+        c00 = c00 + (5-3*ii^2-3*jj^2)*logterm/9;
+    end
+end
+                     
+% compute sub-pixel displacement
+dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
+dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
+disp([dr, dc]);
+
+% apply subpixel displacement
+if abs(dr) < 1 && abs(dc) < 1
+    % subpixel estimation worked, there is a nice peak
+    rpk = rpk+dr;
+    cpk = cpk+dc;
+    
+else
+    % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
+    rpk = -1;
+    cpk = -1;
+    
+end
 
 end
 
