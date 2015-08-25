@@ -110,6 +110,10 @@ check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
 [umin, umax] = uv_lim_world_to_pixel(umin, umax, xx);
 [vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
 
+% pixel-world coordinate conversion factors, assume equal grid
+x_world_per_pixel = xx(2)-xx(1); 
+y_world_per_pixel = yy(2)-yy(1); 
+
 print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
     samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
     data_min_frac); 
@@ -183,6 +187,8 @@ for pp = 1:npass
     end
     
     % convert displacements from pixel to world coordinates
+    uu = uu.*x_world_per_pixel;
+    vv = vv.*y_world_per_pixel;
     
 end
  
