@@ -120,10 +120,6 @@ vmax = [0.01, 0.005];
 vmin = [-0.01, -0.005];
 % } debug
 
-
-% parameters
-nodata = 0; % value used to indicate "no data"
-
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
     xrez, yrez, umin, umax, vmin, vmax); 
 
@@ -196,22 +192,12 @@ for pp = 1:npass
             [rpeak, cpeak] = find_peak(xcr);
             
             % get displacement in pixel coordinates
-            try
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
-            catch err
-                fprintf('%s\n', getReport(err));
-                keyboard;
-            end
                        
         end
     end
-    
-    % debug {
-    uu0 = uu;
-    vv0 = vv;
-    % } debug 
-    
+        
     % post-process (validate, replace, smooth, see [3-4])
     [uu, vv, smoothfact] = pppiv(uu, vv, roi);
     if pp < npass 
@@ -220,13 +206,6 @@ for pp = 1:npass
     else
         % leave as NaN
     end
-        
-    % debug {
-    disp(smoothfact)
-    subplot(2,1,1); quiver(uu0, vv0, 5); axis equal; 
-    subplot(2,1,2); quiver(uu, vv, 5); axis equal; 
-    drawnow; pause(0.1);
-    % } debug
     
 end
 
