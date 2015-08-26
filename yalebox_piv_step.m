@@ -92,34 +92,46 @@ function [] = yalebox_piv_step()
 % dimensions with missing values. Computational Statistics & Data Analysis,
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
-% debug { 
+% % debug {
+% % single pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = [50];
+% yrez = [25];
+% xrez = [50];
+% verbose = true;
+% umax = [0.02];
+% umin = [-0.02];
+% vmax = [0.01];
+% vmin = [-0.01];
+% % } debug
+
+% debug {
+% single pass
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = [50];
-yrez = [25];
-xrez = [50];
+npass = 2;
+samplen = [50, 25];
+yrez = [25, 50];
+xrez = [50, 100];
 verbose = true;
-umax = [0.02];
-umin = [-0.02];
-vmax = [0.01];
-vmin = [-0.01];
-validate = true;
-eps0 = 1.1;
-epsthresh = 2.2;
-data_min_frac = 0.3;
+umax = [0.02, 0.005];
+umin = [-0.02, -0.005];
+vmax = [0.01, 0.005];
+vmin = [-0.01, -0.005];
 % } debug
+
 
 % parameters
 nodata = 0; % value used to indicate "no data"
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
-    xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
-    data_min_frac); 
+    xrez, yrez, umin, umax, vmin, vmax); 
 
-check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, vmin, ...
-    vmax, validate, eps0, epsthresh, data_min_frac);
+check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, ...
+    vmin, vmax);
 
-[xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), size(ini,2));
+[xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), ...
+                   size(ini,2));
 
 [umin, umax] = uv_lim_world_to_pixel(umin, umax, xx);
 [vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
@@ -129,12 +141,7 @@ x_world_per_pixel = xx(2)-xx(1);
 y_world_per_pixel = yy(2)-yy(1); 
 
 print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
-    samplen, xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
-    data_min_frac); 
-
-% debug {
-npass = 1;
-% } debug
+    samplen, xrez, yrez, umin, umax, vmin, vmax); 
 
 % initialize pixel grid and displacements for sample_grid()
 rr = 1:length(yy);
@@ -173,11 +180,11 @@ for pp = 1:npass
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
-            
+                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));            
+
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
-                      
+
             % NOTE: add an optional function to display correlation planes,
             % would be very useful in selecting PIV parameters.
                                     
@@ -189,8 +196,13 @@ for pp = 1:npass
             [rpeak, cpeak] = find_peak(xcr);
             
             % get displacement in pixel coordinates
+            try
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
+            catch err
+                fprintf('%s\n', getReport(err));
+                keyboard;
+            end
                        
         end
     end
@@ -202,8 +214,15 @@ for pp = 1:npass
     
     % post-process (validate, replace, smooth, see [3-4])
     [uu, vv, smoothfact] = pppiv(uu, vv, roi);
+    if pp < npass 
+        uu(~roi) = 0;
+        vv(~roi) = 0;
+    else
+        % leave as NaN
+    end
         
     % debug {
+    disp(smoothfact)
     subplot(2,1,1); quiver(uu0, vv0, 5); axis equal; 
     subplot(2,1,2); quiver(uu, vv, 5); axis equal; 
     drawnow; pause(0.1);
@@ -222,8 +241,7 @@ keyboard
 end
 
 function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
-                  umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
-                  data_min_frac)
+                  umin, umax, vmin, vmax)
 % Check for sane input argument properties, exit with error if they do not match
 % expectations.
               
@@ -264,18 +282,6 @@ validateattributes(vmin, ...
 validateattributes(vmax, ...
     {'double'}, {'numel', npass}, ...
     mfilename, 'vmax');
-validateattributes(validate, ...
-    {'logical'}, {'scalar'}, ...
-    mfilename, 'validate');
-validateattributes(eps0, ...
-    {'double'}, {'scalar', 'real', 'nonnegative', 'nonnan', 'finite'}, ...
-    mfilename, 'eps0');
-validateattributes(epsthresh, ...
-    {'double'}, {'scalar', 'real', 'nonnegative', 'nonnan', 'finite'}, ...
-    mfilename, 'epsthresh');
-validateattributes(data_min_frac, ...
-    {'double'}, {'scalar', 'nonnegative', '<=', 1, 'nonnan', 'finite'}, ...
-    mfilename, 'data_min_frac');
 
 end
 
@@ -577,8 +583,7 @@ fprintf('----------\n');
 end
 
 function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen, ...
-             xrez, yrez, umin, umax, vmin, vmax, validate, eps0, epsthresh, ...
-             data_min_frac)
+             xrez, yrez, umin, umax, vmin, vmax)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -602,10 +607,7 @@ if verbose
     fprintf('umax: %s\n', sprintf('%.2f  ', umax));
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
-    fprintf('validate: %i\n', validate);
-    fprintf('eps0: %.3f\n', eps0);
-    fprintf('epsthresh: %.3f\n', epsthresh);
-    fprintf('data_min_frac: %.3f\n', data_min_frac);
+
 end
 
 end
