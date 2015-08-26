@@ -149,7 +149,6 @@ for pp = 1:npass
     
     [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
                                            rr, uu, vv);
-    % nsamp = samplen(pp)*samplen(pp);
                                        
     % loop over sample grid    
     for ii = 1:xrez(pp)
@@ -168,14 +167,6 @@ for pp = 1:npass
             
             % get sample window
             samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
-            
-            % % skip if there is too little data in the sample window
-            % data_frac = 1-sum(samp(:) == nodata)/nsamp;
-            % if data_frac < data_min_frac;
-            %     uu(jj, ii) = 0; % ATTN
-            %     vv(jj, ii) = 0; % ATTN
-            %     continue
-            % end
             
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
