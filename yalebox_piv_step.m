@@ -74,7 +74,7 @@ function [] = yalebox_piv_step()
 %
 % Arguments, output:
 % 
-% xx,yy,u,v
+% xx, yy, uu, vv, smoothing factors?
 %
 % References:
 %
@@ -83,6 +83,14 @@ function [] = yalebox_piv_step()
 % velocimetry or particle position estimation in particle tracking
 % velocimetry. Experiments in Fluids, 38(4), 511-515.
 % doi:10.1007/s00348-005-0942-3
+%
+% [3] Garcia, D. (2010). A fast all-in-one method for
+% automated post-processing of PIV data. Experiments in Fluids, 50(5),
+% 1247?1259. doi:10.1007/s00348-010-0985-y
+%
+% [4] Garcia, D. (2010). Robust smoothing of gridded data in one and higher
+% dimensions with missing values. Computational Statistics & Data Analysis,
+% 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
 % debug { 
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -141,7 +149,7 @@ for pp = 1:npass
     
     [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
                                            rr, uu, vv);
-    nsamp = samplen(pp)*samplen(pp);
+    % nsamp = samplen(pp)*samplen(pp);
                                        
     % loop over sample grid    
     for ii = 1:xrez(pp)
@@ -149,16 +157,25 @@ for pp = 1:npass
             
             % (next: loop over correlation-based-correction samples)
             
-            % get sample window
-            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
-            
-            % skip if there is too little data in the sample window
-            data_frac = 1-sum(samp(:) == nodata)/nsamp;
-            if data_frac < data_min_frac;
+            % skip if window center lies outside the roi at start or finish
+            rchk = round(rr(jj));
+            cchk = round(cc(ii));            
+            if ini(rchk, cchk) == 0 || fin(rchk,cchk) == 0
                 uu(jj, ii) = 0; % ATTN
                 vv(jj, ii) = 0; % ATTN
                 continue
             end
+            
+            % get sample window
+            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
+            
+            % % skip if there is too little data in the sample window
+            % data_frac = 1-sum(samp(:) == nodata)/nsamp;
+            % if data_frac < data_min_frac;
+            %     uu(jj, ii) = 0; % ATTN
+            %     vv(jj, ii) = 0; % ATTN
+            %     continue
+            % end
             
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
@@ -182,7 +199,8 @@ for pp = 1:npass
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
             
-            % identify and interpolate outliers
+            % post-process (validate, replace, smooth, see [3-4])
+            
             
         end
     end
@@ -190,6 +208,8 @@ for pp = 1:npass
     % convert displacements from pixel to world coordinates
     uu = uu.*x_world_per_pixel;
     vv = vv.*y_world_per_pixel;
+    
+    
     
 end
  
@@ -529,7 +549,6 @@ end
 % compute sub-pixel displacement
 dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
 dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
-disp([dr, dc]);
 
 % apply subpixel displacement
 if abs(dr) < 1 && abs(dc) < 1
