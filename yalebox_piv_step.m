@@ -1,4 +1,4 @@
-function [] = yalebox_piv_step()
+function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % Re-implementation of yalebox PIV analysis routine
 %
 % Notes:
@@ -92,33 +92,47 @@ function [] = yalebox_piv_step()
 % dimensions with missing values. Computational Statistics & Data Analysis,
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
-% % debug {
-% % single pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = [50];
-% yrez = [25];
-% xrez = [50];
-% verbose = true;
-% umax = [0.02];
-% umin = [-0.02];
-% vmax = [0.01];
-% vmin = [-0.01];
-% % } debug
-
 % debug {
 % single pass
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [50, 25];
-yrez = [25, 50];
-xrez = [50, 100];
+npass = 1;
+samplen = [50];
+yrez = [25];
+xrez = [50];
 verbose = true;
-umax = [0.02, 0.005];
-umin = [-0.02, -0.005];
-vmax = [0.01, 0.005];
-vmin = [-0.01, -0.005];
+umax = [0.02];
+umin = [-0.02];
+vmax = [0.01];
+vmin = [-0.01];
 % } debug
+
+% % debug {
+% % dual pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [50, 25];
+% yrez = [25, 50];
+% xrez = [50, 100];
+% verbose = true;
+% umax = [0.02, 0.005];
+% umin = [-0.02, -0.005];
+% vmax = [0.01, 0.005];
+% vmin = [-0.01, -0.005];
+% % } debug
+
+% % debug {
+% % tri pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 3;
+% samplen = [50, 25, 16];
+% yrez = [25, 50. 100];
+% xrez = [50, 100, 200];
+% verbose = true;
+% umax = [0.02, 0.005, 0.001];
+% umin = [-0.02, -0.005, -0.001];
+% vmax = [0.01, 0.005, 0.001];
+% vmin = [-0.01, -0.005, -0.001];
+% % } debug
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
     xrez, yrez, umin, umax, vmin, vmax); 
@@ -146,6 +160,7 @@ uu = zeros(length(yy), length(xx));
 vv = zeros(length(yy), length(xx));
 
 % loop over PIV passes
+ss = nan(npass, 1);
 for pp = 1:npass
     
     print_pass(verbose, pp, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
@@ -176,13 +191,11 @@ for pp = 1:npass
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));            
+                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), ...
+                                       samplen(pp));            
 
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
-
-            % NOTE: add an optional function to display correlation planes,
-            % would be very useful in selecting PIV parameters.
                                     
             % (next: accumulate correlation-based-correction samples)
             
@@ -199,7 +212,7 @@ for pp = 1:npass
     end
         
     % post-process (validate, replace, smooth, see [3-4])
-    [uu, vv, smoothfact] = pppiv(uu, vv, roi);
+    [uu, vv, ss(pp)] = pppiv(uu, vv, roi);
     if pp < npass 
         uu(~roi) = 0;
         vv(~roi) = 0;
@@ -212,10 +225,12 @@ end
 % convert displacements from pixel to world coordinates
 uu = uu.*x_world_per_pixel;
 vv = vv.*y_world_per_pixel;
+
+% report some statistics?
  
-% debug {
-keyboard
-% } debug
+% % debug {
+% keyboard
+% % } debug
 
 end
 
@@ -298,7 +313,8 @@ uvmax = round(uvminmax(:,2));
 
 end
 
-function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
+function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, ...
+                                        r0, u0, v0)
 % [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
 %
 % Compute sample coordinate grid for the new pass in both pixel and world
@@ -372,12 +388,16 @@ win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
 end
 
-function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax)
+function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, ... 
+                                 vmin, vmax, slen)
 %
 % Get interrogation window for a single sample grid point. Interrogation windows
 % are rectangular, with shape approximately defined by the specified minimum and
 % maximum displacements. The exact displacements corresponding to each element
-% in the window are returned as coordinate vectors.
+% in the window are returned as coordinate vectors. A border the size of
+% half the sample window side length is added on all sides to ensure that
+% all the tested displacements lie within the "valid" range of the cross
+% correlation output.
 %
 % Arguments:
 %
@@ -402,12 +422,17 @@ function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax
 %   vwin = Vector, length == size(win,1), coordinate vector for the
 %       interrogation window giving y-direction displacements in pixel
 %       coordinates.
+%
+%   slen = Scalar, integer, side length of square sample window
+
+% get size of boundary to include (sample window half-width)
+bnd = (slen-1)/2;
 
 % get window index, with range expanded to nearest whole pixel
-cmin = floor(cpt+umin);
-cmax = ceil(cpt+umax);
-rmin = floor(rpt+vmin);
-rmax = ceil(rpt+vmax);
+cmin = floor(cpt+umin-bnd);
+cmax = ceil(cpt+umax+bnd);
+rmin = floor(rpt+vmin-bnd);
+rmax = ceil(rpt+vmax+bnd);
 
 % get displacements from sample center to rows and cols of interrogation window
 uwin = (cmin:cmax)-cpt;
