@@ -148,7 +148,8 @@ for pp = 1:npass
     print_pass(verbose, pp, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
     
     [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
-                                           rr, uu, vv);
+                                   rr, uu, vv);
+    roi = true(size(uu));
                                        
     % loop over sample grid    
     for ii = 1:xrez(pp)
@@ -160,6 +161,7 @@ for pp = 1:npass
             rchk = round(rr(jj));
             cchk = round(cc(ii));            
             if ini(rchk, cchk) == 0 || fin(rchk,cchk) == 0
+                roi(jj, ii) = false;
                 uu(jj, ii) = 0; % ATTN
                 vv(jj, ii) = 0; % ATTN
                 continue
@@ -189,20 +191,29 @@ for pp = 1:npass
             % get displacement in pixel coordinates
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
-            
-            % post-process (validate, replace, smooth, see [3-4])
-            
-            
+                       
         end
     end
     
-    % convert displacements from pixel to world coordinates
-    uu = uu.*x_world_per_pixel;
-    vv = vv.*y_world_per_pixel;
+    % debug {
+    uu0 = uu;
+    vv0 = vv;
+    % } debug 
     
-    
+    % post-process (validate, replace, smooth, see [3-4])
+    [uu, vv, smoothfact] = pppiv(uu, vv, roi);
+        
+    % debug {
+    subplot(2,1,1); quiver(uu0, vv0, 5); axis equal; 
+    subplot(2,1,2); quiver(uu, vv, 5); axis equal; 
+    drawnow; pause(0.1);
+    % } debug
     
 end
+
+% convert displacements from pixel to world coordinates
+uu = uu.*x_world_per_pixel;
+vv = vv.*y_world_per_pixel;
  
 % debug {
 keyboard
