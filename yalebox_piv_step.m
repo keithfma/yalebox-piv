@@ -70,7 +70,6 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 %       output messages.
 %
 % (NOTE: add a 'dryrun' mode that does everything but PIV, printing verbose outputs and returning ancillary variables)
-
 %
 % Arguments, output:
 % 
@@ -92,47 +91,47 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % dimensions with missing values. Computational Statistics & Data Analysis,
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
-% debug {
-% single pass
-load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = [50];
-yrez = [25];
-xrez = [50];
-verbose = true;
-umax = [0.02];
-umin = [-0.02];
-vmax = [0.01];
-vmin = [-0.01];
-% } debug
+% % debug {
+% % single pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = [50];
+% yrez = [25];
+% xrez = [50];
+% verbose = true;
+% umax =  0.01;
+% umin = -0.01;
+% vmax =  0.01;
+% vmin = -0.01;
+% % } debug
 
 % % debug {
 % % dual pass
 % load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 2;
-% samplen = [50, 25];
+% samplen = [60, 30];
 % yrez = [25, 50];
 % xrez = [50, 100];
 % verbose = true;
-% umax = [0.02, 0.005];
-% umin = [-0.02, -0.005];
-% vmax = [0.01, 0.005];
+% umax = [ 0.01,  0.005];
+% umin = [-0.01, -0.005];
+% vmax = [ 0.01,  0.005];
 % vmin = [-0.01, -0.005];
 % % } debug
 
-% % debug {
-% % tri pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 3;
-% samplen = [50, 25, 16];
-% yrez = [25, 50. 100];
-% xrez = [50, 100, 200];
-% verbose = true;
-% umax = [0.02, 0.005, 0.001];
-% umin = [-0.02, -0.005, -0.001];
-% vmax = [0.01, 0.005, 0.001];
-% vmin = [-0.01, -0.005, -0.001];
-% % } debug
+% debug {
+% tri pass
+load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 3;
+samplen = [60, 30, 15];
+yrez = [25,  50, 100];
+xrez = [50, 100, 200];
+verbose = true;
+umax = [ 0.01,  0.005,  0.0025];
+umin = [-0.01, -0.005, -0.0025];
+vmax = [ 0.01,  0.005,  0.0025];
+vmin = [-0.01, -0.005, -0.0025];
+% } debug
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
     xrez, yrez, umin, umax, vmin, vmax); 
@@ -173,6 +172,8 @@ for pp = 1:npass
     for ii = 1:xrez(pp)
         for jj = 1:yrez(pp)
             
+            %fprintf('%i, %i\n', jj, ii);
+            
             % (next: loop over correlation-based-correction samples)
             
             % skip if window center lies outside the roi at start or finish
@@ -180,8 +181,6 @@ for pp = 1:npass
             cchk = round(cc(ii));            
             if ini(rchk, cchk) == 0 || fin(rchk,cchk) == 0
                 roi(jj, ii) = false;
-                uu(jj, ii) = 0; % ATTN
-                vv(jj, ii) = 0; % ATTN
                 continue
             end
             
@@ -192,14 +191,20 @@ for pp = 1:npass
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                                        vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), ...
-                                       samplen(pp));            
-
+                                       samplen(pp));
+            
+            % skip if interrogation window is empty
+            if max(intr(:)) == 0
+                roi(jj, ii) = false;
+                continue
+            end
+                
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
                                     
             % (next: accumulate correlation-based-correction samples)
             
-            % (next: end loop over correlation-based-correction samples)
+            % (next: end loop over correlation-based-correction samples)           
             
             % find the correlation plane maximum with subpixel accuracy
             [rpeak, cpeak] = find_peak(xcr);
@@ -529,11 +534,15 @@ function [rpk, cpk] = find_peak(zz)
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
+try
 % peak is at the edge of the matrix, cannot compute subpixel location
 if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
     rpk = -1;
     cpk = -1;
     return
+end
+catch err
+    keyboard
 end
     
 % offset to eliminate non-positive (gaussian is always positive)
