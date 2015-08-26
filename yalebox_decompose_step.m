@@ -49,8 +49,10 @@ uX(~iUXY) = 0;
 uY(~iUXY) = 0;
 
 % zero-pad data out to the required distance
-uX = zeroPadArray(uX,padSize,padSize,padSize,padSize);
-uY = zeroPadArray(uY,padSize,padSize,padSize,padSize);
+uX = padarray(uX, [padSize, padSize]);
+uY = padarray(uY, [padSize, padSize]);
+%uX = zeroPadArray(uX,padSize,padSize,padSize,padSize);
+%uY = zeroPadArray(uY,padSize,padSize,padSize,padSize);
 
 % replace 0's with NaNs
 uX(uX==0) = NaN;
