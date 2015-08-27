@@ -90,6 +90,8 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % dimensions with missing values. Computational Statistics & Data Analysis,
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
+% NOTE: use NaNs instead of zeros to indicate the mask/roi
+
 % debug {
 % single pass
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -116,9 +118,9 @@ check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
 [vmin, vmax, vinit] = uv_input_world_to_pixel(vmin, vmax, vinit, yy);
 
 [nr0, nc0] = size(ini);
-[rr, cc, nr, nc] = sample_grid(sampspc(1), nr0, nc0);
-uu = uinit*ones(nr, nc);
-vv = vinit*ones(nr, nc);
+[rr, cc] = sample_grid(sampspc(1), nr0, nc0);
+uu = uinit*ones(length(rr), length(cc));
+vv = vinit*ones(length(rr), length(cc));
 
 % loop over PIV passes
 ss = nan(npass, 1);
@@ -127,7 +129,7 @@ for pp = 1:npass
     print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
     print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
     
-    roi = true(nr, nc);
+    roi = true(length(rr), length(cc));
                                        
     % loop over sample grid    
     for ii = 1:length(cc)
@@ -185,16 +187,19 @@ for pp = 1:npass
         end
     end
         
-    % post-process (validate, replace, smooth, see [3-4])
-    [uu, vv, ss(pp)] = pppiv(uu, vv, roi);
-    if pp < npass 
-        uu(~roi) = 0;
-        vv(~roi) = 0;
-    else
-        % leave as NaN
-    end
+    
+    % post-process and prep for next pass
+    pp_next = min(npass, pp+1); % last pass uses same grid
+    [rr_next, cc_next] = sample_grid(sampspc(pp_next), nr0, nc0);            
+    [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
+    rr = rr_next;
+    cc = cc_next;
     
 end
+
+% set interpolated values outside the roi to NaN
+uu(~roi) = NaN;
+vv(~roi) = NaN;
 
 % convert displacements to world coordinates
 uu = uu.*(xx(2)-xx(1));
@@ -279,7 +284,7 @@ uvinit = uvinit/dxy;
 
 end
 
-function [rr, cc, nr, nc] = sample_grid(spc, nr0, nc0)
+function [rr, cc] = sample_grid(spc, nr0, nc0)
 % Create sample grid using equally spaced points at integer pixel
 % coordinates, with the remainder split evenly between edges.
 %
@@ -292,19 +297,14 @@ function [rr, cc, nr, nc] = sample_grid(spc, nr0, nc0)
 %
 %   rr, cc = Vector, integer, coordinate vectors for the sample grid in the
 %       y/row and x/column directions, in pixels
-%
-%   nr, nc = Scalar, integers, size of the sample grid (rows, columns),
-%       returned for convenience
 
 rrem = mod(nr0-1, spc);
 rri = 1+floor(rrem/2);
 rr = rri:spc:nr0;
-nr = length(rr);
 
 crem = mod(nc0-1, spc);
 cci = 1+floor(crem/2);
 cc = cci:spc:nc0;
-nc = length(cc);
 
 end
 
@@ -545,6 +545,55 @@ else
 end
 
 end
+
+function [uu1, vv1] = post_process(uu0, vv0, roi0, rr0, cc0, rr1, cc1)
+% Post-process PIV data using DCT-PLS to validate, replace and smooth
+% vectors, and interpolate the results to the new sample grid. The
+% post-processing algorithm is also used to extrapolate the data so that
+% the current pass can be mapped to the new grid. The no-data region
+% outside the roi is set to NaN, and a 1-point pad of NaNs are added prior
+% to post-processing in order to accomplish the extrapolation.
+% 
+% Arguments:
+%
+%   uu0, vv0 = 2D matrix, double, displacement components for the current
+%       sample grid in pixel coordinates.
+%
+%   roi0 = 2D matrix, logical, mask matrix for the current sample grid
+%       indicating where there is data (1) and where there is none (0)
+%
+%   rr0, cc0 = Vector, integer, coordinate vectors for the current sample
+%       grid y/row and x/colum dimensions, in pixels
+%
+%   rr1, cc1 = Vector, integer, coordinate vectors for the new sample grid 
+%       y/row and x/colum dimensions, in pixels
+%
+%   uu1, vv1 = 2D matrix, double, displacement components for the new
+%       sample grid in pixel coordinates.
+
+uu0(~roi0) = NaN;
+vv0(~roi0) = NaN;
+
+% extend initial grid to ensure data hull covers the output grid
+nr0 = length(rr0);
+nc0 = length(cc0);
+uu0 = [nan(1, nc0+2); nan(nr0, 1), uu0, nan(nr0, 1); nan(1, nc0+2)];
+vv0 = [nan(1, nc0+2); nan(nr0, 1), vv0, nan(nr0, 1); nan(1, nc0+2)];
+    
+spc0 = rr0(2)-rr0(1);
+rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
+cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
+
+% validate, replace, smooth, see [3-4])
+[uu0, vv0, sf] = pppiv(uu0, vv0);
+
+% interpolate displacements to new sample grid
+uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
+vv1 = interp2(cc0, rr0, vv0, cc1(:)', rr1(:), 'linear');
+
+end
+
+
 
 % verbose message subroutines --------------------------------------------------
 
