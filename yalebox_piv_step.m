@@ -507,7 +507,7 @@ sub = data(r0:r1, c0:c1);
 [snr, snc] = size(sub);
 win = [zeros(pt, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pb, pl+snc+pr)];   
+       zeros(pb, pl+snc+pr)];  
    
 % % debug {
 % imagesc(data); caxis([0,1]); axis equal; hold on;
@@ -686,6 +686,7 @@ hold on
 plot([1, size(xcr, 2)], [rpeak, rpeak], ':k');
 plot([cpeak, cpeak], [1, size(xcr, 1)], ':k');
 hold off
+colorbar
 
 end
 
