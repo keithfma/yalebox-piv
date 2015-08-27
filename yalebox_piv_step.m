@@ -66,10 +66,9 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 %       fraction of sample window that must contain data to proceed with PIV, 
 %       assumes that no-data pixels are set to 0
 %   
-%   verbose = Scalar, logical, flag to enable (true) or disable (false) verbose
-%       output messages.
-%
-% (NOTE: add a 'dryrun' mode that does everything but PIV, printing verbose outputs and returning ancillary variables)
+%   verbose = Scalar, integer, flag to set verbosity level, (0) no verbose
+%       output, (1) enable verbose text output messages, (2) enable debugging
+%       plots
 %
 % Arguments, output:
 % 
@@ -126,7 +125,7 @@ npass = 3;
 samplen = [60, 30, 15];
 yrez = [25,  50, 100];
 xrez = [50, 100, 200];
-verbose = true;
+verbose = 2;
 umax = [ 0.01,  0.005,  0.0025];
 umin = [-0.01, -0.005, -0.0025];
 vmax = [ 0.01,  0.005,  0.0025];
@@ -185,13 +184,13 @@ for pp = 1:npass
             end
             
             % get sample window
-            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
+            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp), verbose);
             
             % get interrogation window
             [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
                                        umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                                        vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), ...
-                                       samplen(pp));
+                                       samplen(pp), verbose);
             
             % skip if interrogation window is empty
             if max(intr(:)) == 0
@@ -212,7 +211,13 @@ for pp = 1:npass
             % get displacement in pixel coordinates
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
-                       
+            
+            % show debugging plots
+            if verbose == 2
+                drawnow;
+                pause
+            end
+                    
         end
     end
         
@@ -360,7 +365,7 @@ v1 = interp2(c0, r0, v0, c1mat, r1mat);
 
 end
 
-function [win] = get_samp_win(data, rpt, cpt, slen)
+function [win] = get_samp_win(data, rpt, cpt, slen, verbose)
 % Get sample window for a single sample grid point. Sample windows are squares
 % with pre-defined side length, approximately centered on the sample grid point,
 % zero-padded if necessary.
@@ -391,10 +396,18 @@ cmax = cpt+(slen-1)/2+cadj;
 % extract subset, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
+% debugging plot
+if verbose == 2
+    figure(1)
+    subplot(2,1,1)
+    plot_win_loc(data, rmin, rmax, cmin, cmax)
+    title('Initial State with Sample Window')
+end
+
 end
 
 function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, ... 
-                                 vmin, vmax, slen)
+                                 vmin, vmax, slen, verbose)
 %
 % Get interrogation window for a single sample grid point. Interrogation windows
 % are rectangular, with shape approximately defined by the specified minimum and
@@ -445,6 +458,14 @@ vwin = (rmin:rmax)-rpt;
 
 % extract subset, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
+
+% debugging plot
+if verbose == 2
+    figure(1)
+    subplot(2,1,2)
+    plot_win_loc(data, rmin, rmax, cmin, cmax)
+    title('Final State with Interrogation Window')
+end
 
 end
 
@@ -534,15 +555,11 @@ function [rpk, cpk] = find_peak(zz)
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
-try
 % peak is at the edge of the matrix, cannot compute subpixel location
 if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
     rpk = -1;
     cpk = -1;
     return
-end
-catch err
-    keyboard
 end
     
 % offset to eliminate non-positive (gaussian is always positive)
@@ -637,6 +654,22 @@ if verbose
     fprintf('umax = %.2f\tumin = %.2f\n', umax(ind), umin(ind));
     fprintf('vmax = %.2f\tvmin = %.2f\n', vmax(ind), vmin(ind));
 end
+
+end
+
+function [] = plot_win_loc(data, rmin, rmax, cmin, cmax)
+% Plot the data matrix with the sample window outlined in red
+
+imagesc(data)
+axis equal
+axis off
+box off
+set(gca, 'Clipping', 'off')
+colormap(gray)
+hold on
+plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
+    'Color', 'r', 'LineWidth', 2);
+hold off
 
 end
 
