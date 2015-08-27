@@ -95,8 +95,8 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 1;
 samplen = [50];
-yrez = [25];
-xrez = [50];
+yrez = [42];
+xrez = [189];
 verbose = 1;
 umax =  0.01;
 umin = -0.01;
