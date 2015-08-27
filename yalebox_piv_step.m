@@ -212,10 +212,14 @@ for pp = 1:npass
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
             
-            % show debugging plots
-            if verbose == 2
+            % debugging plots
+            if verbose == 2                
+                figure(2)
+                plot_xcr_plane(xcr, rpeak, cpeak)               
+                figure(3)
+                plot_win(samp, intr, rpeak, cpeak, samplen(pp));                                
                 drawnow;
-                pause
+                pause                
             end
                     
         end
@@ -673,3 +677,44 @@ hold off
 
 end
 
+function [] = plot_xcr_plane(xcr, rpeak, cpeak)
+% Plot the correlation plane with the location of the peak
+
+imagesc(xcr);
+axis equal;
+hold on
+plot([1, size(xcr, 2)], [rpeak, rpeak], ':k');
+plot([cpeak, cpeak], [1, size(xcr, 1)], ':k');
+hold off
+
+end
+
+function [] = plot_win(samp, intr, rpeak, cpeak, slen)
+% Plot sample and interrogation windows, with best fit sample window footprint
+
+subplot(1,2,1)
+imagesc(samp);
+axis equal
+axis off
+box off
+colormap(gray)
+title('Sample Window');
+
+subplot(1,2,2);
+imagesc(intr);
+axis equal
+axis off
+box off
+set(gca, 'Clipping', 'off')
+colormap(gray)
+hold on
+rmin = rpeak-(slen-1)/2;
+rmax = rpeak+(slen-1)/2;
+cmin = cpeak-(slen-1)/2;
+cmax = cpeak+(slen-1)/2;
+plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
+    'Color', 'r', 'LineWidth', 2);
+hold off
+title('Interrogation Window');
+                
+end
