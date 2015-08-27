@@ -94,18 +94,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% % single pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 50;
-% sampspc = 50;
-% verbose = 1;
-% umax =  0.01;
-% umin = -0.01;
-% uinit = 0;
-% vmax =  0.01;
-% vmin = -0.01;
-% vinit = 0;
+% single pass
+load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 50;
+sampspc = 50;
+verbose = 1;
+umax =  0.01;
+umin = -0.01;
+uinit = 0;
+vmax =  0.01;
+vmin = -0.01;
+vinit = 0;
 
 % % dual pass
 % load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -120,18 +120,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % vmin = [-0.02, -0.005];
 % vinit = 0;
 
-% tri pass
-load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 3;
-samplen = [60, 30, 15];
-sampspc = [30, 15, 7];
-verbose = 1;
-umax = [ 0.02,  0.005,  0.0025];
-umin = [-0.02, -0.005, -0.0025];
-uinit = 0;
-vmax = [ 0.02,  0.005,  0.0025];
-vmin = [-0.02, -0.005, -0.0025];
-vinit = 0;
+% % tri pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 3;
+% samplen = [60, 30, 15];
+% sampspc = [30, 15, 7];
+% verbose = 1;
+% umax = [ 0.02,  0.005,  0.0025];
+% umin = [-0.02, -0.005, -0.0025];
+% uinit = 0;
+% vmax = [ 0.02,  0.005,  0.0025];
+% vmin = [-0.02, -0.005, -0.0025];
+% vinit = 0;
 
 % } debug
 
@@ -174,14 +174,15 @@ for pp = 1:npass
             end
             
             % get sample window
-            samp = get_samp_win(ini, rr(jj), cc(ii), samplen(pp), verbose);
+            [samp, srmin, srmax, scmin, scmax]  = ...
+                get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
             
             % get interrogation window
-            [intr, uintr, vintr] = get_intr_win(fin, rr(jj), cc(ii), ...
-                                       umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-                                       vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), ...
-                                       samplen(pp), verbose);
-            
+            [intr, uintr, vintr, irmin, irmax, icmin, icmax] = ...
+                get_intr_win(fin, rr(jj), cc(ii), ...
+                    umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
+                    vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), samplen(pp));
+                            
             % skip if interrogation window is empty
             if max(intr(:)) == 0
                 roi(jj, ii) = false;
@@ -202,15 +203,9 @@ for pp = 1:npass
             vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
             uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
             
-            % debugging plots
-            if verbose == 2                
-                figure(2)
-                plot_xcr_plane(xcr, rpeak, cpeak)               
-                figure(3)
-                plot_win(samp, intr, rpeak, cpeak, samplen(pp));                                
-                drawnow;
-                pause                
-            end
+            plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
+                scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
+                cpeak, verbose)
                     
         end
     end
@@ -336,10 +331,10 @@ cc = cci:spc:nc0;
 
 end
 
-function [win] = get_samp_win(data, rpt, cpt, slen, verbose)
-% Get sample window for a single sample grid point. Sample windows are squares
-% with pre-defined side length, approximately centered on the sample grid point,
-% zero-padded if necessary.
+function [win, rmin, rmax, cmin, cmax] = get_samp_win(data, rpt, cpt, slen)
+% Get sample window for a single sample grid point. Sample windows are
+% squares with pre-defined side length, approximately centered on the
+% sample grid point, zero-padded if necessary.
 %
 % Arguments:
 %
@@ -352,6 +347,9 @@ function [win] = get_samp_win(data, rpt, cpt, slen, verbose)
 %
 %   win = 2D matrix, double, sample window containing a subset of the input data
 %       and perhaps some zero padding
+%
+%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
+%       coordinates
 
 % get window index range shifted to nearest whole pixel
 rmin = rpt-(slen-1)/2;
@@ -367,18 +365,10 @@ cmax = cpt+(slen-1)/2+cadj;
 % extract subset, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
-% debugging plot
-if verbose == 2
-    figure(1)
-    subplot(2,1,1)
-    plot_win_loc(data, rmin, rmax, cmin, cmax)
-    title('Initial State with Sample Window')
 end
 
-end
-
-function [win, uwin, vwin] = ...
-    get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen, verbose)
+function [win, uwin, vwin, rmin, rmax, cmin, cmax] = ...
+    get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen)
 %
 % Get interrogation window for a single sample grid point. Interrogation windows
 % are rectangular, with shape approximately defined by the specified minimum and
@@ -413,6 +403,9 @@ function [win, uwin, vwin] = ...
 %       coordinates.
 %
 %   slen = Scalar, integer, side length of square sample window
+%
+%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
+%       coordinates
 
 % get size of boundary to include (sample window half-width)
 bnd = (slen-1)/2;
@@ -429,14 +422,6 @@ vwin = (rmin:rmax)-rpt;
 
 % extract subset, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
-
-% debugging plot
-if verbose == 2
-    figure(1)
-    subplot(2,1,2)
-    plot_win_loc(data, rmin, rmax, cmin, cmax)
-    title('Final State with Interrogation Window')
-end
 
 end
 
@@ -635,9 +620,8 @@ end
 
 end
 
-function [] = ...
-    print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
-        uinit, vmin, vmax, vinit, verbose)
+function print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
+    umax, uinit, vmin, vmax, vinit, verbose)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -744,4 +728,37 @@ plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
 hold off
 title('Interrogation Window');
                 
+end
+
+function [] = plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
+                  scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
+                  cpeak, verbose)
+% Plot debugging information for a single sample points, pausing for user
+% to advance.
+%
+% Arguments
+% 
+% 
+
+if verbose == 2 
+    figure(1)
+    subplot(2,1,1)
+    plot_win_loc(ini, srmin, srmax, scmin, scmax)
+    title('Initial State with Sample Window')
+    
+    figure(1)
+    subplot(2,1,2)
+    plot_win_loc(fin, irmin, irmax, icmin, icmax)
+    title('Final State with Interrogation Window')
+    
+    figure(2)
+    plot_xcr_plane(xcr, rpeak, cpeak)
+    
+    figure(3)
+    plot_win(samp, intr, rpeak, cpeak, size(samp,1));
+    
+    drawnow;
+    pause
+end
+
 end
