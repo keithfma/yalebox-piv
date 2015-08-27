@@ -90,19 +90,19 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % dimensions with missing values. Computational Statistics & Data Analysis,
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
-% % debug {
-% % single pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = [50];
-% yrez = [25];
-% xrez = [50];
-% verbose = true;
-% umax =  0.01;
-% umin = -0.01;
-% vmax =  0.01;
-% vmin = -0.01;
-% % } debug
+% debug {
+% single pass
+load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = [50];
+yrez = [25];
+xrez = [50];
+verbose = 1;
+umax =  0.01;
+umin = -0.01;
+vmax =  0.01;
+vmin = -0.01;
+% } debug
 
 % % debug {
 % % dual pass
@@ -118,19 +118,19 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % vmin = [-0.01, -0.005];
 % % } debug
 
-% debug {
-% tri pass
-load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 3;
-samplen = [60, 30, 15];
-yrez = [25,  50, 100];
-xrez = [50, 100, 200];
-verbose = 2;
-umax = [ 0.01,  0.005,  0.0025];
-umin = [-0.01, -0.005, -0.0025];
-vmax = [ 0.01,  0.005,  0.0025];
-vmin = [-0.01, -0.005, -0.0025];
-% } debug
+% % debug {
+% % tri pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 3;
+% samplen = [60, 30, 15];
+% yrez = [25,  50, 100];
+% xrez = [50, 100, 200];
+% verbose = 2;
+% umax = [ 0.01,  0.005,  0.0025];
+% umin = [-0.01, -0.005, -0.0025];
+% vmax = [ 0.01,  0.005,  0.0025];
+% vmin = [-0.01, -0.005, -0.0025];
+% % } debug
 
 print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
     xrez, yrez, umin, umax, vmin, vmax); 
@@ -505,9 +505,9 @@ r1 = min(nr, r1);
 % extract data and add pad
 sub = data(r0:r1, c0:c1);
 [snr, snc] = size(sub);
-win = [zeros(pt, pl+snc+pr);
+win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pb, pl+snc+pr)];  
+       zeros(pt, pl+snc+pr)];  
    
 % % debug {
 % imagesc(data); caxis([0,1]); axis equal; hold on;
