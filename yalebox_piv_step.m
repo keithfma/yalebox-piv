@@ -93,18 +93,46 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % NOTE: use NaNs instead of zeros to indicate the mask/roi
 
 % debug {
-% single pass
+
+% % single pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 50;
+% sampspc = 50;
+% verbose = 1;
+% umax =  0.01;
+% umin = -0.01;
+% uinit = 0;
+% vmax =  0.01;
+% vmin = -0.01;
+% vinit = 0;
+
+% % dual pass
+% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [60, 30];
+% sampspc = [30, 15];
+% verbose = 1;
+% umax = [ 0.02,  0.005];
+% umin = [-0.02, -0.005];
+% uinit = 0;
+% vmax = [ 0.02,  0.005];
+% vmin = [-0.02, -0.005];
+% vinit = 0;
+
+% tri pass
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 50;
-sampspc = 50;
+npass = 3;
+samplen = [60, 30, 15];
+sampspc = [30, 15, 7];
 verbose = 1;
-umax =  0.01;
-umin = -0.01;
+umax = [ 0.02,  0.005,  0.0025];
+umin = [-0.02, -0.005, -0.0025];
 uinit = 0;
-vmax =  0.01;
-vmin = -0.01;
+vmax = [ 0.02,  0.005,  0.0025];
+vmin = [-0.02, -0.005, -0.0025];
 vinit = 0;
+
 % } debug
 
 print_sep('INPUT ARGUMENTS', verbose);
@@ -127,7 +155,7 @@ ss = nan(npass, 1);
 for pp = 1:npass
     
     print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
-    print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
+    print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), verbose);
     
     roi = true(length(rr), length(cc));
                                        
@@ -647,13 +675,13 @@ function [] = print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
 
 
 if verbose
-    fprintf('sample grid, pixels, x-dir: min = %.2f, max = %.2f\n', ...
-        min(cc), max(cc));
-    fprintf('sample grid, pixels, y-dir: min = %.2f, max = %.2f\n', ...
-        min(rr), max(rr));
-    fprintf('displacement limits, pixels, x-dir: min = %.2f, max = %.2f\n', ...
+    fprintf('x-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
+        length(cc), min(cc), max(cc));
+    fprintf('y-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
+        length(rr), min(rr), max(rr));
+    fprintf('u limits, pixels: min = %.2f, max = %.2f\n', ...
         umax, umin);
-    fprintf('displacement limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
+    fprintf('v limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
         vmax, vmin);
 end
 
