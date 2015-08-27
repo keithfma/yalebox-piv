@@ -94,93 +94,44 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % single pass
 load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 1;
-samplen = [50];
-yrez = [42];
-xrez = [189];
+samplen = 50;
+sampspc = 50;
 verbose = 1;
 umax =  0.01;
 umin = -0.01;
+uinit = 0;
 vmax =  0.01;
 vmin = -0.01;
+vinit = 0;
 % } debug
 
-% % debug {
-% % dual pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [60, 30];
-% yrez = [25, 50];
-% xrez = [50, 100];
-% verbose = true;
-% umax = [ 0.01,  0.005];
-% umin = [-0.01, -0.005];
-% vmax = [ 0.01,  0.005];
-% vmin = [-0.01, -0.005];
-% % } debug
+print_sep('INPUT ARGUMENTS', verbose);
+print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
+        uinit, vmin, vmax, vinit, verbose);
 
-% % debug {
-% % tri pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 3;
-% samplen = [60, 30, 15];
-% yrez = [25,  50, 100];
-% xrez = [50, 100, 200];
-% verbose = 2;
-% umax = [ 0.01,  0.005,  0.0025];
-% umin = [-0.01, -0.005, -0.0025];
-% vmax = [ 0.01,  0.005,  0.0025];
-% vmin = [-0.01, -0.005, -0.0025];
-% % } debug
-
-print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
-    xrez, yrez, umin, umax, vmin, vmax); 
-
-check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, ...
+check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
     vmin, vmax);
 
-% [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), ...
-%                    size(ini,2));
+[umin, umax, uinit] = uv_input_world_to_pixel(umin, umax, uinit, xx);
+[vmin, vmax, vinit] = uv_input_world_to_pixel(vmin, vmax, vinit, yy);
 
-[umin, umax] = uv_lim_world_to_pixel(umin, umax, xx);
-[vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
-
-% pixel-world coordinate conversion factors, assume equal grid
-x_world_per_pixel = xx(2)-xx(1); 
-y_world_per_pixel = yy(2)-yy(1); 
-
-print_input(verbose, 'preprocessed input', ini, fin, xx, yy, npass, ...
-    samplen, xrez, yrez, umin, umax, vmin, vmax); 
-
-% initialize pixel grid and displacements for sample_grid()
-rr = 1:length(yy);
-cc = 1:length(xx);
-uu = zeros(length(yy), length(xx));
-vv = zeros(length(yy), length(xx));
-
-% debug {
-spc = 25;
-nr0 = length(yy);
-nc0 = length(xx);
-[rr, cc] = sample_grid(spc, nr0, nc0);
-uu = zeros(length(rr), length(cc));
-vv = zeros(length(rr), length(cc));
-% } debug
+[nr0, nc0] = size(ini);
+[rr, cc, nr, nc] = sample_grid(sampspc(1), nr0, nc0);
+uu = uinit*ones(nr, nc);
+vv = vinit*ones(nr, nc);
 
 % loop over PIV passes
 ss = nan(npass, 1);
 for pp = 1:npass
     
-    print_pass(verbose, pp, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
+    print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
+    print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
     
-    roi = true(size(uu));
+    roi = true(nr, nc);
                                        
     % loop over sample grid    
-%     for ii = 1:xrez(pp)
-%         for jj = 1:yrez(pp)
     for ii = 1:length(cc)
         for jj = 1:length(rr)
-            
-            %fprintf('%i, %i\n', jj, ii);
             
             % (next: loop over correlation-based-correction samples)
             
@@ -245,13 +196,13 @@ for pp = 1:npass
     
 end
 
-% convert to world coordinates
+% convert displacements to world coordinates
+uu = uu.*(xx(2)-xx(1));
+vv = vv.*(yy(2)-yy(1));
+
+% get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
 xx = interp1(1:nc0, xx, cc);
-uu = uu.*x_world_per_pixel;
-vv = vv.*y_world_per_pixel;
-
-% report some statistics?
  
 % % debug {
 % keyboard
@@ -259,10 +210,10 @@ vv = vv.*y_world_per_pixel;
 
 end
 
-function [] = check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, ...
-                  umin, umax, vmin, vmax)
-% Check for sane input argument properties, exit with error if they do not match
-% expectations.
+function check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
+             umax, vmin, vmax)
+% Check for sane input argument properties, exit with error if they do not
+% match expectations.
               
 validateattributes(ini,...
     {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1}, ...
@@ -283,12 +234,9 @@ validateattributes(npass, ...
 validateattributes(samplen, ...
     {'numeric'}, {'numel', npass, 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'samplen');
-validateattributes(xrez, ...
-    {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nc}, ...
-    mfilename,  'xrez');
-validateattributes(yrez, ...
-    {'numeric'}, {'numel', npass, 'integer', 'nonnegative', '<=', nr}, ...
-    mfilename, 'yrez');
+validateattributes(sampspc, ...
+    {'numeric'}, {'numel', npass, 'integer', 'positive', 'nonnan', }, ...
+    mfilename, 'sampspc');
 validateattributes(umin, ...
     {'double'}, {'numel', npass}, ...
     mfilename, 'umin');
@@ -304,95 +252,61 @@ validateattributes(vmax, ...
 
 end
 
-function [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, nr, nc)
-% Approximately equalize any unknown grid dimensions 
-
-for ii = 1:length(xrez)
-    if xrez(ii) ~= 0 && yrez(ii) == 0
-        % match unknown y-grid to known x-grid 
-        pts = linspace(1, nc, xrez(ii));
-        spc = pts(2)-pts(1);
-        yrez(ii) = round(nr/spc)+1;        
-    elseif xrez(ii) == 0 && yrez(ii) ~= 0
-        % match unknown x-grid to known y-grid     
-        pts = linspace(1, nr, yrez(ii));
-        spc = pts(2)-pts(1);
-        xrez(ii) = round(nc/spc)+1;    
-    elseif xrez(ii) == 0 && yrez(ii) == 0
-        % both grids are unknown, error    
-        error('Unknown grid dimensions (both NaN) for pass %i', ii);
-    end            
-end
-
-end
-
-function [uvmin, uvmax] = uv_lim_world_to_pixel(uvmin, uvmax, xy)
-% Convert displacement limits from world to pixel coordinates, one direction at
-% a time. Sort to preserve the correct min/max regardless of the world
-% coordinate axis polarity, round to whole pixel
+function [uvmin, uvmax, uvinit] = ...
+	uv_input_world_to_pixel(uvmin, uvmax, uvinit, xy)
+% Convert displacement limits from world to pixel coordinates, one
+% direction at a time. Sort to preserve the correct min/max regardless of
+% the world coordinate axis polarity, round to whole pixel.
+%
+% Arguments:
+%
+%   uvmin, uvmax = Scalar, double, minimum and maximum displacement in
+%       world coordinates for either x- or y-direction.
+%
+%   uvinit = Scalar, double, initial guess for displacement in world
+%       coordinates for either x- or y- direction.
+%
+%   xy = Vector, double, world coordinate vector for either x- or
+%       y-direction
 
 dxy = xy(2)-xy(1); 
+
 uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
 uvmin = round(uvminmax(:,1));
 uvmax = round(uvminmax(:,2));
 
+uvinit = uvinit/dxy;
+
 end
 
-function [r1, c1] = sample_grid(spc, nr0, nc0)
-% equally spaced points at integer pixel coordinates, remainder split
-% evenly between edges
+function [rr, cc, nr, nc] = sample_grid(spc, nr0, nc0)
+% Create sample grid using equally spaced points at integer pixel
+% coordinates, with the remainder split evenly between edges.
+%
+% Arguments:
+%
+%   spc = Scalar, integer, grid spacing in pixels
+%
+%   nro, nc0 = Scalar, integer, grid dimensions (rows, columns) for the
+%       original input data matrices (e.g. ini and fin).
+%
+%   rr, cc = Vector, integer, coordinate vectors for the sample grid in the
+%       y/row and x/column directions, in pixels
+%
+%   nr, nc = Scalar, integers, size of the sample grid (rows, columns),
+%       returned for convenience
 
 rrem = mod(nr0-1, spc);
-r1i = 1+floor(rrem/2);
-r1 = r1i:spc:nr0;
+rri = 1+floor(rrem/2);
+rr = rri:spc:nr0;
+nr = length(rr);
 
 crem = mod(nc0-1, spc);
-c1i = 1+floor(crem/2);
-c1 = c1i:spc:nc0;
+cci = 1+floor(crem/2);
+cc = cci:spc:nc0;
+nc = length(cc);
 
 end
-
-% function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, ...
-%                                         r0, u0, v0)
-% % [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
-% %
-% % Compute sample coordinate grid for the new pass in both pixel and world
-% % coordinates, and interpolate the previously computed displacements to the new
-% % grid. The grid is linearly spaced over the model domain, including edges.
-% % Output values refer to sample window center locations, which are are not in
-% % general integers. Note that this approach assumes the coordinate system is
-% % linear (can interpolate from low-res to high-res)
-% %
-% % Arguments:
-% %
-% %   nr1, nc1 = Scalars, integers, number of rows and columns in the new sample
-% %       grid for the new pass
-% %
-% %   x0, y0 = Vectors, x-dir (a.k.a column-dir) and y-dir (a.k.a row-dir) world
-% %       coordinates for the previous pass. 
-% %
-% %   c0, r0 = Vectors, x-dir (a.k.a. row-dir) and y-dir (a.k.a. row-dir) pixel
-% %       coordinates for the sample grid from the previous pass
-% %
-% %   u0, v0 = Matrices, x-dir and y-dir displacements computed on the sample grid
-% %       for the previous pass 
-% %
-% %   x1, y1, c1, r1, u1, v1 = Same as the above, but for the new pass.
-% 
-% % new pixel sample grid
-% r1 = linspace(1, max(r0), nr1);
-% c1 = linspace(1, max(c0), nc1);
-% 
-% % new world sample grid
-% y1 = interp1(r0, y0, r1, 'linear');
-% x1 = interp1(c0, x0, c1, 'linear');
-% 
-% % interpolate displacements from previous pass to current grid
-% [c1mat, r1mat] = meshgrid(c1, r1);
-% u1 = interp2(c0, r0, u0, c1mat, r1mat);
-% v1 = interp2(c0, r0, v0, c1mat, r1mat);
-% 
-% end
 
 function [win] = get_samp_win(data, rpt, cpt, slen, verbose)
 % Get sample window for a single sample grid point. Sample windows are squares
@@ -435,8 +349,8 @@ end
 
 end
 
-function [win, uwin, vwin] = get_intr_win(data, rpt, cpt, umin, umax, ... 
-                                 vmin, vmax, slen, verbose)
+function [win, uwin, vwin] = ...
+    get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen, verbose)
 %
 % Get interrogation window for a single sample grid point. Interrogation windows
 % are rectangular, with shape approximately defined by the specified minimum and
@@ -634,54 +548,64 @@ end
 
 % verbose message subroutines --------------------------------------------------
 
-function print_sep()
-% Print a separator line for verbose output messages
+function [] = print_sep(msg, verbose)
+% Print a user-specified message and a separator line for verbose output
+% messages
 
-fprintf('----------\n');
+if verbose
+    fprintf('----------\n%s\n', msg);
+end
 
 end
 
-function print_input(verbose, msg, ini, fin, xx, yy, npass, samplen, ...
-             xrez, yrez, umin, umax, vmin, vmax)
+function [] = ...
+    print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
+        uinit, vmin, vmax, vinit, verbose)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
-    print_sep;
-    fprintf('%s\n', msg);
-    fprintf('ini: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
-        size(ini, 1), size(ini, 2), min(ini(:)), max(ini(:)), ...
-        sum(ini(:) == 0)/numel(ini)*100);
-    fprintf('fin: size = [%i, %i], min = %.2f. max = %.2f, masked = %.2f%%\n',...
-        size(fin, 1), size(fin, 2), min(fin(:)), max(fin(:)), ...
-        sum(fin(:) == 0)/numel(fin)*100);
+    fprintf('ini: size = [%i, %i], fraction data = %.2f%%\n',...
+        size(ini, 1), size(ini, 2), sum(ini(:) ~= 0)/numel(ini)*100);
+    fprintf('fin: size = [%i, %i], fraction data = %.2f%%\n',...
+        size(fin, 1), size(fin, 2), sum(fin(:) ~= 0)/numel(fin)*100);
     fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
         length(xx), min(xx), max(xx), xx(2)-xx(1));
     fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
         length(yy), min(yy), max(yy), yy(2)-yy(1));
     fprintf('npass: %i\n', npass);
     fprintf('samplen: %s\n', sprintf('%i  ', samplen));
-    fprintf('xrez: %s\n', sprintf('%i  ', xrez));
-    fprintf('yrez: %s\n', sprintf('%i  ', yrez));
+    fprintf('sampspc: %s\n', sprintf('%i  ', sampspc));
     fprintf('umin: %s\n', sprintf('%.2f  ', umin));
     fprintf('umax: %s\n', sprintf('%.2f  ', umax));
+    fprintf('uinit: %s\n', sprintf('%.2f  ', uinit));
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
-
+    fprintf('vinit: %s\n', sprintf('%.2f  ', vinit));
 end
 
 end
 
-function [] = print_pass(verbose, ind, npass, samplen, yrez, xrez, umax, ...
-                  umin, vmax, vmin)
-% Display parameters for PIV "ind" or "npass"
+function [] = print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
+% Display information for PIV pass 
+%
+% Arguments:
+%
+% rr, cc = Vector, integer, sample grid coordinate vectors in the y/row and
+%   x/column directions
+%
+% umax, umin, vmax, vmin = Scalar, double, displacement limits in the x-
+%   and y-direction, in pixel coordinates
+
 
 if verbose
-    print_sep;
-    fprintf('PIV pass %i of %i\n', ind, npass);
-    fprintf('samplen = %i\n', samplen(ind));
-    fprintf('xrez = %i\tyrez = %i\n', xrez(ind), yrez(ind));
-    fprintf('umax = %.2f\tumin = %.2f\n', umax(ind), umin(ind));
-    fprintf('vmax = %.2f\tvmin = %.2f\n', vmax(ind), vmin(ind));
+    fprintf('sample grid, pixels, x-dir: min = %.2f, max = %.2f\n', ...
+        min(cc), max(cc));
+    fprintf('sample grid, pixels, y-dir: min = %.2f, max = %.2f\n', ...
+        min(rr), max(rr));
+    fprintf('displacement limits, pixels, x-dir: min = %.2f, max = %.2f\n', ...
+        umax, umin);
+    fprintf('displacement limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
+        vmax, vmin);
 end
 
 end
