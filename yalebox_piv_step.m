@@ -138,8 +138,8 @@ print_input(verbose, 'input', ini, fin, xx, yy, npass, samplen, ...
 check_input(ini, fin, xx, yy, npass, samplen, xrez, yrez, umin, umax, ...
     vmin, vmax);
 
-[xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), ...
-                   size(ini,2));
+% [xrez, yrez] = equalize_unknown_grid_dims(xrez, yrez, size(ini,1), ...
+%                    size(ini,2));
 
 [umin, umax] = uv_lim_world_to_pixel(umin, umax, xx);
 [vmin, vmax] = uv_lim_world_to_pixel(vmin, vmax, yy);
@@ -157,19 +157,28 @@ cc = 1:length(xx);
 uu = zeros(length(yy), length(xx));
 vv = zeros(length(yy), length(xx));
 
+% debug {
+spc = 25;
+nr0 = length(yy);
+nc0 = length(xx);
+[rr, cc] = sample_grid(spc, nr0, nc0);
+uu = zeros(length(rr), length(cc));
+vv = zeros(length(rr), length(cc));
+% } debug
+
 % loop over PIV passes
 ss = nan(npass, 1);
 for pp = 1:npass
     
     print_pass(verbose, pp, npass, samplen, yrez, xrez, umax, umin, vmax, vmin);
     
-    [xx, yy, cc, rr, uu, vv] = sample_grid(yrez(pp), xrez(pp), xx, yy, cc, ...
-                                   rr, uu, vv);
     roi = true(size(uu));
                                        
     % loop over sample grid    
-    for ii = 1:xrez(pp)
-        for jj = 1:yrez(pp)
+%     for ii = 1:xrez(pp)
+%         for jj = 1:yrez(pp)
+    for ii = 1:length(cc)
+        for jj = 1:length(rr)
             
             %fprintf('%i, %i\n', jj, ii);
             
@@ -236,7 +245,9 @@ for pp = 1:npass
     
 end
 
-% convert displacements from pixel to world coordinates
+% convert to world coordinates
+yy = interp1(1:nr0, yy, rr);
+xx = interp1(1:nc0, xx, cc);
 uu = uu.*x_world_per_pixel;
 vv = vv.*y_world_per_pixel;
 
@@ -327,47 +338,61 @@ uvmax = round(uvminmax(:,2));
 
 end
 
-function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, ...
-                                        r0, u0, v0)
-% [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
-%
-% Compute sample coordinate grid for the new pass in both pixel and world
-% coordinates, and interpolate the previously computed displacements to the new
-% grid. The grid is linearly spaced over the model domain, including edges.
-% Output values refer to sample window center locations, which are are not in
-% general integers. Note that this approach assumes the coordinate system is
-% linear (can interpolate from low-res to high-res)
-%
-% Arguments:
-%
-%   nr1, nc1 = Scalars, integers, number of rows and columns in the new sample
-%       grid for the new pass
-%
-%   x0, y0 = Vectors, x-dir (a.k.a column-dir) and y-dir (a.k.a row-dir) world
-%       coordinates for the previous pass. 
-%
-%   c0, r0 = Vectors, x-dir (a.k.a. row-dir) and y-dir (a.k.a. row-dir) pixel
-%       coordinates for the sample grid from the previous pass
-%
-%   u0, v0 = Matrices, x-dir and y-dir displacements computed on the sample grid
-%       for the previous pass 
-%
-%   x1, y1, c1, r1, u1, v1 = Same as the above, but for the new pass.
+function [r1, c1] = sample_grid(spc, nr0, nc0)
+% equally spaced points at integer pixel coordinates, remainder split
+% evenly between edges
 
-% new pixel sample grid
-r1 = linspace(1, max(r0), nr1);
-c1 = linspace(1, max(c0), nc1);
+rrem = mod(nr0-1, spc);
+r1i = 1+floor(rrem/2);
+r1 = r1i:spc:nr0;
 
-% new world sample grid
-y1 = interp1(r0, y0, r1, 'linear');
-x1 = interp1(c0, x0, c1, 'linear');
-
-% interpolate displacements from previous pass to current grid
-[c1mat, r1mat] = meshgrid(c1, r1);
-u1 = interp2(c0, r0, u0, c1mat, r1mat);
-v1 = interp2(c0, r0, v0, c1mat, r1mat);
+crem = mod(nc0-1, spc);
+c1i = 1+floor(crem/2);
+c1 = c1i:spc:nc0;
 
 end
+
+% function [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, ...
+%                                         r0, u0, v0)
+% % [x1, y1, c1, r1, u1, v1] = sample_grid(nr1, nc1, x0, y0, c0, r0, u0, v0)
+% %
+% % Compute sample coordinate grid for the new pass in both pixel and world
+% % coordinates, and interpolate the previously computed displacements to the new
+% % grid. The grid is linearly spaced over the model domain, including edges.
+% % Output values refer to sample window center locations, which are are not in
+% % general integers. Note that this approach assumes the coordinate system is
+% % linear (can interpolate from low-res to high-res)
+% %
+% % Arguments:
+% %
+% %   nr1, nc1 = Scalars, integers, number of rows and columns in the new sample
+% %       grid for the new pass
+% %
+% %   x0, y0 = Vectors, x-dir (a.k.a column-dir) and y-dir (a.k.a row-dir) world
+% %       coordinates for the previous pass. 
+% %
+% %   c0, r0 = Vectors, x-dir (a.k.a. row-dir) and y-dir (a.k.a. row-dir) pixel
+% %       coordinates for the sample grid from the previous pass
+% %
+% %   u0, v0 = Matrices, x-dir and y-dir displacements computed on the sample grid
+% %       for the previous pass 
+% %
+% %   x1, y1, c1, r1, u1, v1 = Same as the above, but for the new pass.
+% 
+% % new pixel sample grid
+% r1 = linspace(1, max(r0), nr1);
+% c1 = linspace(1, max(c0), nc1);
+% 
+% % new world sample grid
+% y1 = interp1(r0, y0, r1, 'linear');
+% x1 = interp1(c0, x0, c1, 'linear');
+% 
+% % interpolate displacements from previous pass to current grid
+% [c1mat, r1mat] = meshgrid(c1, r1);
+% u1 = interp2(c0, r0, u0, c1mat, r1mat);
+% v1 = interp2(c0, r0, v0, c1mat, r1mat);
+% 
+% end
 
 function [win] = get_samp_win(data, rpt, cpt, slen, verbose)
 % Get sample window for a single sample grid point. Sample windows are squares
