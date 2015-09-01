@@ -106,7 +106,7 @@ load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 2;
 samplen = [30, 15];
 sampspc = [15, 7];
-verbose = 1;
+verbose = 2;
 umax = [ 0.05,  0.05];
 umin = [-0.05, -0.05];
 uinit = 0;
@@ -165,7 +165,7 @@ for pp = 1:npass
             end
             
             % get sample and interrogation windows
-            [samp, intr, u0, v0] = ...
+            [samp, samppos, intr, intrpos, u0, v0] = ...
                 get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
                     umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                     vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
@@ -190,10 +190,9 @@ for pp = 1:npass
             % get displacement in pixel coordinates
             vv(jj, ii) = v0+rpeak;
             uu(jj, ii) = u0+cpeak;
-            
-            % plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
-            %     scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
-            %     cpeak, verbose)
+                        
+            plot_sample_point(ini, fin, samp, samppos, intr, intrpos, xcr, ...
+                rpeak, cpeak, verbose);
                     
         end
     end
@@ -318,7 +317,7 @@ cc = cci:spc:nc0;
 
 end
 
-function [swin, iwin, u0, v0] = ...
+function [swin, spos, iwin, ipos, u0, v0] = ...
     get_win(sdata, idata, rpt, cpt, slen, umin, umax, vmin, vmax)
 % Extract the sample and interrogation windows for a given point. Returns the
 % windows (padded as needed) and the displacement in pixel coordinates of the
@@ -343,6 +342,10 @@ function [swin, iwin, u0, v0] = ...
 %
 % swin, iwin = 2D matrix, double, the sample and interrogation windows
 %
+% spos, ipos = Vector, double, position vectors for the sample and interrogation
+%   windows, of the form [left, bottom, width, height], used by verbose plotting
+%   routine
+% 
 % u0, v0 = displacement in pixel coordinates of the origin (element 1,1) of the
 %   valid correlation matrix of swin and iwin.
 
@@ -360,6 +363,8 @@ cadj = round(cmin)-cmin;
 cmin = cmin +cadj;
 cmax = cpt+hwidth+cadj;
 
+spos = [cmin, rmin, cmax-cmin, rmax-rmin];
+
 % extract sample window, including pad if needed
 swin = get_padded_subset(sdata, rmin, rmax, cmin, cmax);
 
@@ -368,6 +373,8 @@ cmin = floor(cpt+umin-hwidth);
 cmax = ceil(cpt+umax+hwidth);
 rmin = floor(rpt+vmin-hwidth);
 rmax = ceil(rpt+vmax+hwidth);
+
+ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 
 % extract interrogation window, including pad if needed
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
@@ -632,8 +639,16 @@ end
 
 end
 
-function [] = plot_win_loc(data, rmin, rmax, cmin, cmax)
-% Plot the data matrix with the sample window outlined in red
+function [] = plot_win_loc(data, pos)
+% Plot the outline of the sample/interrogation window in pixel coordinates on
+% top of the data matrix.
+%
+% Arguments:
+% 
+%   data = 2D matrix, double, data matrix
+%
+%   pos = Vector, double, window position vector as [left, bottom, width,
+%       height] in poxel coordinates
 
 imagesc(data)
 axis equal
@@ -642,30 +657,45 @@ box off
 set(gca, 'Clipping', 'off')
 colormap(gray)
 hold on
-plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
+plot([pos(1), pos(1), pos(1)+pos(3), pos(1)+pos(3), pos(1)], ...
+    [pos(2), pos(2)+pos(4), pos(2)+pos(4), pos(2), pos(2)], ...
     'Color', 'r', 'LineWidth', 2);
 hold off
 
 end
 
-function [] = plot_xcr_plane(xcr, rpeak, cpeak)
+function [] = plot_xcr_plane(xwin, rpk, cpk)
 % Plot the correlation plane with the location of the peak
+%
+% Arguments: 
+%
+%   xwin = 2D matrix, double, cross-correlation window
+%
+%   rpk, cpk = Scalar, double, location of the correlation peak in pixel
+%       coordinates.
 
-imagesc(xcr);
+imagesc(xwin);
 axis equal;
 hold on
-plot([1, size(xcr, 2)], [rpeak, rpeak], ':k');
-plot([cpeak, cpeak], [1, size(xcr, 1)], ':k');
+plot([1, size(xwin, 2)], [rpk, rpk], ':k');
+plot([cpk, cpk], [1, size(xwin, 1)], ':k');
 hold off
 colorbar
 
 end
 
-function [] = plot_win(samp, intr, rpeak, cpeak, slen)
+function [] = plot_win(swin, iwin, rpk, cpk)
 % Plot sample and interrogation windows, with best fit sample window footprint
+%
+% Arguments:
+%
+%   swin, iwin = 2D matrix, double, sample and interrogation windows
+% 
+%   rpk, cpk = Scalar, double, location of the peak in the (valid) correlation
+%       plane in pixel coordinates.
 
 subplot(1,2,1)
-imagesc(samp);
+imagesc(swin);
 axis equal
 axis off
 box off
@@ -673,17 +703,19 @@ colormap(gray)
 title('Sample Window');
 
 subplot(1,2,2);
-imagesc(intr);
+imagesc(iwin);
 axis equal
 axis off
 box off
 set(gca, 'Clipping', 'off')
 colormap(gray)
 hold on
-rmin = rpeak-(slen-1)/2;
-rmax = rpeak+(slen-1)/2;
-cmin = cpeak-(slen-1)/2;
-cmax = cpeak+(slen-1)/2;
+
+hwidth = (size(swin,1)-1)/2;
+rmin = rpk-hwidth;
+rmax = rpk+hwidth;
+cmin = cpk-hwidth;
+cmax = cpk+hwidth;
 plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
     'Color', 'r', 'LineWidth', 2);
 hold off
@@ -691,32 +723,43 @@ title('Interrogation Window');
                 
 end
 
-function [] = plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
-                  scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
-                  cpeak, verbose)
+function [] = plot_sample_point(sdata, idata, swin, spos, iwin, ipos, xwin, rpk, cpk, verbose)
 % Plot debugging information for a single sample points, pausing for user
 % to advance.
 %
 % Arguments
 % 
-% 
+%   sdata, idata = 2D matrix, full data matrix for the sample (initial) and
+%       interrogation (final) model states.
+%
+%   swin, iwin = 2D matrix, sample and interrogation windows for this sample
+%       point.
+%
+%   spos, ipos = Vector, double, position vectors for sample and interrogation
+%       windows in pixel coordinates, formatted as [left, bottom, width, height]
+%
+%   xwin = 2D matrix, cross-correlation plane, valid extent only
+%
+%   rpk, cpk = Scalar, double, sub-pixel location of the correlation plane peak
+%
+%   verbose = Scalar, integer, verbosity flag, must be == 2 to enable plotting
 
 if verbose == 2 
     figure(1)
     subplot(2,1,1)
-    plot_win_loc(ini, srmin, srmax, scmin, scmax)
+    plot_win_loc(sdata, spos)
     title('Initial State with Sample Window')
     
     figure(1)
     subplot(2,1,2)
-    plot_win_loc(fin, irmin, irmax, icmin, icmax)
+    plot_win_loc(idata, ipos)
     title('Final State with Interrogation Window')
     
     figure(2)
-    plot_xcr_plane(xcr, rpeak, cpeak)
+    plot_xcr_plane(xwin, rpk, cpk)
     
     figure(3)
-    plot_win(samp, intr, rpeak, cpeak, size(samp,1));
+    plot_win(swin, iwin, rpk, cpk);
     
     drawnow;
     pause
