@@ -106,7 +106,7 @@ load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 2;
 samplen = [30, 15];
 sampspc = [15, 7];
-verbose = 2;
+verbose = 1;
 umax = [ 0.05,  0.05];
 umin = [-0.05, -0.05];
 uinit = 0;
@@ -712,6 +712,8 @@ colormap(gray)
 hold on
 
 hwidth = (size(swin,1)-1)/2;
+rpk = rpk+hwidth; % adjust indices from 'valid' extent to 'same' extent
+cpk = cpk+hwidth;
 rmin = rpk-hwidth;
 rmax = rpk+hwidth;
 cmin = cpk-hwidth;
