@@ -198,7 +198,6 @@ for pp = 1:npass
         end
     end
     
-    
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
     [rr_next, cc_next] = sample_grid(sampspc(pp_next), nr0, nc0);            
@@ -212,9 +211,9 @@ end
 uu(~roi) = NaN;
 vv(~roi) = NaN;
 
-% % convert displacements to world coordinates
-% uu = uu.*(xx(2)-xx(1));
-% vv = vv.*(yy(2)-yy(1));
+% convert displacements to world coordinates
+uu = uu.*(xx(2)-xx(1));
+vv = vv.*(yy(2)-yy(1));
 
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
@@ -321,6 +320,31 @@ end
 
 function [swin, iwin, u0, v0] = ...
     get_win(sdata, idata, rpt, cpt, slen, umin, umax, vmin, vmax)
+% Extract the sample and interrogation windows for a given point. Returns the
+% windows (padded as needed) and the displacement in pixel coordinates of the
+% origin (element 1,1) of the valid correlation matrix of swin and iwin. The
+% latter are used to convert peak position in the correlation plane to
+% displacements in pixel coordiantes.
+%
+% Arguments:
+% 
+% sdata, idata = 2D matrix, double, initial and final data matrices from which
+%   to extract the sample and interrogation windows (respectively).
+%
+% rpt, cpt = Scalar, double, location of the sample window centerpoint in pixel
+%   coordinates.
+%
+% slen = Scalar, integer, number of points along a side of the square sample
+%   window.
+%
+% umin, umax, vmin, vmax = Scalar, double, maximum and minimum displacements in
+%   both directions in pixel coordinates, defines the size and location of the
+%   interrogation window.
+%
+% swin, iwin = 2D matrix, double, the sample and interrogation windows
+%
+% u0, v0 = displacement in pixel coordinates of the origin (element 1,1) of the
+%   valid correlation matrix of swin and iwin.
 
 % parameters
 hwidth = (slen-1)/2;
@@ -535,8 +559,7 @@ rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
 cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 
 % validate, replace, smooth, see [3-4])
-% [uu0, vv0, sf] = pppiv(uu0, vv0);
-[uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
+[uu0, vv0, sf] = pppiv(uu0, vv0);
 
 % interpolate displacements to new sample grid
 uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
