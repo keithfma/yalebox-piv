@@ -199,10 +199,15 @@ for pp = 1:npass
             
             % find the correlation plane maximum with subpixel accuracy
             [rpeak, cpeak] = find_peak(xcr);
+    
+%             keyboard
             
             % get displacement in pixel coordinates
-            vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
-            uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
+            % vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
+            % uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
+            vv(jj, ii) = floor(vv(jj, ii)+vmin(pp))+rpeak-1;
+            uu(jj, ii) = floor(uu(jj, ii)+umin(pp))+cpeak-1;
+            
             
             plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
                 scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
@@ -210,7 +215,7 @@ for pp = 1:npass
                     
         end
     end
-        
+    
     
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
@@ -486,10 +491,12 @@ fullxcorr = normxcorr2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
-npre = floor(aaSize/2); % pre-pad
-npost = aaSize-npre-1; % post-pad
+% npre = floor(aaSize/2); % pre-pad
+% npost = aaSize-npre-1; % post-pad
+npre = aaSize; % RETURN VALID
+npost = aaSize;
 
-xcorr = fullxcorr( (1+npre(1)):(end-npost(1)), (1+npre(2)):(end-npost(2)) );
+xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
 end
 
