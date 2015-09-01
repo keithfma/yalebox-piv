@@ -1,14 +1,6 @@
 function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % Re-implementation of yalebox PIV analysis routine
 %
-% Notes:
-%
-% Sample grid does not fall on integer pixels - the sample windows are
-% constructed so that they are samplen pixels wide, and the grid point is as
-% close to the center as possible, given that the data are discrete, the window
-% center may be as much as 0.5 pixels from the grid point, this is almost
-% certainly negligible, but worth noting.
-%
 % Arguments, input:
 %
 %   ini = 2D matrix, double, range 0 to 1, normalize grayscale image from
@@ -98,29 +90,29 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 %load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 
-% single pass
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 1;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
-
-% % dual pass
-% npass = 2;
-% samplen = [60, 30];
-% sampspc = [30, 15];
+% % single pass
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
 % verbose = 1;
-% umax = [ 0.02,  0.005];
-% umin = [-0.02, -0.005];
+% umax =  0.05;
+% umin = -0.05;
 % uinit = 0;
-% vmax = [ 0.02,  0.005];
-% vmin = [-0.02, -0.005];
+% vmax =  0.05;
+% vmin = -0.05;
 % vinit = 0;
+
+% dual pass
+npass = 2;
+samplen = [30, 15];
+sampspc = [15, 7];
+verbose = 1;
+umax = [ 0.05,  0.025];
+umin = [-0.05, -0.025];
+uinit = 0;
+vmax = [ 0.05,  0.025];
+vmin = [-0.05, -0.025];
+vinit = 0;
 
 % % tri pass
 % npass = 3;
@@ -164,8 +156,6 @@ for pp = 1:npass
     for ii = 1:length(cc)
         for jj = 1:length(rr)
             
-            % (next: loop over correlation-based-correction samples)
-            
             % skip if window center lies outside the roi at start or finish
             rchk = round(rr(jj));
             cchk = round(cc(ii));            
@@ -179,14 +169,6 @@ for pp = 1:npass
                 get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
                     umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
                     vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
-            
-            % [samp, srmin, srmax, scmin, scmax]  = ...
-            %     get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
-            % 
-            % [intr, uintr, vintr, irmin, irmax, icmin, icmax] = ...
-            %     get_intr_win(fin, rr(jj), cc(ii), ...
-            %         umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-            %         vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), samplen(pp));
                             
             % skip if interrogation window is empty
             if max(intr(:)) == 0
@@ -196,20 +178,18 @@ for pp = 1:npass
                 
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
-                                    
-            % (next: accumulate correlation-based-correction samples)
-            
-            % (next: end loop over correlation-based-correction samples)           
-            
+       
             % find the correlation plane maximum with subpixel accuracy
-            [rpeak, cpeak] = find_peak(xcr);
+            [rpeak, cpeak, status] = find_peak(xcr);
+            if status == false
+                vv(jj, ii) = NaN;
+                uu(jj, ii) = NaN;
+                continue
+            end     
      
             % get displacement in pixel coordinates
             vv(jj, ii) = v0+rpeak;
             uu(jj, ii) = u0+cpeak;
-            
-            % vv(jj, ii) = floor(vv(jj, ii)+vmin(pp))+rpeak-1;
-            % uu(jj, ii) = floor(uu(jj, ii)+umin(pp))+cpeak-1;        
             
             % plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
             %     scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
@@ -222,7 +202,7 @@ for pp = 1:npass
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
     [rr_next, cc_next] = sample_grid(sampspc(pp_next), nr0, nc0);            
-%     [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
+    [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
     rr = rr_next;
     cc = cc_next;
     
@@ -525,7 +505,7 @@ xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
 end
 
-function [rpk, cpk] = find_peak(zz)
+function [rpk, cpk, stat] = find_peak(zz)
 % Find the position of the peak in matrix zz with subpixel accuracy. Peakl
 % location is determined from an explicit solution of two-dimensional
 % Gaussian regression (see [2]). If the peak cannot be fit at subpixel
@@ -541,13 +521,19 @@ function [rpk, cpk] = find_peak(zz)
 %
 %   cpk = Scalar, double, column-coordinate location of the peak, set to -1
 %       if the peak cannot be fit
+%
+%   stat = Logical, scalar, return status flag, true if successful, false if
+%       unsuccessful
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
-% peak is at the edge of the matrix, cannot compute subpixel location
-if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
-    rpk = -1;
-    cpk = -1;
+% check failure conditions
+%   1-2) no unique maximum
+%   3-6) peak at the edge of the matrix
+stat = true;
+if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
+        || rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)        
+    stat = false;
     return
 end
     
@@ -631,7 +617,9 @@ rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
 cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 
 % validate, replace, smooth, see [3-4])
-[uu0, vv0, sf] = pppiv(uu0, vv0);
+% [uu0, vv0, sf] = pppiv(uu0, vv0);
+[uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
+
 
 % interpolate displacements to new sample grid
 uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
