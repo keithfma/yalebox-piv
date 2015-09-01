@@ -174,15 +174,19 @@ for pp = 1:npass
                 continue
             end
             
-            % get sample window
-            [samp, srmin, srmax, scmin, scmax]  = ...
-                get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
-            
-            % get interrogation window
-            [intr, uintr, vintr, irmin, irmax, icmin, icmax] = ...
-                get_intr_win(fin, rr(jj), cc(ii), ...
+            % get sample and interrogation windows
+            [samp, intr, u0, v0] = ...
+                get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
                     umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-                    vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), samplen(pp));
+                    vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
+            
+            % [samp, srmin, srmax, scmin, scmax]  = ...
+            %     get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
+            % 
+            % [intr, uintr, vintr, irmin, irmax, icmin, icmax] = ...
+            %     get_intr_win(fin, rr(jj), cc(ii), ...
+            %         umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
+            %         vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), samplen(pp));
                             
             % skip if interrogation window is empty
             if max(intr(:)) == 0
@@ -199,19 +203,17 @@ for pp = 1:npass
             
             % find the correlation plane maximum with subpixel accuracy
             [rpeak, cpeak] = find_peak(xcr);
-    
-%             keyboard
-            
+     
             % get displacement in pixel coordinates
-            % vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
-            % uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
-            vv(jj, ii) = floor(vv(jj, ii)+vmin(pp))+rpeak-1;
-            uu(jj, ii) = floor(uu(jj, ii)+umin(pp))+cpeak-1;
+            vv(jj, ii) = v0+rpeak;
+            uu(jj, ii) = u0+cpeak;
             
+            % vv(jj, ii) = floor(vv(jj, ii)+vmin(pp))+rpeak-1;
+            % uu(jj, ii) = floor(uu(jj, ii)+umin(pp))+cpeak-1;        
             
-            plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
-                scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
-                cpeak, verbose)
+            % plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
+            %     scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
+            %     cpeak, verbose)
                     
         end
     end
@@ -337,6 +339,41 @@ cc = cci:spc:nc0;
 
 end
 
+function [swin, iwin, u0, v0] = ...
+    get_win(sdata, idata, rpt, cpt, slen, umin, umax, vmin, vmax)
+
+% parameters
+hwidth = (slen-1)/2;
+
+% get sample window index range, shifted to nearest whole pixel
+rmin = rpt-hwidth;
+radj = round(rmin)-rmin;
+rmin = rmin+radj;
+rmax = rpt+hwidth+radj;
+
+cmin = cpt-hwidth;
+cadj = round(cmin)-cmin;
+cmin = cmin +cadj;
+cmax = cpt+hwidth+cadj;
+
+% extract sample window, including pad if needed
+swin = get_padded_subset(sdata, rmin, rmax, cmin, cmax);
+
+% get interrogation window index range, expanded to nearest whole pixel
+cmin = floor(cpt+umin-hwidth);
+cmax = ceil(cpt+umax+hwidth);
+rmin = floor(rpt+vmin-hwidth);
+rmax = ceil(rpt+vmax+hwidth);
+
+% extract interrogation window, including pad if needed
+iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
+
+% get displacement origin
+u0 = floor(umin)-1;
+v0 = floor(vmin)-1;
+
+end
+
 function [win, rmin, rmax, cmin, cmax] = get_samp_win(data, rpt, cpt, slen)
 % Get sample window for a single sample grid point. Sample windows are
 % squares with pre-defined side length, approximately centered on the
@@ -358,31 +395,31 @@ function [win, rmin, rmax, cmin, cmax] = get_samp_win(data, rpt, cpt, slen)
 %       coordinates
 
 % get window index range shifted to nearest whole pixel
-rmin = rpt-(slen-1)/2;
+hwidth = (slen-1)/2;
+
+rmin = rpt-hwidth;
 radj = round(rmin)-rmin;
 rmin = rmin+radj;
-rmax = rpt+(slen-1)/2+radj;
+rmax = rpt+hwidth+radj;
 
-cmin = cpt-(slen-1)/2;
+cmin = cpt-hwidth;
 cadj = round(cmin)-cmin;
 cmin = cmin +cadj;
-cmax = cpt+(slen-1)/2+cadj;
+cmax = cpt+hwidth+cadj;
 
 % extract subset, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
 end
 
-function [win, uwin, vwin, rmin, rmax, cmin, cmax] = ...
+function [win, rmin, rmax, cmin, cmax] = ...
     get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen)
 %
 % Get interrogation window for a single sample grid point. Interrogation windows
 % are rectangular, with shape approximately defined by the specified minimum and
-% maximum displacements. The exact displacements corresponding to each element
-% in the window are returned as coordinate vectors. A border the size of
-% half the sample window side length is added on all sides to ensure that
-% all the tested displacements lie within the "valid" range of the cross
-% correlation output.
+% maximum displacements. A border the size of half the sample window side length
+% is added on all sides to ensure that all the tested displacements lie within
+% the "valid" range of the cross correlation output. 
 %
 % Arguments:
 %
@@ -397,36 +434,24 @@ function [win, uwin, vwin, rmin, rmax, cmin, cmax] = ...
 %   vmin, vmax = Scalar, double, minimum, maximum y-direction displacements in
 %       pixel coordinates
 %
+%   slen = Scalar, integer, side length of square sample window
+%
 %   win = 2D matrix, double, interrogation window containing a subset of the
 %       input data and perhaps some zero padding
-%
-%   uwin = Vector, length == size(win,2), coordinate vector for the
-%       interrogation window giving x-direction displacements in pixel
-%       coordinates.
-%
-%   vwin = Vector, length == size(win,1), coordinate vector for the
-%       interrogation window giving y-direction displacements in pixel
-%       coordinates.
-%
-%   slen = Scalar, integer, side length of square sample window
 %
 %   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
 %       coordinates
 
 % get size of boundary to include (sample window half-width)
-bnd = (slen-1)/2;
+hwidth = (slen-1)/2;
 
 % get window index, with range expanded to nearest whole pixel
-cmin = floor(cpt+umin-bnd);
-cmax = ceil(cpt+umax+bnd);
-rmin = floor(rpt+vmin-bnd);
-rmax = ceil(rpt+vmax+bnd);
+cmin = floor(cpt+umin-hwidth);
+cmax = ceil(cpt+umax+hwidth);
+rmin = floor(rpt+vmin-hwidth);
+rmax = ceil(rpt+vmax+hwidth);
 
-% get displacements from sample center to rows and cols of interrogation window
-uwin = (cmin:cmax)-cpt;
-vwin = (rmin:rmax)-rpt;
-
-% extract subset, including pad if needed
+% extract window, including pad if needed
 win = get_padded_subset(data, rmin, rmax, cmin, cmax);
 
 end
