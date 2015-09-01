@@ -94,21 +94,23 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
+% load test case input data
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+%load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+
 % single pass
-load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 1;
-samplen = 50;
-sampspc = 50;
+samplen = 30;
+sampspc = 15;
 verbose = 1;
-umax =  0.01;
-umin = -0.01;
+umax =  0.05;
+umin = -0.05;
 uinit = 0;
-vmax =  0.01;
-vmin = -0.01;
+vmax =  0.05;
+vmin = -0.05;
 vinit = 0;
 
 % % dual pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 2;
 % samplen = [60, 30];
 % sampspc = [30, 15];
@@ -121,7 +123,6 @@ vinit = 0;
 % vinit = 0;
 
 % % tri pass
-% load('debug_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 3;
 % samplen = [60, 30, 15];
 % sampspc = [30, 15, 7];
@@ -214,7 +215,7 @@ for pp = 1:npass
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
     [rr_next, cc_next] = sample_grid(sampspc(pp_next), nr0, nc0);            
-    [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
+%     [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
     rr = rr_next;
     cc = cc_next;
     
