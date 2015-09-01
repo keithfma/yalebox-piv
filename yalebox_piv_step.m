@@ -1,14 +1,6 @@
 function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % Re-implementation of yalebox PIV analysis routine
 %
-% Notes:
-%
-% Sample grid does not fall on integer pixels - the sample windows are
-% constructed so that they are samplen pixels wide, and the grid point is as
-% close to the center as possible, given that the data are discrete, the window
-% center may be as much as 0.5 pixels from the grid point, this is almost
-% certainly negligible, but worth noting.
-%
 % Arguments, input:
 %
 %   ini = 2D matrix, double, range 0 to 1, normalize grayscale image from
@@ -98,29 +90,29 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 %load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 
-% single pass
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 1;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
-
-% % dual pass
-% npass = 2;
-% samplen = [60, 30];
-% sampspc = [30, 15];
+% % single pass
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
 % verbose = 1;
-% umax = [ 0.02,  0.005];
-% umin = [-0.02, -0.005];
+% umax =  0.05;
+% umin = -0.05;
 % uinit = 0;
-% vmax = [ 0.02,  0.005];
-% vmin = [-0.02, -0.005];
+% vmax =  0.05;
+% vmin = -0.05;
 % vinit = 0;
+
+% dual pass
+npass = 2;
+samplen = [30, 15];
+sampspc = [15, 7];
+verbose = 1;
+umax = [ 0.05,  0.05];
+umin = [-0.05, -0.05];
+uinit = 0;
+vmax = [ 0.05,  0.05];
+vmin = [-0.05, -0.05];
+vinit = 0;
 
 % % tri pass
 % npass = 3;
@@ -164,8 +156,6 @@ for pp = 1:npass
     for ii = 1:length(cc)
         for jj = 1:length(rr)
             
-            % (next: loop over correlation-based-correction samples)
-            
             % skip if window center lies outside the roi at start or finish
             rchk = round(rr(jj));
             cchk = round(cc(ii));            
@@ -174,15 +164,11 @@ for pp = 1:npass
                 continue
             end
             
-            % get sample window
-            [samp, srmin, srmax, scmin, scmax]  = ...
-                get_samp_win(ini, rr(jj), cc(ii), samplen(pp));
-            
-            % get interrogation window
-            [intr, uintr, vintr, irmin, irmax, icmin, icmax] = ...
-                get_intr_win(fin, rr(jj), cc(ii), ...
+            % get sample and interrogation windows
+            [samp, samppos, intr, intrpos, u0, v0] = ...
+                get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
                     umin(pp)+uu(jj,ii), umax(pp)+uu(jj,ii), ...
-                    vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii), samplen(pp));
+                    vmin(pp)+vv(jj,ii), vmax(pp)+vv(jj,ii));
                             
             % skip if interrogation window is empty
             if max(intr(:)) == 0
@@ -192,30 +178,29 @@ for pp = 1:npass
                 
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
-                                    
-            % (next: accumulate correlation-based-correction samples)
-            
-            % (next: end loop over correlation-based-correction samples)           
-            
+       
             % find the correlation plane maximum with subpixel accuracy
-            [rpeak, cpeak] = find_peak(xcr);
-            
+            [rpeak, cpeak, status] = find_peak(xcr);
+            if status == false
+                vv(jj, ii) = NaN;
+                uu(jj, ii) = NaN;
+                continue
+            end     
+     
             % get displacement in pixel coordinates
-            vv(jj, ii) = interp1(1:size(xcr, 1), vintr, rpeak);    
-            uu(jj, ii) = interp1(1:size(xcr, 2), uintr, cpeak);
-            
-            plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
-                scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
-                cpeak, verbose)
+            vv(jj, ii) = v0+rpeak;
+            uu(jj, ii) = u0+cpeak;
+                        
+            plot_sample_point(ini, fin, samp, samppos, intr, intrpos, xcr, ...
+                rpeak, cpeak, verbose);
                     
         end
     end
-        
     
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
     [rr_next, cc_next] = sample_grid(sampspc(pp_next), nr0, nc0);            
-%     [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
+    [uu, vv] = post_process(uu, vv, roi, rr, cc, rr_next, cc_next);
     rr = rr_next;
     cc = cc_next;
     
@@ -285,7 +270,7 @@ function [uvmin, uvmax, uvinit] = ...
 	uv_input_world_to_pixel(uvmin, uvmax, uvinit, xy)
 % Convert displacement limits from world to pixel coordinates, one
 % direction at a time. Sort to preserve the correct min/max regardless of
-% the world coordinate axis polarity, round to whole pixel.
+% the world coordinate axis polarity.
 %
 % Arguments:
 %
@@ -301,8 +286,8 @@ function [uvmin, uvmax, uvinit] = ...
 dxy = xy(2)-xy(1); 
 
 uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
-uvmin = round(uvminmax(:,1));
-uvmax = round(uvminmax(:,2));
+uvmin = uvminmax(:,1);
+uvmax = uvminmax(:,2);
 
 uvinit = uvinit/dxy;
 
@@ -332,97 +317,71 @@ cc = cci:spc:nc0;
 
 end
 
-function [win, rmin, rmax, cmin, cmax] = get_samp_win(data, rpt, cpt, slen)
-% Get sample window for a single sample grid point. Sample windows are
-% squares with pre-defined side length, approximately centered on the
-% sample grid point, zero-padded if necessary.
+function [swin, spos, iwin, ipos, u0, v0] = ...
+    get_win(sdata, idata, rpt, cpt, slen, umin, umax, vmin, vmax)
+% Extract the sample and interrogation windows for a given point. Returns the
+% windows (padded as needed) and the displacement in pixel coordinates of the
+% origin (element 1,1) of the valid correlation matrix of swin and iwin. The
+% latter are used to convert peak position in the correlation plane to
+% displacements in pixel coordiantes.
 %
 % Arguments:
+% 
+% sdata, idata = 2D matrix, double, initial and final data matrices from which
+%   to extract the sample and interrogation windows (respectively).
 %
-%   data = 2D Matrix, initial model state data
+% rpt, cpt = Scalar, double, location of the sample window centerpoint in pixel
+%   coordinates.
 %
-%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
-%       center)
+% slen = Scalar, integer, number of points along a side of the square sample
+%   window.
 %
-%   slen = Scalar, integer, side length of square sample window
+% umin, umax, vmin, vmax = Scalar, double, maximum and minimum displacements in
+%   both directions in pixel coordinates, defines the size and location of the
+%   interrogation window.
 %
-%   win = 2D matrix, double, sample window containing a subset of the input data
-%       and perhaps some zero padding
+% swin, iwin = 2D matrix, double, the sample and interrogation windows
 %
-%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
-%       coordinates
+% spos, ipos = Vector, double, position vectors for the sample and interrogation
+%   windows, of the form [left, bottom, width, height], used by verbose plotting
+%   routine
+% 
+% u0, v0 = displacement in pixel coordinates of the origin (element 1,1) of the
+%   valid correlation matrix of swin and iwin.
 
-% get window index range shifted to nearest whole pixel
-rmin = rpt-(slen-1)/2;
+% parameters
+hwidth = (slen-1)/2;
+
+% get sample window index range, shifted to nearest whole pixel
+rmin = rpt-hwidth;
 radj = round(rmin)-rmin;
 rmin = rmin+radj;
-rmax = rpt+(slen-1)/2+radj;
+rmax = rpt+hwidth+radj;
 
-cmin = cpt-(slen-1)/2;
+cmin = cpt-hwidth;
 cadj = round(cmin)-cmin;
 cmin = cmin +cadj;
-cmax = cpt+(slen-1)/2+cadj;
+cmax = cpt+hwidth+cadj;
 
-% extract subset, including pad if needed
-win = get_padded_subset(data, rmin, rmax, cmin, cmax);
+spos = [cmin, rmin, cmax-cmin, rmax-rmin];
 
-end
+% extract sample window, including pad if needed
+swin = get_padded_subset(sdata, rmin, rmax, cmin, cmax);
 
-function [win, uwin, vwin, rmin, rmax, cmin, cmax] = ...
-    get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen)
-%
-% Get interrogation window for a single sample grid point. Interrogation windows
-% are rectangular, with shape approximately defined by the specified minimum and
-% maximum displacements. The exact displacements corresponding to each element
-% in the window are returned as coordinate vectors. A border the size of
-% half the sample window side length is added on all sides to ensure that
-% all the tested displacements lie within the "valid" range of the cross
-% correlation output.
-%
-% Arguments:
-%
-%   data = 2D Matrix, final model state data
-%
-%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
-%       center)
-%
-%   umin, umax = Scalar, double, minimum, maximum x-direction displacements in
-%       pixel coordinates
-%
-%   vmin, vmax = Scalar, double, minimum, maximum y-direction displacements in
-%       pixel coordinates
-%
-%   win = 2D matrix, double, interrogation window containing a subset of the
-%       input data and perhaps some zero padding
-%
-%   uwin = Vector, length == size(win,2), coordinate vector for the
-%       interrogation window giving x-direction displacements in pixel
-%       coordinates.
-%
-%   vwin = Vector, length == size(win,1), coordinate vector for the
-%       interrogation window giving y-direction displacements in pixel
-%       coordinates.
-%
-%   slen = Scalar, integer, side length of square sample window
-%
-%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
-%       coordinates
+% get interrogation window index range, expanded to nearest whole pixel
+cmin = floor(cpt+umin-hwidth);
+cmax = ceil(cpt+umax+hwidth);
+rmin = floor(rpt+vmin-hwidth);
+rmax = ceil(rpt+vmax+hwidth);
 
-% get size of boundary to include (sample window half-width)
-bnd = (slen-1)/2;
+ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 
-% get window index, with range expanded to nearest whole pixel
-cmin = floor(cpt+umin-bnd);
-cmax = ceil(cpt+umax+bnd);
-rmin = floor(rpt+vmin-bnd);
-rmax = ceil(rpt+vmax+bnd);
+% extract interrogation window, including pad if needed
+iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
-% get displacements from sample center to rows and cols of interrogation window
-uwin = (cmin:cmax)-cpt;
-vwin = (rmin:rmax)-rpt;
-
-% extract subset, including pad if needed
-win = get_padded_subset(data, rmin, rmax, cmin, cmax);
+% get displacement origin
+u0 = floor(umin);
+v0 = floor(vmin);
 
 end
 
@@ -486,14 +445,16 @@ fullxcorr = normxcorr2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
-npre = floor(aaSize/2); % pre-pad
-npost = aaSize-npre-1; % post-pad
+% npre = floor(aaSize/2); % pre-pad
+% npost = aaSize-npre-1; % post-pad
+npre = aaSize; % RETURN VALID
+npost = aaSize;
 
-xcorr = fullxcorr( (1+npre(1)):(end-npost(1)), (1+npre(2)):(end-npost(2)) );
+xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
 end
 
-function [rpk, cpk] = find_peak(zz)
+function [rpk, cpk, stat] = find_peak(zz)
 % Find the position of the peak in matrix zz with subpixel accuracy. Peakl
 % location is determined from an explicit solution of two-dimensional
 % Gaussian regression (see [2]). If the peak cannot be fit at subpixel
@@ -509,13 +470,19 @@ function [rpk, cpk] = find_peak(zz)
 %
 %   cpk = Scalar, double, column-coordinate location of the peak, set to -1
 %       if the peak cannot be fit
+%
+%   stat = Logical, scalar, return status flag, true if successful, false if
+%       unsuccessful
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
-% peak is at the edge of the matrix, cannot compute subpixel location
-if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
-    rpk = -1;
-    cpk = -1;
+% check failure conditions
+%   1-2) no unique maximum
+%   3-6) peak at the edge of the matrix
+stat = true;
+if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
+        || rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)        
+    stat = false;
     return
 end
     
@@ -672,8 +639,16 @@ end
 
 end
 
-function [] = plot_win_loc(data, rmin, rmax, cmin, cmax)
-% Plot the data matrix with the sample window outlined in red
+function [] = plot_win_loc(data, pos)
+% Plot the outline of the sample/interrogation window in pixel coordinates on
+% top of the data matrix.
+%
+% Arguments:
+% 
+%   data = 2D matrix, double, data matrix
+%
+%   pos = Vector, double, window position vector as [left, bottom, width,
+%       height] in poxel coordinates
 
 imagesc(data)
 axis equal
@@ -682,30 +657,45 @@ box off
 set(gca, 'Clipping', 'off')
 colormap(gray)
 hold on
-plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
+plot([pos(1), pos(1), pos(1)+pos(3), pos(1)+pos(3), pos(1)], ...
+    [pos(2), pos(2)+pos(4), pos(2)+pos(4), pos(2), pos(2)], ...
     'Color', 'r', 'LineWidth', 2);
 hold off
 
 end
 
-function [] = plot_xcr_plane(xcr, rpeak, cpeak)
+function [] = plot_xcr_plane(xwin, rpk, cpk)
 % Plot the correlation plane with the location of the peak
+%
+% Arguments: 
+%
+%   xwin = 2D matrix, double, cross-correlation window
+%
+%   rpk, cpk = Scalar, double, location of the correlation peak in pixel
+%       coordinates.
 
-imagesc(xcr);
+imagesc(xwin);
 axis equal;
 hold on
-plot([1, size(xcr, 2)], [rpeak, rpeak], ':k');
-plot([cpeak, cpeak], [1, size(xcr, 1)], ':k');
+plot([1, size(xwin, 2)], [rpk, rpk], ':k');
+plot([cpk, cpk], [1, size(xwin, 1)], ':k');
 hold off
 colorbar
 
 end
 
-function [] = plot_win(samp, intr, rpeak, cpeak, slen)
+function [] = plot_win(swin, iwin, rpk, cpk)
 % Plot sample and interrogation windows, with best fit sample window footprint
+%
+% Arguments:
+%
+%   swin, iwin = 2D matrix, double, sample and interrogation windows
+% 
+%   rpk, cpk = Scalar, double, location of the peak in the (valid) correlation
+%       plane in pixel coordinates.
 
 subplot(1,2,1)
-imagesc(samp);
+imagesc(swin);
 axis equal
 axis off
 box off
@@ -713,17 +703,21 @@ colormap(gray)
 title('Sample Window');
 
 subplot(1,2,2);
-imagesc(intr);
+imagesc(iwin);
 axis equal
 axis off
 box off
 set(gca, 'Clipping', 'off')
 colormap(gray)
 hold on
-rmin = rpeak-(slen-1)/2;
-rmax = rpeak+(slen-1)/2;
-cmin = cpeak-(slen-1)/2;
-cmax = cpeak+(slen-1)/2;
+
+hwidth = (size(swin,1)-1)/2;
+rpk = rpk+hwidth; % adjust indices from 'valid' extent to 'same' extent
+cpk = cpk+hwidth;
+rmin = rpk-hwidth;
+rmax = rpk+hwidth;
+cmin = cpk-hwidth;
+cmax = cpk+hwidth;
 plot([cmin, cmin, cmax, cmax, cmin], [rmin, rmax, rmax, rmin, rmin], ...
     'Color', 'r', 'LineWidth', 2);
 hold off
@@ -731,32 +725,43 @@ title('Interrogation Window');
                 
 end
 
-function [] = plot_sample_point(ini, fin, samp, srmin, srmax, scmin, ...
-                  scmax, intr, irmin, irmax, icmin, icmax, xcr, rpeak, ...
-                  cpeak, verbose)
+function [] = plot_sample_point(sdata, idata, swin, spos, iwin, ipos, xwin, rpk, cpk, verbose)
 % Plot debugging information for a single sample points, pausing for user
 % to advance.
 %
 % Arguments
 % 
-% 
+%   sdata, idata = 2D matrix, full data matrix for the sample (initial) and
+%       interrogation (final) model states.
+%
+%   swin, iwin = 2D matrix, sample and interrogation windows for this sample
+%       point.
+%
+%   spos, ipos = Vector, double, position vectors for sample and interrogation
+%       windows in pixel coordinates, formatted as [left, bottom, width, height]
+%
+%   xwin = 2D matrix, cross-correlation plane, valid extent only
+%
+%   rpk, cpk = Scalar, double, sub-pixel location of the correlation plane peak
+%
+%   verbose = Scalar, integer, verbosity flag, must be == 2 to enable plotting
 
 if verbose == 2 
     figure(1)
     subplot(2,1,1)
-    plot_win_loc(ini, srmin, srmax, scmin, scmax)
+    plot_win_loc(sdata, spos)
     title('Initial State with Sample Window')
     
     figure(1)
     subplot(2,1,2)
-    plot_win_loc(fin, irmin, irmax, icmin, icmax)
+    plot_win_loc(idata, ipos)
     title('Final State with Interrogation Window')
     
     figure(2)
-    plot_xcr_plane(xcr, rpeak, cpeak)
+    plot_xcr_plane(xwin, rpk, cpk)
     
     figure(3)
-    plot_win(samp, intr, rpeak, cpeak, size(samp,1));
+    plot_win(swin, iwin, rpk, cpk);
     
     drawnow;
     pause
