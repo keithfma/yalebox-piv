@@ -107,11 +107,11 @@ npass = 2;
 samplen = [30, 15];
 sampspc = [15, 7];
 verbose = 1;
-umax = [ 0.05,  0.025];
-umin = [-0.05, -0.025];
+umax = [ 0.05,  0.05];
+umin = [-0.05, -0.05];
 uinit = 0;
-vmax = [ 0.05,  0.025];
-vmin = [-0.05, -0.025];
+vmax = [ 0.05,  0.05];
+vmin = [-0.05, -0.05];
 vinit = 0;
 
 % % tri pass
@@ -212,9 +212,9 @@ end
 uu(~roi) = NaN;
 vv(~roi) = NaN;
 
-% convert displacements to world coordinates
-uu = uu.*(xx(2)-xx(1));
-vv = vv.*(yy(2)-yy(1));
+% % convert displacements to world coordinates
+% uu = uu.*(xx(2)-xx(1));
+% vv = vv.*(yy(2)-yy(1));
 
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
@@ -272,7 +272,7 @@ function [uvmin, uvmax, uvinit] = ...
 	uv_input_world_to_pixel(uvmin, uvmax, uvinit, xy)
 % Convert displacement limits from world to pixel coordinates, one
 % direction at a time. Sort to preserve the correct min/max regardless of
-% the world coordinate axis polarity, round to whole pixel.
+% the world coordinate axis polarity.
 %
 % Arguments:
 %
@@ -288,8 +288,8 @@ function [uvmin, uvmax, uvinit] = ...
 dxy = xy(2)-xy(1); 
 
 uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
-uvmin = round(uvminmax(:,1));
-uvmax = round(uvminmax(:,2));
+uvmin = uvminmax(:,1);
+uvmax = uvminmax(:,2);
 
 uvinit = uvinit/dxy;
 
@@ -349,90 +349,8 @@ rmax = ceil(rpt+vmax+hwidth);
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
 % get displacement origin
-u0 = floor(umin)-1;
-v0 = floor(vmin)-1;
-
-end
-
-function [win, rmin, rmax, cmin, cmax] = get_samp_win(data, rpt, cpt, slen)
-% Get sample window for a single sample grid point. Sample windows are
-% squares with pre-defined side length, approximately centered on the
-% sample grid point, zero-padded if necessary.
-%
-% Arguments:
-%
-%   data = 2D Matrix, initial model state data
-%
-%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
-%       center)
-%
-%   slen = Scalar, integer, side length of square sample window
-%
-%   win = 2D matrix, double, sample window containing a subset of the input data
-%       and perhaps some zero padding
-%
-%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
-%       coordinates
-
-% get window index range shifted to nearest whole pixel
-hwidth = (slen-1)/2;
-
-rmin = rpt-hwidth;
-radj = round(rmin)-rmin;
-rmin = rmin+radj;
-rmax = rpt+hwidth+radj;
-
-cmin = cpt-hwidth;
-cadj = round(cmin)-cmin;
-cmin = cmin +cadj;
-cmax = cpt+hwidth+cadj;
-
-% extract subset, including pad if needed
-win = get_padded_subset(data, rmin, rmax, cmin, cmax);
-
-end
-
-function [win, rmin, rmax, cmin, cmax] = ...
-    get_intr_win(data, rpt, cpt, umin, umax, vmin, vmax, slen)
-%
-% Get interrogation window for a single sample grid point. Interrogation windows
-% are rectangular, with shape approximately defined by the specified minimum and
-% maximum displacements. A border the size of half the sample window side length
-% is added on all sides to ensure that all the tested displacements lie within
-% the "valid" range of the cross correlation output. 
-%
-% Arguments:
-%
-%   data = 2D Matrix, final model state data
-%
-%   rpt, cpt = Scalar, double, row-, col-position of the sample point (window
-%       center)
-%
-%   umin, umax = Scalar, double, minimum, maximum x-direction displacements in
-%       pixel coordinates
-%
-%   vmin, vmax = Scalar, double, minimum, maximum y-direction displacements in
-%       pixel coordinates
-%
-%   slen = Scalar, integer, side length of square sample window
-%
-%   win = 2D matrix, double, interrogation window containing a subset of the
-%       input data and perhaps some zero padding
-%
-%   rmin, rmax, cmin, cmax = Scalar, integer, window limits in pixel
-%       coordinates
-
-% get size of boundary to include (sample window half-width)
-hwidth = (slen-1)/2;
-
-% get window index, with range expanded to nearest whole pixel
-cmin = floor(cpt+umin-hwidth);
-cmax = ceil(cpt+umax+hwidth);
-rmin = floor(rpt+vmin-hwidth);
-rmax = ceil(rpt+vmax+hwidth);
-
-% extract window, including pad if needed
-win = get_padded_subset(data, rmin, rmax, cmin, cmax);
+u0 = floor(umin);
+v0 = floor(vmin);
 
 end
 
@@ -619,7 +537,6 @@ cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 % validate, replace, smooth, see [3-4])
 % [uu0, vv0, sf] = pppiv(uu0, vv0);
 [uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
-
 
 % interpolate displacements to new sample grid
 uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
