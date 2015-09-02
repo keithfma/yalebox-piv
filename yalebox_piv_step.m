@@ -86,18 +86,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% single pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 2;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
+% % single pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
+% verbose = 2;
+% umax =  0.05;
+% umin = -0.05;
+% uinit = 0;
+% vmax =  0.05;
+% vmin = -0.05;
+% vinit = 0;
 
 % % single pass, test 01
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -112,18 +112,18 @@ vinit = 0;
 % vmin = -0.02;
 % vinit = 0;
 
-% % dual pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [30, 20];
-% sampspc = [15, 10];
-% verbose = 1;
-% umax = [ 0.05,  0.03];
-% umin = [-0.05, -0.03];
-% uinit = 0;
-% vmax = [ 0.05,  0.03];
-% vmin = [-0.05, -0.03];
-% vinit = 0;
+% dual pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 2;
+samplen = [30, 20];
+sampspc = [15, 10];
+verbose = 1;
+umax = [ 0.05,  0.03];
+umin = [-0.05, -0.03];
+uinit = 0;
+vmax = [ 0.05,  0.03];
+vmin = [-0.05, -0.03];
+vinit = 0;
 
 % % dual pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -175,7 +175,14 @@ for pp = 1:npass
     print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
     print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), verbose);
     
-    roi = true(length(rr), length(cc));
+    % init per-pass variables
+    nr = length(rr);
+    nc = length(cc);
+    nv = vmax(pp)-vmin(pp);
+    nu = umax(pp)-umin(pp);    
+    
+    roi = true(nr, nc);
+    xcr_stack = nan(nv, nu, nr*nc);
     
     % debug {
     xcr_size_min = [inf, inf];
@@ -208,6 +215,7 @@ for pp = 1:npass
                 
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
+            xcr_stack(:, :, jj+(ii-1)*nr) = xcr;
             
             % debug {
             xcr_size_min = min(xcr_size_min, size(xcr));
@@ -235,6 +243,10 @@ for pp = 1:npass
     % debug {
     fprintf('xcr min size = %i, %i\n', xcr_size_min);
     fprintf('xcr max size = %i, %i\n', xcr_size_max);
+    % } debug
+    
+    % debug {
+    keyboard
     % } debug
     
     % post-process and prep for next pass
