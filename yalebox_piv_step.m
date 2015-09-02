@@ -164,10 +164,10 @@ for pp = 1:npass
             end
             
             % get sample and interrogation windows
-            [samp, samppos, intr, intrpos, u0, v0] = ...
+            [samp, samppos, intr, intrpos, vorigin, uorigin] = ...
                 get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
-                    uu(jj,ii), umin(pp), umax(pp), ...
-                    vv(jj,ii), vmin(pp), vmax(pp));
+                    vv(jj,ii), vmin(pp), vmax(pp), ...
+                    uu(jj,ii), umin(pp), umax(pp));
                 
             % skip if interrogation window is empty
             if max(intr(:)) == 0
@@ -187,8 +187,8 @@ for pp = 1:npass
             end     
      
             % get displacement in pixel coordinates
-            vv(jj, ii) = v0+rpeak;
-            uu(jj, ii) = u0+cpeak;
+            vv(jj, ii) = vorigin+rpeak-1;
+            uu(jj, ii) = uorigin+cpeak-1;
                         
             plot_sample_point(ini, fin, samp, samppos, intr, intrpos, xcr, ...
                 rpeak, cpeak, verbose);
@@ -319,7 +319,7 @@ cc = cci:spc:nc0;
 
 end
 
-function [swin, spos, iwin, ipos, u0, v0] = ...
+function [swin, spos, iwin, ipos, vorigin, uorigin] = ...
     get_win(sdata, idata, rpt, cpt, slen, v0, v1min, v1max, u0, u1min, u1max)
 % Extract the sample and interrogation windows for a given point. Returns the
 % windows (padded as needed) and the displacement in pixel coordinates of the
@@ -352,8 +352,8 @@ function [swin, spos, iwin, ipos, u0, v0] = ...
 %   windows, of the form [left, bottom, width, height], used by verbose plotting
 %   routine
 % 
-% u0, v0 = displacement in pixel coordinates of the origin (element 1,1) of the
-%   valid correlation matrix of swin and iwin.
+% uorigin, vorigin = displacement in pixel coordinates of the origin (element
+%   1,1) of the correlation matrix of swin and iwin, assumes size is 'same'
 
 % parameters
 hwidth = (slen-1)/2;
@@ -395,8 +395,8 @@ ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
 % get displacement origin
-v0 = rmin-rpt;
-u0 = cmin-cpt;
+vorigin = rmin-rpt;
+uorigin = cmin-cpt;
 
 end
 
@@ -460,10 +460,10 @@ fullxcorr = normxcorr2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
-% npre = floor(aaSize/2); % pre-pad
-% npost = aaSize-npre-1; % post-pad
-npre = aaSize; % RETURN VALID
-npost = aaSize;
+npre = floor(aaSize/2); % pre-pad % RETURN SAME
+npost = aaSize-npre-1; % post-pad
+% npre = aaSize; % RETURN VALID
+% npost = aaSize;
 
 xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
