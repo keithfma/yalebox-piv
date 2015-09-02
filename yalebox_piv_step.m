@@ -376,16 +376,16 @@ spos = [cmin, rmin, cmax-cmin, rmax-rmin];
 % extract sample window, including pad if needed
 swin = get_padded_subset(sdata, rmin, rmax, cmin, cmax);
 
-% get interrogation window index range, shifted to nearest whole pixel
+% get interrogation window index range, shifted down/left to whole pixel
 rmin = rpt+v0+v1min-hwidth;
 rmax = rpt+v0+v1max+hwidth;
-radj = round(rmin)-rmin;
+radj = floor(rmin)-rmin;
 rmin = rmin+radj;
 rmax = rmax+radj;
 
 cmin = cpt+u0+u1min-hwidth;
 cmax = cpt+u0+u1max+hwidth;
-cadj = round(cmin)-cmin;
+cadj = floor(cmin)-cmin;
 cmin = cmin+cadj;
 cmax = cmax+cadj;
 
@@ -395,8 +395,8 @@ ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
 % get displacement origin
-u0 = floor(umin);
-v0 = floor(vmin);
+v0 = rmin-rpt;
+u0 = cmin-cpt;
 
 end
 
