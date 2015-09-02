@@ -86,33 +86,32 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% load test case input data
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 %load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 
-% % single pass
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% verbose = 1;
-% umax =  0.05;
-% umin = -0.05;
-% uinit = 0;
-% vmax =  0.05;
-% vmin = -0.05;
-% vinit = 0;
-
-% dual pass
-npass = 2;
-samplen = [30, 15];
-sampspc = [15, 7];
+% single pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 30;
+sampspc = 15;
 verbose = 1;
-umax = [ 0.05,  0.05];
-umin = [-0.05, -0.05];
+umax =  0.05;
+umin = -0.05;
 uinit = 0;
-vmax = [ 0.05,  0.05];
-vmin = [-0.05, -0.05];
+vmax =  0.05;
+vmin = -0.05;
 vinit = 0;
+
+% % dual pass
+% npass = 2;
+% samplen = [30, 15];
+% sampspc = [15, 7];
+% verbose = 1;
+% umax = [ 0.05,  0.05];
+% umin = [-0.05, -0.05];
+% uinit = 0;
+% vmax = [ 0.05,  0.05];
+% vmin = [-0.05, -0.05];
+% vinit = 0;
 
 % % tri pass
 % npass = 3;
@@ -210,9 +209,11 @@ end
 uu(~roi) = NaN;
 vv(~roi) = NaN;
 
-% convert displacements to world coordinates
-uu = uu.*(xx(2)-xx(1));
-vv = vv.*(yy(2)-yy(1));
+% % debug {
+% % convert displacements to world coordinates
+% uu = uu.*(xx(2)-xx(1));
+% vv = vv.*(yy(2)-yy(1));
+% % } debug
 
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
@@ -274,8 +275,9 @@ function [uvmin, uvmax, uvinit] = ...
 %
 % Arguments:
 %
-%   uvmin, uvmax = Scalar, double, minimum and maximum displacement in
-%       world coordinates for either x- or y-direction.
+%   uvmin, uvmax = Scalar, integer, minimum and maximum displacement in
+%       world coordinates for either x- or y-direction, rounded to integer
+%       values away from zero.
 %
 %   uvinit = Scalar, double, initial guess for displacement in world
 %       coordinates for either x- or y- direction.
@@ -286,8 +288,8 @@ function [uvmin, uvmax, uvinit] = ...
 dxy = xy(2)-xy(1); 
 
 uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
-uvmin = uvminmax(:,1);
-uvmax = uvminmax(:,2);
+uvmin = floor(uvminmax(:,1));
+uvmax = ceil(uvminmax(:,2));
 
 uvinit = uvinit/dxy;
 
