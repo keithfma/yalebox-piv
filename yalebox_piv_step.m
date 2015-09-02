@@ -101,17 +101,18 @@ vmax =  0.05;
 vmin = -0.05;
 vinit = 0;
 
-% % dual pass
-% npass = 2;
-% samplen = [30, 15];
-% sampspc = [15, 7];
-% verbose = 1;
-% umax = [ 0.05,  0.05];
-% umin = [-0.05, -0.05];
-% uinit = 0;
-% vmax = [ 0.05,  0.05];
-% vmin = [-0.05, -0.05];
-% vinit = 0;
+% dual pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 2;
+samplen = [30, 15];
+sampspc = [15, 7];
+verbose = 1;
+umax = [ 0.05,  0.03];
+umin = [-0.05, -0.03];
+uinit = 0;
+vmax = [ 0.05,  0.03];
+vmin = [-0.05, -0.03];
+vinit = 0;
 
 % % tri pass
 % npass = 3;
@@ -380,18 +381,19 @@ swin = get_padded_subset(sdata, rmin, rmax, cmin, cmax);
 rmin = rpt+v0+v1min-hwidth;
 rmax = rpt+v0+v1max+hwidth;
 radj = floor(rmin)-rmin;
-rmin = rmin+radj;
-rmax = rmax+radj;
+rmin = round(rmin+radj); % round to deal with floating point imprecision
+rmax = round(rmax+radj);
 
 cmin = cpt+u0+u1min-hwidth;
 cmax = cpt+u0+u1max+hwidth;
 cadj = floor(cmin)-cmin;
-cmin = cmin+cadj;
-cmax = cmax+cadj;
+cmin = round(cmin+cadj); % round to deal with floating point imprecision
+cmax = round(cmax+cadj);
 
 ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 
 % extract interrogation window, including pad if needed
+% fprintf('%e, %e, %e, %e\n', rmin-round(rmin), rmax-round(rmax), cmin-round(cmin), cmax-round(cmax));
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
 % get displacement origin
@@ -581,7 +583,9 @@ rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
 cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 
 % validate, replace, smooth, see [3-4])
-[uu0, vv0, sf] = pppiv(uu0, vv0);
+% [uu0, vv0, sf] = pppiv(uu0, vv0);
+[uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
+
 
 % interpolate displacements to new sample grid
 uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
