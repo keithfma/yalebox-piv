@@ -86,18 +86,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% verbose = 2;
-% umax =  0.05;
-% umin = -0.05;
-% uinit = 0;
-% vmax =  0.05;
-% vmin = -0.05;
-% vinit = 0;
+% single pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 30;
+sampspc = 15;
+verbose = 2;
+umax =  0.05;
+umin = -0.05;
+uinit = 0;
+vmax =  0.05;
+vmin = -0.05;
+vinit = 0;
 
 % % single pass, test 01
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -112,18 +112,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % vmin = -0.02;
 % vinit = 0;
 
-% dual pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [30, 20];
-sampspc = [15, 10];
-verbose = 1;
-umax = [ 0.05,  0.03];
-umin = [-0.05, -0.03];
-uinit = 0;
-vmax = [ 0.05,  0.03];
-vmin = [-0.05, -0.03];
-vinit = 0;
+% % dual pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [30, 20];
+% sampspc = [15, 10];
+% verbose = 1;
+% umax = [ 0.05,  0.03];
+% umin = [-0.05, -0.03];
+% uinit = 0;
+% vmax = [ 0.05,  0.03];
+% vmin = [-0.05, -0.03];
+% vinit = 0;
 
 % % dual pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -183,13 +183,8 @@ for pp = 1:npass
     
     roi = true(nr, nc);
     xcr_stack = nan(nv, nu, nr*nc);
-    
-    % debug {
-    xcr_size_min = [inf, inf];
-    xcr_size_max = [-inf, -inf];
-    % } debug 
                                            
-    % loop over sample grid    
+    % loop over sample grid, gather cross-correlation data   
     for ii = 1:length(cc)
         for jj = 1:length(rr)
             
@@ -214,16 +209,29 @@ for pp = 1:npass
             end
                 
             % compute correlation, trimming to valid range (see help)
-            xcr = get_cross_corr(samp, intr);
-            xcr_stack(:, :, jj+(ii-1)*nr) = xcr;
+            kk = jj+(ii-1)*nr;
+            xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
+           
+            % plot_sample_point(ini, fin, samp, samppos, intr, intrpos, ...
+            %     xcr_stack(:, :, kk), rpeak, cpeak, verbose);
+           
+        end
+    end
+    
+    % loop over sample grid, compute displacements
+    for ii = 1:length(cc)
+        for jj = 1:length(rr)
             
-            % debug {
-            xcr_size_min = min(xcr_size_min, size(xcr));
-            xcr_size_max = max(xcr_size_max, size(xcr));
-            % } debug
-       
+            % skip if indicated
+            if roi(jj, ii) == false
+                continue
+            end
+            
+            % get subscripts for local correlation planes to include in analysis
+            
             % find the correlation plane maximum with subpixel accuracy
-            [rpeak, cpeak, status] = find_peak(xcr);
+            kk = jj+(ii-1)*nr;
+            [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
             if status == false
                 vv(jj, ii) = NaN;
                 uu(jj, ii) = NaN;
@@ -233,21 +241,9 @@ for pp = 1:npass
             % get displacement in pixel coordinates
             vv(jj, ii) = vorigin+rpeak-1;
             uu(jj, ii) = uorigin+cpeak-1;
-                        
-            plot_sample_point(ini, fin, samp, samppos, intr, intrpos, xcr, ...
-                rpeak, cpeak, verbose);
-                    
+            
         end
     end
-    
-    % debug {
-    fprintf('xcr min size = %i, %i\n', xcr_size_min);
-    fprintf('xcr max size = %i, %i\n', xcr_size_max);
-    % } debug
-    
-    % debug {
-    keyboard
-    % } debug
     
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
