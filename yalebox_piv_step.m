@@ -185,31 +185,31 @@ for pp = 1:npass
     xcr_stack = nan(nv, nu, nr*nc);
                                            
     % loop over sample grid, gather cross-correlation data   
-    for ii = 1:length(cc)
-        for jj = 1:length(rr)
+    for jj = 1:length(cc)
+        for ii = 1:length(rr)
             
             % skip if window center lies outside the roi at start or finish
-            rchk = round(rr(jj));
-            cchk = round(cc(ii));            
+            rchk = round(rr(ii));
+            cchk = round(cc(jj));            
             if ini(rchk, cchk) == 0 || fin(rchk,cchk) == 0
-                roi(jj, ii) = false;
+                roi(ii, jj) = false;
                 continue
             end
             
             % get sample and interrogation windows
             [samp, samppos, intr, intrpos, vorigin, uorigin] = ...
-                get_win(ini, fin, rr(jj), cc(ii), samplen(pp), ...
-                    vv(jj,ii), vmin(pp), vmax(pp), ...
-                    uu(jj,ii), umin(pp), umax(pp));
+                get_win(ini, fin, rr(ii), cc(jj), samplen(pp), ...
+                    vv(ii,jj), vmin(pp), vmax(pp), ...
+                    uu(ii,jj), umin(pp), umax(pp));
                 
             % skip if interrogation window is empty
             if max(intr(:)) == 0
-                roi(jj, ii) = false;
+                roi(ii, jj) = false;
                 continue
             end
                 
             % compute correlation, trimming to valid range (see help)
-            kk = jj+(ii-1)*nr;
+            kk = ii+(jj-1)*nr;
             xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
            
             % plot_sample_point(ini, fin, samp, samppos, intr, intrpos, ...
@@ -219,28 +219,28 @@ for pp = 1:npass
     end
     
     % loop over sample grid, compute displacements
-    for ii = 1:length(cc)
-        for jj = 1:length(rr)
+    for jj = 1:length(cc)
+        for ii = 1:length(rr)
             
             % skip if indicated
-            if roi(jj, ii) == false
+            if roi(ii, jj) == false
                 continue
             end
             
             % get subscripts for local correlation planes to include in analysis
             
             % find the correlation plane maximum with subpixel accuracy
-            kk = jj+(ii-1)*nr;
+            kk = ii+(jj-1)*nr;
             [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
             if status == false
-                vv(jj, ii) = NaN;
-                uu(jj, ii) = NaN;
+                vv(ii, jj) = NaN;
+                uu(ii, jj) = NaN;
                 continue
             end     
      
             % get displacement in pixel coordinates
-            vv(jj, ii) = vorigin+rpeak-1;
-            uu(jj, ii) = uorigin+cpeak-1;
+            vv(ii, jj) = vorigin+rpeak-1;
+            uu(ii, jj) = uorigin+cpeak-1;
             
         end
     end
