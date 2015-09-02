@@ -86,31 +86,31 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% verbose = 2;
-% umax =  0.05;
-% umin = -0.05;
-% uinit = 0;
-% vmax =  0.05;
-% vmin = -0.05;
-% vinit = 0;
-
-% single pass, test 02
-load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+% single pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 1;
-samplen = 50;
-sampspc = 25;
-verbose = 1;
-umax =  0.02;
-umin = -0.02;
+samplen = 30;
+sampspc = 15;
+verbose = 2;
+umax =  0.05;
+umin = -0.05;
 uinit = 0;
-vmax =  0.02;
-vmin = -0.02;
+vmax =  0.05;
+vmin = -0.05;
 vinit = 0;
+
+% % single pass, test 02
+% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 50;
+% sampspc = 25;
+% verbose = 1;
+% umax =  0.02;
+% umin = -0.02;
+% uinit = 0;
+% vmax =  0.02;
+% vmin = -0.02;
+% vinit = 0;
 
 % % dual pass, test 01
 % load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -228,9 +228,22 @@ for pp = 1:npass
             end
             
             % get subscripts for local correlation planes to include in analysis
-            % 3-point stencil, along rows
-            ixcr = [ii  , ii, ii  ];
-            jxcr = [jj-1, jj, jj+1];
+            
+            % % 3-point stencil, along columns
+            % ixcr = [ii, ii-1, ii+1];
+            % jxcr = [jj, jj  , jj  ];
+            
+            % % 3-point stencil, along rows
+            % ixcr = [ii, ii  , ii  ];
+            % jxcr = [jj, jj-1, jj+1];
+            
+            % % 5-point stencil
+            % ixcr = [ii, ii  , ii  , ii-1, ii+1];
+            % jxcr = [jj, jj-1, jj+1, jj  , jj  ];
+            
+            % 8-point stencil
+            ixcr = [ii-1, ii  , ii+1, ii-1, ii  , ii+1, ii-1, ii  , ii+1];
+            jxcr = [jj+1, jj+1, jj+1, jj  , jj  , jj  , jj-1, jj-1, jj-1];
             
             % delete non-existant points
             valid = ixcr >= 1 & ixcr <= nr & jxcr >= 1 & jxcr <= nc;
