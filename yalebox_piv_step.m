@@ -554,7 +554,7 @@ end
 
 end
 
-function [uu1, vv1] = post_process(uu0, vv0, roi0, rr0, cc0, rr1, cc1)
+function [uu1, vv1, sf] = post_process(uu0, vv0, roi0, rr0, cc0, rr1, cc1)
 % Post-process PIV data using DCT-PLS to validate, replace and smooth
 % vectors, and interpolate the results to the new sample grid. The
 % post-processing algorithm is also used to extrapolate the data so that
@@ -578,6 +578,8 @@ function [uu1, vv1] = post_process(uu0, vv0, roi0, rr0, cc0, rr1, cc1)
 %
 %   uu1, vv1 = 2D matrix, double, displacement components for the new
 %       sample grid in pixel coordinates.
+%
+%   sf = Scalar, double, smoothing factor computed by pppiv
 
 uu0(~roi0) = NaN;
 vv0(~roi0) = NaN;
@@ -593,8 +595,8 @@ rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
 cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 
 % validate, replace, smooth, see [3-4])
-% [uu0, vv0, sf] = pppiv(uu0, vv0);
-[uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
+[uu0, vv0, sf] = pppiv(uu0, vv0);
+% [uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
 
 
 % interpolate displacements to new sample grid
