@@ -86,38 +86,50 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-%load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+% % single pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
+% verbose = 1;
+% umax =  0.05;
+% umin = -0.05;
+% uinit = 0;
+% vmax =  0.05;
+% vmin = -0.05;
+% vinit = 0;
 
-% single pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 1;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
+% % dual pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [30, 20];
+% sampspc = [15, 10];
+% verbose = 1;
+% umax = [ 0.05,  0.03];
+% umin = [-0.05, -0.03];
+% uinit = 0;
+% vmax = [ 0.05,  0.03];
+% vmin = [-0.05, -0.03];
+% vinit = 0;
 
-% dual pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% dual pass, test 02
+load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 npass = 2;
-samplen = [30, 15];
-sampspc = [15, 7];
+samplen = [50, 30];
+sampspc = [25, 15];
 verbose = 1;
-umax = [ 0.05,  0.03];
-umin = [-0.05, -0.03];
+umax = [ 0.02,  0.005];
+umin = [-0.02, -0.005];
 uinit = 0;
-vmax = [ 0.05,  0.03];
-vmin = [-0.05, -0.03];
+vmax = [ 0.02,  0.005];
+vmin = [-0.02, -0.005];
 vinit = 0;
 
-% % tri pass
+% % tri pass, test 02
+% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 3;
-% samplen = [60, 30, 15];
-% sampspc = [30, 15, 7];
+% samplen = [60, 40, 20];
+% sampspc = [30, 20, 10];
 % verbose = 1;
 % umax = [ 0.02,  0.005,  0.0025];
 % umin = [-0.02, -0.005, -0.0025];
@@ -210,11 +222,11 @@ end
 uu(~roi) = NaN;
 vv(~roi) = NaN;
 
-% % debug {
-% % convert displacements to world coordinates
-% uu = uu.*(xx(2)-xx(1));
-% vv = vv.*(yy(2)-yy(1));
-% % } debug
+% debug {
+% convert displacements to world coordinates
+uu = uu.*(xx(2)-xx(1));
+vv = vv.*(yy(2)-yy(1));
+% } debug
 
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
@@ -537,9 +549,7 @@ if abs(dr) < 1 && abs(dc) < 1
     
 else
     % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
-    rpk = -1;
-    cpk = -1;
-    
+    stat = false;
 end
 
 end
