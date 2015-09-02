@@ -86,31 +86,31 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% single pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 2;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
-
 % % single pass, test 01
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 1;
-% samplen = 50;
-% sampspc = 25;
-% verbose = 1;
-% umax =  0.02;
-% umin = -0.02;
+% samplen = 30;
+% sampspc = 15;
+% verbose = 2;
+% umax =  0.05;
+% umin = -0.05;
 % uinit = 0;
-% vmax =  0.02;
-% vmin = -0.02;
+% vmax =  0.05;
+% vmin = -0.05;
 % vinit = 0;
+
+% single pass, test 02
+load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 50;
+sampspc = 25;
+verbose = 1;
+umax =  0.02;
+umin = -0.02;
+uinit = 0;
+vmax =  0.02;
+vmin = -0.02;
+vinit = 0;
 
 % % dual pass, test 01
 % load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -185,8 +185,8 @@ for pp = 1:npass
     xcr_stack = nan(nv, nu, nr*nc);
                                            
     % loop over sample grid, gather cross-correlation data   
-    for jj = 1:length(cc)
-        for ii = 1:length(rr)
+    for jj = 1:nc
+        for ii = 1:nr
             
             % skip if window center lies outside the roi at start or finish
             rchk = round(rr(ii));
@@ -219,8 +219,8 @@ for pp = 1:npass
     end
     
     % loop over sample grid, compute displacements
-    for jj = 1:length(cc)
-        for ii = 1:length(rr)
+    for jj = 1:nc
+        for ii = 1:nr
             
             % skip if indicated
             if roi(ii, jj) == false
@@ -228,6 +228,39 @@ for pp = 1:npass
             end
             
             % get subscripts for local correlation planes to include in analysis
+            % 3-point stencil, along rows
+            ixcr = [ii  , ii, ii  ];
+            jxcr = [jj-1, jj, jj+1];
+            
+            % delete non-existant points
+            valid = ixcr >= 1 & ixcr <= nr & jxcr >= 1 & jxcr <= nc;
+            ixcr = ixcr(valid);
+            jxcr = jxcr(valid);
+            
+            % convert to linear indices
+            kxcr = ixcr+(jxcr-1)*nr;
+            
+            % delete points outside the roi
+            valid = roi(kxcr);
+            kxcr = kxcr(valid);
+                        
+            % combine correlation planes
+            % multiply
+            xcr = ones(nv, nu);
+            for i = 1:length(kxcr)
+                xcr = xcr.*xcr_stack(:, :, kxcr(i));
+            end
+            
+            % % debug {
+            % figure(1)
+            % subplot(1,2,1)
+            % imagesc(xcr_stack(:, :, ii+(jj-1)*nr));
+            % colorbar
+            % subplot(1,2,2)
+            % imagesc(xcr)
+            % colorbar
+            % pause
+            % % debug }
             
             % find the correlation plane maximum with subpixel accuracy
             kk = ii+(jj-1)*nr;
@@ -267,10 +300,6 @@ vv = vv.*(yy(2)-yy(1));
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
 xx = interp1(1:nc0, xx, cc);
- 
-% % debug {
-% keyboard
-% % } debug
 
 end
 
