@@ -86,17 +86,30 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
+% single pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 30;
+sampspc = 15;
+verbose = 2;
+umax =  0.05;
+umin = -0.05;
+uinit = 0;
+vmax =  0.05;
+vmin = -0.05;
+vinit = 0;
+
 % % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 1;
-% samplen = 30;
-% sampspc = 15;
+% samplen = 50;
+% sampspc = 25;
 % verbose = 1;
-% umax =  0.05;
-% umin = -0.05;
+% umax =  0.02;
+% umin = -0.02;
 % uinit = 0;
-% vmax =  0.05;
-% vmin = -0.05;
+% vmax =  0.02;
+% vmin = -0.02;
 % vinit = 0;
 
 % % dual pass, test 01
@@ -112,18 +125,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 % vmin = [-0.05, -0.03];
 % vinit = 0;
 
-% dual pass, test 02
-load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [50, 30];
-sampspc = [25, 15];
-verbose = 1;
-umax = [ 0.02,  0.005];
-umin = [-0.02, -0.005];
-uinit = 0;
-vmax = [ 0.02,  0.005];
-vmin = [-0.02, -0.005];
-vinit = 0;
+% % dual pass, test 02
+% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [50, 30];
+% sampspc = [25, 15];
+% verbose = 1;
+% umax = [ 0.02,  0.005];
+% umin = [-0.02, -0.005];
+% uinit = 0;
+% vmax = [ 0.02,  0.005];
+% vmin = [-0.02, -0.005];
+% vinit = 0;
 
 % % tri pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -163,7 +176,12 @@ for pp = 1:npass
     print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), verbose);
     
     roi = true(length(rr), length(cc));
-                                       
+    
+    % debug {
+    xcr_size_min = [inf, inf];
+    xcr_size_max = [-inf, -inf];
+    % } debug 
+                                           
     % loop over sample grid    
     for ii = 1:length(cc)
         for jj = 1:length(rr)
@@ -190,6 +208,11 @@ for pp = 1:npass
                 
             % compute correlation, trimming to valid range (see help)
             xcr = get_cross_corr(samp, intr);
+            
+            % debug {
+            xcr_size_min = min(xcr_size_min, size(xcr));
+            xcr_size_max = max(xcr_size_max, size(xcr));
+            % } debug
        
             % find the correlation plane maximum with subpixel accuracy
             [rpeak, cpeak, status] = find_peak(xcr);
@@ -208,6 +231,11 @@ for pp = 1:npass
                     
         end
     end
+    
+    % debug {
+    fprintf('xcr min size = %i, %i\n', xcr_size_min);
+    fprintf('xcr max size = %i, %i\n', xcr_size_max);
+    % } debug
     
     % post-process and prep for next pass
     pp_next = min(npass, pp+1); % last pass uses same grid
@@ -366,7 +394,8 @@ function [swin, spos, iwin, ipos, vorigin, uorigin] = ...
 %   routine
 % 
 % uorigin, vorigin = displacement in pixel coordinates of the origin (element
-%   1,1) of the correlation matrix of swin and iwin, assumes size is 'same'
+%   1,1) of the correlation matrix of swin and iwin, assumes size is the 'valid'
+%   extent (a la conv2)
 
 % parameters
 hwidth = (slen-1)/2;
@@ -405,12 +434,11 @@ cmax = round(cmax+cadj);
 ipos = [cmin, rmin, cmax-cmin, rmax-rmin];
 
 % extract interrogation window, including pad if needed
-% fprintf('%e, %e, %e, %e\n', rmin-round(rmin), rmax-round(rmax), cmin-round(cmin), cmax-round(cmax));
 iwin = get_padded_subset(idata, rmin, rmax, cmin, cmax);
 
 % get displacement origin
-vorigin = rmin-rpt;
-uorigin = cmin-cpt;
+vorigin = rmin-rpt+floor(slen/2);
+uorigin = cmin-cpt+floor(slen/2);
 
 end
 
@@ -459,25 +487,23 @@ win = [zeros(pb, pl+snc+pr);
 end
 
 function [xcorr] = get_cross_corr(aa, bb)
-% Compute normalized cross correlation, and crop to the extent of larger
-% matrix (bb). Allows for non-square aa, although that is not needed at
-% this time.
+% Compute normalized cross correlation, and crop to the 'valid' extent of the
+% correlation (a la conv2). Allows for non-square aa, although that is not
+% needed at this time.
 %
 % Arguments:
 %   aa = 2D matrix, double, smaller 'template' matrix, as used here, this
 %       is the sample window
 %
 %   bb = 2D matrix, double, larger matrix, as used here, this is the
-%       interrogation windo
+%       interrogation window
 
 fullxcorr = normxcorr2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
-npre = floor(aaSize/2); % pre-pad % RETURN SAME
-npost = aaSize-npre-1; % post-pad
-% npre = aaSize; % RETURN VALID
-% npost = aaSize;
+npre = aaSize;
+npost = aaSize;
 
 xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
