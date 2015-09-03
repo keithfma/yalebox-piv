@@ -1,4 +1,4 @@
-function [xx, yy, uu, vv, ss] = yalebox_piv_step()
+function [xx, yy, uu, vv] = yalebox_piv_step()
 % Re-implementation of yalebox PIV analysis routine
 %
 % Arguments, input:
@@ -17,54 +17,36 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 %
 %   npass = Scalar, integer, number of PIV grid refinement passes
 %
-%   samplen = Vector, length === npass, double, side length of the square sample
-%       window
+%   samplen = Vector, length === npass, integer, side length of the square
+%       sample window
 %
-%   xrez = Vector, length == npass, integer, grid points in the x-direction
-%       for the output grid. If any element is set to 0, the number of points
-%       will be chosen such that the aspect ratio is approximately 1 (in pixel
-%       coordinates).
+%   sampspc = Vector, length === npass, integer, spacing between adjacent sample
+%       points in the (square) sample grid for each pass
 %
-%   yrez = Vector, length == npass, integer, grid points in the x-direction
-%       for the output grid. If any element is set to 0, the number of points
-%       will be chosen such that the aspect ratio is approximately 1 (in pixel
-%       coordinates).
-%
-%   umax = Vector, length == npass, maximum x-direction displacement
+%   umax, umin = Vector, length == npass, maximum x-direction displacement
 %       in world coordinates, used to set the size of the PIV search window.
+%       Values may be negative to allow for displacements in the negative
+%       x-direction.
 %
-%   umin = Vector, length == npass, minimum x-direction displacement
-%       in world coordinates, used to set the size of the PIV search window, note that
-%       this value will typically be negative to allow for displacements in the
-%       negative x-direction.
+%   vmax, vmin = Vector, length == npass maximum y-direction displacement
+%       in world coordinates,  used to set the size of the PIV search window.
+%       Values may be negative to allow for displacements in the negative
+%       x-direction.
 %
-%   vmax = Vector, length == npass maximum y-direction displacement
-%       in world coordinates, used to set the size of the PIV search window.
-%
-%   vmin = Vector, length == npass minimum y-direction displacement
-%       in world coordinates, used to set the size of the PIV search window, note that
-%       this value will typically be negative to allow for displacements in the
-%       negative y-direction.
-%
-%   validate = Scalar, logical, flag to enable (true) or disable (false) vector
-%       validation using the normalized median filter.
-%
-%   eps0 = Scalar, double, parameter to normalized median filter used for vector
-%       validation, ignored if validate == false
-%
-%   epsthresh = " "
-%
-%   data_min_frac = Scalar, double, in the range [0, 1] inclusive, minimum
-%       fraction of sample window that must contain data to proceed with PIV, 
-%       assumes that no-data pixels are set to 0
-%   
 %   verbose = Scalar, integer, flag to set verbosity level, (0) no verbose
 %       output, (1) enable verbose text output messages, (2) enable debugging
 %       plots
 %
 % Arguments, output:
+%
+%   xx, yy = Vector, double, coordinate vectors for the final output sample
+%       grid, in world coordinate units
+%
+%   uu, vv = 2D matrix, double, computed displacement in the x- and y-directions
+%       in world coordinate units
 % 
-% xx, yy, uu, vv, smoothing factors?
+%   smoothing factors?
+%   some measure of quality?
 %
 % References:
 %
@@ -86,90 +68,79 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% verbose = 2;
-% umax =  0.05;
-% umin = -0.05;
-% uinit = 0;
-% vmax =  0.05;
-% vmin = -0.05;
-% vinit = 0;
+% single pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 1;
+samplen = 30;
+sampspc = 15;
+umax =  0.05;
+umin = -0.05;
+vmax =  0.05;
+vmin = -0.05;
+verbose = 2;
 
 % % single pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 1;
 % samplen = 50;
 % sampspc = 25;
-% verbose = 1;
 % umax =  0.02;
 % umin = -0.02;
-% uinit = 0;
 % vmax =  0.02;
 % vmin = -0.02;
-% vinit = 0;
+% verbose = 1;
 
-% dual pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [30, 20];
-sampspc = [15, 10];
-verbose = 1;
-umax = [ 0.05,  0.03];
-umin = [-0.05, -0.03];
-uinit = 0;
-vmax = [ 0.05,  0.03];
-vmin = [-0.05, -0.03];
-vinit = 0;
+% % dual pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 2;
+% samplen = [30, 20];
+% sampspc = [15, 10];
+% umax = [ 0.05,  0.03];
+% umin = [-0.05, -0.03];
+% vmax = [ 0.05,  0.03];
+% vmin = [-0.05, -0.03];
+% verbose = 1;
 
 % % dual pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 2;
 % samplen = [50, 30];
 % sampspc = [25, 15];
-% verbose = 1;
 % umax = [ 0.02,  0.005];
 % umin = [-0.02, -0.005];
-% uinit = 0;
 % vmax = [ 0.02,  0.005];
 % vmin = [-0.02, -0.005];
-% vinit = 0;
+% verbose = 1;
 
 % % tri pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
 % npass = 3;
 % samplen = [60, 40, 20];
 % sampspc = [30, 20, 10];
-% verbose = 1;
 % umax = [ 0.02,  0.005,  0.0025];
 % umin = [-0.02, -0.005, -0.0025];
-% uinit = 0;
 % vmax = [ 0.02,  0.005,  0.0025];
 % vmin = [-0.02, -0.005, -0.0025];
-% vinit = 0;
+% verbose = 1;
 
 % } debug
 
 print_sep('INPUT ARGUMENTS', verbose);
 print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
-        uinit, vmin, vmax, vinit, verbose);
+        vmin, vmax, verbose);
 
 check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
     vmin, vmax);
 
-[umin, umax, uinit] = uv_input_world_to_pixel(umin, umax, uinit, xx);
-[vmin, vmax, vinit] = uv_input_world_to_pixel(vmin, vmax, vinit, yy);
+[umin, umax] = uv_input_world_to_pixel(umin, umax, xx);
+[vmin, vmax] = uv_input_world_to_pixel(vmin, vmax, yy);
 
 [nr0, nc0] = size(ini);
 [rr, cc] = sample_grid(sampspc(1), nr0, nc0);
-uu = uinit*ones(length(rr), length(cc));
-vv = vinit*ones(length(rr), length(cc));
+uu = zeros(length(rr), length(cc));
+vv = zeros(length(rr), length(cc));
 
 % loop over PIV passes
-ss = nan(npass, 1);
 for pp = 1:npass
     
     print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
@@ -202,7 +173,7 @@ for pp = 1:npass
             end
             
             % get sample and interrogation windows
-            [samp, samppos, intr, intrpos, vorigin(kk), uorigin(kk)] = ...
+            [samp, spos, intr, ipos, vorigin_stack(kk), uorigin_stack(kk)] = ...
                 get_win(ini, fin, rr(ii), cc(jj), samplen(pp), ...
                     vv(ii,jj), vmin(pp), vmax(pp), ...
                     uu(ii,jj), umin(pp), umax(pp));
@@ -274,18 +245,7 @@ for pp = 1:npass
             for i = 1:length(kxcr)
                 xcr = xcr.*xcr_stack(:, :, kxcr(i));
             end
-            
-            % % debug {
-            % figure(1)
-            % subplot(1,2,1)
-            % imagesc(xcr_stack(:, :, ii+(jj-1)*nr));
-            % colorbar
-            % subplot(1,2,2)
-            % imagesc(xcr)
-            % colorbar
-            % pause
-            % % debug }
-            
+                        
             % find the correlation plane maximum with subpixel accuracy
             
             [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
@@ -296,8 +256,8 @@ for pp = 1:npass
             end     
      
             % get displacement in pixel coordinates
-            vv(ii, jj) = vorigin(kk)+rpeak-1;
-            uu(ii, jj) = uorigin(kk)+cpeak-1;
+            vv(ii, jj) = vorigin_stack(kk)+rpeak-1;
+            uu(ii, jj) = uorigin_stack(kk)+cpeak-1;
             
         end
     end
@@ -315,11 +275,9 @@ end
 uu(~roi) = NaN;
 vv(~roi) = NaN;
 
-% debug {
 % convert displacements to world coordinates
 uu = uu.*(xx(2)-xx(1));
 vv = vv.*(yy(2)-yy(1));
-% } debug
 
 % get world coordinate vectors for final sample grid
 yy = interp1(1:nr0, yy, rr);
@@ -369,8 +327,8 @@ validateattributes(vmax, ...
 
 end
 
-function [uvmin, uvmax, uvinit] = ...
-	uv_input_world_to_pixel(uvmin, uvmax, uvinit, xy)
+function [uvmin, uvmax] = ...
+	uv_input_world_to_pixel(uvmin, uvmax, xy)
 % Convert displacement limits from world to pixel coordinates, one
 % direction at a time. Sort to preserve the correct min/max regardless of
 % the world coordinate axis polarity.
@@ -381,9 +339,6 @@ function [uvmin, uvmax, uvinit] = ...
 %       world coordinates for either x- or y-direction, rounded to integer
 %       values away from zero.
 %
-%   uvinit = Scalar, double, initial guess for displacement in world
-%       coordinates for either x- or y- direction.
-%
 %   xy = Vector, double, world coordinate vector for either x- or
 %       y-direction
 
@@ -392,8 +347,6 @@ dxy = xy(2)-xy(1);
 uvminmax = sort([uvmin(:), uvmax(:)]/dxy, 2);
 uvmin = floor(uvminmax(:,1));
 uvmax = ceil(uvminmax(:,2));
-
-uvinit = uvinit/dxy;
 
 end
 
@@ -707,7 +660,7 @@ end
 end
 
 function print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
-    umax, uinit, vmin, vmax, vinit, verbose)
+    umax, vmin, vmax, verbose)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -724,10 +677,8 @@ if verbose
     fprintf('sampspc: %s\n', sprintf('%i  ', sampspc));
     fprintf('umin: %s\n', sprintf('%.2f  ', umin));
     fprintf('umax: %s\n', sprintf('%.2f  ', umax));
-    fprintf('uinit: %s\n', sprintf('%.2f  ', uinit));
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
-    fprintf('vinit: %s\n', sprintf('%.2f  ', vinit));
 end
 
 end
