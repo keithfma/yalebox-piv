@@ -129,9 +129,11 @@ verbose = 1;
 
 % } debug
 
-print_sep('INPUT ARGUMENTS', verbose);
-print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
-        vmin, vmax, ncbc, verbose);
+if verbose
+    print_sep('Input Arguments');
+    print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
+        vmin, vmax, ncbc);
+end
 
 check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
     vmin, vmax, ncbc);
@@ -147,9 +149,10 @@ vv = zeros(length(rr), length(cc));
 % loop over PIV passes
 for pp = 1:npass
     
-    print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
-    print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), ncbc(pp), ...
-        verbose);
+    if verbose
+        print_sep(sprintf('PIV pass %i of %i', pp, npass));
+        print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), ncbc(pp));
+    end
     
     % init per-pass variables
     nr = length(rr);
@@ -654,7 +657,6 @@ cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 % [uu0, vv0, sf] = pppiv(uu0, vv0);
 [uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
 
-
 % interpolate displacements to new sample grid
 uu1 = interp2(cc0, rr0, uu0, cc1(:)', rr1(:), 'linear');
 vv1 = interp2(cc0, rr0, vv0, cc1(:)', rr1(:), 'linear');
@@ -665,43 +667,39 @@ end
 
 % verbose message subroutines --------------------------------------------------
 
-function [] = print_sep(msg, verbose)
+function [] = print_sep(msg)
 % Print a user-specified message and a separator line for verbose output
 % messages
 
-if verbose
-    fprintf('----------\n%s\n', msg);
-end
+fprintf('----------\n%s\n', msg);
 
 end
 
 function print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
-    umax, vmin, vmax, ncbc, verbose)
+    umax, vmin, vmax, ncbc)
 % Display values (or a summary of them) for the input arguments
 
-if verbose
-    fprintf('ini: size = [%i, %i], fraction data = %.2f%%\n',...
-        size(ini, 1), size(ini, 2), sum(ini(:) ~= 0)/numel(ini)*100);
-    fprintf('fin: size = [%i, %i], fraction data = %.2f%%\n',...
-        size(fin, 1), size(fin, 2), sum(fin(:) ~= 0)/numel(fin)*100);
-    fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-        length(xx), min(xx), max(xx), xx(2)-xx(1));
-    fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
-        length(yy), min(yy), max(yy), yy(2)-yy(1));
-    fprintf('npass: %i\n', npass);
-    fprintf('samplen: %s\n', sprintf('%i  ', samplen));
-    fprintf('sampspc: %s\n', sprintf('%i  ', sampspc));
-    fprintf('umin: %s\n', sprintf('%.2f  ', umin));
-    fprintf('umax: %s\n', sprintf('%.2f  ', umax));
-    fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
-    fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
-    fprintf('ncbc: %s\n', sprintf('%i  ', ncbc));
-end
+fprintf('ini: size = [%i, %i], fraction data = %.2f%%\n',...
+    size(ini, 1), size(ini, 2), sum(ini(:) ~= 0)/numel(ini)*100);
+fprintf('fin: size = [%i, %i], fraction data = %.2f%%\n',...
+    size(fin, 1), size(fin, 2), sum(fin(:) ~= 0)/numel(fin)*100);
+fprintf('xx: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(xx), min(xx), max(xx), xx(2)-xx(1));
+fprintf('yy: length = %i, min = %.3f, max = %.3f, delta = %.3f\n', ...
+    length(yy), min(yy), max(yy), yy(2)-yy(1));
+fprintf('npass: %i\n', npass);
+fprintf('samplen: %s\n', sprintf('%i  ', samplen));
+fprintf('sampspc: %s\n', sprintf('%i  ', sampspc));
+fprintf('umin: %s\n', sprintf('%.2f  ', umin));
+fprintf('umax: %s\n', sprintf('%.2f  ', umax));
+fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
+fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
+fprintf('ncbc: %s\n', sprintf('%i  ', ncbc));
 
 end
 
-function [] = print_pass(rr, cc, umax, umin, vmax, vmin, ncbc, verbose)
-% Display information for PIV pass 
+function [] = print_pass(rr, cc, umax, umin, vmax, vmin, ncbc)
+% Display information prior to PIV pass 
 %
 % Arguments:
 %
@@ -711,17 +709,15 @@ function [] = print_pass(rr, cc, umax, umin, vmax, vmin, ncbc, verbose)
 % umax, umin, vmax, vmin = Scalar, double, displacement limits in the x-
 %   and y-direction, in pixel coordinates
 
-
-if verbose
-    fprintf('x-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
-        length(cc), min(cc), max(cc));
-    fprintf('y-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
-        length(rr), min(rr), max(rr));
-    fprintf('u limits, pixels: min = %.2f, max = %.2f\n', ...
-        umax, umin);
-    fprintf('v limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
-        vmax, vmin);
-    fprintf('correlation-based-correction stencil = %g\n', ncbc);
-end
+fprintf('x-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
+    length(cc), min(cc), max(cc));
+fprintf('y-dir grid: npts = %i, min = %.2f, max = %.2f\n', ...
+    length(rr), min(rr), max(rr));
+fprintf('u limits, pixels: min = %.2f, max = %.2f\n', ...
+    umax, umin);
+fprintf('v limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
+    vmax, vmin);
+fprintf('correlation-based-correction stencil = %g\n', ncbc);
 
 end
+
