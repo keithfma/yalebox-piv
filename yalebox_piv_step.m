@@ -68,16 +68,17 @@ function [xx, yy, uu, vv] = yalebox_piv_step()
 
 % debug {
 
-% single pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 30;
-sampspc = 15;
-umax =  0.05;
-umin = -0.05;
-vmax =  0.05;
-vmin = -0.05;
-verbose = 2;
+% % single pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
+% umax =  0.05;
+% umin = -0.05;
+% vmax =  0.05;
+% vmin = -0.05;
+% ncbc = 9;
+% verbose = 2;
 
 % % single pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -88,18 +89,20 @@ verbose = 2;
 % umin = -0.02;
 % vmax =  0.02;
 % vmin = -0.02;
+% ncbc = 9;
 % verbose = 1;
 
-% % dual pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [30, 20];
-% sampspc = [15, 10];
-% umax = [ 0.05,  0.03];
-% umin = [-0.05, -0.03];
-% vmax = [ 0.05,  0.03];
-% vmin = [-0.05, -0.03];
-% verbose = 1;
+% dual pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 2;
+samplen = [30, 20];
+sampspc = [15, 10];
+umax = [ 0.05,  0.03];
+umin = [-0.05, -0.03];
+vmax = [ 0.05,  0.03];
+vmin = [-0.05, -0.03];
+ncbc = [9, 9];
+verbose = 1;
 
 % % dual pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -110,6 +113,7 @@ verbose = 2;
 % umin = [-0.02, -0.005];
 % vmax = [ 0.02,  0.005];
 % vmin = [-0.02, -0.005];
+% ncbc = [9, 9];
 % verbose = 1;
 
 % % tri pass, test 02
@@ -121,16 +125,17 @@ verbose = 2;
 % umin = [-0.02, -0.005, -0.0025];
 % vmax = [ 0.02,  0.005,  0.0025];
 % vmin = [-0.02, -0.005, -0.0025];
+% ncbc = [9, 9, 9];
 % verbose = 1;
 
 % } debug
 
 print_sep('INPUT ARGUMENTS', verbose);
 print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
-        vmin, vmax, verbose);
+        vmin, vmax, ncbc, verbose);
 
 check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, umax, ...
-    vmin, vmax);
+    vmin, vmax, ncbc);
 
 [umin, umax] = uv_input_world_to_pixel(umin, umax, xx);
 [vmin, vmax] = uv_input_world_to_pixel(vmin, vmax, yy);
@@ -144,7 +149,8 @@ vv = zeros(length(rr), length(cc));
 for pp = 1:npass
     
     print_sep(sprintf('PIV pass %i of %i', pp, npass), verbose);
-    print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), verbose);
+    print_pass(rr, cc, umax(pp), umin(pp), vmax(pp), vmin(pp), ncbc(pp), ...
+        verbose);
     
     % init per-pass variables
     nr = length(rr);
@@ -205,27 +211,8 @@ for pp = 1:npass
                 continue
             end
             
-            % get subscripts for local correlation planes to include in analysis
-            
-            % no CBC
-            ixcr = ii;
-            jxcr = jj;
-            
-            % % 3-point stencil, along columns
-            % ixcr = [ii, ii-1, ii+1];
-            % jxcr = [jj, jj  , jj  ];
-            
-            % % 3-point stencil, along rows
-            % ixcr = [ii, ii  , ii  ];
-            % jxcr = [jj, jj-1, jj+1];
-            
-            % % 5-point stencil
-            % ixcr = [ii, ii  , ii  , ii-1, ii+1];
-            % jxcr = [jj, jj-1, jj+1, jj  , jj  ];
-            
-            % % 8-point stencil
-            % ixcr = [ii-1, ii  , ii+1, ii-1, ii  , ii+1, ii-1, ii  , ii+1];
-            % jxcr = [jj+1, jj+1, jj+1, jj  , jj  , jj  , jj-1, jj-1, jj-1];
+            % get subscripts for local correlation planes to include in analysis            
+            [ixcr, jxcr] = get_cbc_stencil(ii, jj, ncbc(pp));
             
             % delete non-existant points
             valid = ixcr >= 1 & ixcr <= nr & jxcr >= 1 & jxcr <= nc;
@@ -286,7 +273,7 @@ xx = interp1(1:nc0, xx, cc);
 end
 
 function check_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
-             umax, vmin, vmax)
+             umax, vmin, vmax, ncbc)
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
               
@@ -324,6 +311,14 @@ validateattributes(vmin, ...
 validateattributes(vmax, ...
     {'double'}, {'numel', npass}, ...
     mfilename, 'vmax');
+validateattributes(ncbc, ...
+    {'double'}, {'numel', npass}, ...
+    mfilename, 'ncbc');
+for i = 1:npass
+    assert(ismember(ncbc(i), [1, 3.1, 3.2, 5, 9]), ...
+        'Invalid value of %g for ncbc(%i), options are 1, 3.1, 3.2, 5, 9', ...
+        ncbc(i), i);
+end
 
 end
 
@@ -523,6 +518,37 @@ xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
             
 end
 
+function [rind, cind] = get_cbc_stencil(ii, jj, name)
+
+switch name
+    case 1
+        % no CBC
+        rind = ii;
+        cind = jj;
+        
+    case 3.1
+        % 3-point stencil, along rows
+        rind = [ii, ii  , ii  ];
+        cind = [jj, jj-1, jj+1];
+    
+    case 3.2
+        % 3-point stencil, along columns
+        rind = [ii, ii-1, ii+1];
+        cind = [jj, jj  , jj  ];
+        
+    case 5        
+        % 5-point stencil
+        rind = [ii, ii  , ii  , ii-1, ii+1];
+        cind = [jj, jj-1, jj+1, jj  , jj  ];
+        
+    case 9 
+        % 9-point stencil
+        rind = [ii-1, ii  , ii+1, ii-1, ii  , ii+1, ii-1, ii  , ii+1];
+        cind = [jj+1, jj+1, jj+1, jj  , jj  , jj  , jj-1, jj-1, jj-1];
+end
+
+end
+
 function [rpk, cpk, stat] = find_peak(zz)
 % Find the position of the peak in matrix zz with subpixel accuracy. Peakl
 % location is determined from an explicit solution of two-dimensional
@@ -660,7 +686,7 @@ end
 end
 
 function print_input(ini, fin, xx, yy, npass, samplen, sampspc, umin, ...
-    umax, vmin, vmax, verbose)
+    umax, vmin, vmax, ncbc, verbose)
 % Display values (or a summary of them) for the input arguments
 
 if verbose
@@ -679,11 +705,12 @@ if verbose
     fprintf('umax: %s\n', sprintf('%.2f  ', umax));
     fprintf('vmin: %s\n', sprintf('%.2f  ', vmin));
     fprintf('vmax: %s\n', sprintf('%.2f  ', vmax));
+    fprintf('ncbc: %s\n', sprintf('%i  ', ncbc));
 end
 
 end
 
-function [] = print_pass(rr, cc, umax, umin, vmax, vmin, verbose)
+function [] = print_pass(rr, cc, umax, umin, vmax, vmin, ncbc, verbose)
 % Display information for PIV pass 
 %
 % Arguments:
@@ -704,6 +731,7 @@ if verbose
         umax, umin);
     fprintf('v limits, pixels, y-dir: min = %.2f, max = %.2f\n', ...
         vmax, vmin);
+    fprintf('correlation-based-correction stencil = %g\n', ncbc);
 end
 
 end
