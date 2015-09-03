@@ -86,18 +86,18 @@ function [xx, yy, uu, vv, ss] = yalebox_piv_step()
 
 % debug {
 
-% single pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 1;
-samplen = 30;
-sampspc = 15;
-verbose = 2;
-umax =  0.05;
-umin = -0.05;
-uinit = 0;
-vmax =  0.05;
-vmin = -0.05;
-vinit = 0;
+% % single pass, test 01
+% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+% npass = 1;
+% samplen = 30;
+% sampspc = 15;
+% verbose = 2;
+% umax =  0.05;
+% umin = -0.05;
+% uinit = 0;
+% vmax =  0.05;
+% vmin = -0.05;
+% vinit = 0;
 
 % % single pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -112,18 +112,18 @@ vinit = 0;
 % vmin = -0.02;
 % vinit = 0;
 
-% % dual pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [30, 20];
-% sampspc = [15, 10];
-% verbose = 1;
-% umax = [ 0.05,  0.03];
-% umin = [-0.05, -0.03];
-% uinit = 0;
-% vmax = [ 0.05,  0.03];
-% vmin = [-0.05, -0.03];
-% vinit = 0;
+% dual pass, test 01
+load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
+npass = 2;
+samplen = [30, 20];
+sampspc = [15, 10];
+verbose = 1;
+umax = [ 0.05,  0.03];
+umin = [-0.05, -0.03];
+uinit = 0;
+vmax = [ 0.05,  0.03];
+vmin = [-0.05, -0.03];
+vinit = 0;
 
 % % dual pass, test 02
 % load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
@@ -183,10 +183,15 @@ for pp = 1:npass
     
     roi = true(nr, nc);
     xcr_stack = nan(nv, nu, nr*nc);
-                                           
+    vorigin_stack = nan(nr*nc);
+    uorigin_stack = nan(nr*nc);
+                                          
     % loop over sample grid, gather cross-correlation data   
     for jj = 1:nc
         for ii = 1:nr
+            
+            % get linear index for ii, jj
+            kk = ii+(jj-1)*nr;
             
             % skip if window center lies outside the roi at start or finish
             rchk = round(rr(ii));
@@ -197,7 +202,7 @@ for pp = 1:npass
             end
             
             % get sample and interrogation windows
-            [samp, samppos, intr, intrpos, vorigin, uorigin] = ...
+            [samp, samppos, intr, intrpos, vorigin(kk), uorigin(kk)] = ...
                 get_win(ini, fin, rr(ii), cc(jj), samplen(pp), ...
                     vv(ii,jj), vmin(pp), vmax(pp), ...
                     uu(ii,jj), umin(pp), umax(pp));
@@ -208,8 +213,7 @@ for pp = 1:npass
                 continue
             end
                 
-            % compute correlation, trimming to valid range (see help)
-            kk = ii+(jj-1)*nr;
+            % compute correlation, trimming to valid range (see help)            
             xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
            
             % plot_sample_point(ini, fin, samp, samppos, intr, intrpos, ...
@@ -222,12 +226,19 @@ for pp = 1:npass
     for jj = 1:nc
         for ii = 1:nr
             
+            % get linear index for ii, jj
+            kk = ii+(jj-1)*nr;
+            
             % skip if indicated
             if roi(ii, jj) == false
                 continue
             end
             
             % get subscripts for local correlation planes to include in analysis
+            
+            % no CBC
+            ixcr = ii;
+            jxcr = jj;
             
             % % 3-point stencil, along columns
             % ixcr = [ii, ii-1, ii+1];
@@ -241,9 +252,9 @@ for pp = 1:npass
             % ixcr = [ii, ii  , ii  , ii-1, ii+1];
             % jxcr = [jj, jj-1, jj+1, jj  , jj  ];
             
-            % 8-point stencil
-            ixcr = [ii-1, ii  , ii+1, ii-1, ii  , ii+1, ii-1, ii  , ii+1];
-            jxcr = [jj+1, jj+1, jj+1, jj  , jj  , jj  , jj-1, jj-1, jj-1];
+            % % 8-point stencil
+            % ixcr = [ii-1, ii  , ii+1, ii-1, ii  , ii+1, ii-1, ii  , ii+1];
+            % jxcr = [jj+1, jj+1, jj+1, jj  , jj  , jj  , jj-1, jj-1, jj-1];
             
             % delete non-existant points
             valid = ixcr >= 1 & ixcr <= nr & jxcr >= 1 & jxcr <= nc;
@@ -276,7 +287,7 @@ for pp = 1:npass
             % % debug }
             
             % find the correlation plane maximum with subpixel accuracy
-            kk = ii+(jj-1)*nr;
+            
             [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
             if status == false
                 vv(ii, jj) = NaN;
@@ -285,8 +296,8 @@ for pp = 1:npass
             end     
      
             % get displacement in pixel coordinates
-            vv(ii, jj) = vorigin+rpeak-1;
-            uu(ii, jj) = uorigin+cpeak-1;
+            vv(ii, jj) = vorigin(kk)+rpeak-1;
+            uu(ii, jj) = uorigin(kk)+cpeak-1;
             
         end
     end
@@ -671,8 +682,8 @@ rr0 = [(rr0(1)-spc0), rr0, (rr0(end)+spc0)];
 cc0 = [(cc0(1)-spc0), cc0, (cc0(end)+spc0)];
 
 % validate, replace, smooth, see [3-4])
-[uu0, vv0, sf] = pppiv(uu0, vv0);
-% [uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
+% [uu0, vv0, sf] = pppiv(uu0, vv0);
+[uu0, vv0, sf] = pppiv(uu0, vv0, 'nosmoothing');
 
 
 % interpolate displacements to new sample grid
