@@ -519,6 +519,15 @@ xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
 end
 
 function [rind, cind] = get_cbc_stencil(ii, jj, name)
+% get subscripts for the neighboring sample points, which may lie outside the
+% sample grid
+%
+% Arguments:
+%
+%   ii, jj = Scalar, integer, row and column position of the center point 
+%
+%   name = Scalar, double, numeric flag seleting the CBC stencil (e.g. 1 for no
+%       CBC, 3.2 for CBC with 3 points along the 2nd dimensions (columns)
 
 switch name
     case 1
