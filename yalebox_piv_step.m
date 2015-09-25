@@ -1,4 +1,6 @@
-function [xx, yy, uu, vv] = yalebox_piv_step()
+function [xx, yy, uu, vv] = yalebox_piv_step(...
+                                ini, fin, xx, yy, npass, samplen, sampspc, ...
+                                umax, umin, vmax, vmin, ncbc, verbose)
 % Re-implementation of yalebox PIV analysis routine
 %
 % Arguments, input:
@@ -64,70 +66,6 @@ function [xx, yy, uu, vv] = yalebox_piv_step()
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
 % NOTE: use NaNs instead of zeros to indicate the mask/roi
-
-% debug {
-
-% % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% umax =  0.05;
-% umin = -0.05;
-% vmax =  0.05;
-% vmin = -0.05;
-% ncbc = 9;
-% verbose = 2;
-
-% % single pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 50;
-% sampspc = 25;
-% umax =  0.02;
-% umin = -0.02;
-% vmax =  0.02;
-% vmin = -0.02;
-% ncbc = 9;
-% verbose = 1;
-
-% dual pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [30, 20];
-sampspc = [15, 10];
-umax = [ 0.05,  0.03];
-umin = [-0.05, -0.03];
-vmax = [ 0.05,  0.03];
-vmin = [-0.05, -0.03];
-ncbc = [9, 9];
-verbose = 1;
-
-% % dual pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [50, 30];
-% sampspc = [25, 15];
-% umax = [ 0.02,  0.005];
-% umin = [-0.02, -0.005];
-% vmax = [ 0.02,  0.005];
-% vmin = [-0.02, -0.005];
-% ncbc = [9, 9];
-% verbose = 1;
-
-% % tri pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 3;
-% samplen = [60, 40, 20];
-% sampspc = [30, 20, 10];
-% umax = [ 0.02,  0.005,  0.0025];
-% umin = [-0.02, -0.005, -0.0025];
-% vmax = [ 0.02,  0.005,  0.0025];
-% vmin = [-0.02, -0.005, -0.0025];
-% ncbc = [9, 9, 9];
-% verbose = 1;
-
-% } debug
 
 if verbose
     print_sep('Input Arguments');
