@@ -1,1 +1,22 @@
-Add correlation plane correction to the piv_step function
+Gather two sets of test images
+
+Prepare test datasets including original images, masked original images, masked
+stretched images, coordinates vectors, masks, and all associated variables
+
+Cases:
+no mask, mask
+no histeq, histeq
+xcorr2, normxcorr2
+no cbc, cbc
+
+TESTS: round 1, check each change in isolation
+maskN_eqlN_normN_cbcN: simplest case, additions should improve results
+maskY_eqlN_normN_cbcN: is masking alone an improvement?
+maskN_eqlY_normN_cbcN: is adaptive histogram equalization alone an improvement?
+maskN_eqlN_normN_cbcY: is correlation based correction alone an improvement?
+
+TESTS: round 2, check combinations
+
+
+
+
