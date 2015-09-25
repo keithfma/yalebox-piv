@@ -13,7 +13,7 @@ function mask_manual = yalebox_prep_mask_manual(img)
 % Keith Ma, July 2015
 
 % check for sane arguments
-validateattributes(img, {'numeric'}, {'3d', '2d'}, ...
+validateattributes(img, {'numeric'}, {}, ...
     'yalebox_prep_mask_manual', 'img');
 
 % init image and mask
