@@ -1,14 +1,14 @@
 % Script. Test case, round 1.
 %
 % Masked = N
-% Equalized histogram = N
-% Use normalized xcorr = Y
+% Equalized histogram = Y
+% Use normalized xcorr = N
 % Use CBC = N
          
 % define parameters
-ini_file = {'fault_ss_01_sidef_030.png', 'fault_ss_01_sidef_250.png'}; 
-fin_file = {'fault_ss_01_sidef_031.png', 'fault_ss_01_sidef_251.png'};
-out_file = {'030_031_maskN_eqlN_normY_cbcN.mat', '250_251_maskN_eqlN_normY_cbcN.mat'};
+ini_file = {'030_eql.mat', '250_eql.mat'}; 
+fin_file = {'031_eql.mat', '251_eql.mat'};
+out_file = {'030_031_maskN_eqlY_normN_cbcN.mat', '250_251_maskN_eqlY_normN_cbcN.mat'};
 coords_file = 'coords.mat';
 npass = 1;
 samplen = 30;
@@ -19,7 +19,7 @@ vmax = 0.01;
 vmin = -0.01;
 ncbc = 1;
 verbose = 1;
-use_normxcorr2 = 1;
+use_normxcorr2 = 0;
 
 % load coordinates
 load(coords_file, 'x', 'y');
@@ -29,14 +29,14 @@ load(coords_file, 'x', 'y');
 for i = 1:2
     
     % read images
-    im = rgb2hsv(imread(ini_file{i}));
-    ini = im(:,:,3);
-    im = rgb2hsv(imread(fin_file{i}));
-    fin = im(:,:,3);
+    load(ini_file{i}, 'eql');
+    ini = eql;
+    load(fin_file{i}, 'eql');
+    fin = eql;
     
-    % add a tiny bit of noise, to avoid a "template cannot all be the same" error
-    ini = ini-1e-6*rand(size(ini));
-    fin = fin-1e-6*rand(size(fin));
+    % % add a tiny bit of noise, to avoid a "template cannot all be the same" error
+    % ini = ini-1e-6*rand(size(ini));
+    % fin = fin-1e-6*rand(size(fin));
     
     % run piv
     [xx, yy, uu, vv] = yalebox_piv_step(...

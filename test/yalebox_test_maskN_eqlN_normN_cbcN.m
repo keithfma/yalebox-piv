@@ -2,13 +2,13 @@
 %
 % Masked = N
 % Equalized histogram = N
-% Use normalized xcorr = Y
+% Use normalized xcorr = N
 % Use CBC = N
          
 % define parameters
 ini_file = {'fault_ss_01_sidef_030.png', 'fault_ss_01_sidef_250.png'}; 
 fin_file = {'fault_ss_01_sidef_031.png', 'fault_ss_01_sidef_251.png'};
-out_file = {'030_031_maskN_eqlN_normY_cbcN.mat', '250_251_maskN_eqlN_normY_cbcN.mat'};
+out_file = {'030_031_maskN_eqlN_normN_cbcN.mat', '250_251_maskN_eqlN_normN_cbcN.mat'};
 coords_file = 'coords.mat';
 npass = 1;
 samplen = 30;
@@ -19,7 +19,7 @@ vmax = 0.01;
 vmin = -0.01;
 ncbc = 1;
 verbose = 1;
-use_normxcorr2 = 1;
+use_normxcorr2 = 0;
 
 % load coordinates
 load(coords_file, 'x', 'y');
