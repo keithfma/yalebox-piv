@@ -1,14 +1,16 @@
 % Script. Test case, round 1.
 %
-% Masked = N
+% Masked = Y
 % Equalized histogram = N
-% Use normalized xcorr = Y
+% Use normalized xcorr = N
 % Use CBC = N
          
 % define parameters
 ini_file = {'fault_ss_01_sidef_030.png', 'fault_ss_01_sidef_250.png'}; 
+ini_mask_file = {'030_mask.mat', '250_mask.mat'};
 fin_file = {'fault_ss_01_sidef_031.png', 'fault_ss_01_sidef_251.png'};
-out_file = {'030_031_maskN_eqlN_normY_cbcN.mat', '250_251_maskN_eqlN_normY_cbcN.mat'};
+fin_mask_file = {'031_mask.mat', '251_mask.mat'};
+out_file = {'030_031_maskY_eqlN_normN_cbcN.mat', '250_251_maskY_eqlN_normN_cbcN.mat'};
 coords_file = 'coords.mat';
 npass = 1;
 samplen = 30;
@@ -19,24 +21,27 @@ vmax = 0.01;
 vmin = -0.01;
 ncbc = 1;
 verbose = 1;
-use_normxcorr2 = 1;
+use_normxcorr2 = 0;
 
 % load coordinates
 load(coords_file, 'x', 'y');
 
-
-% read images, run PIV, and save results, x2
 for i = 1:2
     
-    % read images
+    % read images and apply masks
     im = rgb2hsv(imread(ini_file{i}));
     ini = im(:,:,3);
+    load(ini_mask_file{i}, 'mask_manual', 'mask_auto');
+    ini = ini.*mask_manual.*mask_auto;
+    
     im = rgb2hsv(imread(fin_file{i}));
     fin = im(:,:,3);
+    load(fin_mask_file{i}, 'mask_manual', 'mask_auto');
+    fin = fin.*mask_manual.*mask_auto;
     
-    % add a tiny bit of noise, to avoid a "template cannot all be the same" error
-    ini = ini-1e-6*rand(size(ini));
-    fin = fin-1e-6*rand(size(fin));
+    % % add a tiny bit of noise, to avoid a "template cannot all be the same" error
+    % ini = ini-1e-6*rand(size(ini));
+    % fin = fin-1e-6*rand(size(fin));    
     
     % run piv
     [xx, yy, uu, vv] = yalebox_piv_step(...

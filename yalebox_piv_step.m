@@ -460,7 +460,7 @@ function [xcorr] = get_cross_corr(aa, bb)
 %   bb = 2D matrix, double, larger matrix, as used here, this is the
 %       interrogation window
 
-fullxcorr = xcorr2(aa, bb);
+fullxcorr = conv2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
