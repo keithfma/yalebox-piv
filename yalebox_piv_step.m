@@ -1,6 +1,7 @@
 function [xx, yy, uu, vv] = yalebox_piv_step(...
                                 ini, fin, xx, yy, npass, samplen, sampspc, ...
-                                umax, umin, vmax, vmin, ncbc, verbose)
+                                umax, umin, vmax, vmin, ncbc, verbose, ...
+                                use_normxcorr2)
 % Re-implementation of yalebox PIV analysis routine
 %
 % Arguments, input:
@@ -37,6 +38,9 @@ function [xx, yy, uu, vv] = yalebox_piv_step(...
 %
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
+%
+%   debug: use_normxcorr2 = Scalar logical, flag to enable or disable use of the
+%       normalized cross correlation function
 %
 % Arguments, output:
 %
@@ -130,8 +134,12 @@ for pp = 1:npass
                 continue
             end
                 
-            % compute correlation, trimming to valid range (see help)            
-            xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
+            % compute correlation, trimming to valid range (see help)  
+            if use_normxcorr2
+                xcr_stack(:, :, kk) = get_normcross_corr(samp, intr);
+            else
+                xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
+            end
                       
         end
     end
@@ -417,7 +425,7 @@ win = [zeros(pb, pl+snc+pr);
     
 end
 
-function [xcorr] = get_cross_corr(aa, bb)
+function [xcorr] = get_norm_cross_corr(aa, bb)
 % Compute normalized cross correlation, and crop to the 'valid' extent of the
 % correlation (a la conv2). Allows for non-square aa, although that is not
 % needed at this time.
@@ -430,6 +438,29 @@ function [xcorr] = get_cross_corr(aa, bb)
 %       interrogation window
 
 fullxcorr = normxcorr2(aa, bb);
+
+% compute pad size in both dimensions
+aaSize = size(aa);
+npre = aaSize;
+npost = aaSize;
+
+xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
+            
+end
+
+function [xcorr] = get_cross_corr(aa, bb)
+% Compute cross correlation, and crop to the 'valid' extent of the
+% correlation (a la conv2). Allows for non-square aa, although that is not
+% needed at this time.
+%
+% Arguments:
+%   aa = 2D matrix, double, smaller 'template' matrix, as used here, this
+%       is the sample window
+%
+%   bb = 2D matrix, double, larger matrix, as used here, this is the
+%       interrogation window
+
+fullxcorr = xcorr2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
