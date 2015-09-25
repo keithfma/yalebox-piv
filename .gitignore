@@ -6,3 +6,5 @@ matlab.mat
 private/grayxform.mexa64
 private/grayxformmex.mexa64
 private/imhistc.mexa64
+test/030_031*.mat
+test/250_251*.mat

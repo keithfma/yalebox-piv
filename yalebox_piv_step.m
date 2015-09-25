@@ -134,9 +134,9 @@ for pp = 1:npass
                 continue
             end
                 
-            % compute correlation, trimming to valid range (see help)  
+            % compute correlation, trimming to valid range (see help)              
             if use_normxcorr2
-                xcr_stack(:, :, kk) = get_normcross_corr(samp, intr);
+                xcr_stack(:, :, kk) = get_norm_cross_corr(samp, intr);
             else
                 xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
             end
