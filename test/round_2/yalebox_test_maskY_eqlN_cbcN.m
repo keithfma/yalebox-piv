@@ -1,6 +1,6 @@
-% Script. Test case, round 2, baseline case using normalized cross correlation
+% Script. Test case, round 2
 %
-% Masked = N
+% Masked = Y
 % Equalized histogram = N
 % Use CBC = N
          
@@ -9,9 +9,9 @@ ini_file = {'../fault_ss_01_sidef_030.png', '../fault_ss_01_sidef_250.png'};
 fin_file = {'../fault_ss_01_sidef_031.png', '../fault_ss_01_sidef_251.png'};
 ini_mask_file = {'../030_mask.mat', '../250_mask.mat'};
 fin_mask_file = {'../031_mask.mat', '../251_mask.mat'};
-out_file = {'030_031_maskN_eqlN_cbcN.mat', '250_251_maskN_eqlN_cbcN.mat'};
-out_fig = {'uv_maskN_eqlN_cbcN.fig', 'dd_maskN_eqlN_cbcN.fig'};
-fig_name = {'displacement: maskN_eqlN_cbcN', 'strain: maskN_eqlN_cbcN'};
+out_file = {'030_031_maskY_eqlN_cbcN.mat', '250_251_maskY_eqlN_cbcN.mat'};
+out_fig = {'uv_maskY_eqlN_cbcN.fig', 'dd_maskY_eqlN_cbcN.fig'};
+fig_name = {'displacement: maskY_eqlN_cbcN', 'strain: maskY_eqlN_cbcN'};
 coords_file = '../coords.mat';
 npass = 1;
 samplen = 30;
@@ -43,9 +43,9 @@ for i = 1:2
     load(fin_mask_file{i}, 'mask_manual', 'mask_auto');
     fin_mask = mask_manual & mask_auto;    
     
-    % add a tiny bit of noise, to avoid a "template cannot all be the same" error
-    ini = ini-1e-6*rand(size(ini));
-    fin = fin-1e-6*rand(size(fin));
+    % apply masks
+    ini = ini.*ini_mask;
+    fin = fin.*fin_mask;
     
     % run piv
     [xx, yy, uu, vv] = yalebox_piv_step(...
@@ -61,16 +61,12 @@ for i = 1:2
     save(out_file{i}, 'xx','yy', 'uu', 'vv', 'npass', 'samplen', 'sampspc', ...
         'umax', 'umin', 'vmax', 'vmin', 'ncbc', 'use_normxcorr2', ...
         'displacement', 'spin', 'Dv', 'Dd', 'D2x', 'D2y', 'WkStar', 'AkStar');
-    
-    % interpolate mask to output resolution
-    [xgrid, ygrid] = meshgrid(x, y);
-    mm = interp2(xgrid, ygrid, double(ini_mask & fin_mask), xxgrid, yygrid) > 0.5;
 
     % generate standard results image
     h1 = figure(1);    
     set(gcf, 'Name', fig_name{1});
     subplot(2, 1, i)
-    imagesc(xx, yy, displacement.*mm);
+    imagesc(xx, yy, displacement);
     caxis([0, 0.01])
     colorbar
     axis equal
@@ -84,7 +80,7 @@ for i = 1:2
     set(gcf, 'Name', fig_name{2});
     subplot(2, 1, i)
     title('strain (Dd)')
-    imagesc(xx, yy, Dd.*mm)
+    imagesc(xx, yy, Dd)
     caxis([0, 0.08])
     colorbar
     axis equal
