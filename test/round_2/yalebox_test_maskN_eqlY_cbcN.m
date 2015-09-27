@@ -1,17 +1,17 @@
 % Script. Test case, round 2
 %
 % Masked = N
-% Equalized histogram = N
-% Use CBC = Y
+% Equalized histogram = Y
+% Use CBC = N
          
 % define parameters
-ini_file = {'../fault_ss_01_sidef_030.png', '../fault_ss_01_sidef_250.png'}; 
-fin_file = {'../fault_ss_01_sidef_031.png', '../fault_ss_01_sidef_251.png'};
+ini_file = {'../030_eql.mat', '../250_eql.mat'}; 
+fin_file = {'../031_eql.mat', '../251_eql.mat'};
 ini_mask_file = {'../030_mask.mat', '../250_mask.mat'};
 fin_mask_file = {'../031_mask.mat', '../251_mask.mat'};
-out_file = {'030_031_maskN_eqlN_cbcY.mat', '250_251_maskN_eqlN_cbcY.mat'};
-out_fig = {'uv_maskN_eqlN_cbcY.fig', 'dd_maskN_eqlN_cbcY.fig'};
-fig_name = {'displacement: maskN_eqlN_cbcY', 'strain: maskN_eqlN_cbcY'};
+out_file = {'030_031_maskN_eqlY_cbcN.mat', '250_251_maskN_eqlY_cbcN.mat'};
+out_fig = {'uv_maskN_eqlY_cbcN.fig', 'dd_maskN_eqlY_cbcN.fig'};
+fig_name = {'displacement: maskN_eqlY_cbcN', 'strain: maskN_eqlY_cbcN'};
 coords_file = '../coords.mat';
 npass = 1;
 samplen = 30;
@@ -20,32 +20,31 @@ umax = 0.015;
 umin = -0.025;
 vmax = 0.015;
 vmin = -0.015;
-ncbc = 9;
+ncbc = 1;
 verbose = 1;
 use_normxcorr2 = 1;
 
 % load coordinates
 load(coords_file, 'x', 'y');
 
-
 % read images, run PIV, and save results, x2
 for i = 1:2
     
     % read images
-    im = rgb2hsv(imread(ini_file{i}));
-    ini = im(:,:,3);
-    im = rgb2hsv(imread(fin_file{i}));
-    fin = im(:,:,3);
+    load(ini_file{i}, 'eql');
+    ini = eql;
+    load(fin_file{i}, 'eql');
+    fin = eql;
+    
+    % add a tiny bit of noise, to avoid a "template cannot all be the same" error
+    ini = min(1, max(0, ini-1e-6*rand(size(ini))));
+    fin = min(1, max(0, fin-1e-6*rand(size(fin))));
     
     % read masks
     load(ini_mask_file{i}, 'mask_manual', 'mask_auto');
     ini_mask = mask_manual & mask_auto;
     load(fin_mask_file{i}, 'mask_manual', 'mask_auto');
-    fin_mask = mask_manual & mask_auto;    
-    
-    % add a tiny bit of noise, to avoid a "template cannot all be the same" error
-    ini = ini-1e-6*rand(size(ini));
-    fin = fin-1e-6*rand(size(fin));
+    fin_mask = mask_manual & mask_auto;       
     
     % run piv
     [xx, yy, uu, vv] = yalebox_piv_step(...
