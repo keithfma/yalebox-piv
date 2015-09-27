@@ -50,6 +50,15 @@ TESTS: round 3. use normxcorr2, use mask, recheck others in combination
   eqlY_cbcN
   eqlN_cbcY
 
+RESULTS: round 3
 
+  Neither equalization nor CBC has any obviously positive effect in this test.
+  This may change for the multipass case, but it seems that neither is worth
+  doing for a single pass analysis.
+
+TESTS: round 4: use normxcorr, use mask, two passes, recheck cbc and eql
+  eqlN_cbcN
+  eqlY_cbcN
+  eqlN_cbcY
 
 
