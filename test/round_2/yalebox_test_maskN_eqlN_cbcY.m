@@ -1,17 +1,17 @@
-% Script. Test case, round 2, baseline case using normalized cross correlation
+% Script. Test case, round 2
 %
 % Masked = N
 % Equalized histogram = N
-% Use CBC = N
+% Use CBC = Y
          
 % define parameters
 ini_file = {'../fault_ss_01_sidef_030.png', '../fault_ss_01_sidef_250.png'}; 
 fin_file = {'../fault_ss_01_sidef_031.png', '../fault_ss_01_sidef_251.png'};
 ini_mask_file = {'../030_mask.mat', '../250_mask.mat'};
 fin_mask_file = {'../031_mask.mat', '../251_mask.mat'};
-out_file = {'030_031_maskN_eqlN_cbcN.mat', '250_251_maskN_eqlN_cbcN.mat'};
-out_fig = {'uv_maskN_eqlN_cbcN.fig', 'dd_maskN_eqlN_cbcN.fig'};
-fig_name = {'displacement: maskN_eqlN_cbcN', 'strain: maskN_eqlN_cbcN'};
+out_file = {'030_031_maskN_eqlN_cbcY.mat', '250_251_maskN_eqlN_cbcY.mat'};
+out_fig = {'uv_maskN_eqlN_cbcY.fig', 'dd_maskN_eqlN_cbcY.fig'};
+fig_name = {'displacement: maskN_eqlN_cbcY', 'strain: maskN_eqlN_cbcY'};
 coords_file = '../coords.mat';
 npass = 1;
 samplen = 30;
@@ -20,7 +20,7 @@ umax = 0.015;
 umin = -0.025;
 vmax = 0.015;
 vmin = -0.015;
-ncbc = 1;
+ncbc = 9;
 verbose = 1;
 use_normxcorr2 = 1;
 

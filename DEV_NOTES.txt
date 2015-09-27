@@ -40,6 +40,15 @@ TESTS: round 2, use normalized cross correlation, recheck others in combination
   maskN_eqlY_cbcN: is histogram equalization an improvement?
   maskN_eqlN_cbcY: is correlation based correction an improvement?
   
+RESULTS: round 2
+  The clear winner is masking, only this method has any clear effect on the
+  results. Others are effectively identical to the base case. This will be
+  intriguing if it remains true in combination.
+
+TESTS: round 3. use normxcorr2, use mask, recheck others in combination
+  eqlN_cbcN
+  eqlY_cbcN
+  eqlN_cbcY
 
 
 
