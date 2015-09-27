@@ -1,4 +1,7 @@
-function [xx, yy, uu, vv] = yalebox_piv_step()
+function [xx, yy, uu, vv] = yalebox_piv_step(...
+                                ini, fin, xx, yy, npass, samplen, sampspc, ...
+                                umax, umin, vmax, vmin, ncbc, verbose, ...
+                                use_normxcorr2)
 % Re-implementation of yalebox PIV analysis routine
 %
 % Arguments, input:
@@ -36,6 +39,9 @@ function [xx, yy, uu, vv] = yalebox_piv_step()
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
 %
+%   debug: use_normxcorr2 = Scalar logical, flag to enable or disable use of the
+%       normalized cross correlation function
+%
 % Arguments, output:
 %
 %   xx, yy = Vector, double, coordinate vectors for the final output sample
@@ -64,70 +70,6 @@ function [xx, yy, uu, vv] = yalebox_piv_step()
 % 56(6), 2182. doi:10.1016/j.csda.2011.12.001
  
 % NOTE: use NaNs instead of zeros to indicate the mask/roi
-
-% debug {
-
-% % single pass, test 01
-% load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 30;
-% sampspc = 15;
-% umax =  0.05;
-% umin = -0.05;
-% vmax =  0.05;
-% vmin = -0.05;
-% ncbc = 9;
-% verbose = 2;
-
-% % single pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 1;
-% samplen = 50;
-% sampspc = 25;
-% umax =  0.02;
-% umin = -0.02;
-% vmax =  0.02;
-% vmin = -0.02;
-% ncbc = 9;
-% verbose = 1;
-
-% dual pass, test 01
-load('test01_input.mat', 'ini', 'fin', 'xx', 'yy');
-npass = 2;
-samplen = [30, 20];
-sampspc = [15, 10];
-umax = [ 0.05,  0.03];
-umin = [-0.05, -0.03];
-vmax = [ 0.05,  0.03];
-vmin = [-0.05, -0.03];
-ncbc = [9, 9];
-verbose = 1;
-
-% % dual pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 2;
-% samplen = [50, 30];
-% sampspc = [25, 15];
-% umax = [ 0.02,  0.005];
-% umin = [-0.02, -0.005];
-% vmax = [ 0.02,  0.005];
-% vmin = [-0.02, -0.005];
-% ncbc = [9, 9];
-% verbose = 1;
-
-% % tri pass, test 02
-% load('test02_input.mat', 'ini', 'fin', 'xx', 'yy');
-% npass = 3;
-% samplen = [60, 40, 20];
-% sampspc = [30, 20, 10];
-% umax = [ 0.02,  0.005,  0.0025];
-% umin = [-0.02, -0.005, -0.0025];
-% vmax = [ 0.02,  0.005,  0.0025];
-% vmin = [-0.02, -0.005, -0.0025];
-% ncbc = [9, 9, 9];
-% verbose = 1;
-
-% } debug
 
 if verbose
     print_sep('Input Arguments');
@@ -162,8 +104,8 @@ for pp = 1:npass
     
     roi = true(nr, nc);
     xcr_stack = nan(nv, nu, nr*nc);
-    vorigin_stack = nan(nr*nc);
-    uorigin_stack = nan(nr*nc);
+    vorigin_stack = nan(nr*nc, 1);
+    uorigin_stack = nan(nr*nc, 1);
                                           
     % loop over sample grid, gather cross-correlation data   
     for jj = 1:nc
@@ -192,8 +134,12 @@ for pp = 1:npass
                 continue
             end
                 
-            % compute correlation, trimming to valid range (see help)            
-            xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
+            % compute correlation, trimming to valid range (see help)              
+            if use_normxcorr2
+                xcr_stack(:, :, kk) = get_norm_cross_corr(samp, intr);
+            else
+                xcr_stack(:, :, kk) = get_cross_corr(samp, intr);
+            end
                       
         end
     end
@@ -201,6 +147,7 @@ for pp = 1:npass
     % loop over sample grid, compute displacements
     for jj = 1:nc
         for ii = 1:nr
+            
             
             % get linear index for ii, jj
             kk = ii+(jj-1)*nr;
@@ -210,7 +157,11 @@ for pp = 1:npass
                 continue
             end
             
-            % get subscripts for local correlation planes to include in analysis            
+            % % debug {
+            % if (ncbc(pp) > 1); keyboard; end
+            % % debug }
+            
+            % get subscripts for local correlation planes to include in analysis
             [ixcr, jxcr] = get_cbc_stencil(ii, jj, ncbc(pp));
             
             % delete non-existant points
@@ -233,7 +184,8 @@ for pp = 1:npass
             end
                         
             % find the correlation plane maximum with subpixel accuracy            
-            [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
+            % [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk)); % ERROR
+            [rpeak, cpeak, status] = find_peak(xcr);
             if status == false
                 vv(ii, jj) = NaN;
                 uu(ii, jj) = NaN;
@@ -479,7 +431,7 @@ win = [zeros(pb, pl+snc+pr);
     
 end
 
-function [xcorr] = get_cross_corr(aa, bb)
+function [xcorr] = get_norm_cross_corr(aa, bb)
 % Compute normalized cross correlation, and crop to the 'valid' extent of the
 % correlation (a la conv2). Allows for non-square aa, although that is not
 % needed at this time.
@@ -492,6 +444,29 @@ function [xcorr] = get_cross_corr(aa, bb)
 %       interrogation window
 
 fullxcorr = normxcorr2(aa, bb);
+
+% compute pad size in both dimensions
+aaSize = size(aa);
+npre = aaSize;
+npost = aaSize;
+
+xcorr = fullxcorr( (1+npre(1)):(end-npost(1)+1), (1+npre(2)):(end-npost(2))+1);
+            
+end
+
+function [xcorr] = get_cross_corr(aa, bb)
+% Compute cross correlation, and crop to the 'valid' extent of the
+% correlation (a la conv2). Allows for non-square aa, although that is not
+% needed at this time.
+%
+% Arguments:
+%   aa = 2D matrix, double, smaller 'template' matrix, as used here, this
+%       is the sample window
+%
+%   bb = 2D matrix, double, larger matrix, as used here, this is the
+%       interrogation window
+
+fullxcorr = conv2(aa, bb);
 
 % compute pad size in both dimensions
 aaSize = size(aa);
