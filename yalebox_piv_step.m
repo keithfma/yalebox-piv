@@ -104,8 +104,8 @@ for pp = 1:npass
     
     roi = true(nr, nc);
     xcr_stack = nan(nv, nu, nr*nc);
-    vorigin_stack = nan(nr*nc);
-    uorigin_stack = nan(nr*nc);
+    vorigin_stack = nan(nr*nc, 1);
+    uorigin_stack = nan(nr*nc, 1);
                                           
     % loop over sample grid, gather cross-correlation data   
     for jj = 1:nc
@@ -148,6 +148,7 @@ for pp = 1:npass
     for jj = 1:nc
         for ii = 1:nr
             
+            
             % get linear index for ii, jj
             kk = ii+(jj-1)*nr;
             
@@ -156,7 +157,11 @@ for pp = 1:npass
                 continue
             end
             
-            % get subscripts for local correlation planes to include in analysis            
+            % % debug {
+            % if (ncbc(pp) > 1); keyboard; end
+            % % debug }
+            
+            % get subscripts for local correlation planes to include in analysis
             [ixcr, jxcr] = get_cbc_stencil(ii, jj, ncbc(pp));
             
             % delete non-existant points
@@ -179,7 +184,8 @@ for pp = 1:npass
             end
                         
             % find the correlation plane maximum with subpixel accuracy            
-            [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk));
+            % [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk)); % ERROR
+            [rpeak, cpeak, status] = find_peak(xcr);
             if status == false
                 vv(ii, jj) = NaN;
                 uu(ii, jj) = NaN;
