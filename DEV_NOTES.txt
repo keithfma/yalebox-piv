@@ -1,0 +1,66 @@
+
+TESTING TO FIX BAD VECTORS AT THE WEDGE SURFACE IN SIDE VIEW:
+
+Gather two sets of test images
+
+Prepare test datasets including original images, masked original images, masked
+stretched images, coordinates vectors, masks, and all associated variables
+
+Cases:
+no mask, mask
+no histeq, histeq
+xcorr2, normxcorr2
+no cbc, cbc
+
+TESTS: round 1, check each change in isolation
+  maskN_eqlN_normN_cbcN: simplest case, additions should improve results
+  maskY_eqlN_normN_cbcN: is masking alone an improvement?
+  maskN_eqlY_normN_cbcN: is adaptive histogram equalization alone an improvement?
+  maskN_eqlN_normY_cbcN: is normalized cross correlation an improvement?
+
+RESULTS: round 1
+  The critical feature is the normalized cross correlation. Using a
+  non-normalized routine (e.g. xcorr2 or conv2) results us garbage results
+  regardless of the other features presence or absence. It seems likely to me
+  that this is due to some bug in the code for the unnormalized version, I check
+  to make sure the problem was not padding or some simple rotation/reflection of
+  the correlation plane (it wasn't) so it is possible that unnormalized
+  correlation is simply inadequate. In any event, there is no point continuing
+  to test the unnormalized version.
+
+  In addition, I was able to get a quite satisfactory histogram equalization
+  without using my special "masked" version. By satisfactory, I mean that the
+  upper edge of the wedge appears nearly identical to the remainder. This is
+  a promising sign that I might be able to solve the upper edge problem without
+  a great deal of additional work
+
+TESTS: round 2, use normalized cross correlation, recheck others in combination
+  maskN_eqlN_cbcN: simplest case, additions should improve results
+  maskY_eqlN_cbcN: is masking an improvement?
+  maskN_eqlY_cbcN: is histogram equalization an improvement?
+  maskN_eqlN_cbcY: is correlation based correction an improvement?
+  
+RESULTS: round 2
+  The clear winner is masking, only this method has any clear effect on the
+  results. Others are effectively identical to the base case. This will be
+  intriguing if it remains true in combination.
+
+TESTS: round 3. use normxcorr2, use mask, recheck others in combination
+  eqlN_cbcN
+  eqlY_cbcN
+  eqlN_cbcY
+
+RESULTS: round 3
+
+  CBC appears to significantly reduce noise, equalization has no noticable
+  effect.
+
+TESTS: round 4: use normxcorr, use mask, two passes, recheck cbc and eql
+  eqlN_cbcN
+  eqlY_cbcN
+  eqlN_cbcY
+
+  CBC reduces noise, but may lead to a patterning artefact, this could be a
+  problem with the algorithm and should be explored. Equalization has no effect.
+
+
