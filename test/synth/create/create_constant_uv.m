@@ -1,13 +1,13 @@
 function [ini, fin, xx, yy] = create_constant_uv(template, uu, vv, show)
 % Create a test dataset with constant x-dir and y-dir offsets from a template
-% sand image. Outputs are cropped, grayscale versions of the template image.
+% sand image. 
 %
 % Case: Constant displacement in the x-direction only
 %
 % Arguments:
 %
-%   template_file =  String, file name of the template image, should be a subset
-%       of some yalebox run, expected to be rgb
+%   template =  String, file name of the template image, should be a subset of
+%       some yalebox run, expected to be rgb
 %
 %   uu, vv = Scalar, double, constant displacements in the x and y directions,
 %       in pixels, must be an integer (to avoid introducing noise by
@@ -17,7 +17,16 @@ function [ini, fin, xx, yy] = create_constant_uv(template, uu, vv, show)
 %       pair. If enabled, the program enters an infinite loop, alternately
 %       displaying one image and the other until the user terminates via the
 %       Ctrl+C command or closes the figure window.
+%
+%   ini, fin = 2D matrix, double, initial and final intensity images
+%
+%   xx, yy = Vector, double, coordinate vectors for ini and fin, in pixels
 % %
+
+% set defaults
+if nargin < 4
+    show = false;
+end
 
 % check for sane inputs
 validateattributes(template, {'char'}, {'vector'}, ...
@@ -56,12 +65,16 @@ else
      % do nothing 
 end
 
+% generate pixel coordinate vectors
+xx = 0:size(ini, 2)-1;
+yy = 0:size(ini, 1)-1;
+
 % display image pair
 if show
     clr = [min(ii(:)), max(ii(:))];
-    figure;
+    h = figure;
     while 1
-        imagesc(ini);
+        figure(h)
         set(gca, 'YDir', 'normal')        
         set(gcf, 'Name', 'ini');
         caxis(clr);
