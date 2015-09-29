@@ -1,4 +1,4 @@
-function [ini, fin, xx, yy] = create_simple_shear(template, gamma, dir, show)
+function [ini, fin, xx, yy, uu, vv] = create_simple_shear(template, gamma, dir, show)
 % Create a test dataset with simple shear deformation from a template sand
 % image.
 %
@@ -15,13 +15,14 @@ function [ini, fin, xx, yy] = create_simple_shear(template, gamma, dir, show)
 %       1 for the y-direction, and 2 for the x direction.
 %
 %   show = Scalar, logical, flag enabling or disabling display of the test image
-%       pair. If enabled, the program enters an infinite loop, alternately
-%       displaying one image and the other until the user terminates via the
-%       Ctrl+C command or closes the figure window.
+%       pair. If enabled, the program alternately displays the initial and final
+%       images 3 times.
 %
 %   ini, fin = 2D matrix, double, initial and final intensity images
 %
 %   xx, yy = Vector, double, coordinate vectors for ini and fin, in pixels
+%
+%   uu, vv = 2D matrix, double, exact displacements for this test, in pixels
 % %
  
 % set defaults
@@ -62,7 +63,7 @@ end
 % apply transformation
 fin = imwarp(ini, cat(3, -uu, -vv), 'cubic', 'FillValues', NaN);
 
-% trim both initial and final images
+% trim images and displacements
 if dir == 1
     if gamma > 0
         i0 = find(~isnan(fin(:, end)), 1, 'first');
@@ -73,6 +74,8 @@ if dir == 1
     end
     ini = ini(i0:i1, :);
     fin = fin(i0:i1, :);
+    uu = uu(i0:i1, :);
+    vv = vv(i0:i1, :);
         
 elseif dir == 2
     if gamma > 0 
@@ -85,6 +88,8 @@ elseif dir == 2
     end
     ini = ini(:, j0:j1);
     fin = fin(:, j0:j1);
+    uu = uu(:, j0:j1);
+    vv = vv(:, j0:j1);
 end
 
 % generate pixel coordinate vectors
@@ -95,7 +100,7 @@ yy = 0:size(ini, 1)-1;
 if show
     clr = [min(ini(:)), max(ini(:))];
     h = figure;
-    while 1
+    for i = 1:3
         figure(h);
         imagesc(ini);
         set(gca, 'YDir', 'normal')        
