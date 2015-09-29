@@ -180,8 +180,9 @@ for pp = 1:npass
             % multiply
             xcr = ones(nv, nu);
             for i = 1:length(kxcr)
-                xcr = xcr.*xcr_stack(:, :, kxcr(i));
-            end
+%                 xcr = xcr.*xcr_stack(:, :, kxcr(i));
+                xcr = xcr+xcr_stack(:, :, kxcr(i));
+            end            
                         
             % find the correlation plane maximum with subpixel accuracy            
             % [rpeak, cpeak, status] = find_peak(xcr_stack(:, :, kk)); % ERROR
@@ -191,6 +192,24 @@ for pp = 1:npass
                 uu(ii, jj) = NaN;
                 continue
             end     
+            
+%             % debug {
+%             % display correlation plane and center point on image
+%             figure(1)
+%             
+%             subplot(1,2,1)
+%             imagesc(ini)
+%             hold on
+%             plot(cc(jj), rr(ii), '*k');
+%             hold off
+%             
+%             subplot(1,2,2)
+%             imagesc(xcr)
+%             hold on
+%             plot(cpeak, rpeak, '*k');
+%             hold off 
+%             pause
+%             % } debug
      
             % get displacement in pixel coordinates
             vv(ii, jj) = vorigin_stack(kk)+rpeak-1;
