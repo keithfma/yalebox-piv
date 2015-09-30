@@ -4,17 +4,23 @@ function [] = yalebox_piv_step_debug(test_case)
 % test_case = Scalar, integer. Select test case:
 %   (1) Constant offset in x- and y-directions
 %   (2) Simple shear, gamma = du/dy
+%   (3) Wedge image pair
 %
 % %
 
-% define global parameters
-create_synth = '/projectnb/glaciermod/yalebox-piv/test/synth/create';
+% define paths to dependencies
+test_synth_create = 'test/synth/create';
+test_wedge_data = 'test/wedge/data';
+test_wedge_prep = 'test/wedge/prep';
 
 % initialize
 validateattributes(test_case, {'numeric'}, {'scalar', 'integer'});
-addpath(create_synth);
+addpath(test_synth_create);
+addpath(test_wedge_data);
+addpath(test_wedge_prep);
 
 switch test_case
+    
     case 1
         
         % define case parameters
@@ -62,13 +68,46 @@ switch test_case
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
+        
+    case 3
+        
+        % define case parameters
+        ini_file = 'fault_ss_01_sidef_250.png';
+        fin_file = 'fault_ss_01_sidef_251.png';
+        coord_file = 'fault_ss_01_sidef_coords.mat';
+        samplen = 30;
+        sampspc = 15;
+        intrlen = 60;
+        u0 = 0;
+        v0 = 0;
+        
+        % prepare images
+        ini = imread(ini_file);
+        ini = rgb2hsv(ini);
+        ini = ini(:,:,3);
+        
+        fin = imread(fin_file);
+        fin = rgb2hsv(fin);
+        fin = fin(:,:,3);
+        
+        % load coordinates
+        load(coord_file, 'x', 'y');
+        xx0 = x; clear x;
+        yy0 = y; clear y;
+        
+        % run piv
+        [xx, yy, uu, vv] = ...
+            yalebox_piv_step(ini, fin, xx0, yy0, samplen, sampspc, intrlen, u0, v0, 1);
+        
                 
     otherwise
         error('Invalid test case selected');
 end
 
 % cleanup
-rmpath(create_synth);
+rmpath(test_synth_create);
+rmpath(test_wedge_data);
+rmpath(test_wedge_prep);
 
 % debug {
 keyboard
