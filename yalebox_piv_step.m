@@ -73,9 +73,13 @@ vv = v0*ones(nr, nc);
 for jj = 1:nc
     for ii = 1:nr
    
-        % get sample window
+        % get sample and interrogation windows
+        samp = get_win(ini, rr(ii), cc(jj), samplen);               
+        intr = get_win(fin, rr(ii), cc(jj), intrlen);
         
-        % get interrogation window
+        % debug: show windows {
+        
+        % } debug
         
         % compute normalized cross-correlation
         
@@ -168,11 +172,62 @@ cc = samp0(2):spc:samp1(2);
 
 end
 
-function [win] = get_sample_win(rcenter, ccenter, len)
+function win = get_win(img, rcnt, ccnt, len)
+% function win = get_win(img, rcnt, ccnt, len)
+%
+% Extract a sample or interrogation window from the input image, padding with
+% zeros as needed.
+%
+% For sample windows: Sample grid centroids are chosen such that sample window
+% edges lie at integer pixel coordinates. Rounding operations thus have no
+% effect in this case.
+%
+% For interrogation windows: Window edges are not guaranteed to be integer pixel
+% coordinates. Rounding is used to expand window extent outward to the nearest
+% integer pixel coordinates. Note that this does not change the window centroid,
+% since expansion is always symmetric.
+%
+% Arguments:
+%
+%   img = 2D matrix, double, range 0 to 1, normalized grayscale image from
+%       the pair to be analyzed. Should be the initial image for the sample
+%       window and the final image for the interrogation window.
+%
+%   rcnt, ccnt = Scalar, double, location of the window centroid 
+%
+%   len = Scalar, integer, length of the window
 
-win = 0;
+% get window limits, may lie outside the image domain
+hlen = (len-1)/2;
+r0 = floor(rcnt-hlen);
+r1 =  ceil(rcnt+hlen); 
+c0 = floor(ccnt-hlen);
+c1 =  ceil(ccnt+hlen);
 
+% get pad size, restrict window indices to valid range
+pl = max(0, 1-c0);
+c0 = max(1, c0);
+
+nc = size(img, 2);
+pr = max(0, c1-nc);
+c1 = min(nc, c1);
+
+pb = max(0, 1-r0);
+r0 = max(1, r0);
+
+nr = size(img, 1);
+pt = max(0, r1-nr);
+r1 = min(nr, r1);
+
+% extract data and add pad
+sub = img(r0:r1, c0:c1);
+[snr, snc] = size(sub);
+win = [zeros(pb, pl+snc+pr);
+       zeros(snr, pl), sub, zeros(snr, pr);
+       zeros(pt, pl+snc+pr)];  
+    
 end
+
 
 %% verbose subroutines --------------------------------------------------
 
