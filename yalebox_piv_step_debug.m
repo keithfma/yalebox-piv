@@ -7,7 +7,7 @@ function [] = yalebox_piv_step_debug(test_case)
 % %
 
 % define global parameters
-create_synth = '/home/kfm/Documents/dissertation/yalebox-piv/test/synth/create';
+create_synth = '/projectnb/glaciermod/yalebox-piv/test/synth/create';
 
 % initialize
 validateattributes(test_case, {'numeric'}, {'scalar', 'integer'});

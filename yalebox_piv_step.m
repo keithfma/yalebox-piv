@@ -47,7 +47,7 @@ function [xx, yy, uu, vv] = ...
 % References:
 %
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
-%   Particle Image Velocimetry: A Practical Guide. BOOK, 1–448. 
+%   Particle Image Velocimetry: A Practical Guide. BOOK, 1???448. 
 %
 % [2] Wereley, S. T. (2001). Adaptive Second-Order Accurate Particle Image
 %   Velocimetry, 31
@@ -74,11 +74,12 @@ for jj = 1:nc
     for ii = 1:nr
    
         % get sample and interrogation windows
-        samp = get_win(ini, rr(ii), cc(jj), samplen);               
-        intr = get_win(fin, rr(ii), cc(jj), intrlen);
+        [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen);               
+        [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen);
         
         % debug {
-        show_samp_intr_win()
+        figure(1)
+        show_win(ini, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
         % } debug
         
         % compute normalized cross-correlation
@@ -172,8 +173,8 @@ cc = samp0(2):spc:samp1(2);
 
 end
 
-function win = get_win(img, rcnt, ccnt, len)
-% function win = get_win(img, rcnt, ccnt, len)
+function [win, pos] = get_win(img, rcnt, ccnt, len)
+% function [win, pos] = get_win(img, rcnt, ccnt, len)
 %
 % Extract a sample or interrogation window from the input image, padding with
 % zeros as needed.
@@ -196,6 +197,12 @@ function win = get_win(img, rcnt, ccnt, len)
 %   rcnt, ccnt = Scalar, double, location of the window centroid 
 %
 %   len = Scalar, integer, length of the window
+%
+%   win = 2D matrix, double, subset of img, possibly with zero padding
+%
+%   pos = Vector, length == 4, position vector for 'win' in the format
+%       [left, bottom, width, height] in pixel coordinates
+% %
 
 % get window limits, may lie outside the image domain
 hlen = (len-1)/2;
@@ -203,6 +210,9 @@ r0 = floor(rcnt-hlen);
 r1 =  ceil(rcnt+hlen); 
 c0 = floor(ccnt-hlen);
 c1 =  ceil(ccnt+hlen);
+
+% generate position vector for output
+pos = [c0, r0, c1-c0, r1-r0];
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
@@ -264,4 +274,73 @@ fprintf('u0: %i\n', u0);
 
 fprintf('u0: %i\n', v0);
 
+end
+
+function show_win(img, rcnt, ccnt, swin, spos, iwin, ipos, sec)
+%
+% Display the sample and interrogation windows, as well as their position
+%
+% Arguments:
+%
+%   img
+%   swin, iwin
+%   spos, ipos
+% %
+
+% set defaults
+if nargin < 8
+    sec = [];
+end
+
+% init figure
+clim = [min(img(:)), max(img(:))];
+set(gcf, 'units', 'normalized', 'position', [0, 0.3, 1, 0.5]);
+
+% plot image with window positions superimposed
+subplot(1, 3, 1);
+imagesc(img);
+set(gca, 'YDir', 'normal');
+caxis(clim);
+hold on
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot([spos(1), spos(1)+spos(3), spos(1)+spos(3), spos(1)        , spos(1)], ...
+     [spos(2), spos(2)        , spos(2)+spos(4), spos(2)+spos(4), spos(2)], ...
+     'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
+plot([ipos(1), ipos(1)+ipos(3), ipos(1)+ipos(3), ipos(1)        , ipos(1)], ...
+     [ipos(2), ipos(2)        , ipos(2)+ipos(4), ipos(2)+ipos(4), ipos(2)], ...
+     'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+title('original image');
+legend({'center', 'sample', 'interrogation'}, 'Location', 'NorthEast');
+hold off
+axis equal
+axis tight
+
+
+% plot sample window
+subplot(1, 3, 2);
+imagesc(swin);
+set(gca, 'YDir', 'normal');
+caxis(clim);
+title('sample window')
+axis equal
+axis tight
+grid on
+
+% plot interrogation window
+subplot(1, 3, 3);
+imagesc(iwin);
+set(gca, 'YDir', 'normal');
+caxis(clim);
+title('interrogation window')
+axis equal
+axis tight
+grid on
+
+% wait for user, or pause for predetermined duration
+if isempty(sec)
+    pause
+else 
+    pause(sec)
+end
+ 
 end
