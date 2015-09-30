@@ -79,7 +79,7 @@ for jj = 1:nc
         
         % debug {
         figure(1)
-        show_win(ini, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+        show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
         % } debug
         
         % compute normalized cross-correlation
@@ -276,7 +276,7 @@ fprintf('u0: %i\n', v0);
 
 end
 
-function show_win(img, rcnt, ccnt, swin, spos, iwin, ipos, sec)
+function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec)
 %
 % Display the sample and interrogation windows, as well as their position
 %
@@ -285,20 +285,21 @@ function show_win(img, rcnt, ccnt, swin, spos, iwin, ipos, sec)
 %   img
 %   swin, iwin
 %   spos, ipos
+%   sec
 % %
 
 % set defaults
-if nargin < 8
+if nargin < 9
     sec = [];
 end
 
 % init figure
-clim = [min(img(:)), max(img(:))];
-set(gcf, 'units', 'normalized', 'position', [0, 0.3, 1, 0.5]);
+clim = [min(img0(:)), max(img0(:))];
+set(gcf, 'units', 'normalized', 'position', [0.05, 0.05, 0.9, 0.9]);
 
-% plot image with window positions superimposed
-subplot(1, 3, 1);
-imagesc(img);
+% plot initial image with window positions superimposed
+subplot(2, 2, 1);
+imagesc(img0);
 set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
@@ -309,7 +310,26 @@ plot([spos(1), spos(1)+spos(3), spos(1)+spos(3), spos(1)        , spos(1)], ...
 plot([ipos(1), ipos(1)+ipos(3), ipos(1)+ipos(3), ipos(1)        , ipos(1)], ...
      [ipos(2), ipos(2)        , ipos(2)+ipos(4), ipos(2)+ipos(4), ipos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
-title('original image');
+title('initial image');
+legend({'center', 'sample', 'interrogation'}, 'Location', 'NorthEast');
+hold off
+axis equal
+axis tight
+
+% plot final image with window positions superimposed
+subplot(2, 2, 2);
+imagesc(img1);
+set(gca, 'YDir', 'normal');
+caxis(clim);
+hold on
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot([spos(1), spos(1)+spos(3), spos(1)+spos(3), spos(1)        , spos(1)], ...
+     [spos(2), spos(2)        , spos(2)+spos(4), spos(2)+spos(4), spos(2)], ...
+     'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([ipos(1), ipos(1)+ipos(3), ipos(1)+ipos(3), ipos(1)        , ipos(1)], ...
+     [ipos(2), ipos(2)        , ipos(2)+ipos(4), ipos(2)+ipos(4), ipos(2)], ...
+     'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
+title('final image');
 legend({'center', 'sample', 'interrogation'}, 'Location', 'NorthEast');
 hold off
 axis equal
@@ -317,7 +337,7 @@ axis tight
 
 
 % plot sample window
-subplot(1, 3, 2);
+subplot(2, 2, 3);
 imagesc(swin);
 set(gca, 'YDir', 'normal');
 caxis(clim);
@@ -327,7 +347,7 @@ axis tight
 grid on
 
 % plot interrogation window
-subplot(1, 3, 3);
+subplot(2, 2, 4);
 imagesc(iwin);
 set(gca, 'YDir', 'normal');
 caxis(clim);
