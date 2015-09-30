@@ -101,13 +101,17 @@ for jj = 1:nc
     end
 end
 
+% convert displacements to world coordinates (assumes constant grid spacing)
+uu = uu.*(xx(2)-xx(1));
+vv = vv.*(yy(2)-yy(1));
+
 % interpolate world coordinates for displacement vectors
 xx = interp1(1:size(ini,2), xx, cc);
 yy = interp1(1:size(ini,1), yy, rr);
 
-% convert displacements to world coordinates
-
+% debug {
 keyboard
+% } debug
 
 end
 
