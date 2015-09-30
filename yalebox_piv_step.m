@@ -61,13 +61,28 @@ if verbose
 end
 
 % init sample grid 
-[rr, cc] = sample_grid(sampspc, size(ini));
+[rr, cc] = sample_grid(samplen, sampspc, size(ini));
 nr = length(rr);
 nc = length(cc);
 
 % init displacements
 uu = u0*ones(nr, nc); % set to  initial guess
 vv = v0*ones(nr, nc); 
+
+% loop over sample grid
+for jj = 1:nc
+    for ii = 1:nr
+   
+        % get sample window
+        
+        % get interrogation window
+        
+        % compute normalized cross-correlation
+        
+        % find integer displacement
+        
+    end
+end
 
 % debug {
 xx = 0;
@@ -126,11 +141,14 @@ validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'}, ...
 
 end
 
-function [rr, cc] = sample_grid(spc, sz)
-% Create sample grid using equally spaced points at integer pixel
-% coordinates, with the remainder split evenly between edges.
+function [rr, cc] = sample_grid(len, spc, sz)
+% Create sample grid such that sample window edges fall at integer positions,
+% and the grid is centered. Note that the first sample window requires 'len'
+% rows and cols, and each additional window requires 'spc' rows and cols.
 %
 % Arguments:
+%
+%   len = Scalar, integer, length of sample window in pixels
 %
 %   spc = Scalar, integer, grid spacing in pixels
 %
@@ -140,13 +158,19 @@ function [rr, cc] = sample_grid(spc, sz)
 %   rr, cc = Vector, integer, coordinate vectors for the sample grid in the
 %       y (a.k.a. row) and x (a.k.a. column) directions, in pixels
 
-rrem = mod(sz(1)-1, spc);
-rr0 = 1+floor(rrem/2);
-rr = rr0:spc:sz(1);
+rem = mod(sz-len, spc)/2;
 
-crem = mod(sz(2)-1, spc);
-cc0 = 1+floor(crem/2);
-cc = cc0:spc:sz(2);
+samp0 = floor(rem)+(len-1)/2; 
+samp1 = sz-(ceil(rem)+(len-1)/2); 
+
+rr = samp0(1):spc:samp1(1);
+cc = samp0(2):spc:samp1(2);
+
+end
+
+function [win] = get_sample_win(rcenter, ccenter, len)
+
+win = 0;
 
 end
 

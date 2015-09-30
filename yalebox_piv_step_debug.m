@@ -20,7 +20,7 @@ switch test_case
         uconst = 10; 
         vconst = 10;        
         samplen = 30;
-        sampspc = 30;
+        sampspc = 15;
         intrlen = 60;
         u0 = 0;
         v0 = 0;
