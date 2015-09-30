@@ -85,8 +85,11 @@ for jj = 1:nc
         % compute normalized cross-correlation
         xcr = normxcorr2(samp, intr);
         
-        % find correlation plane max
-        [rpeak, cpeak] = find(xcr == max(xcr(:)));
+        % % find correlation plane max, integer pixel precision
+        % [rpeak, cpeak] = find(xcr == max(xcr(:)));
+        
+        % find correlation plane max, subpixel precision
+        [rpeak, cpeak] = get_peak_centroid(xcr);
         
         % find displacement from position of the correlation max
         %   - account for padding (-samplen)
@@ -155,7 +158,7 @@ validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'}, ...
 
 end
 
-function [rr, cc] = sample_grid(len, spc, sz)
+function [rvec, cvec] = sample_grid(len, spc, sz)
 % Create sample grid such that sample window edges fall at integer positions,
 % and the grid is centered. Note that the first sample window requires 'len'
 % rows and cols, and each additional window requires 'spc' rows and cols.
@@ -169,7 +172,7 @@ function [rr, cc] = sample_grid(len, spc, sz)
 %   sz = Vector, length == 2, grid dimensions [rows, columns] for the
 %       original input data matrices (e.g. ini and fin).
 %
-%   rr, cc = Vector, integer, coordinate vectors for the sample grid in the
+%   rvec, cvec = Vector, integer, coordinate vectors for the sample grid in the
 %       y (a.k.a. row) and x (a.k.a. column) directions, in pixels
 
 rem = mod(sz-len, spc)/2;
@@ -177,8 +180,8 @@ rem = mod(sz-len, spc)/2;
 samp0 = floor(rem)+(len-1)/2; 
 samp1 = sz-(ceil(rem)+(len-1)/2); 
 
-rr = samp0(1):spc:samp1(1);
-cc = samp0(2):spc:samp1(2);
+rvec = samp0(1):spc:samp1(1);
+cvec = samp0(2):spc:samp1(2);
 
 end
 
@@ -247,6 +250,32 @@ win = [zeros(pb, pl+snc+pr);
     
 end
 
+function [rpk, cpk] = get_peak_centroid(xcor)
+%
+% Find the location of the correlation plane maximum with subpixel
+% precision using a 9-point centroid calculation.
+%
+% Arguments:
+%
+%   xcor
+%
+%   rpk, cpk
+% %
+
+% peak location with integer precision
+[rpk_int, cpk_int] = find(xcor == max(xcor(:)));
+
+% extract subscripts and valuesfor 9-point neighborhood, trim to xcor edges 
+rpk_nbr = max(1, rpk_int-1):min(size(xcor,1), rpk_int+1); 
+cpk_nbr = max(1, cpk_int-1):min(size(xcor,2), cpk_int+1);
+xcor_nbr = xcor(rpk_nbr, cpk_nbr);
+[cpk_nbr, rpk_nbr] = meshgrid(cpk_nbr, rpk_nbr);
+
+% compute centroid
+rpk = sum(rpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:)); 
+cpk = sum(cpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:));
+
+end
 
 %% verbose subroutines --------------------------------------------------
 

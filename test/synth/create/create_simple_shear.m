@@ -16,7 +16,7 @@ function [ini, fin, xx, yy, uu, vv] = create_simple_shear(template, gamma, dir, 
 %
 %   show = Scalar, logical, flag enabling or disabling display of the test image
 %       pair. If enabled, the program alternately displays the initial and final
-%       images 3 times.
+%       images 5 times.
 %
 %   ini, fin = 2D matrix, double, initial and final intensity images
 %
@@ -65,31 +65,37 @@ fin = imwarp(ini, cat(3, -uu, -vv), 'cubic', 'FillValues', NaN);
 
 % trim images and displacements
 if dir == 1
-    if gamma > 0
-        i0 = find(~isnan(fin(:, end)), 1, 'first');
-        i1 = size(fin, 1);
-    elseif gamma <0
-        i0 = 1;
-        i1 = find(~isnan(fin(:, end)), 1, 'last');
-    end
-    ini = ini(i0:i1, :);
-    fin = fin(i0:i1, :);
-    uu = uu(i0:i1, :);
-    vv = vv(i0:i1, :);
+
+    % drop cols that have all nans
+    ckeep = ~all(isnan(fin), 1);
+    fin = fin(:, ckeep);
+    ini = ini(:, ckeep);  
+    uu = uu(:, ckeep);    
+    vv = vv(:, ckeep);  
+    
+    % drop rows that have any nans
+    rkeep = ~any(isnan(fin), 2);
+    fin = fin(rkeep, :);
+    ini = ini(rkeep, :);
+    uu = uu(rkeep, :);
+    vv = vv(rkeep, :);
         
 elseif dir == 2
-    if gamma > 0 
-        j0 = find(~isnan(fin(end, :)), 1, 'first');
-        j1 = size(fin, 2);
-    elseif gamma < 0
-        j0 = 1;
-        j1 = find(~isnan(fin(end, :)), 1, 'last');
-        % do something
-    end
-    ini = ini(:, j0:j1);
-    fin = fin(:, j0:j1);
-    uu = uu(:, j0:j1);
-    vv = vv(:, j0:j1);
+    
+    % drop rows that have all nans
+    rkeep = ~all(isnan(fin), 2);
+    fin = fin(rkeep, :);
+    ini = ini(rkeep, :);
+    uu = uu(rkeep, :);
+    vv = vv(rkeep, :);
+    
+    % drop cols that have any nans
+    ckeep = ~any(isnan(fin), 1);
+    fin = fin(:, ckeep);
+    ini = ini(:, ckeep);  
+    uu = uu(:, ckeep);    
+    vv = vv(:, ckeep);    
+   
 end
 
 % generate pixel coordinate vectors
@@ -100,7 +106,7 @@ yy = 0:size(ini, 1)-1;
 if show
     clr = [min(ini(:)), max(ini(:))];
     h = figure;
-    for i = 1:3
+    for i = 1:5
         figure(h);
         imagesc(ini);
         set(gca, 'YDir', 'normal')        
