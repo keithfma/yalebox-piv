@@ -1,5 +1,5 @@
 function [xx, yy, uu, vv] = ...
-    yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0, verbose)
+    yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0, verbose)
 %
 % function [xx, yy, uu, vv] = ...
 %     yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0. verbose)
@@ -27,6 +27,8 @@ function [xx, yy, uu, vv] = ...
 %
 %   intrlen = Scalar, integer, side length of the square interrogation window
 %
+%   npass = Scalar, integer, number of passes 
+%
 %   u0 = Scalar (PLANNED: or 2D matrix), integer, initial guess for x-direction
 %       displacement, units are [pixels]
 %
@@ -47,17 +49,17 @@ function [xx, yy, uu, vv] = ...
 % References:
 %
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
-%   Particle Image Velocimetry: A Practical Guide. BOOK, 1???448. 
+%   Particle Image Velocimetry: A Practical Guide. BOOK. 
 %
 % [2] Wereley, S. T. (2001). Adaptive Second-Order Accurate Particle Image
 %   Velocimetry, 31
 %
 
 % parse inputs
-check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0, verbose);
+check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0, verbose);
 if verbose
     print_sep('Input Arguments');
-    print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0);
+    print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0);
 end
 
 % init sample grid 
@@ -69,11 +71,17 @@ nc = length(cc);
 uu = u0*ones(nr, nc); % set to  initial guess
 vv = v0*ones(nr, nc); 
 
+% init multipass convergence flag
+
+% loop over passes
+
 % loop over sample grid
 for jj = 1:nc
     for ii = 1:nr
+        
+        % if converged already, skip
    
-        % get sample and interrogation windows
+        % get sample and (offset) interrogation windows
         [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen); 
         [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen); 
         
@@ -85,8 +93,10 @@ for jj = 1:nc
         % compute normalized cross-correlation
         xcr = normxcorr2(samp, intr);
  
-        % % find correlation plane max, integer pixel precision
-        % [rpeak, cpeak] = find(xcr == max(xcr(:)));
+        % find correlation plane max, integer pixel precision
+        [rpeak, cpeak] = find(xcr == max(xcr(:)));
+        
+        % if converged, find subpixel displacement and set flag
         
         % find correlation plane max, subpixel precision
         [rpeak, cpeak] = get_peak_centroid(xcr);
@@ -100,6 +110,8 @@ for jj = 1:nc
         
     end
 end
+
+% end loop over passes
 
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
@@ -117,7 +129,8 @@ end
 
 %% computational subroutines
 
-function [] = check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0, verbose)
+function [] = check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
+                  npass, u0, v0, verbose)
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
               
@@ -149,6 +162,9 @@ validateattributes(sampspc, ...
 validateattributes(intrlen, ...
     {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'intrlen');
+
+validateattributes(npass, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
+    mfilename, 'npass');
 
 validateattributes(u0, ...
     {'double'}, {'scalar'}, ...
@@ -292,7 +308,7 @@ fprintf('----------\n%s\n', msg);
 
 end
 
-function print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0)
+function print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0)
 % Display values (or a summary of them) for the input arguments
 
 fprintf('ini: size = [%i, %i], fraction data = %.2f%%\n',...
@@ -312,6 +328,8 @@ fprintf('samplen: %s\n', sprintf('%i  ', samplen));
 fprintf('sampspc: %s\n', sprintf('%i  ', sampspc));
 
 fprintf('intrlen: %s\n', sprintf('%i  ', intrlen));
+
+fprintf('npass: %i\n', npass);
 
 fprintf('u0: %i\n', u0);
 

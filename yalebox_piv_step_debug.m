@@ -30,6 +30,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
+        npass = 1;
         u0 = 0;
         v0 = 0;
         
@@ -38,8 +39,8 @@ switch test_case
             create_constant_uv(template, uconst, vconst);
         
         % run piv
-        [xx, yy, uu, vv] = ...
-            yalebox_piv_step(ini, fin, xx0, yy0, samplen, sampspc, intrlen, u0, v0, 1);
+        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+                               sampspc, intrlen, npass, u0, v0, 1);
         
         % analyze results
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
@@ -54,6 +55,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
+        npass = 1;
         u0 = 0;
         v0 = 0;
         
@@ -62,9 +64,9 @@ switch test_case
             create_simple_shear(template, gamma, dir);
 
         % run piv
-        [xx, yy, uu, vv] = ...
-            yalebox_piv_step(ini, fin, xx0, yy0, samplen, sampspc, intrlen, u0, v0, 1);
-        
+        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+                               sampspc, intrlen, npass, u0, v0, 1);
+                           
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
@@ -78,6 +80,7 @@ switch test_case
         samplen = 30;
         sampspc = 30;
         intrlen = 90;
+        npass = 1;
         u0 = 0;
         v0 = 0;
         
@@ -100,9 +103,10 @@ switch test_case
         xx0 = x; clear x;
         yy0 = y; clear y;
         
+
         % run piv
-        [xx, yy, uu, vv] = ...
-            yalebox_piv_step(ini, fin, xx0, yy0, samplen, sampspc, intrlen, u0, v0, 1);
+        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+                               sampspc, intrlen, npass, u0, v0, 1);
         
                 
     otherwise
