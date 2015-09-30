@@ -74,17 +74,24 @@ for jj = 1:nc
     for ii = 1:nr
    
         % get sample and interrogation windows
-        [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen);               
-        [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen);
+        [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen); %#ok!                
+        [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen); %#ok!
         
-        % debug {
-        figure(1)
-        show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-        % } debug
+        % % debug {
+        % figure(1)
+        % show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+        % % } debug
         
         % compute normalized cross-correlation
-        
-        % find integer displacement
+        xcr = normxcorr2(samp, intr);
+                
+        % find displacement from integer position of the correlation max
+        %   - account for padding (samplen)
+        %   - account for relative position of interogation and sample
+        %     windows ( (intrlen-samplen)/2 )
+        [rpeak, cpeak] = find(xcr == max(xcr(:)));
+        uu(ii, jj) = cpeak-samplen-(intrlen-samplen)/2;
+        vv(ii, jj) = rpeak-samplen-(intrlen-samplen)/2;
         
     end
 end
@@ -276,16 +283,23 @@ fprintf('u0: %i\n', v0);
 
 end
 
-function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec)
+function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec) %#ok!
+% function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec)
 %
 % Display the sample and interrogation windows, as well as their position
 %
 % Arguments:
 %
-%   img
-%   swin, iwin
-%   spos, ipos
-%   sec
+%   img0, img1 = 2D matrix, double, initial and final images
+%
+%   swin, iwin = 2D matrix, double, sample and interrogation windows
+%
+%   spos, ipos = Vector, length == 4, integer, position vectors for sample
+%       and interrogation windows, formatted as [left, bottom, width,
+%       height] in pixel coordinates
+%
+%   sec = Scalar, double, duration to pause between samples, default is to
+%       wait for user button press
 % %
 
 % set defaults
