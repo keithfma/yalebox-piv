@@ -74,6 +74,10 @@ vv = v0*ones(nr, nc);
 % loop over passes
 for pp = 1:npass
     
+    % debug {
+    fprintf('pass %i of %i\n', pp, npass);
+    % } debug
+    
     % loop over sample grid
     for jj = 1:nc
         for ii = 1:nr
@@ -83,10 +87,12 @@ for pp = 1:npass
             [intr, intr_pos] = get_win(fin, rr(ii)+vv(ii, jj), ...
                 cc(jj)+uu(ii, jj), intrlen);
             
-            % % debug {
-            % figure(1)
-            % show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-            % % } debug
+            % debug {
+            if pp == 2
+                figure(1)
+                show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+            end
+            % } debug
             
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
@@ -109,8 +115,13 @@ for pp = 1:npass
         end % ii
     end % jj
     
-    keyboard
+    % % validate, replace, and smooth displacement vectors
+    % [uu, vv] = pppiv(uu, vv, 'nosmoothing');
     
+%     % debug {
+%     keyboard
+%     % } debug
+
 end % pp
 
 % convert displacements to world coordinates (assumes constant grid spacing)
@@ -121,9 +132,9 @@ vv = vv.*(yy(2)-yy(1));
 xx = interp1(1:size(ini,2), xx, cc);
 yy = interp1(1:size(ini,1), yy, rr);
 
-% debug {
-keyboard
-% } debug
+% % debug {
+% keyboard
+% % } debug
 
 end
 

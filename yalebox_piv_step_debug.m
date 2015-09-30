@@ -1,4 +1,4 @@
-function [] = yalebox_piv_step_debug(test_case)
+function [uu, vv] = yalebox_piv_step_debug(test_case)
 % Run yalebox_piv_step for one of several debugging test cases.
 %
 % test_case = Scalar, integer. Select test case:
@@ -30,7 +30,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 3;
+        npass = 2;
         u0 = 0;
         v0 = 0;
         
@@ -55,7 +55,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 1;
+        npass = 2;
         u0 = 0;
         v0 = 0;
         
@@ -118,9 +118,9 @@ rmpath(test_synth_create);
 rmpath(test_wedge_data);
 rmpath(test_wedge_prep);
 
-% debug {
-keyboard
-% } debug
+% % debug {
+% keyboard
+% % } debug
 
 end
 
