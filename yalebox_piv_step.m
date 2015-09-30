@@ -101,10 +101,11 @@ for jj = 1:nc
     end
 end
 
-% debug {
-xx = 0;
-yy = 0;
-% } debug 
+% interpolate world coordinates for displacement vectors
+xx = interp1(1:size(ini,2), xx, cc);
+yy = interp1(1:size(ini,1), yy, rr);
+
+% convert displacements to world coordinates
 
 keyboard
 
