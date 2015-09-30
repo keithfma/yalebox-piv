@@ -17,8 +17,8 @@ switch test_case
     case 1
         
         % define case parameters
-        uconst = 10; 
-        vconst = 10;        
+        uconst = 11; 
+        vconst = 9;        
         samplen = 30;
         sampspc = 15;
         intrlen = 60;

@@ -74,8 +74,8 @@ for jj = 1:nc
     for ii = 1:nr
    
         % get sample and interrogation windows
-        [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen); %#ok!                
-        [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen); %#ok!
+        [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen); 
+        [intr, intr_pos] = get_win(fin, rr(ii), cc(jj), intrlen); 
         
         % % debug {
         % figure(1)
@@ -84,14 +84,16 @@ for jj = 1:nc
         
         % compute normalized cross-correlation
         xcr = normxcorr2(samp, intr);
-                
-        % find displacement from integer position of the correlation max
-        %   - account for padding (samplen)
-        %   - account for relative position of interogation and sample
-        %     windows ( (intrlen-samplen)/2 )
+        
+        % find correlation plane max
         [rpeak, cpeak] = find(xcr == max(xcr(:)));
-        uu(ii, jj) = cpeak-samplen-(intrlen-samplen)/2;
-        vv(ii, jj) = rpeak-samplen-(intrlen-samplen)/2;
+        
+        % find displacement from position of the correlation max
+        %   - account for padding (-samplen)
+        %   - account for relative position of interogation and sample
+        %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))         
+        uu(ii, jj) = cpeak-samplen-(samp_pos(1)-intr_pos(1));
+        vv(ii, jj) = rpeak-samplen-(samp_pos(2)-intr_pos(2));
         
     end
 end
@@ -219,7 +221,7 @@ c0 = floor(ccnt-hlen);
 c1 =  ceil(ccnt+hlen);
 
 % generate position vector for output
-pos = [c0, r0, c1-c0, r1-r0];
+pos = [c0, r0, c1-c0+1, r1-r0+1];
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
@@ -318,11 +320,11 @@ set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
 plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
-plot([spos(1), spos(1)+spos(3), spos(1)+spos(3), spos(1)        , spos(1)], ...
-     [spos(2), spos(2)        , spos(2)+spos(4), spos(2)+spos(4), spos(2)], ...
+plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
+     [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
-plot([ipos(1), ipos(1)+ipos(3), ipos(1)+ipos(3), ipos(1)        , ipos(1)], ...
-     [ipos(2), ipos(2)        , ipos(2)+ipos(4), ipos(2)+ipos(4), ipos(2)], ...
+plot([ipos(1), ipos(1)+ipos(3)-1, ipos(1)+ipos(3)-1, ipos(1)          , ipos(1)], ...
+     [ipos(2), ipos(2)          , ipos(2)+ipos(4)-1, ipos(2)+ipos(4)-1, ipos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
 title('initial image');
 legend({'center', 'sample', 'interrogation'}, 'Location', 'NorthEast');
@@ -337,11 +339,11 @@ set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
 plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
-plot([spos(1), spos(1)+spos(3), spos(1)+spos(3), spos(1)        , spos(1)], ...
-     [spos(2), spos(2)        , spos(2)+spos(4), spos(2)+spos(4), spos(2)], ...
+plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
+     [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
-plot([ipos(1), ipos(1)+ipos(3), ipos(1)+ipos(3), ipos(1)        , ipos(1)], ...
-     [ipos(2), ipos(2)        , ipos(2)+ipos(4), ipos(2)+ipos(4), ipos(2)], ...
+plot([ipos(1), ipos(1)+ipos(3)-1, ipos(1)+ipos(3)-1, ipos(1)          , ipos(1)], ...
+     [ipos(2), ipos(2)          , ipos(2)+ipos(4)-1, ipos(2)+ipos(4)-1, ipos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
 title('final image');
 legend({'center', 'sample', 'interrogation'}, 'Location', 'NorthEast');
