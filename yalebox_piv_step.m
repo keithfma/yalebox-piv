@@ -77,8 +77,8 @@ for jj = 1:nc
         samp = get_win(ini, rr(ii), cc(jj), samplen);               
         intr = get_win(fin, rr(ii), cc(jj), intrlen);
         
-        % debug: show windows {
-        
+        % debug {
+        show_samp_intr_win()
         % } debug
         
         % compute normalized cross-correlation
