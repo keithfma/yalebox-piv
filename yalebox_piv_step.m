@@ -84,7 +84,7 @@ for jj = 1:nc
         
         % compute normalized cross-correlation
         xcr = normxcorr2(samp, intr);
-        
+ 
         % % find correlation plane max, integer pixel precision
         % [rpeak, cpeak] = find(xcr == max(xcr(:)));
         

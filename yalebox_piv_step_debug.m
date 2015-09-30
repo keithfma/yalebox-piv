@@ -76,12 +76,12 @@ switch test_case
         fin_file = 'fault_ss_01_sidef_251.png';
         coord_file = 'fault_ss_01_sidef_coords.mat';
         samplen = 30;
-        sampspc = 15;
-        intrlen = 60;
+        sampspc = 30;
+        intrlen = 90;
         u0 = 0;
         v0 = 0;
         
-        % prepare images
+        % load images
         ini = imread(ini_file);
         ini = rgb2hsv(ini);
         ini = ini(:,:,3);
@@ -89,6 +89,11 @@ switch test_case
         fin = imread(fin_file);
         fin = rgb2hsv(fin);
         fin = fin(:,:,3);
+        
+        % bug fix: add a tiny bit of noise to avoid the following error:
+        %   "The values of TEMPLATE cannot all be the same."
+        ini = max(0, min(1, ini+1e-6*(rand(size(ini))-0.5)));
+        fin = max(0, min(1, fin+1e-6*(rand(size(fin))-0.5)));        
         
         % load coordinates
         load(coord_file, 'x', 'y');
