@@ -64,6 +64,9 @@ if verbose
     print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0);
 end
 
+% init coordinates for full image
+[cc0, rr0] = meshgrid(1:size(ini,2), 1:size(ini, 1));
+
 % init sample grid 
 [rr, cc] = sample_grid(samplen, sampspc, size(ini));
 nr = length(rr);
@@ -79,6 +82,16 @@ for pp = 1:npass
     % debug {
     fprintf('pass %i of %i\n', pp, npass);
     % } debug
+    
+    % interpolate displacement vectors to full resolution
+    uu0 = interp2(cc, rr, uu, cc0, rr0, 'spline');
+    vv0 = interp2(cc, rr, vv, cc0, rr0, 'spline');
+    
+    % deform images
+    defm_ini = imwarp(ini,  cat(3, uu0, vv0)/2);
+    defm_fin = imwarp(fin,  -cat(3, uu0, vv0)/2);
+    
+    keyboard
     
     % loop over sample grid
     for jj = 1:nc
