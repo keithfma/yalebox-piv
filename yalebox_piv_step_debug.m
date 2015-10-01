@@ -30,7 +30,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 2;
+        npass = 3;
         u0 = 0;
         v0 = 0;
         

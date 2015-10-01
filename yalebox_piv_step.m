@@ -115,16 +115,12 @@ for pp = 1:npass
         end % ii
     end % jj
         
-    % drop invalid displacement vectors
-    % debug {
-    epsilon = 0.1;
-    max_norm_res = 2;
-    % } debug
-    drop = validate_normalized_median(uu, vv, max_norm_res, epsilon);
+    % find and drop invalid displacement vectors
+    drop = validate_normalized_median(uu, vv);
     uu(drop) = NaN;
     vv(drop) = NaN;
     
-    % smooth and replace invalid vectors (DCT-PLS)
+    % validate, smooth, and interpolate (DCT-PLS)
     [uu, vv] = pppiv(uu, vv);
     
 %     % debug {
@@ -298,9 +294,10 @@ function [rpk, cpk] = get_peak_centroid(xcor)
 %
 % Arguments:
 %
-%   xcor
+%   xcor = 2D matrix, double, cross correlation plane, as produced by normxcorr2
 %
-%   rpk, cpk
+%   rpk, cpk = Scalar, double, row and column coordinates of the correlation
+%       plane maximum, at subpixel precision
 % %
 
 % peak location with integer precision
@@ -322,6 +319,24 @@ function invalid = validate_normalized_median(uu, vv, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test. See
 % reference [3] for details.
+%
+% Arguments:
+%
+%   uu, vv = 2D matrix, double, displacement vector components
+%
+%   max_norm_res = Scalar, double, maximum value foe the normalized residual,
+%       above which a vector is flagged as invalid. Refernence [3] reccomends a
+%       value of 2.
+%
+%   epsilon = Scalar, double, minumum value of the normalization factor.
+%       Reference [3] reccomends a value of 0.1.
+%
+%   invalid = 2D matrix, logical, flags identifying all invalid vectors as 1
+% %
+
+% set defaults
+if nargin < 3; max_norm_res = 2; end
+if nargin < 4; epsilon = 0.1; end 
 
 % init
 [nr, nc] = size(uu);
