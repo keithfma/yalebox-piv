@@ -88,42 +88,39 @@ for pp = 1:npass
     vv0 = interp2(cc, rr, vv, cc0, rr0, 'spline');
     
     % deform images
-    defm_ini = imwarp(ini,  cat(3, uu0, vv0)/2);
-    defm_fin = imwarp(fin,  -cat(3, uu0, vv0)/2);
-    
-    keyboard
+    defm_ini = imwarp(ini,  -cat(3, uu0, vv0)/2);
+    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2);
     
     % loop over sample grid
     for jj = 1:nc
         for ii = 1:nr
             
             % get sample and (offset) interrogation windows
-            [samp, samp_pos] = get_win(ini, rr(ii), cc(jj), samplen);
-            [intr, intr_pos] = get_win(fin, rr(ii)+vv(ii, jj), ...
-                cc(jj)+uu(ii, jj), intrlen);
+            [samp, samp_pos] = get_win(defm_ini, rr(ii), cc(jj), samplen);
+            [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen);
             
+            % if pp > 1
             % % debug {
             % figure(1)
-            % show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+            % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
             % % } debug
+            % end
             
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
             
-            if pp == npass
-                % find correlation plane max, subpixel precision
-                [rpeak, cpeak] = get_peak_centroid(xcr);
-            else
-                % find correlation plane max, integer pixel precision
-                [rpeak, cpeak] = find(xcr == max(xcr(:)));             
-            end
+            % find correlation plane max, subpixel precision
+            [rpeak, cpeak] = get_peak_centroid(xcr);
             
             % find displacement from position of the correlation max
             %   - account for padding (-samplen)
             %   - account for relative position of interogation and sample
             %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-            uu(ii, jj) = cpeak-samplen-(samp_pos(1)-intr_pos(1));
-            vv(ii, jj) = rpeak-samplen-(samp_pos(2)-intr_pos(2));
+            delta_uu = cpeak-samplen-(samp_pos(1)-intr_pos(1));
+            delta_vv = rpeak-samplen-(samp_pos(2)-intr_pos(2));
+            
+            uu(ii, jj) = uu(ii, jj)+delta_uu;
+            vv(ii, jj) = vv(ii, jj)+delta_vv;
             
         end % ii
     end % jj
@@ -136,9 +133,9 @@ for pp = 1:npass
     % validate, smooth, and interpolate (DCT-PLS)
     [uu, vv] = pppiv(uu, vv);
     
-%     % debug {
-%     keyboard
-%     % } debug
+    % % debug {
+    % keyboard
+    % % } debug
 
 end % pp
 
