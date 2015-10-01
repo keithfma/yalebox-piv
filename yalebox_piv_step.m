@@ -54,6 +54,8 @@ function [xx, yy, uu, vv] = ...
 % [2] Wereley, S. T. (2001). Adaptive Second-Order Accurate Particle Image
 %   Velocimetry, 31
 %
+% [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
+%   data. Experiments in Fluids, 39(6), 1096–1100. doi:10.1007/s00348-005-0016-6
 
 % parse inputs
 check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0, verbose);
@@ -87,12 +89,10 @@ for pp = 1:npass
             [intr, intr_pos] = get_win(fin, rr(ii)+vv(ii, jj), ...
                 cc(jj)+uu(ii, jj), intrlen);
             
-            % debug {
-            if pp == 2
-                figure(1)
-                show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-            end
-            % } debug
+            % % debug {
+            % figure(1)
+            % show_win(ini, fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+            % % } debug
             
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
@@ -114,9 +114,18 @@ for pp = 1:npass
             
         end % ii
     end % jj
+        
+    % drop invalid displacement vectors
+    % debug {
+    epsilon = 0.1;
+    max_norm_res = 2;
+    % } debug
+    drop = validate_normalized_median(uu, vv, max_norm_res, epsilon);
+    uu(drop) = NaN;
+    vv(drop) = NaN;
     
-    % % validate, replace, and smooth displacement vectors
-    % [uu, vv] = pppiv(uu, vv, 'nosmoothing');
+    % smooth and replace invalid vectors (DCT-PLS)
+    [uu, vv] = pppiv(uu, vv);
     
 %     % debug {
 %     keyboard
@@ -306,6 +315,56 @@ xcor_nbr = xcor(rpk_nbr, cpk_nbr);
 % compute centroid
 rpk = sum(rpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:)); 
 cpk = sum(cpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:));
+
+end
+
+function invalid = validate_normalized_median(uu, vv, max_norm_res, epsilon)
+%
+% Validate the displacement vector field using a normalized median test. See
+% reference [3] for details.
+
+% init
+[nr, nc] = size(uu);
+invalid = false(nr, nc);
+roffset = [ 1,  1,  1,  0,  0, -1, -1, -1];
+coffset = [-1,  0,  1, -1,  1, -1,  0,  1];
+
+% loop over all displacement vectors
+for ii = 1:nr
+    for jj = 1:nc
+        
+        % get linear indices of 8 (or less) neighbors
+        rnbr = max(1, min(nr, ii+roffset));
+        cnbr = max(1, min(nc, ii+coffset));
+        knbr = rnbr+(cnbr-1)*nr;
+        
+        % extract displacements for center and neighbors
+        u0 = uu(ii, jj);
+        v0 = vv(ii, jj);
+        unbr = uu(knbr);
+        vnbr = vv(knbr);
+        
+        % compute neighbor median, residual, and median residual 
+        med_unbr = median(unbr);
+        res_unbr = abs(unbr-med_unbr);
+        med_res_unbr = median(res_unbr);
+        
+        med_vnbr = median(vnbr);
+        res_vnbr = abs(vnbr-med_vnbr);
+        med_res_vnbr = median(res_vnbr);
+        
+        % compute center normalized residual
+        norm_res_u0 = abs(u0-med_unbr)/(med_res_unbr+epsilon);
+        norm_res_v0 = abs(v0-med_vnbr)/(med_res_vnbr+epsilon);
+        
+        % combine vector components (max or sum)
+        norm_res = max(norm_res_u0, norm_res_v0);
+        
+        % classify as valid or invalid
+        invalid(ii, jj) = norm_res > max_norm_res;
+        
+    end
+end
 
 end
 

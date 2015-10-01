@@ -55,7 +55,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 2;
+        npass = 3;
         u0 = 0;
         v0 = 0;
         
@@ -118,9 +118,9 @@ rmpath(test_synth_create);
 rmpath(test_wedge_data);
 rmpath(test_wedge_prep);
 
-% % debug {
-% keyboard
-% % } debug
+% debug {
+keyboard
+% } debug
 
 end
 
