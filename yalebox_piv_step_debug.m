@@ -42,6 +42,7 @@ switch test_case
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
         print_err_qnt(uu_err, vv_err);
+        show_err(uu_err, vv_err);
         
     case 2
         
@@ -71,6 +72,7 @@ switch test_case
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
         print_err_qnt(uu_err, vv_err);
+        show_err(uu_err, vv_err);
         
     case 3
         
@@ -168,5 +170,29 @@ fprintf('\n');
 
 end
 
+function [] = show_err(uerr, verr)
+%
+% Display a quick plot of the error matrices
+ 
+figure('units', 'normalized', 'position', [0.05, 0.3, 0.9, 0.5]);
 
+subplot(1, 3, 1)
+imagesc(uerr);
+set(gca, 'YDir', 'normal');
+colorbar
+title('uu error')
+
+subplot(1, 3, 2)
+imagesc(verr);
+set(gca, 'YDir', 'normal');
+colorbar
+title('vv error')
+
+subplot(1, 3, 3)
+imagesc(sqrt(uerr.^2+verr.^2));
+set(gca, 'YDir', 'normal');
+colorbar
+title('error magnitude')
+
+end
 
