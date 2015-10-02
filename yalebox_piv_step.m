@@ -88,8 +88,8 @@ for pp = 1:npass
     vv0 = interp2(cc, rr, vv, cc0, rr0, 'spline');
     
     % deform images (does nothing if uu0 and vv0 are 0)
-    defm_ini = imwarp(ini,  -cat(3, uu0, vv0)/2);
-    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2);   
+    defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
+    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);   
     
     % loop over sample grid
     for jj = 1:nc
@@ -108,16 +108,16 @@ for pp = 1:npass
                 continue
             end
             
-            % % debug {
-            % figure(1)
-            % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-            % % } debug
-            
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
             
             % find correlation plane max, subpixel precision
             [rpeak, cpeak] = get_peak_centroid(xcr);
+           
+             % debug {
+            figure(1)
+            show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+            % } debug
             
             % find displacement from position of the correlation max
             %   - account for padding (-samplen)
@@ -125,7 +125,7 @@ for pp = 1:npass
             %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
             delta_uu = cpeak-samplen-(samp_pos(1)-intr_pos(1));
             delta_vv = rpeak-samplen-(samp_pos(2)-intr_pos(2));
-            
+           
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
             
@@ -441,8 +441,8 @@ fprintf('valid_eps: %f\n', valid_eps);
 
 end
 
-function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec) %#ok!
-% function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec)
+function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos) 
+% function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos)
 %
 % Display the sample and interrogation windows, as well as their position
 %
@@ -455,15 +455,8 @@ function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos, sec) %#ok!
 %   spos, ipos = Vector, length == 4, integer, position vectors for sample
 %       and interrogation windows, formatted as [left, bottom, width,
 %       height] in pixel coordinates
-%
-%   sec = Scalar, double, duration to pause between samples, default is to
-%       wait for user button press
 % %
 
-% set defaults
-if nargin < 9
-    sec = [];
-end
 
 % init figure
 clim = [min(img0(:)), max(img0(:))];
@@ -507,7 +500,6 @@ hold off
 axis equal
 axis tight
 
-
 % plot sample window
 subplot(2, 2, 3);
 imagesc(swin);
@@ -527,12 +519,5 @@ title('interrogation window')
 axis equal
 axis tight
 grid on
-
-% wait for user, or pause for predetermined duration
-if isempty(sec)
-    pause
-else 
-    pause(sec)
-end
  
 end
