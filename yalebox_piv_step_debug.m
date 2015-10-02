@@ -8,25 +8,20 @@ function [uu, vv] = yalebox_piv_step_debug(test_case)
 %
 % %
 
-% define paths to dependencies
-test_synth_create = 'test/synth/create';
-test_wedge_data = 'test/wedge/data';
-test_wedge_prep = 'test/wedge/prep';
-
-% initialize
-validateattributes(test_case, {'numeric'}, {'scalar', 'integer'});
-addpath(test_synth_create);
-addpath(test_wedge_data);
-addpath(test_wedge_prep);
+% setup environment
+addpath('test/synth');
+addpath('test/wedge');
 
 switch test_case
     
     case 1
         
-        % define case parameters
+        % case parameters
         template = 'fault_ss_01_sidef_251_template.png';
         uconst = 11; 
         vconst = 9;        
+        
+        % piv parameters
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
@@ -48,10 +43,12 @@ switch test_case
         
     case 2
         
-        % define case parameters
+        % case parameters
         template = 'fault_ss_01_sidef_251_template.png';
         gamma = 0.05;
         dir = 2;
+        
+        % piv parameters
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
@@ -73,10 +70,10 @@ switch test_case
         
     case 3
         
-        % define case parameters
-        ini_file = 'fault_ss_01_sidef_250.png';
-        fin_file = 'fault_ss_01_sidef_251.png';
-        coord_file = 'fault_ss_01_sidef_coords.mat';
+        % case parameters
+        data_file = 'fault_ss_01_sidef_250_251.mat';
+        
+        % piv parameters
         samplen = 30;
         sampspc = 30;
         intrlen = 90;
@@ -84,39 +81,27 @@ switch test_case
         u0 = 0;
         v0 = 0;
         
-        % load images
-        ini = imread(ini_file);
-        ini = rgb2hsv(ini);
-        ini = ini(:,:,3);
-        
-        fin = imread(fin_file);
-        fin = rgb2hsv(fin);
-        fin = fin(:,:,3);
+        % load wedge data
+        load(data_file, 'xx', 'yy', 'ini', 'fin');
+        xx0 = xx; %#ok!
+        yy0 = yy; %#ok!
         
         % bug fix: add a tiny bit of noise to avoid the following error:
         %   "The values of TEMPLATE cannot all be the same."
-        ini = max(0, min(1, ini+1e-6*(rand(size(ini))-0.5)));
-        fin = max(0, min(1, fin+1e-6*(rand(size(fin))-0.5)));        
+        ini = max(0, min(1, ini+1e-3*(rand(size(ini))-0.5)));
+        fin = max(0, min(1, fin+1e-3*(rand(size(fin))-0.5)));           
         
-        % load coordinates
-        load(coord_file, 'x', 'y');
-        xx0 = x; clear x;
-        yy0 = y; clear y;
-        
-
         % run piv
         [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, u0, v0, 1);
-        
+                               sampspc, intrlen, npass, u0, v0, 1);        
                 
     otherwise
         error('Invalid test case selected');
 end
 
-% cleanup
-rmpath(test_synth_create);
-rmpath(test_wedge_data);
-rmpath(test_wedge_prep);
+% cleanup environment
+addpath('test/synth/create');
+addpath('test/wedge/prep');
 
 % debug {
 keyboard
