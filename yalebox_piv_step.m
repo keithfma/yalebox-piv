@@ -114,10 +114,13 @@ for pp = 1:npass
             % find correlation plane max, subpixel precision
             [rpeak, cpeak] = get_peak_centroid(xcr);
            
-             % debug {
-            figure(1)
-            show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-            % } debug
+%              % debug {
+%             figure(1)
+%             show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+%             figure(2)
+%             show_xcor(xcr, rpeak, cpeak);
+%             pause            
+%             % } debug
             
             % find displacement from position of the correlation max
             %   - account for padding (-samplen)
@@ -520,4 +523,19 @@ axis equal
 axis tight
 grid on
  
+end
+
+function [] = show_xcor(xcor, rpk, cpk)
+% plot correlation plane with the position of the peak
+
+imagesc(xcor);
+set(gca, 'YDir', 'normal');
+caxis([-1 1]);
+colorbar
+hold on
+plot(cpk, rpk, 'Color', 'k', 'Marker', '*')
+title('cross-correlation');
+hold off
+axis equal
+axis tight
 end
