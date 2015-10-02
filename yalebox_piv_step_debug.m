@@ -41,6 +41,7 @@ switch test_case
         % analyze results
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
+        print_err_qnt(uu_err, vv_err);
         
     case 2
         
@@ -53,7 +54,7 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 10;       
+        npass = 3;       
         valid_max = 2;
         valid_eps = 0.01;
         
@@ -69,6 +70,7 @@ switch test_case
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
         vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
+        print_err_qnt(uu_err, vv_err);
         
     case 3
         
@@ -115,6 +117,7 @@ end
 %% subroutines
 
 function err = get_err(x0, y0, z0, x1, y1, z1)
+% function err = get_err(x0, y0, z0, x1, y1, z1)
 %
 % Interpolate exact solution to the computed solution, and take the
 % difference.
@@ -139,3 +142,31 @@ z0i = interp2(x0, y0, z0, x1i, y1i);
 err = z0i-z1;
 
 end
+
+function [] = print_err_qnt(uerr, verr)
+%
+% Print a table of absolute error quantiles 
+%
+% Arguments:
+% 
+%   uerr, verr = Double, error matrix, difference between exact and approximate
+%       solutions for displacement in the x- and y-directions
+% %   
+
+qnt = 0:0.10:1;
+qu = quantile(abs(uerr(:)), qnt);
+qv = quantile(abs(verr(:)), qnt);
+qm = quantile(sqrt(uerr(:).^2+verr(:).^2), qnt);
+
+fprintf('displacement vector error quantiles\n');
+fprintf('qnt\t| uu\t\t| vv\t\t| mag\n'); 
+for i = 1:length(qnt)
+    fprintf('%.2f\t| %.2e\t| %.2e\t| %.2e\n', ...
+        qnt(i), qu(i), qv(i), qm(i));
+end
+fprintf('\n');
+
+end
+
+
+
