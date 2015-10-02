@@ -25,9 +25,9 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 3;
+        npass = 5;
         valid_max = 2;
-        valid_eps = 0.01;
+        valid_eps = 0.1;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...
@@ -55,9 +55,9 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 3;       
+        npass = 5;       
         valid_max = 2;
-        valid_eps = 0.01;
+        valid_eps = 0.1;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...

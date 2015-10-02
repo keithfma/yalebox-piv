@@ -368,7 +368,7 @@ for ii = 1:nr
         
         % get linear indices of 8 (or less) neighbors
         rnbr = max(1, min(nr, ii+roffset));
-        cnbr = max(1, min(nc, ii+coffset));
+        cnbr = max(1, min(nc, jj+coffset));
         knbr = rnbr+(cnbr-1)*nr;
         
         % extract displacements for center and neighbors
