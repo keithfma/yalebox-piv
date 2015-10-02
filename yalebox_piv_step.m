@@ -100,9 +100,9 @@ for pp = 1:npass
             [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen);
             
             % skip if:
-            %   - sample window is <50% full
+            %   - sample window is <80% full
             %   - interrogation window is empty 
-            if sum(samp(:) == 0) > 0.50*nr*nc || all(intr(:) == 0)
+            if sum(samp(:) == 0) > 0.20*nr*nc || all(intr(:) == 0)
                 uu(ii, jj) = NaN;
                 vv(ii, jj) = NaN;
                 continue

@@ -56,7 +56,7 @@ switch test_case
         sampspc = 15;
         intrlen = 60;
         npass = 5;       
-        valid_max = 2;
+        valid_max = 3;
         valid_eps = 0.1;
         
         % create input variables
