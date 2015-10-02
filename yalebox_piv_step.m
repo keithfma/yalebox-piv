@@ -133,7 +133,7 @@ for pp = 1:npass
     end % jj
         
     % find and drop invalid displacement vectors
-    drop = validate_normalized_median(uu, vv, 2, 0.01);
+    drop = validate_normalized_median(uu, vv, valid_max, valid_eps);
     uu(drop) = NaN;
     vv(drop) = NaN;
     
