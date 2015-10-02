@@ -17,7 +17,7 @@ switch test_case
     case 1
         
         % case parameters
-        template = 'fault_ss_01_sidef_251_template.png';
+        template = 'template_fault_ss_01_sidef_251.png';
         uconst = 11; 
         vconst = 9;        
         
@@ -26,8 +26,8 @@ switch test_case
         sampspc = 15;
         intrlen = 60;
         npass = 3;
-        u0 = 0;
-        v0 = 0;
+        valid_max = 2;
+        valid_eps = 0.01;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...
@@ -35,7 +35,8 @@ switch test_case
         
         % run piv
         [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, u0, v0, 1);
+                               sampspc, intrlen, npass, valid_max, ...
+                               valid_eps, 1);
         
         % analyze results
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
@@ -44,7 +45,7 @@ switch test_case
     case 2
         
         % case parameters
-        template = 'fault_ss_01_sidef_251_template.png';
+        template = 'template_fault_ss_01_sidef_251.png';
         gamma = 0.05;
         dir = 2;
         
@@ -52,9 +53,9 @@ switch test_case
         samplen = 30;
         sampspc = 15;
         intrlen = 60;
-        npass = 5;
-        u0 = 0;
-        v0 = 0;
+        npass = 10;       
+        valid_max = 2;
+        valid_eps = 0.01;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...
@@ -62,7 +63,8 @@ switch test_case
 
         % run piv
         [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, u0, v0, 1);
+                               sampspc, intrlen, npass, valid_max, ...
+                               valid_eps, 1);
                            
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
@@ -78,8 +80,8 @@ switch test_case
         sampspc = 30;
         intrlen = 90;
         npass = 3;
-        u0 = 0;
-        v0 = 0;
+        valid_max = 2;
+        valid_eps = 0.01;
         
         % load wedge data
         load(data_file, 'xx', 'yy', 'ini', 'fin');
@@ -93,15 +95,16 @@ switch test_case
         
         % run piv
         [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, u0, v0, 1);        
+                               sampspc, intrlen, npass, valid_max, ...
+                               valid_eps, 1);      
                 
     otherwise
         error('Invalid test case selected');
 end
 
 % cleanup environment
-addpath('test/synth/create');
-addpath('test/wedge/prep');
+addpath('test/synth');
+addpath('test/wedge');
 
 % debug {
 keyboard

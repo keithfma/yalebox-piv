@@ -1,9 +1,6 @@
 function [xx, yy, uu, vv] = ...
-    yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0, verbose)
-%
-% function [xx, yy, uu, vv] = ...
-%     yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, u0, v0. verbose)
-%
+    yalebox_piv_step(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
+                     npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -29,11 +26,12 @@ function [xx, yy, uu, vv] = ...
 %
 %   npass = Scalar, integer, number of passes 
 %
-%   u0 = Scalar (PLANNED: or 2D matrix), integer, initial guess for x-direction
-%       displacement, units are [pixels]
+%   valid_max = Scalar, double, maximum value for the normalized residual
+%       in the vector validation function, above which a vector is flagged
+%       as invalid. Ref [3] reccomends a value of 2.
 %
-%   v0 = Scalar (PLANNED: or 2D matrix), integer, initial guess for y-direction
-%       displacement, units are [pixels]
+%   epsilon = Scalar, double, minumum value of the normalization factor in
+%       the vector validation function. Ref [3] reccomends a value of 0.1.
 %
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
@@ -55,13 +53,15 @@ function [xx, yy, uu, vv] = ...
 %   Velocimetry, 31
 %
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
-%   data. Experiments in Fluids, 39(6), 1096–1100. doi:10.1007/s00348-005-0016-6
+%   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
 % parse inputs
-check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0, verbose);
+check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
+    valid_max, valid_eps, verbose);
 if verbose
     print_sep('Input Arguments');
-    print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0);
+    print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
+        valid_max, valid_eps);
 end
 
 % init coordinates for full image
@@ -72,9 +72,9 @@ end
 nr = length(rr);
 nc = length(cc);
 
-% init displacements
-uu = u0*ones(nr, nc); % set to  initial guess
-vv = v0*ones(nr, nc); 
+% init displacements as zero
+uu = zeros(nr, nc); 
+vv = zeros(nr, nc); 
 
 % loop over passes
 for pp = 1:npass
@@ -83,13 +83,13 @@ for pp = 1:npass
     fprintf('pass %i of %i\n', pp, npass);
     % } debug
     
-    % interpolate displacement vectors to full resolution
+    % interpolate/extrapolate displacement vectors to full image resolution
     uu0 = interp2(cc, rr, uu, cc0, rr0, 'spline');
     vv0 = interp2(cc, rr, vv, cc0, rr0, 'spline');
     
-    % deform images
+    % deform images (does nothing if uu0 and vv0 are 0)
     defm_ini = imwarp(ini,  -cat(3, uu0, vv0)/2);
-    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2);
+    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2);   
     
     % loop over sample grid
     for jj = 1:nc
@@ -99,12 +99,19 @@ for pp = 1:npass
             [samp, samp_pos] = get_win(defm_ini, rr(ii), cc(jj), samplen);
             [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen);
             
-            % if pp > 1
+            % skip if:
+            %   - sample window is <50% full
+            %   - interrogation window is empty 
+            if sum(samp(:) == 0) > 0.50*nr*nc || all(intr(:) == 0)
+                uu(ii, jj) = NaN;
+                vv(ii, jj) = NaN;
+                continue
+            end
+            
             % % debug {
             % figure(1)
             % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
             % % } debug
-            % end
             
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
@@ -126,7 +133,7 @@ for pp = 1:npass
     end % jj
         
     % find and drop invalid displacement vectors
-    drop = validate_normalized_median(uu, vv);
+    drop = validate_normalized_median(uu, vv, 2, 0.01);
     uu(drop) = NaN;
     vv(drop) = NaN;
     
@@ -156,7 +163,7 @@ end
 %% computational subroutines
 
 function [] = check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
-                  npass, u0, v0, verbose)
+                  npass, valid_max, valid_eps, verbose)
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
               
@@ -192,13 +199,13 @@ validateattributes(intrlen, ...
 validateattributes(npass, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
     mfilename, 'npass');
 
-validateattributes(u0, ...
-    {'double'}, {'scalar'}, ...
-    mfilename, 'u0');
+validateattributes(valid_max, ...
+    {'double'}, {'scalar', 'positive'}, ...
+    mfilename, 'valid_max');
 
-validateattributes(v0, ...
-    {'double'}, {'scalar'}, ...
-    mfilename, 'u0');
+validateattributes(valid_eps, ...
+    {'double'}, {'scalar', 'positive'}, ...
+    mfilename, 'valid_eps');
 
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'}, ...
     mfilename, 'verbose');
@@ -328,11 +335,12 @@ end
 function invalid = validate_normalized_median(uu, vv, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test. See
-% reference [3] for details.
+% reference [3] for details. 
 %
 % Arguments:
 %
-%   uu, vv = 2D matrix, double, displacement vector components
+%   uu, vv = 2D matrix, double, displacement vector components. NaNs are
+%       treated as missing values to allow for roi masking.
 %
 %   max_norm_res = Scalar, double, maximum value foe the normalized residual,
 %       above which a vector is flagged as invalid. Refernence [3] reccomends a
@@ -370,13 +378,13 @@ for ii = 1:nr
         vnbr = vv(knbr);
         
         % compute neighbor median, residual, and median residual 
-        med_unbr = median(unbr);
+        med_unbr = nanmedian(unbr);
         res_unbr = abs(unbr-med_unbr);
-        med_res_unbr = median(res_unbr);
+        med_res_unbr = nanmedian(res_unbr);
         
-        med_vnbr = median(vnbr);
+        med_vnbr = nanmedian(vnbr);
         res_vnbr = abs(vnbr-med_vnbr);
-        med_res_vnbr = median(res_vnbr);
+        med_res_vnbr = nanmedian(res_vnbr);
         
         % compute center normalized residual
         norm_res_u0 = abs(u0-med_unbr)/(med_res_unbr+epsilon);
@@ -403,7 +411,8 @@ fprintf('----------\n%s\n', msg);
 
 end
 
-function print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, u0, v0)
+function print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
+                     npass, valid_max, valid_eps)
 % Display values (or a summary of them) for the input arguments
 
 fprintf('ini: size = [%i, %i], fraction data = %.2f%%\n',...
@@ -426,9 +435,9 @@ fprintf('intrlen: %s\n', sprintf('%i  ', intrlen));
 
 fprintf('npass: %i\n', npass);
 
-fprintf('u0: %i\n', u0);
+fprintf('valid_max: %f\n', valid_max);
 
-fprintf('u0: %i\n', v0);
+fprintf('valid_eps: %f\n', valid_eps);
 
 end
 
