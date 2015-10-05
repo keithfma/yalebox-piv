@@ -83,9 +83,19 @@ for pp = 1:npass
     fprintf('pass %i of %i\n', pp, npass);
     % } debug
     
+    % debug: test alternative interpolation/extrapolation methods {
+    %interpMethod = 'linear'; 
+    %extrapMethod = 'linear';
+    interpMethod = 'spline'; 
+    extrapMethod = 'spline';
+    % end debug
+
     % interpolate/extrapolate displacement vectors to full image resolution
-    uu0 = interp2(cc, rr, uu, cc0, rr0, 'spline');
-    vv0 = interp2(cc, rr, vv, cc0, rr0, 'spline');
+    interpolant = griddedInterpolant(repmat(rr(:), 1, nc), ...
+        repmat(cc(:)', nr, 1), uu, interpMethod, extrapMethod);
+    uu0 = interpolant(rr0, cc0);
+    interpolant.Values = vv; 
+    vv0 = interpolant(rr0, cc0);
     
     % deform images (does nothing if uu0 and vv0 are 0)
     defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
@@ -112,9 +122,9 @@ for pp = 1:npass
             xcr = normxcorr2(samp, intr);
             
             % find correlation plane max, subpixel precision            
-            [rpeak, cpeak] = get_peak_centroid8(xcr);
+            % [rpeak, cpeak] = get_peak_centroid8(xcr);
             % [rpeak, cpeak] = get_peak_centroid24(xcr);
-            % [rpeak, cpeak] = get_peak_gauss2d(xcr);
+            [rpeak, cpeak] = get_peak_gauss2d(xcr);
              
 %              % debug {
 %             figure(1)
