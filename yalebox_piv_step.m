@@ -17,14 +17,17 @@ function [xx, yy, uu, vv] = ...
 %   yy = Vector, double, increasing, y-direction coordinate vector, length
 %       must match the rows in ini and fin.
 %
-%   samplen = Scalar, integer, side length of the square sample window
+%   samplen = Vector, length == number of grid resolutions, integer, side
+%       length of the square sample window
 %
-%   sampspc = Scalar, integer, spacing between adjacent sample points in the
-%       (square) sample grid
+%   sampspc = Vector, length == number of grid resolutions, integer,
+%       spacing between adjacent sample points in the (square) sample grid
 %
-%   intrlen = Scalar, integer, side length of the square interrogation window
+%   intrlen = Vector, length == number of grid resolutions, integer, side
+%       length of the square interrogation window
 %
-%   npass = Scalar, integer, number of passes 
+%   npass = Vector, length == number of grid resolutions, integer, number of
+%       image deformation passes
 %
 %   valid_max = Scalar, double, maximum value for the normalized residual
 %       in the vector validation function, above which a vector is flagged
@@ -55,9 +58,13 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
+warning off all
+
 % parse inputs
 check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
     valid_max, valid_eps, verbose);
+
+% report input arguments
 if verbose
     print_sep('Input Arguments');
     print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
@@ -68,7 +75,7 @@ end
 [cc0, rr0] = meshgrid(1:size(ini,2), 1:size(ini, 1));
 
 % init sample grid 
-[rr, cc] = sample_grid(samplen, sampspc, size(ini));
+[rr, cc] = sample_grid(samplen(1), sampspc(1), size(ini));
 nr = length(rr);
 nc = length(cc);
 
@@ -76,94 +83,102 @@ nc = length(cc);
 uu = zeros(nr, nc); 
 vv = zeros(nr, nc); 
 
-% loop over passes
-for pp = 1:npass
+% loop over grid resolutions
+ngrid = length(samplen);
+for gg = 1:ngrid
     
-    % debug {
-    fprintf('pass %i of %i\n', pp, npass);
-    % } debug
-
-    % interpolate/extrapolate displacement vectors to full image resolution
-    interpolant = griddedInterpolant(repmat(rr(:), 1, nc), ...
-        repmat(cc(:)', nr, 1), uu, 'spline', 'spline');
-    uu0 = interpolant(rr0, cc0);
-    interpolant.Values = vv; 
-    vv0 = interpolant(rr0, cc0);
+    % report grid refinement step
+    if verbose
+        print_sep(sprintf('Grid refinement step %i of %i', gg, ngrid));
+    end
     
-    % deform images (does nothing if uu0 and vv0 are 0)
-    defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
-    defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);   
-    
-    % set mask to true
-    mask = true(nr, nc);
-    
-    % loop over sample grid
-    for jj = 1:nc
-        for ii = 1:nr
-            
-            % get sample and (offset) interrogation windows
-            [samp, samp_pos] = get_win(defm_ini, rr(ii), cc(jj), samplen);
-            [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen);
-            
-            % skip if:
-            %   - sample window is <80% full
-            %   - interrogation window is empty 
-            if sum(samp(:) == 0) > 0.20*samplen^2 || all(intr(:) == 0)
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
-                mask(ii, jj) = false;
-                continue
-            end
-            
-            % compute normalized cross-correlation  
-            xcr = normxcorr2(samp, intr);
-            
-            % find correlation plane max, subpixel precision            
-            % [rpeak, cpeak] = get_peak_centroid8(xcr);
-            % [rpeak, cpeak] = get_peak_centroid24(xcr);
-            [rpeak, cpeak, stat] = get_peak_gauss2d(xcr);
-            if stat == false
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
-                continue
-            end
-                
-             
-%              % debug {
-%             figure(1)
-%             show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-%             figure(2)
-%             show_xcor(xcr, rpeak, cpeak);
-%             pause            
-%             % } debug
-            
-            % find displacement from position of the correlation max
-            %   - account for padding (-samplen)
-            %   - account for relative position of interogation and sample
-            %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-            delta_uu = cpeak-samplen-(samp_pos(1)-intr_pos(1));
-            delta_vv = rpeak-samplen-(samp_pos(2)-intr_pos(2));
-
-            uu(ii, jj) = uu(ii, jj)+delta_uu;
-            vv(ii, jj) = vv(ii, jj)+delta_vv;
-
-            
-        end % ii
-    end % jj
+    % loop over image deformation passes
+    for pp = 1:npass(gg)
         
-    % find and drop invalid displacement vectors
-    drop = validate_normalized_median(uu, vv, valid_max, valid_eps);
-    uu(drop) = NaN;
-    vv(drop) = NaN;
+        % report image deformation step
+        if verbose
+            print_sep(sprintf('Image deformation pass %i of %i', pp, npass(gg)));
+        end
+        
+        % interpolate/extrapolate displacement vectors to full image resolution
+        interpolant = griddedInterpolant(repmat(rr(:), 1, nc), ...
+            repmat(cc(:)', nr, 1), uu, 'spline', 'spline');
+        uu0 = interpolant(rr0, cc0);
+        interpolant.Values = vv;
+        vv0 = interpolant(rr0, cc0);
+        
+        % deform images (does nothing if uu0 and vv0 are 0)
+        defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
+        defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
+        
+        % set mask to true
+        mask = true(nr, nc);
+        
+        % loop over sample grid
+        for jj = 1:nc
+            for ii = 1:nr
+                
+                % get sample and (offset) interrogation windows
+                [samp, samp_pos] = get_win(defm_ini, rr(ii), cc(jj), samplen(gg));
+                [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen(gg));
+                
+                % skip if:
+                %   - sample window is <80% full
+                %   - interrogation window is empty
+                if sum(samp(:) == 0) > 0.20*samplen(gg)^2 || all(intr(:) == 0)
+                    uu(ii, jj) = NaN;
+                    vv(ii, jj) = NaN;
+                    mask(ii, jj) = false;
+                    continue
+                end
+                
+                % compute normalized cross-correlation
+                xcr = normxcorr2(samp, intr);
+                
+                % find correlation plane max, subpixel precision
+                [rpeak, cpeak, stat] = get_peak_gauss2d(xcr);
+                if stat == false
+                    uu(ii, jj) = NaN;
+                    vv(ii, jj) = NaN;
+                    continue
+                end
+                
+                % find displacement from position of the correlation max
+                %   - account for padding (-samplen(gg))
+                %   - account for relative position of interogation and sample
+                %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
+                delta_uu = cpeak-samplen(gg)-(samp_pos(1)-intr_pos(1));
+                delta_vv = rpeak-samplen(gg)-(samp_pos(2)-intr_pos(2));
+                
+                uu(ii, jj) = uu(ii, jj)+delta_uu;
+                vv(ii, jj) = vv(ii, jj)+delta_vv;
+                
+                % % debug {
+                % figure(1)
+                % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+                % figure(2)
+                % show_xcor(xcr, rpeak, cpeak);
+                % pause
+                % % } debug
+                
+            end % ii
+        end % jj
+        
+        % find and drop invalid displacement vectors
+        drop = validate_normalized_median(uu, vv, valid_max, valid_eps);
+        uu(drop) = NaN;
+        vv(drop) = NaN;
+        
+        % validate, smooth, and interpolate (DCT-PLS)
+        [uu, vv] = pppiv(uu, vv);
+        
+        % % debug {
+        % keyboard
+        % % } debug
+        
+    end % pp
     
-    % validate, smooth, and interpolate (DCT-PLS)
-    [uu, vv] = pppiv(uu, vv);
-    
-    % % debug {
-    % keyboard
-    % % } debug
-
-end % pp
+end % gg
 
 % re-apply mask
 uu(~mask) = NaN;
@@ -210,18 +225,21 @@ validateattributes(yy, ...
     mfilename, 'yy');
 
 validateattributes(samplen, ...
-    {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan', }, ...
+    {'numeric'}, {'vector', 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'samplen');
 
+ngrid = numel(samplen);
+
 validateattributes(sampspc, ...
-    {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan', }, ...
+    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'sampspc');
 
 validateattributes(intrlen, ...
-    {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan', }, ...
+    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive', 'nonnan', }, ...
     mfilename, 'intrlen');
 
-validateattributes(npass, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
+validateattributes(npass, ...
+    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive'}, ...
     mfilename, 'npass');
 
 validateattributes(valid_max, ...
@@ -327,62 +345,6 @@ win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pt, pl+snc+pr)];  
     
-end
-
-function [rpk, cpk] = get_peak_centroid8(xcor)
-%
-% Find the location of the correlation plane maximum with subpixel
-% precision using a 8-point centroid calculation.
-%
-% Arguments:
-%
-%   xcor = 2D matrix, double, cross correlation plane, as produced by normxcorr2
-%
-%   rpk, cpk = Scalar, double, row and column coordinates of the correlation
-%       plane maximum, at subpixel precision
-% %
-
-% peak location with integer precision
-[rpk_int, cpk_int] = find(xcor == max(xcor(:)));
-
-% extract subscripts and valuesfor 9-point neighborhood, trim to xcor edges 
-rpk_nbr = max(1, rpk_int-1):min(size(xcor,1), rpk_int+1); 
-cpk_nbr = max(1, cpk_int-1):min(size(xcor,2), cpk_int+1);
-xcor_nbr = xcor(rpk_nbr, cpk_nbr);
-[cpk_nbr, rpk_nbr] = meshgrid(cpk_nbr, rpk_nbr);
-
-% compute centroid
-rpk = sum(rpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:)); 
-cpk = sum(cpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:));
-
-end
-
-function [rpk, cpk] = get_peak_centroid24(xcor)
-%
-% Find the location of the correlation plane maximum with subpixel
-% precision using a 24-point centroid calculation.
-%
-% Arguments:
-%
-%   xcor = 2D matrix, double, cross correlation plane, as produced by normxcorr2
-%
-%   rpk, cpk = Scalar, double, row and column coordinates of the correlation
-%       plane maximum, at subpixel precision
-% %
-
-% peak location with integer precision
-[rpk_int, cpk_int] = find(xcor == max(xcor(:)));
-
-% extract subscripts and valuesfor 9-point neighborhood, trim to xcor edges 
-rpk_nbr = max(1, rpk_int-2):min(size(xcor,1), rpk_int+2); 
-cpk_nbr = max(1, cpk_int-2):min(size(xcor,2), cpk_int+2);
-xcor_nbr = xcor(rpk_nbr, cpk_nbr);
-[cpk_nbr, rpk_nbr] = meshgrid(cpk_nbr, rpk_nbr);
-
-% compute centroid
-rpk = sum(rpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:)); 
-cpk = sum(cpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:));
-
 end
 
 function [rpk, cpk, stat] = get_peak_gauss2d(zz)
@@ -565,7 +527,7 @@ fprintf('valid_eps: %f\n', valid_eps);
 
 end
 
-function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos) 
+function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos) %#ok!
 % function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos)
 %
 % Display the sample and interrogation windows, as well as their position
@@ -646,7 +608,7 @@ grid on
  
 end
 
-function [] = show_xcor(xcor, rpk, cpk)
+function [] = show_xcor(xcor, rpk, cpk) %#ok!
 % plot correlation plane with the position of the peak
 
 imagesc(xcor);

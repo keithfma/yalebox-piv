@@ -22,10 +22,10 @@ switch test_case
         vconst = 9;        
         
         % piv parameters
-        samplen = 30;
-        sampspc = 15;
-        intrlen = 60;
-        npass = 5;
+        samplen = [30, 30];
+        sampspc = [15, 15];
+        intrlen = [60, 60];
+        npass = [3, 1];
         valid_max = 2;
         valid_eps = 0.1;
         
