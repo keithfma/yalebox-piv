@@ -82,17 +82,10 @@ for pp = 1:npass
     % debug {
     fprintf('pass %i of %i\n', pp, npass);
     % } debug
-    
-    % debug: test alternative interpolation/extrapolation methods {
-    %interpMethod = 'linear'; 
-    %extrapMethod = 'linear';
-    interpMethod = 'spline'; 
-    extrapMethod = 'spline';
-    % end debug
 
     % interpolate/extrapolate displacement vectors to full image resolution
     interpolant = griddedInterpolant(repmat(rr(:), 1, nc), ...
-        repmat(cc(:)', nr, 1), uu, interpMethod, extrapMethod);
+        repmat(cc(:)', nr, 1), uu, 'spline', 'spline');
     uu0 = interpolant(rr0, cc0);
     interpolant.Values = vv; 
     vv0 = interpolant(rr0, cc0);
@@ -100,6 +93,9 @@ for pp = 1:npass
     % deform images (does nothing if uu0 and vv0 are 0)
     defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
     defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);   
+    
+    % set mask to true
+    mask = true(nr, nc);
     
     % loop over sample grid
     for jj = 1:nc
@@ -112,19 +108,28 @@ for pp = 1:npass
             % skip if:
             %   - sample window is <80% full
             %   - interrogation window is empty 
-            if sum(samp(:) == 0) > 0.20*nr*nc || all(intr(:) == 0)
+            if sum(samp(:) == 0) > 0.20*samplen^2 || all(intr(:) == 0)
                 uu(ii, jj) = NaN;
                 vv(ii, jj) = NaN;
+                mask(ii, jj) = false;
                 continue
             end
             
-            % compute normalized cross-correlation
+            % compute normalized cross-correlation  
             xcr = normxcorr2(samp, intr);
+            % [xcr, npix] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+            % xcr = xcr.*(npix > 0.5*samplen^2); % trim edges with no data
             
             % find correlation plane max, subpixel precision            
             % [rpeak, cpeak] = get_peak_centroid8(xcr);
             % [rpeak, cpeak] = get_peak_centroid24(xcr);
-            [rpeak, cpeak] = get_peak_gauss2d(xcr);
+            [rpeak, cpeak, stat] = get_peak_gauss2d(xcr);
+            if stat == false
+                uu(ii, jj) = NaN;
+                vv(ii, jj) = NaN;
+                continue
+            end
+                
              
 %              % debug {
 %             figure(1)
@@ -140,9 +145,10 @@ for pp = 1:npass
             %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
             delta_uu = cpeak-samplen-(samp_pos(1)-intr_pos(1));
             delta_vv = rpeak-samplen-(samp_pos(2)-intr_pos(2));
-           
+
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
+
             
         end % ii
     end % jj
@@ -161,6 +167,10 @@ for pp = 1:npass
 
 end % pp
 
+% re-apply mask
+uu(~mask) = NaN;
+vv(~mask) = NaN;
+
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
 vv = vv.*(yy(2)-yy(1));
@@ -174,6 +184,8 @@ yy = interp1(1:size(ini,1), yy, rr);
 % % } debug
 
 end
+
+
 
 %% computational subroutines
 
