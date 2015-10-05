@@ -117,8 +117,6 @@ for pp = 1:npass
             
             % compute normalized cross-correlation  
             xcr = normxcorr2(samp, intr);
-            % [xcr, npix] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-            % xcr = xcr.*(npix > 0.5*samplen^2); % trim edges with no data
             
             % find correlation plane max, subpixel precision            
             % [rpeak, cpeak] = get_peak_centroid8(xcr);

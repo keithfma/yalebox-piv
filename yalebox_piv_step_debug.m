@@ -92,11 +92,6 @@ switch test_case
         xx0 = xx; %#ok!
         yy0 = yy; %#ok!
         
-        % % bug fix: add a tiny bit of noise to avoid the following error:
-        % %   "The values of TEMPLATE cannot all be the same."
-        % ini = max(0, min(1, ini+1e-3*(rand(size(ini))-0.5)));
-        % fin = max(0, min(1, fin+1e-3*(rand(size(fin))-0.5)));           
-        
         % run piv
         [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
