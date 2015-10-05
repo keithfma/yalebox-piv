@@ -76,13 +76,6 @@ nc = length(cc);
 uu = zeros(nr, nc); 
 vv = zeros(nr, nc); 
 
-% debug: init peak location grids {
-rpc = zeros(nr, nc);
-cpc = zeros(nr, nc);
-rpg = zeros(nr, nc);
-cpg = zeros(nr, nc);
-% } debug
-
 % loop over passes
 for pp = 1:npass
     
@@ -118,14 +111,11 @@ for pp = 1:npass
             % compute normalized cross-correlation
             xcr = normxcorr2(samp, intr);
             
-            % find correlation plane max, subpixel precision
-            % debug: try two methods { 
-            [rpc(ii, jj), cpc(ii, jj)] = get_peak_centroid(xcr);
-            [rpg(ii, jj), cpg(ii, jj)] = get_peak_gauss2d(xcr);
-            rpeak = rpg(ii, jj);
-            cpeak = cpg(ii, jj);            
-            % } debug 
-           
+            % find correlation plane max, subpixel precision            
+            [rpeak, cpeak] = get_peak_centroid8(xcr);
+            % [rpeak, cpeak] = get_peak_centroid24(xcr);
+            % [rpeak, cpeak] = get_peak_gauss2d(xcr);
+             
 %              % debug {
 %             figure(1)
 %             show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
@@ -155,9 +145,9 @@ for pp = 1:npass
     % validate, smooth, and interpolate (DCT-PLS)
     [uu, vv] = pppiv(uu, vv);
     
-    % debug {
-    keyboard
-    % } debug
+    % % debug {
+    % keyboard
+    % % } debug
 
 end % pp
 
@@ -319,10 +309,10 @@ win = [zeros(pb, pl+snc+pr);
     
 end
 
-function [rpk, cpk] = get_peak_centroid(xcor)
+function [rpk, cpk] = get_peak_centroid8(xcor)
 %
 % Find the location of the correlation plane maximum with subpixel
-% precision using a 9-point centroid calculation.
+% precision using a 8-point centroid calculation.
 %
 % Arguments:
 %
@@ -338,6 +328,34 @@ function [rpk, cpk] = get_peak_centroid(xcor)
 % extract subscripts and valuesfor 9-point neighborhood, trim to xcor edges 
 rpk_nbr = max(1, rpk_int-1):min(size(xcor,1), rpk_int+1); 
 cpk_nbr = max(1, cpk_int-1):min(size(xcor,2), cpk_int+1);
+xcor_nbr = xcor(rpk_nbr, cpk_nbr);
+[cpk_nbr, rpk_nbr] = meshgrid(cpk_nbr, rpk_nbr);
+
+% compute centroid
+rpk = sum(rpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:)); 
+cpk = sum(cpk_nbr(:).*xcor_nbr(:))/sum(xcor_nbr(:));
+
+end
+
+function [rpk, cpk] = get_peak_centroid24(xcor)
+%
+% Find the location of the correlation plane maximum with subpixel
+% precision using a 24-point centroid calculation.
+%
+% Arguments:
+%
+%   xcor = 2D matrix, double, cross correlation plane, as produced by normxcorr2
+%
+%   rpk, cpk = Scalar, double, row and column coordinates of the correlation
+%       plane maximum, at subpixel precision
+% %
+
+% peak location with integer precision
+[rpk_int, cpk_int] = find(xcor == max(xcor(:)));
+
+% extract subscripts and valuesfor 9-point neighborhood, trim to xcor edges 
+rpk_nbr = max(1, rpk_int-2):min(size(xcor,1), rpk_int+2); 
+cpk_nbr = max(1, cpk_int-2):min(size(xcor,2), cpk_int+2);
 xcor_nbr = xcor(rpk_nbr, cpk_nbr);
 [cpk_nbr, rpk_nbr] = meshgrid(cpk_nbr, rpk_nbr);
 
