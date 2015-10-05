@@ -92,6 +92,23 @@ for gg = 1:ngrid
         print_sep(sprintf('Grid refinement step %i of %i', gg, ngrid));
     end
     
+    % copy old sample grid
+    rr_old = rr;
+    cc_old = cc;
+    
+    % get new sample grid    
+    [rr, cc] = sample_grid(samplen(gg), sampspc(gg), size(ini));
+    nr = length(rr);
+    nc = length(cc);
+    
+    % interpolate/extrapolate displacements to new sample grid    
+    [cc_g_old, rr_g_old] = meshgrid(cc_old, rr_old);
+    [cc_g,     rr_g]     = meshgrid(cc    , rr    );    
+    interpolant = griddedInterpolant(rr_g_old, cc_g_old, uu, 'spline', 'spline');
+    uu = interpolant(rr_g, cc_g);
+    interpolant.Values = vv;
+    vv = interpolant(rr_g, cc_g);
+    
     % loop over image deformation passes
     for pp = 1:npass(gg)
         
@@ -108,9 +125,11 @@ for gg = 1:ngrid
         vv0 = interpolant(rr0, cc0);
         
         % deform images (does nothing if uu0 and vv0 are 0)
-        defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
-        defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', 'FillValues', 0);
-        
+        defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic',...
+            'FillValues', 0); %, 'SmoothEdges', false);
+        defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', ...
+            'FillValues', 0); %, 'SmoothEdges', false);
+               
         % set mask to true
         mask = true(nr, nc);
         
