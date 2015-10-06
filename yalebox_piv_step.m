@@ -126,9 +126,9 @@ for gg = 1:ngrid
         
         % deform images (does nothing if uu0 and vv0 are 0)
         defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic',...
-            'FillValues', 0); %, 'SmoothEdges', false);
+            'FillValues', 0, 'SmoothEdges', false);
         defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', ...
-            'FillValues', 0); %, 'SmoothEdges', false);
+            'FillValues', 0, 'SmoothEdges', false);
                
         % set mask to true
         mask = true(nr, nc);
@@ -144,8 +144,7 @@ for gg = 1:ngrid
                 % skip if:
                 %   - sample window is not full
                 %   - interrogation window is empty
-                if any(samp(:) == 0) || all(intr(:) == 0)
-                    
+                if sum(samp(:) == 0) > 0.5*samplen(gg)^2 || all(intr(:) == 0)                    
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
@@ -186,6 +185,9 @@ for gg = 1:ngrid
         
         % find and drop invalid displacement vectors
         drop = validate_normalized_median(uu, vv, valid_max, valid_eps);        
+        
+        
+        
         uu(drop) = NaN;
         vv(drop) = NaN;
         

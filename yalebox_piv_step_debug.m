@@ -1,4 +1,4 @@
-function [uu, vv] = yalebox_piv_step_debug(test_case)
+function [xx, yy, uu, vv] = yalebox_piv_step_debug(test_case)
 % Run yalebox_piv_step for one of several debugging test cases.
 %
 % test_case = Scalar, integer. Select test case:
@@ -78,12 +78,17 @@ switch test_case
         
         % case parameters
         data_file = 'fault_ss_01_sidef_250_251.mat';
+        % data_file = 'fault_ss_01_sidef_251_252.mat';
+        % data_file = 'fault_ss_01_sidef_252_253.mat';
+        % data_file = 'fault_ss_01_sidef_250_252.mat';
+        % data_file = 'fault_ss_01_sidef_250_253.mat';        
+        % data_file = 'fault_ss_01_sidef_030_031.mat';
         
         % piv parameters
-        samplen = [30, 20, 20];
-        sampspc = [30, 20, 10];
-        intrlen = [90, 30, 30];
-        npass = [3, 3, 1];
+        samplen = [30];
+        sampspc = [15];
+        intrlen = [90];
+        npass = [5];
         valid_max = 2;
         valid_eps = 0.01;
         
