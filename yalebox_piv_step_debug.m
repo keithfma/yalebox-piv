@@ -77,7 +77,8 @@ switch test_case
     case 3
         
         % case parameters
-        data_file = 'fault_ss_01_sidef_250_251.mat';
+        data_file = 'fault_ss_01_siden_250_251.mat';
+        % data_file = 'fault_ss_01_sidef_250_251.mat';
         % data_file = 'fault_ss_01_sidef_251_252.mat';
         % data_file = 'fault_ss_01_sidef_252_253.mat';
         % data_file = 'fault_ss_01_sidef_250_252.mat';
@@ -85,10 +86,10 @@ switch test_case
         % data_file = 'fault_ss_01_sidef_030_031.mat';
         
         % piv parameters
-        samplen = [30, 20];
-        sampspc = [15, 10];
-        intrlen = [90, 40];
-        npass = [3, 3];
+        samplen = [30, 30, 15];
+        sampspc = [30, 30, 15];
+        intrlen = [120, 60, 30];
+        npass = [1, 2, 2];
         valid_max = 2;
         valid_eps = 0.01;
         
@@ -132,9 +133,9 @@ end
 addpath('test/synth');
 addpath('test/wedge');
 
-% % debug {
-% keyboard
-% % } debug
+% debug {
+keyboard
+% } debug
 
 end
 

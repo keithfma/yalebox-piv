@@ -126,9 +126,9 @@ for gg = 1:ngrid
         
         % deform images (does nothing if uu0 and vv0 are 0)
         defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic',...
-            'FillValues', 0, 'SmoothEdges', false);
+            'FillValues', 0);%, 'SmoothEdges', false);
         defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', ...
-            'FillValues', 0, 'SmoothEdges', false);
+            'FillValues', 0); %, 'SmoothEdges', false);
                
         % set mask to true
         mask = true(nr, nc);

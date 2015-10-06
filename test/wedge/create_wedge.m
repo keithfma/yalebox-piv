@@ -3,9 +3,9 @@
 %% Define parameters 
 
 % file names
-ini_file = 'fault_ss_01_sidef_252.png';
-fin_file = 'fault_ss_01_sidef_253.png';
-out_file = 'fault_ss_01_sidef_252_253.mat';
+ini_file = 'fault_ss_01_siden_250.png';
+fin_file = 'fault_ss_01_siden_251.png';
+out_file = 'fault_ss_01_siden_250_251.mat';
 
 % mask
 mask_on = true;
