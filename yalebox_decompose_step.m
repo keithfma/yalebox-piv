@@ -81,8 +81,8 @@ if useMatlabGradient
     [F11,F12] = gradient(uX,dX,dY);
     [F21,F22] = gradient(uY,dX,dY); 
 else
-    [F11,F12] = derivativesByFilters(uX,'x','y',dX,dY,'seven');
-    [F21,F22] = derivativesByFilters(uY,'x','y',dX,dY,'seven');
+    [F11,F12] = derivativesByFilters(uX,'x','y',dX,dY,'five');
+    [F21,F22] = derivativesByFilters(uY,'x','y',dX,dY,'five');
 end
 
 F11 = F11 + 1;
