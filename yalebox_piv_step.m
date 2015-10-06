@@ -142,9 +142,10 @@ for gg = 1:ngrid
                 [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen(gg));
                 
                 % skip if:
-                %   - sample window is <80% full
+                %   - sample window is <75% full
                 %   - interrogation window is empty
-                if sum(samp(:) == 0) > 0.20*samplen(gg)^2 || all(intr(:) == 0)
+                if sum(samp(:) == 0) > 0.25*samplen(gg)^2 || all(intr(:) == 0)
+                    
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
@@ -184,7 +185,7 @@ for gg = 1:ngrid
         end % jj
         
         % find and drop invalid displacement vectors
-        drop = validate_normalized_median(uu, vv, valid_max, valid_eps);
+        drop = validate_normalized_median(uu, vv, valid_max, valid_eps);        
         uu(drop) = NaN;
         vv(drop) = NaN;
         
@@ -442,6 +443,8 @@ function invalid = validate_normalized_median(uu, vv, max_norm_res, epsilon)
 % Validate the displacement vector field using a normalized median test. See
 % reference [3] for details. 
 %
+% EXPERIMENT: increase the window size from 3x3 to 5x5
+%
 % Arguments:
 %
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
@@ -464,8 +467,17 @@ if nargin < 4; epsilon = 0.1; end
 % init
 [nr, nc] = size(uu);
 invalid = false(nr, nc);
-roffset = [ 1,  1,  1,  0,  0, -1, -1, -1];
-coffset = [-1,  0,  1, -1,  1, -1,  0,  1];
+roffset = [ 2,  2,  2,  2,  2, ...
+            1,  1,  1,  1,  1, ...
+            0,  0,      0,  0, ...
+           -1, -1, -1, -1, -1, ...
+           -2, -2, -2, -2, -2];
+coffset = [-2, -1,  0,  1,  2, ...
+           -2, -1,  0,  1,  2, ...
+           -2, -1,      1,  2, ...
+           -2, -1,  0,  1,  2, ...
+           -2, -1,  0,  1,  2];
+
 
 % loop over all displacement vectors
 for ii = 1:nr
