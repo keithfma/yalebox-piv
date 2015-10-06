@@ -142,9 +142,9 @@ for gg = 1:ngrid
                 [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen(gg));
                 
                 % skip if:
-                %   - sample window is <75% full
+                %   - sample window is not full
                 %   - interrogation window is empty
-                if sum(samp(:) == 0) > 0.25*samplen(gg)^2 || all(intr(:) == 0)
+                if any(samp(:) == 0) || all(intr(:) == 0)
                     
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;

@@ -52,12 +52,12 @@ switch test_case
         dir = 2;
         
         % piv parameters
-     samplen = [30, 20];
+        samplen = [30, 20];
         sampspc = [15, 10];
         intrlen = [60, 30];
-        npass = [3, 3];      
-        valid_max = 3;
-        valid_eps = 0.1;
+        npass = [5, 5];      
+        valid_max = 2;
+        valid_eps = 0.01;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...
@@ -80,12 +80,12 @@ switch test_case
         data_file = 'fault_ss_01_sidef_250_251.mat';
         
         % piv parameters
-        samplen = 30;
-        sampspc = 15;
-        intrlen = 90;
-        npass = 5;
-        valid_max = 3;
-        valid_eps = 0.1;
+        samplen = [30, 20, 20];
+        sampspc = [30, 20, 10];
+        intrlen = [90, 30, 30];
+        npass = [3, 3, 1];
+        valid_max = 2;
+        valid_eps = 0.01;
         
         % load wedge data
         load(data_file, 'xx', 'yy', 'ini', 'fin');
@@ -127,9 +127,9 @@ end
 addpath('test/synth');
 addpath('test/wedge');
 
-% debug {
-keyboard
-% } debug
+% % debug {
+% keyboard
+% % } debug
 
 end
 
