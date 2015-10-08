@@ -1,0 +1,78 @@
+function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
+% function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
+%
+% Validate the displacement vector field using a normalized median test with a
+% 5x5 square kernel. See reference [3] for details. 
+%
+% Arguments:
+%
+%   uu, vv = 2D matrix, double, displacement vector components. NaNs are
+%       treated as missing values to allow for roi masking.
+%
+%   max_norm_res = Scalar, double, maximum value foe the normalized residual,
+%       above which a vector is flagged as invalid. Refernence [3] reccomends a
+%       value of 2.
+%
+%   epsilon = Scalar, double, minumum value of the normalization factor.
+%       Reference [3] reccomends a value of 0.1.
+%
+%   invalid = 2D matrix, logical, flags identifying all invalid vectors as 1
+% %
+
+% set defaults
+if nargin < 3; max_norm_res = 2; end
+if nargin < 4; epsilon = 0.1; end 
+
+% init
+[nr, nc] = size(uu);
+invalid = false(nr, nc);
+roffset = [ 2,  2,  2,  2,  2, ...
+            1,  1,  1,  1,  1, ...
+            0,  0,      0,  0, ...
+           -1, -1, -1, -1, -1, ...
+           -2, -2, -2, -2, -2];
+coffset = [-2, -1,  0,  1,  2, ...
+           -2, -1,  0,  1,  2, ...
+           -2, -1,      1,  2, ...
+           -2, -1,  0,  1,  2, ...
+           -2, -1,  0,  1,  2];
+
+
+% loop over all displacement vectors
+for ii = 1:nr
+    for jj = 1:nc
+        
+        % get linear indices of 8 (or less) neighbors
+        rnbr = max(1, min(nr, ii+roffset));
+        cnbr = max(1, min(nc, jj+coffset));
+        knbr = rnbr+(cnbr-1)*nr;
+        
+        % extract displacements for center and neighbors
+        u0 = uu(ii, jj);
+        v0 = vv(ii, jj);
+        unbr = uu(knbr);
+        vnbr = vv(knbr);
+        
+        % compute neighbor median, residual, and median residual 
+        med_unbr = nanmedian(unbr);
+        res_unbr = abs(unbr-med_unbr);
+        med_res_unbr = nanmedian(res_unbr);
+        
+        med_vnbr = nanmedian(vnbr);
+        res_vnbr = abs(vnbr-med_vnbr);
+        med_res_vnbr = nanmedian(res_vnbr);
+        
+        % compute center normalized residual
+        norm_res_u0 = abs(u0-med_unbr)/(med_res_unbr+epsilon);
+        norm_res_v0 = abs(v0-med_vnbr)/(med_res_vnbr+epsilon);
+        
+        % combine vector components (max or sum)
+        norm_res = max(norm_res_u0, norm_res_v0);
+        
+        % classify as valid or invalid
+        invalid(ii, jj) = norm_res > max_norm_res;
+        
+    end
+end
+
+end

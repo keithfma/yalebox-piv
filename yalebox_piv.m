@@ -75,7 +75,7 @@ end
 [cc0, rr0] = meshgrid(1:size(ini,2), 1:size(ini, 1));
 
 % init sample grid 
-[rr, cc] = sample_grid(samplen(1), sampspc(1), size(ini));
+[rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
 nr = length(rr);
 nc = length(cc);
 
@@ -97,7 +97,7 @@ for gg = 1:ngrid
     cc_old = cc;
     
     % get new sample grid    
-    [rr, cc] = sample_grid(samplen(gg), sampspc(gg), size(ini));
+    [rr, cc] = yalebox_piv_sample_grid(samplen(gg), sampspc(gg), size(ini));
     nr = length(rr);
     nc = length(cc);
     
@@ -138,8 +138,8 @@ for gg = 1:ngrid
             for ii = 1:nr
                 
                 % get sample and (offset) interrogation windows
-                [samp, samp_pos] = get_win(defm_ini, rr(ii), cc(jj), samplen(gg));
-                [intr, intr_pos] = get_win(defm_fin, rr(ii), cc(jj), intrlen(gg));
+                [samp, samp_pos] = yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
+                [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                 
                 % skip if:
                 %   - sample window is not full
@@ -155,7 +155,7 @@ for gg = 1:ngrid
                 xcr = normxcorr2(samp, intr);
                 
                 % find correlation plane max, subpixel precision
-                [rpeak, cpeak, stat] = get_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = yalebox_pix_peak_gauss2d(xcr);
                 if stat == false
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
@@ -184,10 +184,7 @@ for gg = 1:ngrid
         end % jj
         
         % find and drop invalid displacement vectors
-        drop = validate_normalized_median(uu, vv, valid_max, valid_eps);        
-        
-        
-        
+        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);        
         uu(drop) = NaN;
         vv(drop) = NaN;
         
@@ -220,9 +217,7 @@ yy = interp1(1:size(ini,1), yy, rr);
 
 end
 
-
-
-%% computational subroutines
+%% subroutines
 
 function [] = check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
                   npass, valid_max, valid_eps, verbose)
@@ -277,251 +272,6 @@ validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'}, ...
 
 end
 
-function [rvec, cvec] = sample_grid(len, spc, sz)
-% Create sample grid such that sample window edges fall at integer positions,
-% and the grid is centered. Note that the first sample window requires 'len'
-% rows and cols, and each additional window requires 'spc' rows and cols.
-%
-% Arguments:
-%
-%   len = Scalar, integer, length of sample window in pixels
-%
-%   spc = Scalar, integer, grid spacing in pixels
-%
-%   sz = Vector, length == 2, grid dimensions [rows, columns] for the
-%       original input data matrices (e.g. ini and fin).
-%
-%   rvec, cvec = Vector, integer, coordinate vectors for the sample grid in the
-%       y (a.k.a. row) and x (a.k.a. column) directions, in pixels
-
-rem = mod(sz-len, spc)/2;
-
-samp0 = floor(rem)+(len-1)/2; 
-samp1 = sz-(ceil(rem)+(len-1)/2); 
-
-rvec = samp0(1):spc:samp1(1);
-cvec = samp0(2):spc:samp1(2);
-
-end
-
-function [win, pos] = get_win(img, rcnt, ccnt, len)
-% function [win, pos] = get_win(img, rcnt, ccnt, len)
-%
-% Extract a sample or interrogation window from the input image, padding with
-% zeros as needed.
-%
-% For sample windows: Sample grid centroids are chosen such that sample window
-% edges lie at integer pixel coordinates. Rounding operations thus have no
-% effect in this case.
-%
-% For interrogation windows: Window edges are not guaranteed to be integer pixel
-% coordinates. Rounding is used to expand window extent outward to the nearest
-% integer pixel coordinates. Note that this does not change the window centroid,
-% since expansion is always symmetric.
-%
-% Arguments:
-%
-%   img = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the pair to be analyzed. Should be the initial image for the sample
-%       window and the final image for the interrogation window.
-%
-%   rcnt, ccnt = Scalar, double, location of the window centroid 
-%
-%   len = Scalar, integer, length of the window
-%
-%   win = 2D matrix, double, subset of img, possibly with zero padding
-%
-%   pos = Vector, length == 4, position vector for 'win' in the format
-%       [left, bottom, width, height] in pixel coordinates
-% %
-
-% get window limits, may lie outside the image domain
-hlen = (len-1)/2;
-r0 = floor(rcnt-hlen);
-r1 =  ceil(rcnt+hlen); 
-c0 = floor(ccnt-hlen);
-c1 =  ceil(ccnt+hlen);
-
-% generate position vector for output
-pos = [c0, r0, c1-c0+1, r1-r0+1];
-
-% get pad size, restrict window indices to valid range
-pl = max(0, 1-c0);
-c0 = max(1, c0);
-
-nc = size(img, 2);
-pr = max(0, c1-nc);
-c1 = min(nc, c1);
-
-pb = max(0, 1-r0);
-r0 = max(1, r0);
-
-nr = size(img, 1);
-pt = max(0, r1-nr);
-r1 = min(nr, r1);
-
-% extract data and add pad
-sub = img(r0:r1, c0:c1);
-[snr, snc] = size(sub);
-win = [zeros(pb, pl+snc+pr);
-       zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pt, pl+snc+pr)];  
-    
-end
-
-function [rpk, cpk, stat] = get_peak_gauss2d(zz)
-% Find the position of the peak in matrix zz with subpixel accuracy. Peak
-% location is determined from an explicit solution of two-dimensional
-% Gaussian regression (REF). If the peak cannot be fit at subpixel
-% accuracy, no peak is returned (see Arguments). This choice reflects the
-% fact that a lack of subpixel displacement causes spurious gradients - it
-% is preferable to drop the vector and interpolate.
-%
-% Arguments:
-%   zz = 2D matrix, data plane in which to locate the peak
-%
-%   rpk = Scalar, double, row-coordinate location of the peak, set to -1 if
-%       the peak cannot be fit.
-%
-%   cpk = Scalar, double, column-coordinate location of the peak, set to -1
-%       if the peak cannot be fit
-%
-%   stat = Logical, scalar, return status flag, true if successful, false if
-%       unsuccessful
-
-[rpk, cpk] = find(zz == max(zz(:)));
-
-% check failure conditions
-%   1-2) no unique maximum
-%   3-6) peak at the edge of the matrix
-stat = true;
-if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
-        || rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)        
-    stat = false;
-    return
-end
-    
-% offset to eliminate non-positive (gaussian is always positive)
-zz = zz-min(zz(:))+eps;
-
-% compute coefficients 
-c10 = 0; 
-c01 = 0; 
-c11 = 0; 
-c20 = 0; 
-c02 = 0; 
-c00 = 0;
-for ii = -1:1
-    for jj = -1:1
-        logterm = log(zz(rpk+jj,cpk+ii));
-        c10 = c10 + ii*logterm/6;
-        c01 = c01 + jj*logterm/6;
-        c11 = c11 + ii*jj*logterm/4;
-        c20 = c20 + (3*ii^2-2)*logterm/6;
-        c02 = c02 + (3*jj^2-2)*logterm/6;
-        c00 = c00 + (5-3*ii^2-3*jj^2)*logterm/9;
-    end
-end
-                     
-% compute sub-pixel displacement
-dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
-dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
-
-% apply subpixel displacement
-if abs(dr) < 1 && abs(dc) < 1
-    % subpixel estimation worked, there is a nice peak
-    rpk = rpk+dr;
-    cpk = cpk+dc;
-    
-else
-    % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
-    stat = false;
-end
-
-end
-
-function invalid = validate_normalized_median(uu, vv, max_norm_res, epsilon)
-%
-% Validate the displacement vector field using a normalized median test. See
-% reference [3] for details. 
-%
-% EXPERIMENT: increase the window size from 3x3 to 5x5
-%
-% Arguments:
-%
-%   uu, vv = 2D matrix, double, displacement vector components. NaNs are
-%       treated as missing values to allow for roi masking.
-%
-%   max_norm_res = Scalar, double, maximum value foe the normalized residual,
-%       above which a vector is flagged as invalid. Refernence [3] reccomends a
-%       value of 2.
-%
-%   epsilon = Scalar, double, minumum value of the normalization factor.
-%       Reference [3] reccomends a value of 0.1.
-%
-%   invalid = 2D matrix, logical, flags identifying all invalid vectors as 1
-% %
-
-% set defaults
-if nargin < 3; max_norm_res = 2; end
-if nargin < 4; epsilon = 0.1; end 
-
-% init
-[nr, nc] = size(uu);
-invalid = false(nr, nc);
-roffset = [ 2,  2,  2,  2,  2, ...
-            1,  1,  1,  1,  1, ...
-            0,  0,      0,  0, ...
-           -1, -1, -1, -1, -1, ...
-           -2, -2, -2, -2, -2];
-coffset = [-2, -1,  0,  1,  2, ...
-           -2, -1,  0,  1,  2, ...
-           -2, -1,      1,  2, ...
-           -2, -1,  0,  1,  2, ...
-           -2, -1,  0,  1,  2];
-
-
-% loop over all displacement vectors
-for ii = 1:nr
-    for jj = 1:nc
-        
-        % get linear indices of 8 (or less) neighbors
-        rnbr = max(1, min(nr, ii+roffset));
-        cnbr = max(1, min(nc, jj+coffset));
-        knbr = rnbr+(cnbr-1)*nr;
-        
-        % extract displacements for center and neighbors
-        u0 = uu(ii, jj);
-        v0 = vv(ii, jj);
-        unbr = uu(knbr);
-        vnbr = vv(knbr);
-        
-        % compute neighbor median, residual, and median residual 
-        med_unbr = nanmedian(unbr);
-        res_unbr = abs(unbr-med_unbr);
-        med_res_unbr = nanmedian(res_unbr);
-        
-        med_vnbr = nanmedian(vnbr);
-        res_vnbr = abs(vnbr-med_vnbr);
-        med_res_vnbr = nanmedian(res_vnbr);
-        
-        % compute center normalized residual
-        norm_res_u0 = abs(u0-med_unbr)/(med_res_unbr+epsilon);
-        norm_res_v0 = abs(v0-med_vnbr)/(med_res_vnbr+epsilon);
-        
-        % combine vector components (max or sum)
-        norm_res = max(norm_res_u0, norm_res_v0);
-        
-        % classify as valid or invalid
-        invalid(ii, jj) = norm_res > max_norm_res;
-        
-    end
-end
-
-end
-
-%% verbose subroutines --------------------------------------------------
-
 function [] = print_sep(msg)
 % Print a user-specified message and a separator line for verbose output
 % messages
@@ -575,7 +325,6 @@ function show_win(img0, img1, rcnt, ccnt, swin, spos, iwin, ipos) %#ok!
 %       and interrogation windows, formatted as [left, bottom, width,
 %       height] in pixel coordinates
 % %
-
 
 % init figure
 clim = [min(img0(:)), max(img0(:))];
@@ -654,4 +403,5 @@ title('cross-correlation');
 hold off
 axis equal
 axis tight
+
 end
