@@ -1,5 +1,5 @@
-function [xx, yy, uu, vv] = yalebox_piv_step_debug(test_case)
-% Run yalebox_piv_step for one of several debugging test cases.
+function [xx, yy, uu, vv] = yalebox_piv_debug(test_case)
+% Run yalebox_piv for one of several debugging test cases.
 %
 % test_case = Scalar, integer. Select test case:
 %   (1) Constant offset in x- and y-directions
@@ -34,7 +34,7 @@ switch test_case
             create_constant_uv(template, uconst, vconst);
         
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);
         
@@ -64,7 +64,7 @@ switch test_case
             create_simple_shear(template, gamma, dir);
 
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);
                            
@@ -99,7 +99,7 @@ switch test_case
         yy0 = yy; %#ok!
         
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv_step(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);  
                     
