@@ -103,7 +103,7 @@ for gg = 1:ngrid
     nc = length(cc);
     
     % interpolate/extrapolate displacements to new sample grid    
-    [uu, vv] = yalebox_piv_interp2(rr_old, cc_old, uu, vv, rr, cc, 'spline');
+    [uu, vv] = yalebox_piv_interp2d(rr_old, cc_old, uu, vv, rr, cc, 'spline');
     
     % loop over image deformation passes
     for pp = 1:npass(gg)
@@ -114,7 +114,7 @@ for gg = 1:ngrid
         end
         
         % interpolate/extrapolate displacement vectors to full image resolution
-        [uu_full, vv_full] = yalebox_piv_interp2(rr, cc, uu, vv, rr_full, cc_full, 'spline');
+        [uu_full, vv_full] = yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
         
         % deform images (does nothing if uu0 and vv0 are 0)
         defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
@@ -145,7 +145,7 @@ for gg = 1:ngrid
                 xcr = normxcorr2(samp, intr);
                 
                 % find correlation plane max, subpixel precision
-                [rpeak, cpeak, stat] = yalebox_pix_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
                 if stat == false
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
