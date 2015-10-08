@@ -72,7 +72,8 @@ if verbose
 end
 
 % init coordinates for full image
-[cc0, rr0] = meshgrid(1:size(ini,2), 1:size(ini, 1));
+rr_full = 1:size(ini, 1);
+cc_full = 1:size(ini, 2);
 
 % init sample grid 
 [rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
@@ -89,7 +90,7 @@ for gg = 1:ngrid
     
     % report grid refinement step
     if verbose
-        print_sep(sprintf('Grid refinement step %i of %i', gg, ngrid));
+        print_sep(sprintf('grid refinement step %i of %i', gg, ngrid));
     end
     
     % copy old sample grid
@@ -102,33 +103,22 @@ for gg = 1:ngrid
     nc = length(cc);
     
     % interpolate/extrapolate displacements to new sample grid    
-    [cc_g_old, rr_g_old] = meshgrid(cc_old, rr_old);
-    [cc_g,     rr_g]     = meshgrid(cc    , rr    );    
-    interpolant = griddedInterpolant(rr_g_old, cc_g_old, uu, 'spline', 'spline');
-    uu = interpolant(rr_g, cc_g);
-    interpolant.Values = vv;
-    vv = interpolant(rr_g, cc_g);
+    [uu, vv] = yalebox_piv_interp2(rr_old, cc_old, uu, vv, rr, cc, 'spline');
     
     % loop over image deformation passes
     for pp = 1:npass(gg)
         
         % report image deformation step
         if verbose
-            print_sep(sprintf('Image deformation pass %i of %i', pp, npass(gg)));
+            print_sep(sprintf('\timage deformation pass %i of %i', pp, npass(gg)));
         end
         
         % interpolate/extrapolate displacement vectors to full image resolution
-        interpolant = griddedInterpolant(repmat(rr(:), 1, nc), ...
-            repmat(cc(:)', nr, 1), uu, 'spline', 'spline');
-        uu0 = interpolant(rr0, cc0);
-        interpolant.Values = vv;
-        vv0 = interpolant(rr0, cc0);
+        [uu_full, vv_full] = yalebox_piv_interp2(rr, cc, uu, vv, rr_full, cc_full, 'spline');
         
         % deform images (does nothing if uu0 and vv0 are 0)
-        defm_ini = imwarp(ini, -cat(3, uu0, vv0)/2, 'cubic',...
-            'FillValues', 0);%, 'SmoothEdges', false);
-        defm_fin = imwarp(fin,  cat(3, uu0, vv0)/2, 'cubic', ...
-            'FillValues', 0); %, 'SmoothEdges', false);
+        defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
+        defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
                
         % set mask to true
         mask = true(nr, nc);
