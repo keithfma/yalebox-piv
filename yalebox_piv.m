@@ -131,10 +131,8 @@ for gg = 1:ngrid
                 [samp, samp_pos] = yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
                 [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                 
-                % skip if:
-                %   - sample window is not full
-                %   - interrogation window is empty
-                if sum(samp(:) == 0) > 0.5*samplen(gg)^2 || all(intr(:) == 0)                    
+                % skip and mask if sample window is not full
+                if any(samp(:) == 0)
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
