@@ -1,18 +1,7 @@
 This folder contains external dependencies needed by the yalebox programs. These
 include:
 
-(1) MATLAB components needed by modified versions of MATLAB toolbox functions.
-The exact files depend on the MATLAB version in use.
-
-MATLAB R2014b Linux 64-bit:
-  imhistc.mexa64
-  grayxformmex.mexa64
-
-MATLAB R2014a Linux 64 bit:
-  imhistc.mexa64
-  grayxform.mexa64
-
-(2) DCT-PLS (Discrete Cosine Transform - Penalized Least Squares) PIV
+(1) DCT-PLS (Discrete Cosine Transform - Penalized Least Squares) PIV
 post-processing tools. See: Garcia, D. (2010). A fast all-in-one method for
 automated post-processing of PIV data. Experiments in Fluids, 50(5), 1247?1259.
 doi:10.1007/s00348-010-0985-y.
@@ -21,3 +10,14 @@ pppiv.m
 smoothn.m
 dctn.m
 idctn.m
+
+(2) High accuracy derivative estimation routines, see: Hany Farid and Eero
+Simoncelli "Differentiation of Discrete Multi-Dimensional Signals" IEEE Trans.
+Image Processing. 13(4): 496-508 (2004)
+
+derivativesByFilter.m
+
+(3) Interpolation/extrapolation using numerical solution to the Laplacian
+equation (by John D'Errico, by way of the MATLAB file exchange).
+
+inpaint_nans.m
