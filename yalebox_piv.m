@@ -58,8 +58,6 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
-warning off all
-
 % parse inputs
 check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
     valid_max, valid_eps, verbose);
@@ -143,8 +141,8 @@ for gg = 1:ngrid
                 xcr = normxcorr2(samp, intr);
                 
                 % find correlation plane max, subpixel precision
-                [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
-                [rpeak, cpeak, stat] = yalebox_piv_peak_optim_lanczos(xcr)
+                % [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = yalebox_piv_peak_optim_lanczos(xcr);
                 if stat == false
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
