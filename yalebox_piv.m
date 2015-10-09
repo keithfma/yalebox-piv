@@ -144,6 +144,7 @@ for gg = 1:ngrid
                 
                 % find correlation plane max, subpixel precision
                 [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = yalebox_piv_peak_optim_lanczos(xcr)
                 if stat == false
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
