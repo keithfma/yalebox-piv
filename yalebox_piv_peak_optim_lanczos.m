@@ -18,10 +18,10 @@ x0 = [rpk, cpk];
 
 options = optimset('Display', 'none');
 
-objective = @(x) -resample_lanczos(zz, x(1), x(2), 5);
+objective = @(x) -resample_lanczos(zz, x(1), x(2), 10);
 
 % optimize
-x = fmincon(objective, x0, [], [], [], [], x0-1, x0+1, [], options);
+x = fmincon(objective, x0, [], [], [], [], x0-0.5, x0+0.5, [], options);
 
 % return 
 rpk = x(1);
@@ -52,6 +52,7 @@ sub = data(rr, cc);
 cc = col-cc';
 rr = row-rr;
 kern = (sinc(cc).*sinc(cc/nkern))*(sinc(rr).*sinc(rr/nkern));
+% kern = kern./sum(kern(:));
 
 % resample
 val = sum(sum(sub.*kern));
