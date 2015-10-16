@@ -6,5 +6,6 @@ matlab.mat
 private/grayxform.mexa64
 private/grayxformmex.mexa64
 private/imhistc.mexa64
-test/wedge/*.mat
+*.mat
+*.png
 temp/*
