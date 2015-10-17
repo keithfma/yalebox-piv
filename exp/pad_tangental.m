@@ -23,33 +23,44 @@ fin_mask = fin~=0;
 
 %% create pad: simple nearest neighbor
 % -> too much noise on the boundary, will not be useful
-on = 1; 
+on = 0; 
 if on 
+    fprintf('simple nearest neighbor\n');
 
     % run
     [ini_dist, ini_nearest] = bwdist(ini_mask);
-    ini_pad = ini(nearest(ini_nearest));
+    ini_pad = ini(ini_nearest);
     
     [fin_dist, fin_nearest] = bwdist(fin_mask);
-    fin_pad = fin(nearest(fin_nearest));
+    fin_pad = fin(fin_nearest);
     
 end
-%% create pad: nearest neighbor with a skin depth
-%
-on = 0;
+%% create pad: nearest neighbor with a boundary values taken from a surface "skin depth"
+% -> values are more muted, still appears too noisy to be useful
+on = 1;
 if on
+    fprintf('nearest neighbor with skin depth\n');
     
+    % parameters    
+    nskin = 20;
     
-    skin_depth = 5;
+    % run
+    ini_pad = ini;  
+    fin_pad = fin;
     
-    ini_pad_0 = ini;
-    
-    for ii = 0:skin_depth-1
+    for ii = 0:nskin-1
         
-        
-        
+        ini_mask_erode = imerode(ini_mask, strel('disk', ii));
+        [~, ini_nearest_erode] = bwdist(ini_mask_erode);
+        ini_pad = ini_pad+ini(ini_nearest_erode);        
+       
+        fin_mask_erode = imerode(fin_mask, strel('disk', ii));
+        [~, fin_nearest_erode] = bwdist(fin_mask_erode);
+        fin_pad = fin_pad+fin(fin_nearest_erode);               
         
     end
+    ini_pad = ini_pad/nskin;
+    fin_pad = fin_pad/nskin;
 
 
 end
