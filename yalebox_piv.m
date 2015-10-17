@@ -130,7 +130,7 @@ for gg = 1:ngrid
                 [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                 
                 % skip and mask if sample window is not full
-                if any(samp(:) == 0)
+                if all(samp(:) == 0)
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
@@ -142,9 +142,9 @@ for gg = 1:ngrid
                 
                 % find correlation plane max, subpixel precision
                 % debug: select method {
-                % % [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
                 % % [rpeak, cpeak, stat] = yalebox_piv_peak_optim_lanczos(xcr);
-                [rpeak, cpeak, stat] = yalebox_piv_peak_optim_sinc(xcr);
+                % %[rpeak, cpeak, stat] = yalebox_piv_peak_optim_sinc(xcr);
                 % } debug
                 if stat == false
                     uu(ii, jj) = NaN;
@@ -162,13 +162,13 @@ for gg = 1:ngrid
                 uu(ii, jj) = uu(ii, jj)+delta_uu;
                 vv(ii, jj) = vv(ii, jj)+delta_vv;
                 
-                % % debug {
-                % figure(1)
-                % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-                % figure(2)
-                % show_xcor(xcr, rpeak, cpeak);
-                % pause
-                % % } debug
+                % debug {
+                figure(1)
+                show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+                figure(2)
+                show_xcor(xcr, rpeak, cpeak);
+                keyboard %pause
+                % } debug
                 
             end % ii
         end % jj

@@ -77,8 +77,8 @@ switch test_case
     case 3
         
         % case parameters
-        data_file = 'fault_ss_01_siden_250_251.mat';
-        % data_file = 'fault_ss_01_sidef_250_251.mat';
+        % data_file = 'fault_ss_01_siden_250_251.mat';
+        data_file = 'fault_ss_01_sidef_250_251.mat';
         % data_file = 'fault_ss_01_sidef_251_252.mat';
         % data_file = 'fault_ss_01_sidef_252_253.mat';
         % data_file = 'fault_ss_01_sidef_250_252.mat';
