@@ -21,6 +21,22 @@ fin = padarray(fin, [npad, npad], 0, 'both');
 ini_mask = ini~=0;
 fin_mask = fin~=0;
 
+%% prepare images: adaptive histogram equalization first
+% -> does not improve results, although the method is defective in that it does
+% not do masked equalization
+
+% parameters
+tile_dim = 20;
+num_tiles = floor(size(ini)/tile_dim);
+nbins = 1000;
+
+% run
+ini = adapthisteq(ini, 'NumTiles', num_tiles, 'NBins', nbins, 'Range', 'full');
+ini(~ini_mask) = 0;
+
+fin = adapthisteq(fin, 'NumTiles', num_tiles, 'NBins', nbins, 'Range', 'full');
+fin(~fin_mask) = 0;
+
 %% create pad: simple nearest neighbor
 % -> too much noise on the boundary, will not be useful
 on = 0; 
