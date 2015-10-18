@@ -87,9 +87,15 @@ mask = [wall, mask, wall];
 mask = imfill(mask, 'holes');
 mask = mask(:, 2:end-1);
 
-% clean up edges with morphological filters 
-disk = strel('disk', morph_rad);
-mask = imclose(imopen(mask, disk), disk);
+% experiment: remove noise (open), then trim boundary (erode) {
+mask = imopen(mask, strel('disk', 10));
+mask = imerode(mask, strel('disk', 5));
+% } experiment
+% note: would need a new input argument...
+
+% % clean up edges with morphological filters 
+% disk = strel('disk', morph_rad);
+% mask = imclose(imopen(mask, disk), disk);
 
 % (optional) plot to facilitate parameter selection
 if show
