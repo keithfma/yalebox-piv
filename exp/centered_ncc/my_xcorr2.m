@@ -5,23 +5,21 @@ function [C] = my_xcorr2(X, H)
 % on the R2015b xcorr2 documentation, so I use the same variable names
 % where possible.
 
-% input matrix dimensions
+% initialize
 [M, N] = size(X);
 [P, Q] = size(H);
 
-% pad H
-Hp = padarray(H, [M-1, N-1], 0, 'both');
+mm = 1:M;
+nn = 1:N;
 
-% compute 
 C = zeros(M+P-1, N+Q-1);
+
+H_pad = padarray(H, [M-1, N-1], 0, 'both');
+
 for kk = -(P-1):(M-1);
     for ll = -(Q-1):(N-1);
-        for mm = 1:M
-            for nn = 1:N                 
-                C(kk+P,ll+Q) = C(kk+P,ll+Q)+X(mm,nn)*Hp(mm-kk+M-1, nn-ll+N-1);
-            end
-        end
+        H_pad_sub = H_pad(mm-kk+M-1, nn-ll+N-1);
+        C(kk+P,ll+Q) = sum(X(:).*H_pad_sub(:)); % sum() reduces numerical roundoff error   
+        % C(kk+P,ll+Q) = X(:)'*H_pad_sub(:);        
     end
 end
-
-% keyboard
