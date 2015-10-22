@@ -11,8 +11,8 @@
 
 % define parameters
 
-% data_file = 'simple_shear_interior.mat';
-data_file = 'simple_shear_lower_bnd.mat';
+data_file = 'simple_shear_interior.mat';
+% data_file = 'simple_shear_lower_bnd.mat';
 
 % load data
 load(data_file, 'samp', 'intr');
