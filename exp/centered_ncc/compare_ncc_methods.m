@@ -19,20 +19,23 @@ load(data_file, 'samp', 'intr');
 
 %% Run cases
 
+% standard cc
+xcr = xcorr2(samp, intr);
+
 % standard ncc
-xcr = normxcorr2(samp, intr);
+nxcr = normxcorr2(samp, intr);
 
 % masked ncc
 warning off images:removing:function
-[xcr_masked, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+[nxcr_masked, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
 
 % masked ncc, trimmed
-xcr_masked_trimmed = xcr_masked;
-xcr_masked_trimmed(noverlap<0.75*max(noverlap(:))) = 0;
+nxcr_masked_trimmed = nxcr_masked;
+nxcr_masked_trimmed(noverlap<0.75*max(noverlap(:))) = 0;
 warning on images:removing:function
 
 % centered ncc
-xcr_centered = center_simple_normxcorr2(samp, intr);
+nxcr_centered = center_simple_normxcorr2(samp, intr);
 
 %% Compare results
 
@@ -43,34 +46,42 @@ pos = [0.05, 0.2, 0.9, 0.5];
 % plot
 figure('units', 'normalized', 'position', pos);
 
-subplot(1,4,1)
+subplot(1,5,1)
 imagesc(xcr);
+title('Stardard CC');
+%caxis(clim);
+colorbar
+axis equal
+axis tight
+
+subplot(1,5,2)
+imagesc(nxcr);
 title('Stardard NCC');
+colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(1,4,2)
-imagesc(xcr_masked);
+subplot(1,5,3)
+imagesc(nxcr_masked);
 title('Masked NCC')
+colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(1,4,3)
-imagesc(xcr_masked_trimmed);
+subplot(1,5,4)
+imagesc(nxcr_masked_trimmed);
 title('Masked NCC, Trimmed')
+colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(1,4,4)
-imagesc(xcr_centered);
+subplot(1,5,5)
+imagesc(nxcr_centered);
 title('Centered NCC')
+colorbar
 caxis(clim);
 axis equal
 axis tight
-
-
-
-
