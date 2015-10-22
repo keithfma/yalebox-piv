@@ -19,12 +19,58 @@ load(data_file, 'samp', 'intr');
 
 %% Run cases
 
+% standard ncc
 xcr = normxcorr2(samp, intr);
 
+% masked ncc
 warning off images:removing:function
 [xcr_masked, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-% xcr_masked(noverlap<0.5*max(noverlap(:))) = 0;
+
+% masked ncc, trimmed
+xcr_masked_trimmed = xcr_masked;
+xcr_masked_trimmed(noverlap<0.75*max(noverlap(:))) = 0;
 warning on images:removing:function
 
-xcr_center_simple = center_simple_normxcorr2(samp, intr);
+% centered ncc
+xcr_centered = center_simple_normxcorr2(samp, intr);
+
+%% Compare results
+
+% define parameters
+clim = [-1, 1];
+pos = [0.05, 0.2, 0.9, 0.5];
+
+% plot
+figure('units', 'normalized', 'position', pos);
+
+subplot(1,4,1)
+imagesc(xcr);
+title('Stardard NCC');
+caxis(clim);
+axis equal
+axis tight
+
+subplot(1,4,2)
+imagesc(xcr_masked);
+title('Masked NCC')
+caxis(clim);
+axis equal
+axis tight
+
+subplot(1,4,3)
+imagesc(xcr_masked_trimmed);
+title('Masked NCC, Trimmed')
+caxis(clim);
+axis equal
+axis tight
+
+subplot(1,4,4)
+imagesc(xcr_centered);
+title('Centered NCC')
+caxis(clim);
+axis equal
+axis tight
+
+
+
 
