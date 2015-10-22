@@ -1,7 +1,5 @@
 *~
 .*.swp
-private/*.mexa64
-*.mat
-*.png
+*.mexa64
 temp/*
 share/*
