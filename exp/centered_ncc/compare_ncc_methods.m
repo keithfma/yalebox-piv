@@ -31,7 +31,7 @@ warning off images:removing:function
 
 % masked ncc, trimmed
 nxcr_masked_trimmed = nxcr_masked;
-nxcr_masked_trimmed(noverlap<0.75*max(noverlap(:))) = 0;
+nxcr_masked_trimmed(noverlap<0.25*max(noverlap(:))) = 0;
 warning on images:removing:function
 
 % centered ncc, simple 
