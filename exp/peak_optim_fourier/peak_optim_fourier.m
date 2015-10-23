@@ -28,7 +28,6 @@ end
 % initialize optimization
 F = fft2(f);
 
-
 % optimize
 
 end
@@ -39,6 +38,9 @@ function val = interp_point(F, r0, c0)
 % Uses the fourier shift theorum to shift the point of interest to the
 % origin, then computes the inverse fourier transform for that point only.
 % Implementation is modified from [2].
+%
+% Here, this function is used to create an objective function for
+% non-linear optimization.
 
 [N, M] = size(f);
 
