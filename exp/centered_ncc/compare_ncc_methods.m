@@ -11,8 +11,8 @@
 
 % define parameters
 
-data_file = 'simple_shear_interior.mat';
-% data_file = 'simple_shear_lower_bnd.mat';
+% data_file = 'simple_shear_interior.mat';
+data_file = 'simple_shear_lower_bnd.mat';
 
 % load data
 load(data_file, 'samp', 'intr');
@@ -37,16 +37,23 @@ warning on images:removing:function
 % centered ncc
 nxcr_centered = center_simple_normxcorr2(samp, intr);
 
+% my implementation of the standard ncc
+my_xcr = my_xcorr2(samp, intr);
+
+% my implementation of the masked ncc
+my_nxcr = my_normxcorr2(samp, intr);
+
+
 %% Compare results
 
 % define parameters
 clim = [-1, 1];
-pos = [0.05, 0.2, 0.9, 0.5];
+pos = [0.05, 0.05, 0.9, 0.9];
 
 % plot
 figure('units', 'normalized', 'position', pos);
 
-subplot(1,5,1)
+subplot(3,3,1)
 imagesc(xcr);
 title('Stardard CC');
 %caxis(clim);
@@ -54,7 +61,7 @@ colorbar
 axis equal
 axis tight
 
-subplot(1,5,2)
+subplot(3,3,2)
 imagesc(nxcr);
 title('Stardard NCC');
 colorbar
@@ -62,7 +69,7 @@ caxis(clim);
 axis equal
 axis tight
 
-subplot(1,5,3)
+subplot(3,3,3)
 imagesc(nxcr_masked);
 title('Masked NCC')
 colorbar
@@ -70,7 +77,7 @@ caxis(clim);
 axis equal
 axis tight
 
-subplot(1,5,4)
+subplot(3,3,4)
 imagesc(nxcr_masked_trimmed);
 title('Masked NCC, Trimmed')
 colorbar
@@ -78,10 +85,34 @@ caxis(clim);
 axis equal
 axis tight
 
-subplot(1,5,5)
+subplot(3,3,5)
 imagesc(nxcr_centered);
 title('Centered NCC')
 colorbar
 caxis(clim);
 axis equal
 axis tight
+
+subplot(3,3,6)
+imagesc(my_xcr);
+title('My CC')
+colorbar
+% caxis(clim);
+axis equal
+axis tight
+
+subplot(3,3,7)
+imagesc(my_nxcr);
+title('My NCC')
+colorbar
+caxis(clim);
+axis equal
+axis tight
+
+% subplot(3,3,)
+% imagesc();
+% title('')
+% colorbar
+% caxis(clim);
+% axis equal
+% axis tight
