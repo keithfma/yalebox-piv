@@ -34,14 +34,17 @@ nxcr_masked_trimmed = nxcr_masked;
 nxcr_masked_trimmed(noverlap<0.75*max(noverlap(:))) = 0;
 warning on images:removing:function
 
-% centered ncc
-nxcr_centered = center_simple_normxcorr2(samp, intr);
+% centered ncc, simple 
+nxcr_centered_simple = center_simple_normxcorr2(samp, intr);
 
 % my implementation of the standard ncc
 my_xcr = my_xcorr2(samp, intr);
 
 % my implementation of the masked ncc
 my_nxcr = my_normxcorr2(samp, intr);
+
+% centered ncc, complete
+nxcr_centered = center_normxcorr2(samp, intr);
 
 
 %% Compare results
@@ -86,8 +89,8 @@ axis equal
 axis tight
 
 subplot(3,3,5)
-imagesc(nxcr_centered);
-title('Centered NCC')
+imagesc(nxcr_centered_simple);
+title('Centered NCC, Simple')
 colorbar
 caxis(clim);
 axis equal
@@ -104,6 +107,14 @@ axis tight
 subplot(3,3,7)
 imagesc(my_nxcr);
 title('My NCC')
+colorbar
+caxis(clim);
+axis equal
+axis tight
+
+subplot(3,3,8)
+imagesc(nxcr_centered);
+title('Centered NCC, Complete')
 colorbar
 caxis(clim);
 axis equal
