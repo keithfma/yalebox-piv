@@ -2,7 +2,7 @@ function [rpk, cpk, ok] = peak_optim_fourier(f)
 %
 % Non-linear optimization to find interpolated peak in the xcor plane. See
 % [1] for discussion of this approach. Implementation of the sampling
-% function is modified from [2] to compute the shifted 2D FFT at once point
+% function is modified from [2] to compute the shifted 2D FFT at one point
 % only.
 %
 % References:
@@ -15,6 +15,23 @@ function [rpk, cpk, ok] = peak_optim_fourier(f)
 %
 % %
 
+ok = true;
+
+% initial guess
+[rpk, cpk] = find(f == max(f(:)));
+
+if numel(rpk) ~= 1 || numel(cpk) ~= 1
+    ok = false;
+    return
+end
+
+% initialize optimization
+F = fft2(f);
+
+
+% optimize
+
+end
 
 function val = interp_point(F, r0, c0)
 %
@@ -46,3 +63,5 @@ val = sum(F(:))/M/N;
 
 % imaginary component isa numerical artefact for real inputs
 val = real(val);
+
+end
