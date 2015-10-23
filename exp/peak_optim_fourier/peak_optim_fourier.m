@@ -16,31 +16,33 @@ function [rpk, cpk, ok] = peak_optim_fourier(f)
 % %
 
 
-function val = interp_pt_fft2(f, r0, c0)
+function val = interp_point(F, r0, c0)
 %
-% Interpolate a single point in a 2D matrix using the fourier transform and
-% the shift theorum.
+% Interpolate a single point from the fourier transform of a real matrix.
+% Uses the fourier shift theorum to shift the point of interest to the
+% origin, then computes the inverse fourier transform for that point only.
+% Implementation is modified from [2].
 
-% The size of the matrix.
 [N, M] = size(f);
 
-% FFT of our possibly padded input signal.
-F = fft2(f);
+% compose shift matrix from vectors
+r_shift = exp(-1i * 2 * pi * r0 * [0:floor(N/2)-1 floor(-N/2):-1]' / N);
+c_shift = exp(-1i * 2 * pi * c0 * [0:floor(M/2)-1 floor(-M/2):-1]  / M);
 
-% The mathsy bit. The floors take care of odd-length signals.
-x_shift = exp(-1i * 2 * pi * delta(1) * [0:floor(N/2)-1 floor(-N/2):-1]' / N);
-y_shift = exp(-1i * 2 * pi * delta(2) * [0:floor(M/2)-1 floor(-M/2):-1] / M);
-
-% Force conjugate symmetry. Otherwise this frequency component has no
-% corresponding negative frequency to cancel out its imaginary part.
+% force conjugate symmetry, otherwise imaginary parts of frequency and
+% corresponding negative frequency won't cancel
 if mod(N, 2) == 0
-	x_shift(N/2+1) = real(x_shift(N/2+1));
+	r_shift(N/2+1) = real(r_shift(N/2+1));
 end 
 if mod(M, 2) == 0
-	y_shift(M/2+1) = real(y_shift(M/2+1));
+	c_shift(M/2+1) = real(c_shift(M/2+1));
 end
 
+% Apply shift
+F = F .* (r_shift * c_shift);
 
-Fshift = F .* (x_shift * y_shift);
+% Invert the FFT at the shifted origin only
+val = sum(F(:))/M/N;
 
-% Invert the FFT.
+% imaginary component isa numerical artefact for real inputs
+val = real(val);
