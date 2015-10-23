@@ -21,7 +21,6 @@ X = fft2(x);
 x_shift = exp(-i * 2 * pi * delta(1) * [0:floor(N/2)-1 floor(-N/2):-1]' / N);
 y_shift = exp(-i * 2 * pi * delta(2) * [0:floor(M/2)-1 floor(-M/2):-1] / M);
 
-
 % Force conjugate symmetry. Otherwise this frequency component has no
 % corresponding negative frequency to cancel out its imaginary part.
 if mod(N, 2) == 0
@@ -33,6 +32,7 @@ end
 
 
 Y = X .* (x_shift * y_shift);
+sum(Y(:))/M/N
 
 % Invert the FFT.
 y = ifft2(Y);
