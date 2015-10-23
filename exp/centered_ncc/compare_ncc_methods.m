@@ -6,6 +6,8 @@
 % the subimage for each shift is centered. Results are compared with the
 % standard normalized cross correlation, and the masked normalized cross
 % correlation.
+%
+% Cleaned-up for sharing.
 
 %% Initialize
 
@@ -29,19 +31,12 @@ nxcr = normxcorr2(samp, intr);
 warning off images:removing:function
 [nxcr_masked, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
 
-% masked ncc, trimmed
-nxcr_masked_trimmed = nxcr_masked;
-nxcr_masked_trimmed(noverlap<0.25*max(noverlap(:))) = 0;
+% masked ncc, weighted
+nxcr_masked_weighted = nxcr_masked.*(noverlap/max(noverlap(:)));
 warning on images:removing:function
 
 % centered ncc, simple 
 nxcr_centered_simple = center_simple_normxcorr2(samp, intr);
-
-% my implementation of the standard ncc
-my_xcr = my_xcorr2(samp, intr);
-
-% my implementation of the masked ncc
-my_nxcr = my_normxcorr2(samp, intr);
 
 % centered ncc, complete
 nxcr_centered = center_normxcorr2(samp, intr);
@@ -56,39 +51,39 @@ pos = [0.05, 0.05, 0.9, 0.9];
 % plot
 figure('units', 'normalized', 'position', pos);
 
-subplot(3,3,1)
+subplot(3,2,1)
 imagesc(xcr);
-title('Stardard CC');
+title('Mathworks CC');
 %caxis(clim);
 colorbar
 axis equal
 axis tight
 
-subplot(3,3,2)
+subplot(3,2,2)
 imagesc(nxcr);
-title('Stardard NCC');
+title('Mathworks NCC');
 colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(3,3,3)
+subplot(3,2,3)
 imagesc(nxcr_masked);
-title('Masked NCC')
+title('Padfield 2010 Masked NCC')
 colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(3,3,4)
-imagesc(nxcr_masked_trimmed);
-title('Masked NCC, Trimmed')
+subplot(3,2,4)
+imagesc(nxcr_masked_weighted);
+title('Padfield 2010 Masked NCC, Weighted')
 colorbar
 caxis(clim);
 axis equal
 axis tight
 
-subplot(3,3,5)
+subplot(3,2,5)
 imagesc(nxcr_centered_simple);
 title('Centered NCC, Simple')
 colorbar
@@ -96,34 +91,10 @@ caxis(clim);
 axis equal
 axis tight
 
-subplot(3,3,6)
-imagesc(my_xcr);
-title('My CC')
-colorbar
-% caxis(clim);
-axis equal
-axis tight
-
-subplot(3,3,7)
-imagesc(my_nxcr);
-title('My NCC')
-colorbar
-caxis(clim);
-axis equal
-axis tight
-
-subplot(3,3,8)
+subplot(3,2,6)
 imagesc(nxcr_centered);
 title('Centered NCC, Complete')
 colorbar
 caxis(clim);
 axis equal
 axis tight
-
-% subplot(3,3,)
-% imagesc();
-% title('')
-% colorbar
-% caxis(clim);
-% axis equal
-% axis tight
