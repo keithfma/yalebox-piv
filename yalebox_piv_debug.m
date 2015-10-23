@@ -133,9 +133,9 @@ end
 addpath('test/synth');
 addpath('test/wedge');
 
-% debug {
-keyboard
-% } debug
+% % debug {
+% keyboard
+% % } debug
 
 end
 

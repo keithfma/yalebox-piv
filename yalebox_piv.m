@@ -58,6 +58,9 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
+% temporary
+warning off images:removing:function
+
 % parse inputs
 check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
     valid_max, valid_eps, verbose);
@@ -128,17 +131,18 @@ for gg = 1:ngrid
                 % get sample and (offset) interrogation windows
                 [samp, samp_pos] = yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
                 [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
-                
-                % skip and mask if sample window is not full
+                                
+                % skip and mask if sample window is empty
                 if all(samp(:) == 0)
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
                     continue
-                end
+                end                    
                 
-                % compute normalized cross-correlation
-                xcr = normxcorr2(samp, intr);
+                % compute masked normalized cross-correlation,                 
+                [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+                xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
                 
                 % find correlation plane max, subpixel precision
                 [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
@@ -194,8 +198,8 @@ uu = uu.*(xx(2)-xx(1));
 vv = vv.*(yy(2)-yy(1));
 
 % interpolate world coordinates for displacement vectors
-xx = interp1(1:size(ini,2), xx, cc);
-yy = interp1(1:size(ini,1), yy, rr);
+xx = interp1(1:size(ini,2), xx, cc, 'linear', 'extrap');
+yy = interp1(1:size(ini,1), yy, rr, 'linear', 'extrap');
 
 % % debug {
 % keyboard
