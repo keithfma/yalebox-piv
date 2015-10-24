@@ -139,7 +139,7 @@ for gg = 1:ngrid
                     mask(ii, jj) = false;
                     continue
                 end                    
-                
+
                 % compute masked normalized cross-correlation,                 
                 [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
                 xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
