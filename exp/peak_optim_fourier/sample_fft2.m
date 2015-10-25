@@ -1,37 +1,3 @@
-function [rpk, cpk, ok] = peak_optim_fourier(f)
-%
-% Non-linear optimization to find interpolated peak in the xcor plane. See
-% [1] for discussion of this approach. Implementation of the sampling
-% function is modified from [2] to compute the shifted 2D FFT at one point
-% only.
-%
-% References:
-% 
-% [1] Manuel Guizar-Sicairos, Samuel T. Thurman, and James R. Fienup,
-%   "Efficient subpixel image registration algorithms," Opt. Lett. 33,
-%   156-158 (2008)
-%
-% [2] http://www.mathworks.com/matlabcentral/fileexchange/23440-2d-fourier-shift
-%
-% %
-
-ok = true;
-
-% initial guess
-[rpk, cpk] = find(f == max(f(:)));
-
-if numel(rpk) ~= 1 || numel(cpk) ~= 1
-    ok = false;
-    return
-end
-
-% initialize optimization
-F = fft2(f);
-
-% optimize
-
-end
-
 function val = sample_fft2(F, r0, c0)
 %
 % Sample (interpolate) a single point from the fourier transform of a real
