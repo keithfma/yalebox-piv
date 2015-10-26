@@ -15,9 +15,7 @@ function [rpk, cpk, ok] = peak_optim_fourier(f)
 %
 % %
 
-ok = true;
-
-% initial guess
+% find peak for initial guess
 [rpk, cpk] = find(f == max(f(:)));
 
 if numel(rpk) ~= 1 || numel(cpk) ~= 1
@@ -27,8 +25,20 @@ end
 
 % initialize optimization
 F = fft2(f);
+objective = @(p) -sample_fft2(F, p(1), p(2));
+x0 = [rpk, cpk];
+opt = optimset(...
+    'Algorithm', 'interior-point', ...
+    'Display', 'Final', ...
+    'UseParallel', true);
 
 % optimize
+x = fmincon(objective, x0, [], [], [], [], x0-1, x0+1, [], opt); 
+
+% return
+rpk = x(1);
+cpk = x(2);
+ok = true;
 
 end
 
