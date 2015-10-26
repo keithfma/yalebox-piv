@@ -145,7 +145,8 @@ for gg = 1:ngrid
                 xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
                 
                 % find correlation plane max, subpixel precision
-                [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                % [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
                 if stat == false
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
