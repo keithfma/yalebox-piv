@@ -1,4 +1,4 @@
-function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
+function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
 % function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
@@ -22,8 +22,11 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win
 %
 %   entr_win = scalar, integer, window size in pixels for entropy filter.
 %
-%   morph_rad = scalar, double, radius of disk structuring element used in
-%     mophological opening/closing filter. 
+%   morph_open_rad = scalar, double, radius of disk structuring element used in
+%     mophological opening filter. 
+%
+%   morph_erode_rad = scalar, double, radius of disk structuring element used in
+%     mophological erosion filter.
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
@@ -34,7 +37,7 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win
 % Keith Ma, July 2015
 
 % check for sane arguments, set default values
-narginchk(6,7);
+narginchk(7,8);
 
 validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1}, ...
     'yalebox_prep_intensity', 'hsv');
@@ -51,8 +54,11 @@ validateattributes(entr_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1
 validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
     'yalebox_prep_mask_auto', 'entr_win');
 
-validateattributes(morph_rad, {'numeric'}, {'scalar', 'positive'}, ...
-    'yalebox_prep_mask_auto', 'morph_rad');
+validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'}, ...
+    'yalebox_prep_mask_auto', 'morph_open_rad');
+
+validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'}, ...
+    'yalebox_prep_mask_auto', 'morph_erode_rad');
 
 if nargin == 6; show = false; end
 validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
@@ -87,15 +93,10 @@ mask = [wall, mask, wall];
 mask = imfill(mask, 'holes');
 mask = mask(:, 2:end-1);
 
-% experiment: remove noise (open), then trim boundary (erode) {
-mask = imopen(mask, strel('disk', 10));
-mask = imerode(mask, strel('disk', 5));
-% } experiment
-% note: would need a new input argument...
-
-% % clean up edges with morphological filters 
-% disk = strel('disk', morph_rad);
-% mask = imclose(imopen(mask, disk), disk);
+% clean up edges with morphological filters
+% ...remove noise (open), then trim boundary (erode)
+mask = imopen(mask, strel('disk', morph_open_rad));
+mask = imerode(mask, strel('disk', morph_erode_rad));
 
 % (optional) plot to facilitate parameter selection
 if show
