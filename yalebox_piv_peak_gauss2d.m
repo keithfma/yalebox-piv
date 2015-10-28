@@ -1,9 +1,9 @@
-function [rpk, cpk, stat] = yalebox_piv_peak_gauss2d(zz)
-% function [rpk, cpk, stat] = yalebox_piv_peak_gauss2d(zz)
+function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
+% function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
 %
 % Find the position of the peak in matrix zz with subpixel accuracy. Peak
 % location is determined from an explicit solution of two-dimensional
-% Gaussian regression (REF). If the peak cannot be fit at subpixel
+% Gaussian regression [1]. If the peak cannot be fit at subpixel
 % accuracy, no peak is returned (see Arguments). This choice reflects the
 % fact that a lack of subpixel displacement causes spurious gradients - it
 % is preferable to drop the vector and interpolate.
@@ -17,8 +17,17 @@ function [rpk, cpk, stat] = yalebox_piv_peak_gauss2d(zz)
 %   cpk = Scalar, double, column-coordinate location of the peak, set to -1
 %       if the peak cannot be fit
 %
+%   val = Scalar, double, peak value from the best-fit gaussian
+%
 %   stat = Logical, scalar, return status flag, true if successful, false if
 %       unsuccessful
+%
+% References:
+%
+% [1] Nobach, H., & Honkanen, M. (2005). Two-dimensional Gaussian regression for
+% sub-pixel displacement estimation in particle image velocimetry or particle
+% position estimation in particle tracking velocimetry. Experiments in Fluids,
+% 38(4), 511–515. doi:10.1007/s00348-005-0942-3
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
@@ -33,7 +42,8 @@ if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
 end
     
 % offset to eliminate non-positive (gaussian is always positive)
-zz = zz-min(zz(:))+eps;
+offset = min(zz(:)); 
+zz = zz-offset+eps;
 
 % compute coefficients 
 c10 = 0; 
@@ -58,6 +68,9 @@ end
 dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
 dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
 
+% compute peak value
+val = exp( c00-c20*dc^2-c11*dc*dr-c02*dr^2 )+offset;
+
 % apply subpixel displacement
 if abs(dr) < 1 && abs(dc) < 1
     % subpixel estimation worked, there is a nice peak
@@ -66,5 +79,8 @@ if abs(dr) < 1 && abs(dc) < 1
     
 else
     % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
+    rpk = [];
+    cpk = [];
+    val = [];
     stat = false;
 end

@@ -124,6 +124,9 @@ for gg = 1:ngrid
         % set mask to true
         mask = true(nr, nc);
         
+        % set subpixel correlation value matrix to zero
+        cval = zeros(nr, nc);
+        
         % loop over sample grid
         for jj = 1:nc
             for ii = 1:nr
@@ -145,7 +148,7 @@ for gg = 1:ngrid
                 xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
                 
                 % find correlation plane max, subpixel precision
-                [rpeak, cpeak, stat] = yalebox_piv_peak_gauss2d(xcr);
+                [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
                 % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
                 if stat == false
                     uu(ii, jj) = NaN;
@@ -162,20 +165,22 @@ for gg = 1:ngrid
                 
                 uu(ii, jj) = uu(ii, jj)+delta_uu;
                 vv(ii, jj) = vv(ii, jj)+delta_vv;
+                cval(ii, jj) = val;
                 
-                % debug {
-                figure(1)
-                show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-                figure(2)
-                show_xcor(xcr, rpeak, cpeak);
-                pause
+                % % debug {
+                % fprintf('CVAL = %f\n', cval(ii, jj));
+                % figure(1)
+                % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
+                % figure(2)
+                % show_xcor(xcr, rpeak, cpeak);
+                % pause
                 % } debug
                 
             end % ii
         end % jj
         
         % find and drop invalid displacement vectors
-        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);        
+        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
         uu(drop) = NaN;
         vv(drop) = NaN;
         
