@@ -187,9 +187,9 @@ for gg = 1:ngrid
         % validate, smooth, and interpolate (DCT-PLS)
         [uu, vv] = pppiv(uu, vv);
         
-        % % debug {
-        % keyboard
-        % % } debug
+        % debug {
+        keyboard
+        % } debug
         
     end % pp
     
