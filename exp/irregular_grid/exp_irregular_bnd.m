@@ -48,5 +48,50 @@ end % jj
 
 imagesc(ini);
 hold on
-plot(cc_cntr, rr_cntr, 'xk');
+plot(cc_cntr, rr_cntr, '.k');
 hold off
+
+%% Populate irregular and regular grid with values from a known function
+
+% define parameters
+dzdr = 0;
+dzdc = 1/sample_len;
+
+% exact function for value as a function of position
+zval = @(r,c) dzdr*r + dzdc*c;
+
+% populate regular and irregular grids data
+[cc_grid, rr_grid] = meshgrid(cc, rr);
+zz_grid = zval(rr_grid, cc_grid);
+
+% populate irregular data
+zz_cntr = zval(rr_cntr, cc_cntr);
+
+%% Interpolate irregular grid to regular grid
+% Using thin-plate-splines evaluate with radial basis functions, one
+% unconstrained parameter (P).
+
+% define parameters
+p = 0.9;
+
+% create interpolant and interpolate
+xy = [cc_cntr(:)'; rr_cntr(:)'];
+z = zz_cntr(:)';
+st = tpaps(xy, z, p);
+
+% evaluate at all gridpoints 
+xy = [cc_grid(:)'; rr_grid(:)'];
+z = fnval(st, xy);
+
+%% Results
+%
+% Thin-plate spline interpolation/extrapolation is quite satisfactory. An added
+% benefit is that there is a functional form for the first-order derivatives,
+% and they can be computed using fnder. If I could find a way to get the cross
+% derivatives as well, then this would be a very tidy solution to the
+% interpolation/extrapolation and derivative estimation problem...
+
+
+
+
+
