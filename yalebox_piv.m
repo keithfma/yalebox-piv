@@ -192,8 +192,22 @@ for gg = 1:ngrid
         uu(drop) = NaN;
         vv(drop) = NaN;
         
-        % validate, smooth, and interpolate (DCT-PLS)
-        [uu, vv] = pppiv(uu, vv);
+        % % debug {
+        % keyboard
+        % % } debug
+        
+        % interpolate/extrapolate from partial centroid grid to full regular grid        
+        p_smooth = 0.9; % smoothing parameter
+        [cc_grid, rr_grid] = meshgrid(cc, rr);
+        
+        st = tpaps([cc_cntr(:)'; rr_cntr(:)'], uu(:)', p_smooth);        
+        uu = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
+         
+        st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
+        vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
+        
+        % % validate, smooth, and interpolate (DCT-PLS)
+        % [uu, vv] = pppiv(uu, vv);
         
         % % debug: plot centroids and regular grid {
         % imagesc(ini);
@@ -202,10 +216,6 @@ for gg = 1:ngrid
         % [cc_grid, rr_grid] = meshgrid(cc, rr);
         % plot(cc_grid(:), rr_grid(:), 'or')
         % % } debug
-        
-        % debug {
-        keyboard
-        % } debug
         
     end % pp
     
