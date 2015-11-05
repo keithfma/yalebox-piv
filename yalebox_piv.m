@@ -127,6 +127,10 @@ for gg = 1:ngrid
         % set subpixel correlation value matrix to zero
         cval = zeros(nr, nc);
         
+        % reset data centroid grids
+        rr_cntr = zeros(nr, nc);
+        cc_cntr = zeros(nr, nc);
+        
         % loop over sample grid
         for jj = 1:nc
             for ii = 1:nr
@@ -136,12 +140,16 @@ for gg = 1:ngrid
                 [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                                 
                 % skip and mask if sample window is too empty to yield good data
-                if sum(samp(:) == 0) > 0.5*numel(samp)
+                if sum(samp(:) == 0) > 0.9*numel(samp)
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
                     continue
                 end                    
+                
+                % find data centroid for sample window
+                [rr_cntr(ii, jj) cc_cntr(ii, jj)] = ...
+                    yalebox_piv_centroid(samp_pos(2), samp_pos(1), samp, 0);
 
                 % compute masked normalized cross-correlation,                 
                 [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
@@ -186,6 +194,14 @@ for gg = 1:ngrid
         
         % validate, smooth, and interpolate (DCT-PLS)
         [uu, vv] = pppiv(uu, vv);
+        
+        % % debug: plot centroids and regular grid {
+        % imagesc(ini);
+        % hold on
+        % plot(cc_cntr(:), rr_cntr(:), '.k')
+        % [cc_grid, rr_grid] = meshgrid(cc, rr);
+        % plot(cc_grid(:), rr_grid(:), 'or')
+        % % } debug
         
         % debug {
         keyboard
