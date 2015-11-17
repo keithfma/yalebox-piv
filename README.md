@@ -1,4 +1,4 @@
-# SANDBOXPIV SOFTWARE SUITE 
+# YALEBOX-PIV SOFTWARE SUITE 
 
 This PIV implementation was designed specifically for use with the Yalebox analog model of crustal deformation.  Features are:
 
