@@ -91,7 +91,7 @@ switch test_case
         intrlen = [120, 60, 30];
         npass = [1, 2, 2];
         valid_max = 2;
-        valid_eps = 0.01;
+        valid_eps = 0.05;
         
         % load wedge data
         load(data_file, 'xx', 'yy', 'ini', 'fin');
