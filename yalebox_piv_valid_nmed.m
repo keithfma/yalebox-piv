@@ -56,9 +56,12 @@ coffset = [-1,  0,  1 ...
 for ii = 1:nr
     for jj = 1:nc
         
-        % get linear indices of 8 (or less) neighbors
-        rnbr = max(1, min(nr, ii+roffset));
-        cnbr = max(1, min(nc, jj+coffset));
+        % get linear indices of available neighbors
+        rnbr = ii+roffset;
+        cnbr = jj+coffset;
+        keep  = rnbr>=1 & rnbr<=nr & cnbr>=1 & cnbr<=nc;
+        rnbr = rnbr(keep); 
+        cnbr = cnbr(keep);        
         knbr = rnbr+(cnbr-1)*nr;
         
         % extract displacements for center and neighbors
