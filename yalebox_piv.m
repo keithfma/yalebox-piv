@@ -181,6 +181,7 @@ for gg = 1:ngrid
         
         % find and drop invalid displacement vectors
         drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
+        keyboard
         uu(drop) = NaN;
         vv(drop) = NaN;
         
