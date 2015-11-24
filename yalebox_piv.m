@@ -136,7 +136,7 @@ for gg = 1:ngrid
                 [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                                 
                 % skip and mask if sample window is too empty to yield good data
-                if sum(samp(:) == 0) > 0.5*numel(samp)
+                if sum(samp(:) == 0) > 0.75*numel(samp)
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;

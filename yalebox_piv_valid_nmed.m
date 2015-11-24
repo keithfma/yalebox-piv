@@ -2,56 +2,85 @@ function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 % function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test with a
-% 5x5 square kernel. See reference [3] for details. 
+% nnbr-point neighborhood. Neighborhood includes nearest non-NaN points to account
+% for domain edges. See reference [1] for details.
 %
 % Arguments:
 %
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
 %
-%   max_norm_res = Scalar, double, maximum value foe the normalized residual,
-%       above which a vector is flagged as invalid. Refernence [3] reccomends a
+%   max_norm_res = Scalar, double, maximum value for the normalized residual,
+%       above which a vector is flagged as invalid. Reference [1] reccomends a
 %       value of 2.
 %
 %   epsilon = Scalar, double, minumum value of the normalization factor.
-%       Reference [3] reccomends a value of 0.1.
+%       Reference [1] recommends a value of 0.1.
 %
 %   invalid = 2D matrix, logical, flags identifying all invalid vectors as 1
-% %
+%
+%
+% References: 
+%
+% [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
+% data. Experiments in Fluids, 39(6), 1096–1100. doi:10.1007/s00348-005-0016-6
+
+% define parameters
+nnbr = 8; % number of nearest non-NaN neighbors to include in test
+default_max_norm_res = 2;
+default_epsilon = 0.1; 
 
 % set defaults
-if nargin < 3; max_norm_res = 2; end
-if nargin < 4; epsilon = 0.1; end 
+if nargin < 3; max_norm_res = default_max_norm_res; end
+if nargin < 4; epsilon = default_epsilon; end 
 
 % init
 [nr, nc] = size(uu);
 invalid = false(nr, nc);
-roffset = [ 2,  2,  2,  2,  2, ...
-            1,  1,  1,  1,  1, ...
-            0,  0,      0,  0, ...
-           -1, -1, -1, -1, -1, ...
-           -2, -2, -2, -2, -2];
-coffset = [-2, -1,  0,  1,  2, ...
-           -2, -1,  0,  1,  2, ...
-           -2, -1,      1,  2, ...
-           -2, -1,  0,  1,  2, ...
-           -2, -1,  0,  1,  2];
 
+% get offsets to neighbors sorted by distance to the central point
+%... 7x7 neighborhood without central point
+roffset = [-3; -2; -1; 0; 1; 2; 3]*[ 1,  1,  1, 1, 1, 1, 1];
+coffset = [ 1;  1;  1; 1; 1; 1; 1]*[-3, -2, -1, 0, 1, 2, 3];
+%... remove central point
+keep_ind = [1:24, 26:49];
+roffset = roffset(keep_ind);
+coffset = coffset(keep_ind);
+%... sort by distance to center (0,0)
+doffset = sqrt(roffset.^2+coffset.^2);
+[~, sort_ind] = sort(doffset);
+roffset = roffset(sort_ind);
+coffset = coffset(sort_ind);
 
 % loop over all displacement vectors
 for ii = 1:nr
     for jj = 1:nc
         
-        % get linear indices of 8 (or less) neighbors
-        rnbr = max(1, min(nr, ii+roffset));
-        cnbr = max(1, min(nc, jj+coffset));
-        knbr = rnbr+(cnbr-1)*nr;
-        
-        % extract displacements for center and neighbors
+        % get displacements for center point, skip if nan
         u0 = uu(ii, jj);
         v0 = vv(ii, jj);
+        if isnan(u0) || isnan(v0)            
+            continue
+        end
+        
+        % get linear indices of available neighbors
+        rnbr = ii+roffset;
+        cnbr = jj+coffset;
+        keep_ind  = rnbr>=1 & rnbr<=nr & cnbr>=1 & cnbr<=nc;
+        rnbr = rnbr(keep_ind); 
+        cnbr = cnbr(keep_ind);        
+        knbr = rnbr+(cnbr-1)*nr;
+        
+        % extract neighbors, keep only the nnbr nearest non-NaN values        
         unbr = uu(knbr);
         vnbr = vv(knbr);
+        %... drop NaNs
+        keep_ind = ~isnan(unbr) & ~isnan(vnbr);
+        unbr = unbr(keep_ind);
+        vnbr = vnbr(keep_ind);
+        %... keep nearest nnbr points (assumes initial neighborhood is large enough to ensure nnbr neighbors are available)
+        unbr = unbr(1:nnbr);
+        vnbr = vnbr(1:nnbr);
         
         % compute neighbor median, residual, and median residual 
         med_unbr = nanmedian(unbr);
