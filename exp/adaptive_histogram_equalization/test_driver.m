@@ -53,13 +53,9 @@ else
     load(output_file, 'im');    
 end
 
-%% equalize histogram
+%% test 1: global histogram equalization
 
-% debug: set output variable {
-eql = im; 
-% } debug
-
-%% display results
+eql = global_he(im);
 
 figure
 
@@ -74,4 +70,6 @@ imagesc(eql);
 caxis([0,1]);
 axis off
 title('Equalized');
+
+
 
