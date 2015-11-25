@@ -55,7 +55,7 @@ end
 
 %% test 1: global histogram equalization
 
-eql = global_he(im);
+eql = global_he(im, 0);
 
 figure
 
