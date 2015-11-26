@@ -14,8 +14,8 @@ function [] = test_driver(prep)
 %% initialize
 
 % tests to run
-test_global_he = false;
-test_local_he_brute_force = true;
+test_global_he = 1;
+test_local_he_brute_force = 0;
 
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
@@ -66,62 +66,18 @@ end
 
 %% test 1: global histogram equalization
 
-if test_global_he
-    
+if test_global_he    
     eql = global_he(im, 0);
-    
-    % plot original and equalized image
-    figure
-    
-    subplot(2,1,1)
-    imagesc(im);
-    caxis([0,1]);
-    axis off
-    title('Original grayscale');
-    
-    subplot(2,1,2)
-    imagesc(eql);
-    caxis([0,1]);
-    axis off
-    title('Equalized');
-    
-    % plot empirical CDF and PDF for original and equalized images
-    figure
-    
-    roi = im~=0;
-    
-    [cdf, val] = ecdf(im(roi));
-    pdf = diff(cdf)./diff(val);
-    
-    subplot(2,2,1)
-    plot(val, cdf, 'Marker', '.');
-    title('Original CDF');
-    
-    subplot(2,2,3)
-    plot(val(2:end), pdf, 'Marker', '.');
-    title('Original PDF');
-    
-    [cdf, val] = ecdf(eql(roi));
-    pdf = diff(cdf)./diff(val);
-    
-    subplot(2,2,2)
-    plot(val, cdf, 'Marker', '.');
-    title('Equalized CDF');
-    
-    subplot(2,2,4)
-    plot(val(2:end), pdf, 'Marker', '.');
-    title('Equalized PDF');
-    
+    display_test_results(im, 0, eql)
 end
 
 %% test 2: brute-force adaptive histogram equalization
 
-if test_local_he_brute_force
-    
+if test_local_he_brute_force    
     eql = local_he_brute_force(im, 0, brute_force_win);
-    
+    display_test_results(im, 0, eql)    
 end
 
 % debug {
 keyboard
-% } debug
+% } debug 
