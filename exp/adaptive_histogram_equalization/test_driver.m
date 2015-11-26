@@ -14,9 +14,9 @@ function [] = test_driver(prep)
 %% initialize
 
 % tests to run
-test_global_he            = 1;
-test_local_he_brute_force = 1;
-test_local_he_grid_interp = 0;
+test_global_he            = 0;
+test_local_he_brute_force = 0;
+test_local_he_kernel      = 1;
 
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
@@ -34,8 +34,7 @@ morph_erode_rad = 10;
 
 % equalization
 brute_force_win = 31; %#ok!
-grid_interp_win = 30;
-grid_interp_spc = 15;
+kernel_win = 31; %#ok!
 
 % set default for prep 
 if nargin == 0; 
@@ -43,7 +42,10 @@ if nargin == 0;
 end
 
 % start parallel pool if needed
-need_pool = isempty(gcp('nocreate')) && test_local_he_brute_force;
+need_pool = isempty(gcp('nocreate')) && ...
+           (test_local_he_brute_force || ...
+            test_local_he_kernel);
+     
 if  need_pool
     parpool(parpool_nworkers);
 end
@@ -86,11 +88,11 @@ if test_local_he_brute_force
     display_test_results(im, 0, eql, 'brute-force adaptive')    
 end
 
-%% test 3: gridded interpolation adaptive histogram equalization
+%% test 3: kernel adaptive histogram equalization
 
-if test_local_he_grid_interp
-    eql = local_he_grid_interp(im, grid_interp_win, grid_interp_spc, 0);
-    display_test_results(im, 0, eql, 'gridded interpolation adaptive');
+if test_local_he_kernel
+    eql = local_he_kernel(im, 0, kernel_win);
+    display_test_results(im, 0, eql, 'kernel adaptive') 
 end
 
 
