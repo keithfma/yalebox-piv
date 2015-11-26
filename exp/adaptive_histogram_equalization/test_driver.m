@@ -34,6 +34,8 @@ morph_erode_rad = 10;
 
 % equalization
 brute_force_win = 31; %#ok!
+grid_interp_win = 30;
+grid_interp_spc = 15;
 
 % set default for prep 
 if nargin == 0; 
@@ -45,6 +47,8 @@ need_pool = isempty(gcp('nocreate')) && test_local_he_brute_force;
 if  need_pool
     parpool(parpool_nworkers);
 end
+
+keyboard
 
 %% prepare image
 
@@ -87,7 +91,7 @@ end
 %% test 3: gridded interpolation adaptive histogram equalization
 
 if test_local_he_grid_interp
-    eql = local_he_grid_interp(im, 0);
+    eql = local_he_grid_interp(im, grid_interp_win, grid_interp_spc, 0);
     display_test_results(im, 0, eql, 'gridded interpolation adaptive');
 end
 
