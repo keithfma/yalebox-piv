@@ -57,6 +57,7 @@ end
 
 eql = global_he(im, 0);
 
+% plot original and equalized image
 figure
 
 subplot(2,1,1)
@@ -71,5 +72,30 @@ caxis([0,1]);
 axis off
 title('Equalized');
 
+% plot empirical CDF and PDF for original and equalized images
+figure
 
+roi = im~=0;
+
+[cdf, val] = ecdf(im(roi));
+pdf = diff(cdf)./diff(val);
+
+subplot(2,2,1)
+plot(val, cdf, 'Marker', '.');
+title('Original CDF');
+
+subplot(2,2,3)
+plot(val(2:end), pdf, 'Marker', '.');
+title('Original PDF');
+
+[cdf, val] = ecdf(eql(roi));
+pdf = diff(cdf)./diff(val);
+
+subplot(2,2,2)
+plot(val, cdf, 'Marker', '.');
+title('Equalized CDF');
+
+subplot(2,2,4)
+plot(val(2:end), pdf, 'Marker', '.');
+title('Equalized PDF');
 
