@@ -13,6 +13,10 @@ function [] = test_driver(prep)
 
 %% parameters
 
+% tests to run
+test_global_he = false;
+test_local_he_brute_force = true;
+
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
 
@@ -28,6 +32,7 @@ morph_open_rad = 15;
 morph_erode_rad = 10;
 
 % equalization
+brute_force_win = 31;
 
 %% prepare image
 
@@ -55,47 +60,58 @@ end
 
 %% test 1: global histogram equalization
 
-eql = global_he(im, 0);
+if test_global_he
+    
+    eql = global_he(im, 0);
+    
+    % plot original and equalized image
+    figure
+    
+    subplot(2,1,1)
+    imagesc(im);
+    caxis([0,1]);
+    axis off
+    title('Original grayscale');
+    
+    subplot(2,1,2)
+    imagesc(eql);
+    caxis([0,1]);
+    axis off
+    title('Equalized');
+    
+    % plot empirical CDF and PDF for original and equalized images
+    figure
+    
+    roi = im~=0;
+    
+    [cdf, val] = ecdf(im(roi));
+    pdf = diff(cdf)./diff(val);
+    
+    subplot(2,2,1)
+    plot(val, cdf, 'Marker', '.');
+    title('Original CDF');
+    
+    subplot(2,2,3)
+    plot(val(2:end), pdf, 'Marker', '.');
+    title('Original PDF');
+    
+    [cdf, val] = ecdf(eql(roi));
+    pdf = diff(cdf)./diff(val);
+    
+    subplot(2,2,2)
+    plot(val, cdf, 'Marker', '.');
+    title('Equalized CDF');
+    
+    subplot(2,2,4)
+    plot(val(2:end), pdf, 'Marker', '.');
+    title('Equalized PDF');
+    
+end
 
-% plot original and equalized image
-figure
+%% test 2: brute-force adaptive histogram equalization
 
-subplot(2,1,1)
-imagesc(im);
-caxis([0,1]);
-axis off
-title('Original grayscale');
-
-subplot(2,1,2)
-imagesc(eql);
-caxis([0,1]);
-axis off
-title('Equalized');
-
-% plot empirical CDF and PDF for original and equalized images
-figure
-
-roi = im~=0;
-
-[cdf, val] = ecdf(im(roi));
-pdf = diff(cdf)./diff(val);
-
-subplot(2,2,1)
-plot(val, cdf, 'Marker', '.');
-title('Original CDF');
-
-subplot(2,2,3)
-plot(val(2:end), pdf, 'Marker', '.');
-title('Original PDF');
-
-[cdf, val] = ecdf(eql(roi));
-pdf = diff(cdf)./diff(val);
-
-subplot(2,2,2)
-plot(val, cdf, 'Marker', '.');
-title('Equalized CDF');
-
-subplot(2,2,4)
-plot(val(2:end), pdf, 'Marker', '.');
-title('Equalized PDF');
-
+if test_local_he_brute_force
+    
+    eql = local_he_brute_force(im, 0, brute_force_win);
+    
+end

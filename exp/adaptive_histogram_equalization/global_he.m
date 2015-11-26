@@ -9,7 +9,7 @@ function [eql] = global_he(im, ignore)
 %   pixels).
 %
 % eql = 2D matrix, double. Equalized image matrix, with a uniform distribution
-% in the range [0,1]
+%   in the range [0,1]
 
 % check inputs
 validateattributes(im, {'double'}, {'2d', 'real'}, mfilename, 'im');
