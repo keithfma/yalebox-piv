@@ -14,9 +14,9 @@ function [] = test_driver(prep)
 %% initialize
 
 % tests to run
-test_global_he            = 0;
-test_local_he_brute_force = 0;
-test_local_he_grid_interp = 1;
+test_global_he            = 1;
+test_local_he_brute_force = 1;
+test_local_he_grid_interp = 0;
 
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
@@ -47,8 +47,6 @@ need_pool = isempty(gcp('nocreate')) && test_local_he_brute_force;
 if  need_pool
     parpool(parpool_nworkers);
 end
-
-keyboard
 
 %% prepare image
 
@@ -96,6 +94,6 @@ if test_local_he_grid_interp
 end
 
 
-%% debug
-
-keyboard
+% %% debug
+% 
+% keyboard

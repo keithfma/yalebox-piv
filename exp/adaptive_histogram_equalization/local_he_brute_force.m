@@ -63,5 +63,3 @@ parfor i = 1:nr
         
     end
 end
-
-keyboard

@@ -24,21 +24,8 @@ function [eql] = local_he_grid_interp(im, len, spc, ignore)
 validateattributes(im, {'double'}, {'2d', 'real'}, mfilename, 'im');
 validateattributes(ignore, {'double'}, {'scalar', 'real'}, mfilename, 'ignore');
 
-% get transform grid
-sz = size(im);
-rem = mod(sz-len, spc)/2;
-rc0 = floor(rem)+(len-1)/2; 
-rc1 = sz-(ceil(rem)+(len-1)/2); 
-% experiment {
-rc0 = rc0-spc;
-rc1 = rc1+spc;
-% } experiment
-rr = rc0(1):spc:rc1(1);
-cc = rc0(2):spc:rc1(2);
-
-
-keyboard
-
+% ABANDONED THIS ATTEMPT FOR NOW
+error('local_he_grid_interp not implemented');
 
 % dummy output
 eql = im;
