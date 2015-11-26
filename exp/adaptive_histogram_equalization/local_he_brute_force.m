@@ -48,7 +48,7 @@ for i = 1:nr
         win = win(win~=ignore);
         
         % compute transform using percentile        
-        eql(i,j) = sum(win <= im(i,j))/numel(win);
+        eql(i,j) = ( sum(win < im(i,j)) +0.5*sum(win == im(i,j)) )/numel(win);
         
         % % debug: monitor progress {
         % fprintf('%i, %i\n', i, j);
