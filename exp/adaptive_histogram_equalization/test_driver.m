@@ -11,7 +11,7 @@ function [] = test_driver(prep)
 % 
 % %
 
-%% parameters
+%% initialize
 
 % tests to run
 test_global_he = false;
@@ -19,6 +19,7 @@ test_local_he_brute_force = true;
 
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
+parpool_nworkers = 4;
 
 % image prep
 if nargin == 0; prep = true; end
@@ -33,6 +34,11 @@ morph_erode_rad = 10;
 
 % equalization
 brute_force_win = 31;
+
+% start parallel pool if needed
+if isempty(gcp('nocreate'))
+    parpool(parpool_nworkers);
+end
 
 %% prepare image
 
@@ -115,3 +121,7 @@ if test_local_he_brute_force
     eql = local_he_brute_force(im, 0, brute_force_win);
     
 end
+
+% debug {
+keyboard
+% } debug
