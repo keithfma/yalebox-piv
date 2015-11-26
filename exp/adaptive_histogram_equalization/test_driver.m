@@ -14,15 +14,15 @@ function [] = test_driver(prep)
 %% initialize
 
 % tests to run
-test_global_he = 1;
+test_global_he            = 0;
 test_local_he_brute_force = 0;
+test_local_he_grid_interp = 1;
 
 % environment
 yalebox_piv_path = '/home/kfm/Documents/dissertation/yalebox-piv';
 parpool_nworkers = 4;
 
 % image prep
-if nargin == 0; prep = true; end
 input_file =  '/home/kfm/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/prep/2_crop/sidef/fault_ss_01_sidef_250.png'; %#ok!
 output_file = 'test_image.mat'; % should be MAT
 hue_lim = [0, 0.5]; 
@@ -33,10 +33,16 @@ morph_open_rad = 15;
 morph_erode_rad = 10;
 
 % equalization
-brute_force_win = 31;
+brute_force_win = 31; %#ok!
+
+% set default for prep 
+if nargin == 0; 
+    prep = true; 
+end
 
 % start parallel pool if needed
-if isempty(gcp('nocreate'))
+need_pool = isempty(gcp('nocreate')) && test_local_he_brute_force;
+if  need_pool
     parpool(parpool_nworkers);
 end
 
@@ -68,16 +74,24 @@ end
 
 if test_global_he    
     eql = global_he(im, 0);
-    display_test_results(im, 0, eql)
+    display_test_results(im, 0, eql, 'global')
 end
 
 %% test 2: brute-force adaptive histogram equalization
 
 if test_local_he_brute_force    
     eql = local_he_brute_force(im, 0, brute_force_win);
-    display_test_results(im, 0, eql)    
+    display_test_results(im, 0, eql, 'brute-force adaptive')    
 end
 
-% debug {
+%% test 3: gridded interpolation adaptive histogram equalization
+
+if test_local_he_grid_interp
+    eql = local_he_grid_interp(im, 0);
+    display_test_results(im, 0, eql, 'gridded interpolation adaptive');
+end
+
+
+%% debug
+
 keyboard
-% } debug 

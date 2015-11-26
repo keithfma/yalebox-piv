@@ -1,5 +1,5 @@
-function [] = display_test_results(im, ignore, eql)
-% function [] = display_test_results(im, ignore, eql)
+function [] = display_test_results(im, ignore, eql, name)
+% function [] = display_test_results(im, ignore, eql, name)
 %
 % Display some basic results from an image equalization test.
 %
@@ -13,15 +13,19 @@ function [] = display_test_results(im, ignore, eql)
 % eql = 2D matrix, double. Equalized image matrix, with a uniform distribution
 %   in the range [0,1]
 %
+% name = String, name to include in the figure top bar to differentiate tests
+%
 % %
 
 % check inputs
 validateattributes(im, {'double'}, {'2d', 'real'}, mfilename, 'im');
 validateattributes(ignore, {'double'}, {'scalar', 'real'}, mfilename, 'ignore');
 validateattributes(eql, {'double'}, {'2d', 'real'}, mfilename, 'im');
+validateattributes(name, {'char'}, {}, mfilename, 'name');
 
 % plot original and equalized image
 figure
+set(gcf, 'Name', name);
 
 subplot(2,1,1)
 imagesc(im);
@@ -37,6 +41,7 @@ title('Equalized');
 
 % plot empirical CDF and PDF for original and equalized images
 figure
+set(gcf, 'Name', name);
 
 roi = im~=0;
 
