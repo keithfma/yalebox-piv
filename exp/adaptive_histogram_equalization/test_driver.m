@@ -1,5 +1,5 @@
-function [] = test_driver(prep)
-% function [] = test_driver(prep)
+function [] = test_driver(prep, write)
+% function [] = test_driver(prep, write)
 %
 % Run test for the experimental adaptive histogram equalization
 % tools in this derectory. Most parameters are hard-coded in the first section.
@@ -8,14 +8,16 @@ function [] = test_driver(prep)
 %
 % prep = Scalar, logical. Do image preparation steps (1) or load from existing
 %          file (0).
+%
+% write = Scalar, logical. Save input and output images from each test.
 % 
 % %
 
 %% initialize
 
 % tests to run
-test_global_he            = 0;
-test_local_he_brute_force = 0;
+test_global_he            = 1;
+test_local_he_brute_force = 1;
 test_local_he_kernel      = 1;
 
 % environment
@@ -36,9 +38,12 @@ morph_erode_rad = 10;
 brute_force_win = 31; %#ok!
 kernel_win = 31; %#ok!
 
-% set default for prep 
-if nargin == 0; 
+% set defaults  
+if nargin == 0 
     prep = true; 
+end
+if nargin < 2
+    write = true;
 end
 
 % start parallel pool if needed
@@ -49,6 +54,7 @@ need_pool = isempty(gcp('nocreate')) && ...
 if  need_pool
     parpool(parpool_nworkers);
 end
+
 
 %% prepare image
 
@@ -74,28 +80,28 @@ else
     load(output_file, 'im');    
 end
 
-%% test 1: global histogram equalization
+%% tests
 
-if test_global_he    
-    eql = global_he(im, 0);
-    display_test_results(im, 0, eql, 'global')
+try
+    if test_global_he
+        global_eql = global_he(im, 0);
+        display_test_results(im, 0, global_eql, 'global');
+    end    
+    if test_local_he_brute_force
+        local_brute_eql = local_he_brute_force(im, 0, brute_force_win);
+        display_test_results(im, 0, local_brute_eql, 'brute-force adaptive')
+    end 
+    if test_local_he_kernel
+        local_kernel_eql = local_he_kernel(im, 0, kernel_win);
+        display_test_results(im, 0, local_kernel_eql, 'kernel adaptive')
+    end
+catch err   
+    fprintf(getreport(err));
+    keyboard
 end
+    
+%% finish up
 
-%% test 2: brute-force adaptive histogram equalization
-
-if test_local_he_brute_force    
-    eql = local_he_brute_force(im, 0, brute_force_win);
-    display_test_results(im, 0, eql, 'brute-force adaptive')    
+if write
+    save('test_driver_out.mat');
 end
-
-%% test 3: kernel adaptive histogram equalization
-
-if test_local_he_kernel
-    eql = local_he_kernel(im, 0, kernel_win);
-    display_test_results(im, 0, eql, 'kernel adaptive') 
-end
-
-
-% %% debug
-% 
-% keyboard
