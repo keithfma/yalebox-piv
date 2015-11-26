@@ -47,20 +47,8 @@ for i = 1:nr
         win = im(i0:i1, j0:j1);
         win = win(win~=ignore);
         
-        % compute transform (cumulative distribution function), ignoring masked pixels
-        [tform_eql, tform_im] = ecdf(win);
-        
-        % drop repeated pixels
-        tform_eql = tform_eql(2:end);
-        tform_im = tform_im(2:end);
-        
-        % apply transform to center pixel (interpolate)
-        eql(i,j) = interp1(tform_im, tform_eql, im(i,j), 'linear');
-        
-        % alternative: percentile        
-        compare = sum(win <= im(i,j))/numel(win);
-        
-        fprintf('%f, %f, %f\n', eql(i,j), compare, eql(i,j)-compare);
+        % compute transform using percentile        
+        eql(i,j) = sum(win <= im(i,j))/numel(win);
         
         % % debug: monitor progress {
         % fprintf('%i, %i\n', i, j);
@@ -68,5 +56,3 @@ for i = 1:nr
         
     end
 end
-
-keyboard

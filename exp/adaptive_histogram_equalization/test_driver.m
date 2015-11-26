@@ -16,7 +16,7 @@ function [] = test_driver(prep, write)
 %% initialize
 
 % tests to run
-test_global_he            = 0;
+test_global_he            = 1;
 test_local_he_brute_force = 1;
 test_local_he_kernel      = 0;
 
