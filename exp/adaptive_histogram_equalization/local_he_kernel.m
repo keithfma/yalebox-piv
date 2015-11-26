@@ -31,7 +31,7 @@ eql = zeros(nr, nc);
 nhalfwin = floor(nwin/2);
 
 % loop over all pixels
-parfor i = 1:nr
+for i = 1:nr
     for j = 1:nc
         
         % skip pixels outside the region-of-interest (ROI)
@@ -48,8 +48,9 @@ parfor i = 1:nr
         win = win(win~=ignore);
         
         % compute transform (cumulative distribution function), ignoring masked pixels
-        [tform_eql, tform_im] = ksdensity(win, 'function', 'cdf');
-        
+        [tform_eql, tform_im] = ksdensity(win, 'function', 'cdf'); % MATLAB
+
+z        
         % drop repeated pixels
         tform_eql = tform_eql(2:end);
         tform_im = tform_im(2:end);

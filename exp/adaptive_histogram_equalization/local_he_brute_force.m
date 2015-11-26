@@ -31,7 +31,7 @@ eql = zeros(nr, nc);
 nhalfwin = floor(nwin/2);
 
 % loop over all pixels
-parfor i = 1:nr
+for i = 1:nr
     for j = 1:nc
         
         % skip pixels outside the region-of-interest (ROI)
@@ -57,9 +57,16 @@ parfor i = 1:nr
         % apply transform to center pixel (interpolate)
         eql(i,j) = interp1(tform_im, tform_eql, im(i,j), 'linear');
         
+        % alternative: percentile        
+        compare = sum(win <= im(i,j))/numel(win);
+        
+        fprintf('%f, %f, %f\n', eql(i,j), compare, eql(i,j)-compare);
+        
         % % debug: monitor progress {
         % fprintf('%i, %i\n', i, j);
         % % } debug
         
     end
 end
+
+keyboard
