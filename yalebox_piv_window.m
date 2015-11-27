@@ -1,8 +1,10 @@
-function [win, pos] = yalebox_piv_window(img, rcnt, ccnt, len)
-% function [win, pos] = yalebox_piv_window(img, rcnt, ccnt, len)
+function [win, pos, frac_data] = yalebox_piv_window(img, rcnt, ccnt, len)
+% function [win, pos, frac_data] = yalebox_piv_window(img, rcnt, ccnt, len)
 %
-% Extract a sample or interrogation window from the input image, padding with
-% zeros as needed.
+% Extract and return a sample or interrogation window from the input image,
+% padding as needed, and the fraction of the window that contains data (~= 0).
+% Regions without data are filled with random white noise to reduce thier
+% contribution to the normalizae cross correlation.
 %
 % For sample windows: Sample grid centroids are chosen such that sample window
 % edges lie at integer pixel coordinates. Rounding operations thus have no
@@ -60,3 +62,6 @@ sub = img(r0:r1, c0:c1);
 win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pt, pl+snc+pr)];  
+
+% compute fraction of the window that has data
+frac_data = sum(win(:)~=0)/numel(win);
