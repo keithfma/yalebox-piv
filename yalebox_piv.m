@@ -143,9 +143,12 @@ for gg = 1:ngrid
                     continue
                 end  
 
-                % compute masked normalized cross-correlation,                 
-                [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-                xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
+                % compute normalized cross-correlation
+                xcr = normxcorr2(samp, intr);
+                
+                % % deprecated masked version
+                % [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+                % xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
                 
                 % find correlation plane max, subpixel precision
                 [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
