@@ -177,7 +177,7 @@ for gg = 1:ngrid
                 % figure(2)
                 % show_xcor(xcr, rpeak, cpeak);
                 % pause
-                % } debug
+                % % } debug
                 
             end % ii
         end % jj
@@ -187,12 +187,12 @@ for gg = 1:ngrid
         uu(drop) = NaN;
         vv(drop) = NaN;
         
-        % validate, smooth, and interpolate (DCT-PLS)
-        [uu, vv] = pppiv(uu, vv);
-        
         % debug {
         keyboard
         % } debug
+
+        % validate, smooth, and interpolate (DCT-PLS)
+        [uu, vv] = pppiv(uu, vv);              
         
     end % pp
     
@@ -335,7 +335,7 @@ imagesc(img0);
 set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
-plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '.')
 plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
      [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
@@ -354,7 +354,7 @@ imagesc(img1);
 set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
-plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '.')
 plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
      [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
@@ -397,7 +397,7 @@ set(gca, 'YDir', 'normal');
 caxis([-1 1]);
 colorbar
 hold on
-plot(cpk, rpk, 'Color', 'k', 'Marker', '*')
+plot(cpk, rpk, 'Color', 'k', 'Marker', '.')
 title('cross-correlation');
 hold off
 axis equal

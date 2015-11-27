@@ -40,7 +40,7 @@ fin_mask = fin_mask_auto & mask_manual;
 
 % convert to intensity
 ini = yalebox_prep_intensity(ini_hsv, ini_mask, eql_nwin, true);
-fin = yalebox_prep_intensity(ini_hsv, fin_mask, eql_nwin, true);
+fin = yalebox_prep_intensity(fin_hsv, fin_mask, eql_nwin, true);
 
 % create fake coordinate vectors, in pixel coordinates
 xx = 1:size(ini, 2);
