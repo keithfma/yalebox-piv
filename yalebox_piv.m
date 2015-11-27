@@ -141,7 +141,7 @@ for gg = 1:ngrid
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
                     continue
-                end                    
+                end  
 
                 % compute masked normalized cross-correlation,                 
                 [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);

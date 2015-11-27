@@ -56,12 +56,17 @@ nr = size(img, 1);
 pt = max(0, r1-nr);
 r1 = min(nr, r1);
 
-% extract data and add pad
+% extract data and add (no data) pad
 sub = img(r0:r1, c0:c1);
 [snr, snc] = size(sub);
 win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pt, pl+snc+pr)];  
+   
+% replace no-data pixels with random noise too
+no_data = win==0;
+rand_win = rand(len);
+win(no_data) = rand_win(no_data);
 
 % compute fraction of the window that has data
-frac_data = sum(win(:)~=0)/numel(win);
+frac_data = 1-sum(no_data(:))/numel(win);
