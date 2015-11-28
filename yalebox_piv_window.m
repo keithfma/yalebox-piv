@@ -49,7 +49,7 @@ nc = size(img, 2);
 pr = max(0, c1-nc);
 c1 = min(nc, c1);
 
-pb = max(0, 1-r0);
+pb = max(0, 1-r0); % incorrect for negative r0
 r0 = max(1, r0);
 
 nr = size(img, 1);
@@ -62,7 +62,7 @@ sub = img(r0:r1, c0:c1);
 win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pt, pl+snc+pr)];  
-   
+      
 % replace no-data pixels with random noise too
 no_data = win==0;
 rand_win = rand(size(win));

@@ -1,10 +1,16 @@
 function [rvec, cvec] = yalebox_piv_sample_grid(len, spc, sz)
-% Create sample grid such that sample window edges fall at integer positions,
-% and the grid is centered. Note that the first sample window requires 'len'
-% rows and cols, and each additional window requires 'spc' rows and cols.
+% function [rvec, cvec] = yalebox_piv_sample_grid(len, spc, sz)
 %
-% EXPERIMENT: add an extra window so that the bottom sample window extends
-%   beyond the image (and thus includes some padding)
+% Create sample grid with the following characteristics:
+% - sample window edges fall at integer positions
+% - footprint of the sample windows is >= footprint of the image (all pixels
+%   belong to one or more sample windows and no sample windows lie entirely
+%   outside the image)
+% - grid is centered with respect to the image (e.g. overhanging sample window
+%   footprint is the same width on opposing sides, to within a pixel)
+%
+% Note that the first sample window requires 'len' rows and cols, and each
+% additional window requires 'spc' rows and cols.
 %
 % Arguments:
 %
@@ -19,15 +25,21 @@ function [rvec, cvec] = yalebox_piv_sample_grid(len, spc, sz)
 %       y (a.k.a. row) and x (a.k.a. column) directions, in pixels
 % %
 
-rem = mod(sz-len, spc)/2;
+footprint = len+ceil((sz-len)/spc)*spc; 
+rem = footprint-sz;
+hlen = (len-1)/2; 
 
-samp0 = floor(rem)+(len-1)/2; 
-samp1 = sz-(ceil(rem)+(len-1)/2); 
+start = 1-floor(rem/2)+hlen; 
+stop = start+footprint-len;
 
-% experiment {
-samp0 = samp0-spc;
-samp1 = samp1+spc;
-% } experiment
+rvec = start(1):spc:stop(1);
+cvec = start(2):spc:stop(2);
 
-rvec = samp0(1):spc:samp1(1);
-cvec = samp0(2):spc:samp1(2);
+% % debug: check grid edges {
+% disp(rem(1))
+% disp(1-(rvec(1)-hlen))
+% disp((rvec(end)+hlen)-sz(1))
+% disp(rem(2))
+% disp(1-(cvec(1)-hlen))
+% disp((cvec(end)+hlen)-sz(2))
+% % } debug

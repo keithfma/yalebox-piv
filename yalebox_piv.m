@@ -132,9 +132,11 @@ for gg = 1:ngrid
             for ii = 1:nr
                 
                 % get sample and (offset) interrogation windows
-                [samp, samp_pos, frac_data] = yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
-                [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
-                                
+                [samp, samp_pos, frac_data] = ...
+                    yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
+                [intr, intr_pos] = ...
+                    yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
+                   
                 % skip and mask if sample window is too empty to yield good data
                 if frac_data < 0.25
                     uu(ii, jj) = NaN;
@@ -145,11 +147,7 @@ for gg = 1:ngrid
 
                 % compute normalized cross-correlation
                 xcr = normxcorr2(samp, intr);
-                
-                % % deprecated masked version
-                % [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-                % xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
-                
+                                
                 % find correlation plane max, subpixel precision
                 [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
                 % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
@@ -187,9 +185,9 @@ for gg = 1:ngrid
         uu(drop) = NaN;
         vv(drop) = NaN;   
         
-        % debug {
-        keyboard
-        % } debug
+        % % debug {
+        % keyboard
+        % % } debug
         
         % validate, smooth, and interpolate (DCT-PLS)
         [uu, vv] = pppiv(uu, vv);              
