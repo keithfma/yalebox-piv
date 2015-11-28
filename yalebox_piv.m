@@ -180,14 +180,17 @@ for gg = 1:ngrid
             end % ii
         end % jj
         
-        % find and drop invalid displacement vectors
-        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
+        % find invalid displacement vectors
+        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);
+        
+        % debug {
+        show_valid(drop, uu, vv);
+        pause
+        % } debug
+        
+        % drop invalid displacement vectors
         uu(drop) = NaN;
         vv(drop) = NaN;   
-        
-        % % debug {
-        % keyboard
-        % % } debug
         
         % validate, smooth, and interpolate (DCT-PLS)
         [uu, vv] = pppiv(uu, vv);              
@@ -400,5 +403,42 @@ title('cross-correlation');
 hold off
 axis equal
 axis tight
+
+end
+
+function [] = show_valid(drop, uu, vv)
+% display results from validation step
+
+[ii_drop, jj_drop] = find(drop);
+drop_nan = ones(size(drop));
+drop_nan(drop) = NaN;
+
+subplot(2,2,1)
+title('uu')
+imagesc(uu)
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,2)
+title('vv')
+imagesc(vv);
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,3)
+title('uu drop')
+imagesc(uu.*drop_nan)
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,4)
+title('vv drop')
+imagesc(vv.*drop_nan);
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
 
 end
