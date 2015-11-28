@@ -185,12 +185,12 @@ for gg = 1:ngrid
         % find and drop invalid displacement vectors
         drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
         uu(drop) = NaN;
-        vv(drop) = NaN;
+        vv(drop) = NaN;   
         
         % debug {
         keyboard
         % } debug
-
+        
         % validate, smooth, and interpolate (DCT-PLS)
         [uu, vv] = pppiv(uu, vv);              
         
