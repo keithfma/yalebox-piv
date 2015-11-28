@@ -4,16 +4,16 @@ function [win, pos, frac_data] = yalebox_piv_window(img, rcnt, ccnt, len)
 % Extract and return a sample or interrogation window from the input image,
 % padding as needed, and the fraction of the window that contains data (~= 0).
 % Regions without data are filled with random white noise to reduce thier
-% contribution to the normalizae cross correlation.
-%
-% For sample windows: Sample grid centroids are chosen such that sample window
-% edges lie at integer pixel coordinates. Rounding operations thus have no
-% effect in this case.
+% contribution to the normalized cross correlation.
 %
 % For interrogation windows: Window edges are not guaranteed to be integer pixel
 % coordinates. Rounding is used to expand window extent outward to the nearest
 % integer pixel coordinates. Note that this does not change the window centroid,
 % since expansion is always symmetric.
+%
+% For sample windows: Sample grid centroids are chosen such that sample window
+% edges lie at integer pixel coordinates. Rounding operations are still
+% performed, but have no effect in this case.
 %
 % Arguments:
 %
