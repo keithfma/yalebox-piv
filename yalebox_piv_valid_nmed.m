@@ -2,8 +2,8 @@ function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 % function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test with a
-% nnbr-point neighborhood. Neighborhood includes nearest non-NaN points to account
-% for domain edges. See reference [1] for details.
+% nnbr-point neighborhood. Neighborhood includes nearest nnbr non-NaN points to
+% account for domain edges. See reference [1] for details.
 %
 % Arguments:
 %
@@ -26,7 +26,7 @@ function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 % data. Experiments in Fluids, 39(6), 1096–1100. doi:10.1007/s00348-005-0016-6
 
 % define parameters
-nnbr = 8; % number of nearest non-NaN neighbors to include in test
+nnbr = 48; % number of nearest non-NaN neighbors to include in test
 default_max_norm_res = 2;
 default_epsilon = 0.1; 
 
@@ -78,9 +78,11 @@ for ii = 1:nr
         keep_ind = ~isnan(unbr) & ~isnan(vnbr);
         unbr = unbr(keep_ind);
         vnbr = vnbr(keep_ind);
-        %... keep nearest nnbr points (assumes initial neighborhood is large enough to ensure nnbr neighbors are available)
-        unbr = unbr(1:nnbr);
-        vnbr = vnbr(1:nnbr);
+        %... keep nearest nnbr points 
+        if nnbr < length(unbr)
+            unbr = unbr(1:nnbr);
+            vnbr = vnbr(1:nnbr);
+        end
         
         % compute neighbor median, residual, and median residual 
         med_unbr = nanmedian(unbr);

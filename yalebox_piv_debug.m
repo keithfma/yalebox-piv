@@ -77,13 +77,7 @@ switch test_case
     case 3
         
         % case parameters
-        % data_file = 'fault_ss_01_siden_250_251.mat';
         data_file = 'fault_ss_01_sidef_250_251.mat';
-        % data_file = 'fault_ss_01_sidef_251_252.mat';
-        % data_file = 'fault_ss_01_sidef_252_253.mat';
-        % data_file = 'fault_ss_01_sidef_250_252.mat';
-        % data_file = 'fault_ss_01_sidef_250_253.mat';        
-        % data_file = 'fault_ss_01_sidef_030_031.mat';
         
         % piv parameters
         samplen = [30, 30, 15];
@@ -91,7 +85,7 @@ switch test_case
         intrlen = [120, 60, 30];
         npass = [1, 2, 2];
         valid_max = 2;
-        valid_eps = 0.05;
+        valid_eps = 0.01;
         
         % load wedge data
         load(data_file, 'xx', 'yy', 'ini', 'fin');
