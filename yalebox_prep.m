@@ -1,4 +1,9 @@
-function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_rad, num_tiles)
+function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
+                  offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
+                  morph_open_rad, morph_erode_rad, nwin)
+% function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
+%                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
+%                   morph_open_rad, morph_erode_rad, nwin)              
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -10,60 +15,28 @@ function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, off
 %
 % image_path = String, path to folder containing the images.
 %
-% images_names = Cell array of strings, cells must contain filenames for
+% image_names = Cell array of strings, cells must contain filenames for
 %   successive images in the experiment image series. 
 %
 % x, y, scale, offset = Output arguments from yalebox_prep_world_coord().
 %
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
-% hue_lim, val_lim, entr_lim, entr_win, morph_rad = Select input arguments 
-%   from yalebox_prep_mask_auto()
+% hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
+%   arguments for yalebox_prep_mask_auto()
 %
-% num_tiles = Input argument from yalebox_prep_intensity()
+% nwin = Input argument from yalebox_prep_intensity()
 %
 % PIV input netCDF format:
-%   groups: preprocess
 %   dimensions: x, y, step
-%   variables: preprocess/mask_auto, preprocess/mask_manual, x, y, step, intensity
-%   attributes: preprocess/* for all preprocessing parameters
+%   variables: mask_auto, mask_manual, x, y, step, intensity
+%   attributes: all preprocessing parameters
 %
-% Keith Ma, July 2015
+% Keith Ma
 
-% check for sane arguments - pass-through arguments are not checked
-narginchk(14, 14);
-
-validateattributes(input_file, {'char'}, {'vector'}, ...
-    'yalebox_prep', 'input_file');
-
-validateattributes(image_path, {'char'}, {'vector'}, ...
-    'yalebox_prep', 'image_path');
-
-validateattributes(image_names, {'cell'}, {'vector'}, ...
-    'yalebox_prep', 'image_names');
-
-% check that coordinate vectors match image dimensions
-image_w = size(mask_manual, 2);
-image_h = size(mask_manual, 1);
-
-
-assert(numel(x) == image_w && numel(y) == image_h, ...
-    'coordinate vectors and image are not the same size');
-
-% check that all images exist and have the expected size and type
-nimage = numel(image_names);
-for i = 1:nimage
-    try
-        this_file = [image_path filesep image_names{i}];
-        info = imfinfo(this_file);
-        assert(info.Width == image_w && info.Height == image_h, ...
-            sprintf('incorrect dimensions in image %s', this_file));
-        assert(info.BitDepth == 24, ...
-            sprintf('incorrect bit depth in image %s', this_file));
-    catch
-        error('Unable to read image %i: %s', i, this_file);
-    end
-end
+% check for sane arguments (pass-through arguments are checked in subroutines)
+% narginchk(14, 14); % UNCOMMENT LATER
+check_args(input_file, image_path, image_names, x, y);
 
 % create netcdf file
 ncid = netcdf.create(input_file, 'NETCDF4');
@@ -86,27 +59,24 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_mask_auto entr_win', entr_win);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto morph_rad', morph_rad);
+    'yalebox_prep_mask_auto morph_open_rad', morph_open_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
+    'yalebox_prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
     'yalebox_prep_intensity num_tiles', num_tiles);
-
-% add yalebox-piv git revision as attribute
-git_dir = fileparts(mfilename('fullpath'));
-git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
-[stat, git_rev] = system(git_cmd);
-assert(stat == 0, 'Failed to find yalebox-piv git revision number');
+hash = get_git_hash();
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_piv git revision', git_rev);
+    'git hash', hash);
     
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
 y_dimid = netcdf.defDim(ncid, 'y', numel(y));
 s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
 
-% define variables with attributes, compression, and chunking
-D3 = [x_dimid, y_dimid, s_dimid];
-C3 = [numel(x), numel(y), 1];
-D2 = [x_dimid, y_dimid];
+% define variables and thier attributes, compression, and chunking
+dim_3d = [x_dimid, y_dimid, s_dimid];
+chunk_3d = [numel(x), numel(y), 1];
+dim_2d= [x_dimid, y_dimid];
 
 x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
 netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
@@ -120,19 +90,19 @@ s_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', s_dimid);
 netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
 netcdf.putAtt(ncid, s_varid, 'units', '1');
 
-i_varid = netcdf.defVar(ncid, 'intensity', 'NC_FLOAT', D3);
+i_varid = netcdf.defVar(ncid, 'intensity', 'NC_FLOAT', dim_3d);
 netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
 netcdf.putAtt(ncid, i_varid, 'units', '1');
 netcdf.defVarDeflate(ncid, i_varid, true, true, 1);
-netcdf.defVarChunking(ncid, i_varid, 'CHUNKED', C3);
+netcdf.defVarChunking(ncid, i_varid, 'CHUNKED', chunk_3d);
 
-ma_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', D3);
+ma_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', dim_3d);
 netcdf.putAtt(ncid, ma_varid, 'long_name', 'sand mask, automatic');
 netcdf.putAtt(ncid, ma_varid, 'units', 'boolean');
 netcdf.defVarDeflate(ncid, ma_varid, true, true, 1);
-netcdf.defVarChunking(ncid, ma_varid, 'CHUNKED', C3);
+netcdf.defVarChunking(ncid, ma_varid, 'CHUNKED', chunk_3d);
 
-mm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', D2);
+mm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', dim_2d);
 netcdf.putAtt(ncid, mm_varid, 'long_name', 'sand mask, manual');
 netcdf.putAtt(ncid, mm_varid, 'units', 'boolean');
 netcdf.defVarDeflate(ncid, mm_varid, true, true, 1);
@@ -158,16 +128,74 @@ for i = 1:nimage
     hsv = rgb2hsv(imread(this_file));    
     
     % compute automatic mask
-    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad);
+    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, ...
+                    entr_win, morph_open_rad, morph_erode_rad, false);
     
-    % equalize intensity
-    intensity = yalebox_prep_intensity(hsv, mask_auto, num_tiles);
+    % convert to normalized intensity
+    intensity = yalebox_prep_intensity(hsv, mask, nwin, false);
     
     % save results
     ncid = netcdf.open(input_file, 'WRITE');
-    netcdf.putVar(ncid, ma_varid, [0, 0, i-1], [image_w, image_h, 1], uint8(mask_auto'));
-    netcdf.putVar(ncid, i_varid, [0, 0, i-1], [image_w, image_h, 1], intensity');
+    netcdf.putVar(ncid, ma_varid, [0, 0, i-1], [numel(x), numel(y), 1], ...
+        uint8(mask_auto'));
+    netcdf.putVar(ncid, i_varid, [0, 0, i-1], [numel(x), numel(y), 1], ...
+        intensity');
     netcdf.close(ncid);
     
 end
 % end loop
+
+end
+
+%% Subroutines
+
+function hash = get_git_hash()
+% Fetch the revision number of the Git repository this file belongs to,
+% otherwise fail with error.
+% %
+
+git_dir = fileparts(mfilename('fullpath'));
+git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
+[stat, hash] = system(git_cmd);
+assert(stat == 0, 'Failed to find git revision number');
+
+end 
+
+function [] = check_args(input_file, image_path, image_names, x, y, sz)
+% function [] = check_args(input_file, image_path, image_names, x, y, sz)
+%
+% Check for sane arguments (pass-through arguments are checked in subroutines).
+%
+% Arguments:
+%
+%   input_file, image_path, image_names, x, y = (see main function help)
+%
+%   sz = 2-element vector, expected [row, column] size of images 
+% %
+
+validateattributes(input_file, {'char'}, {'vector'}, ...
+    'yalebox_prep', 'input_file');
+validateattributes(image_path, {'char'}, {'vector'}, ...
+    'yalebox_prep', 'image_path');
+validateattributes(image_names, {'cell'}, {'vector'}, ...
+    'yalebox_prep', 'image_names');
+
+assert(numel(x)==sz(2) && numel(y)==sz(1), ...
+    'coordinate vectors and image are not the same size');
+
+% check that all images exist and have the expected size and type
+nimage = numel(image_names);
+for i = 1:nimage
+    try
+        this_file = [image_path filesep image_names{i}];
+        info = imfinfo(this_file);
+        assert(info.Width == image_w && info.Height == image_h, ...
+            sprintf('incorrect dimensions in image %s', this_file));
+        assert(info.BitDepth == 24, ...
+            sprintf('incorrect bit depth in image %s', this_file));
+    catch
+        error('unable to read image %i: %s', i, this_file);
+    end
+end
+
+end

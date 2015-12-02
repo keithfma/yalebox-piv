@@ -37,6 +37,9 @@ function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
 stat = true;
 if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
         || rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)        
+    rpk = [];
+    cpk = [];
+    val = [];
     stat = false;
     return
 end

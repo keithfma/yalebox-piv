@@ -136,11 +136,13 @@ for gg = 1:ngrid
             for ii = 1:nr
                 
                 % get sample and (offset) interrogation windows
-                [samp, samp_pos] = yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
-                [intr, intr_pos] = yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
-                                
+                [samp, samp_pos, frac_data] = ...
+                    yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
+                [intr, intr_pos] = ...
+                    yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
+                   
                 % skip and mask if sample window is too empty to yield good data
-                if sum(samp(:) == 0) > 0.9*numel(samp)
+                if frac_data < 0.25
                     uu(ii, jj) = NaN;
                     vv(ii, jj) = NaN;
                     mask(ii, jj) = false;
@@ -151,10 +153,9 @@ for gg = 1:ngrid
                 [rr_cntr(ii, jj) cc_cntr(ii, jj)] = ...
                     yalebox_piv_centroid(samp_pos(2), samp_pos(1), samp, 0);
 
-                % compute masked normalized cross-correlation,                 
-                [xcr, noverlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-                xcr = xcr.*(noverlap/max(noverlap(:))); % weight according to number of non-mask pixels in the computation
-                
+                % compute normalized cross-correlation
+                xcr = normxcorr2(samp, intr);
+                                
                 % find correlation plane max, subpixel precision
                 [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
                 % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
@@ -165,7 +166,7 @@ for gg = 1:ngrid
                 end
                 
                 % find displacement from position of the correlation max
-                %   - account for padding (-samplen(gg))
+                %   - account for padding in cross-correlation (-samplen(gg))
                 %   - account for relative position of interogation and sample
                 %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
                 delta_uu = cpeak-samplen(gg)-(samp_pos(1)-intr_pos(1));
@@ -182,7 +183,7 @@ for gg = 1:ngrid
                 % figure(2)
                 % show_xcor(xcr, rpeak, cpeak);
                 % pause
-                % } debug
+                % % } debug
                 
             end % ii
         end % jj
@@ -191,10 +192,6 @@ for gg = 1:ngrid
         drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
         uu(drop) = NaN;
         vv(drop) = NaN;
-        
-        % % debug {
-        % keyboard
-        % % } debug
         
         % interpolate/extrapolate from partial centroid grid to full regular grid        
         p_smooth = 0.9; % smoothing parameter
@@ -206,15 +203,17 @@ for gg = 1:ngrid
         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
         vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
         
-        % % validate, smooth, and interpolate (DCT-PLS)
-        % [uu, vv] = pppiv(uu, vv);
-        
         % % debug: plot centroids and regular grid {
         % imagesc(ini);
         % hold on
         % plot(cc_cntr(:), rr_cntr(:), '.k')
         % [cc_grid, rr_grid] = meshgrid(cc, rr);
         % plot(cc_grid(:), rr_grid(:), 'or')
+        % % } debug
+        
+        % % debug {
+        % show_valid(drop, uu, vv);
+        % pause
         % % } debug
         
     end % pp
@@ -358,7 +357,7 @@ imagesc(img0);
 set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
-plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '.')
 plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
      [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '-');
@@ -377,7 +376,7 @@ imagesc(img1);
 set(gca, 'YDir', 'normal');
 caxis(clim);
 hold on
-plot(ccnt, rcnt, 'Color', 'k', 'Marker', '*')
+plot(ccnt, rcnt, 'Color', 'k', 'Marker', '.')
 plot([spos(1), spos(1)+spos(3)-1, spos(1)+spos(3)-1, spos(1)          , spos(1)], ...
      [spos(2), spos(2)          , spos(2)+spos(4)-1, spos(2)+spos(4)-1, spos(2)], ...
      'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
@@ -420,10 +419,47 @@ set(gca, 'YDir', 'normal');
 caxis([-1 1]);
 colorbar
 hold on
-plot(cpk, rpk, 'Color', 'k', 'Marker', '*')
+plot(cpk, rpk, 'Color', 'k', 'Marker', '.')
 title('cross-correlation');
 hold off
 axis equal
 axis tight
+
+end
+
+function [] = show_valid(drop, uu, vv)
+% display results from validation step
+
+[ii_drop, jj_drop] = find(drop);
+drop_nan = ones(size(drop));
+drop_nan(drop) = NaN;
+
+subplot(2,2,1)
+title('uu')
+imagesc(uu)
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,2)
+title('vv')
+imagesc(vv);
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,3)
+title('uu drop')
+imagesc(uu.*drop_nan)
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
+
+subplot(2,2,4)
+title('vv drop')
+imagesc(vv.*drop_nan);
+hold on
+plot(jj_drop, ii_drop, '.w')
+hold off
 
 end
