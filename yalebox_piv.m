@@ -198,25 +198,41 @@ for gg = 1:ngrid
         
         % interpolate/extrapolate from partial centroid grid to full regular grid        
         
-        % option 1: thin plate splines
-        p_smooth = 0.25; % smoothing parameter
+%         % option 1: thin plate splines
+%         p_smooth = 0.25; % smoothing parameter
+%         [cc_grid, rr_grid] = meshgrid(cc, rr);
+%         
+%         warning('off', 'SPLINES:TPAPS:NaNs');        
+%         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], uu(:)', p_smooth);        
+%         uu = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
+%          
+%         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
+%         vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);        
+%         warning('on', 'SPLINES:TPAPS:NaNs');
+        
+        % option 2: scattered interpolant
+        try
+            [cc_grid, rr_grid] = meshgrid(cc, rr);
+            
+            interpolant = scatteredInterpolant(cc_cntr(:), rr_cntr(:), uu(:), ...
+                'nearest', 'nearest');
+            uu = interpolant(cc_grid, rr_grid);
+            
+            interpolant.Values = vv(:);
+            vv = interpolant(cc_grid, rr_grid);
+        catch err
+            fprintf(getReport(err));
+        end
+            
+        keyboard
+        
+        % debug: plot centroids and regular grid {
+        imagesc(ini);
+        hold on
+        plot(cc_cntr(:), rr_cntr(:), '.k')
         [cc_grid, rr_grid] = meshgrid(cc, rr);
-        
-        warning('off', 'SPLINES:TPAPS:NaNs');        
-        st = tpaps([cc_cntr(:)'; rr_cntr(:)'], uu(:)', p_smooth);        
-        uu = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
-         
-        st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
-        vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);        
-        warning('on', 'SPLINES:TPAPS:NaNs');
-        
-        % % debug: plot centroids and regular grid {
-        % imagesc(ini);
-        % hold on
-        % plot(cc_cntr(:), rr_cntr(:), '.k')
-        % [cc_grid, rr_grid] = meshgrid(cc, rr);
-        % plot(cc_grid(:), rr_grid(:), 'or')
-        % % } debug
+        plot(cc_grid(:), rr_grid(:), 'or')
+        % } debug
         
         % % debug {
         % show_valid(drop, uu, vv);
