@@ -103,7 +103,8 @@ for gg = 1:ngrid
     nr = length(rr);
     nc = length(cc);
     
-    % interpolate/extrapolate displacements to new sample grid    
+    % interpolate/extrapolate displacements from old to new sample grid    
+    % CHECK HERE
     [uu, vv] = yalebox_piv_interp2d(rr_old, cc_old, uu, vv, rr, cc, 'spline');
     
     % loop over image deformation passes
@@ -115,9 +116,11 @@ for gg = 1:ngrid
         end
         
         % interpolate/extrapolate displacement vectors to full image resolution
+        % CHECK HERE
         [uu_full, vv_full] = yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
         
         % deform images (does nothing if uu0 and vv0 are 0)
+        % CHECK HERE: deformation does not yield clean edges
         defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
         defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
                
@@ -150,7 +153,7 @@ for gg = 1:ngrid
                 end                    
                 
                 % find data centroid for sample window
-                [rr_cntr(ii, jj) cc_cntr(ii, jj)] = ...
+                [rr_cntr(ii, jj), cc_cntr(ii, jj)] = ...
                     yalebox_piv_centroid(samp_pos(2), samp_pos(1), samp, 0);
 
                 % compute normalized cross-correlation
@@ -194,14 +197,18 @@ for gg = 1:ngrid
         vv(drop) = NaN;
         
         % interpolate/extrapolate from partial centroid grid to full regular grid        
-        p_smooth = 0.9; % smoothing parameter
+        
+        % option 1: thin plate splines
+        p_smooth = 0.25; % smoothing parameter
         [cc_grid, rr_grid] = meshgrid(cc, rr);
         
+        warning('off', 'SPLINES:TPAPS:NaNs');        
         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], uu(:)', p_smooth);        
         uu = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
          
         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
-        vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
+        vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);        
+        warning('on', 'SPLINES:TPAPS:NaNs');
         
         % % debug: plot centroids and regular grid {
         % imagesc(ini);
@@ -215,7 +222,7 @@ for gg = 1:ngrid
         % show_valid(drop, uu, vv);
         % pause
         % % } debug
-        
+       
     end % pp
     
 end % gg

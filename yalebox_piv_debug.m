@@ -77,7 +77,8 @@ switch test_case
     case 3
         
         % case parameters
-        data_file = 'fault_ss_01_sidef_250_251.mat';
+%         data_file = 'fault_ss_01_sidef_250_251.mat';
+        data_file = 'fault_ss_01_sidef_025_026.mat';
         
         % piv parameters
         samplen = [30, 30, 15];

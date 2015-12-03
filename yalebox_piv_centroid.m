@@ -1,7 +1,7 @@
 function [r_cntr, c_cntr] = yalebox_piv_centroid(r0, c0, window, mask_val)
 % function [r_cntr, c_cntr] = yalebox_piv_centroid(r0, c0, window, mask_val)
 %
-% EXPERIMENTAL: find the centroid of the data (i.e. sand) in the input window
+% Find and return the centroid of the data (i.e. sand) in the input window.
 %
 % Arguments:
 %
@@ -10,11 +10,8 @@ function [r_cntr, c_cntr] = yalebox_piv_centroid(r0, c0, window, mask_val)
 %
 % window = 2D matrix, input data for which to find the centroid.
 %
-% mask_val = Scalar, value assigned to "no data" positions in 'window', default
-%   is 0
-
-% set defaults
-if nargin < 4; mask_val = 0; end
+% mask_val = Scalar, value assigned to "no data" positions in 'window'
+% %
 
 % compute centroid
 [r_data, c_data] = find(window ~= mask_val);
