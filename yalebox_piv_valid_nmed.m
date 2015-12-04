@@ -1,5 +1,5 @@
-function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
-% function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
+function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
+% function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test with a
 % nnbr-point neighborhood. Neighborhood includes nearest nnbr non-NaN points to
@@ -10,6 +10,9 @@ function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
 %
+%   roi = 2D matrix, true/false flag indicating if the grid point is inside the
+%       ROI or not.
+%
 %   max_norm_res = Scalar, double, maximum value for the normalized residual,
 %       above which a vector is flagged as invalid. Reference [1] reccomends a
 %       value of 2.
@@ -17,7 +20,7 @@ function invalid = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 %   epsilon = Scalar, double, minumum value of the normalization factor.
 %       Reference [1] recommends a value of 0.1.
 %
-%   invalid = 2D matrix, logical, flags identifying all invalid vectors as 1
+%   valid = 2D matrix, logical, flags identifying all valid vectors as 1
 %
 %
 % References: 
@@ -31,12 +34,12 @@ default_max_norm_res = 2;
 default_epsilon = 0.1; 
 
 % set defaults
-if nargin < 3; max_norm_res = default_max_norm_res; end
-if nargin < 4; epsilon = default_epsilon; end 
+if nargin < 4; max_norm_res = default_max_norm_res; end
+if nargin < 5; epsilon = default_epsilon; end 
 
 % init
 [nr, nc] = size(uu);
-invalid = false(nr, nc);
+valid = true(nr, nc);
 
 % get offsets to neighbors sorted by distance to the central point
 %... 7x7 neighborhood without central point
@@ -56,12 +59,14 @@ coffset = coffset(sort_ind);
 for ii = 1:nr
     for jj = 1:nc
         
-        % get displacements for center point, skip if nan
-        u0 = uu(ii, jj);
-        v0 = vv(ii, jj);
-        if isnan(u0) || isnan(v0)            
+        % skip if center point is outside the roi
+        if ~roi(ii,jj)
             continue
         end
+        
+        % get displacements for center point
+        u0 = uu(ii, jj);
+        v0 = vv(ii, jj);
         
         % get linear indices of available neighbors
         rnbr = ii+roffset;
@@ -101,7 +106,7 @@ for ii = 1:nr
         norm_res = max(norm_res_u0, norm_res_v0);
         
         % classify as valid or invalid
-        invalid(ii, jj) = norm_res > max_norm_res;
+        valid(ii, jj) = norm_res <= max_norm_res;
         
     end
 end

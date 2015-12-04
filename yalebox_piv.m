@@ -186,55 +186,37 @@ for gg = 1:ngrid
         end % jj
         
         % find and drop invalid displacement vectors
-        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);  
-        uu(drop) = NaN;
-        vv(drop) = NaN;
+        valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);  
         
-        % interpolate/extrapolate from partial centroid grid to full regular grid        
-        
-%         % option 1: thin plate splines
-%         p_smooth = 0.25; % smoothing parameter
-%         [cc_grid, rr_grid] = meshgrid(cc, rr);
-%         
-%         warning('off', 'SPLINES:TPAPS:NaNs');        
-%         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], uu(:)', p_smooth);        
-%         uu = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);
-%          
-%         st = tpaps([cc_cntr(:)'; rr_cntr(:)'], vv(:)', p_smooth);        
-%         vv = reshape( fnval(st, [cc_grid(:)'; rr_grid(:)']), nr, nc);        
-%         warning('on', 'SPLINES:TPAPS:NaNs');
-        
-        % option 2: scattered interpolant
-        
-%         try
-%             [cc_grid, rr_grid] = meshgrid(cc, rr);
-%             
-%             interpolant = scatteredInterpolant(cc_cntr(:), rr_cntr(:), uu(:), ...
-%                 'nearest', 'nearest');
-%             uu = interpolant(cc_grid, rr_grid);
-%             
-%             interpolant.Values = vv(:);
-%             vv = interpolant(cc_grid, rr_grid);
-%         catch err
-%             fprintf(getReport(err));
-%         end
-            
-        
-        % debug: plot centroids and regular grid {
-        imagesc(ini); colormap('gray');
-        hold on
-        plot(cc_cntr(:), rr_cntr(:), 'xb')
+        % interpolate/extrapolate from partial centroid grid to full regular grid
         [cc_grid, rr_grid] = meshgrid(cc, rr);
-        plot(cc_grid(:), rr_grid(:), 'or')
-        % } debug
         
-        keyboard
+        interpolant = scatteredInterpolant(...
+            cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
+            'natural', 'nearest');
+        uu = interpolant(cc_grid, rr_grid);
         
+        interpolant.Values = vv(valid & roi);
+        vv = interpolant(cc_grid, rr_grid);
+        
+        % [uu, vv] = pppiv(uu, vv, roi);
+        
+        % % debug: plot centroids and regular grid {
+        % imagesc(ini); colormap('gray');
+        % hold on
+        % plot(cc_cntr(:), rr_cntr(:), 'xb')
+        % [cc_grid, rr_grid] = meshgrid(cc, rr);
+        % plot(cc_grid(:), rr_grid(:), 'or')
+        % % } debug
+
         % % debug {
         % show_valid(drop, uu, vv);
         % pause
         % % } debug
-       
+        
+        % nan_roi = double(roi); nan_roi(~roi) = NaN; subplot(2,1,1); imagesc(uu.*nan_roi); subplot(2,1,2); imagesc(vv.*nan_roi);
+        keyboard
+        
     end % pp
     
 end % gg
