@@ -124,8 +124,8 @@ for gg = 1:ngrid
         defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
         defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
                
-        % set mask to true
-        mask = true(nr, nc);
+        % all grid points start in the ROI
+        roi = true(nr, nc);
         
         % set subpixel correlation value matrix to zero
         cval = zeros(nr, nc);
@@ -139,23 +139,17 @@ for gg = 1:ngrid
             for ii = 1:nr
                 
                 % get sample and (offset) interrogation windows
-                [samp, samp_pos, frac_data] = ...
+                [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
                     yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
                 [intr, intr_pos] = ...
                     yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                    
-                % skip and mask if sample window is too empty to yield good data
+                % skip and remove from ROI if sample window is too empty
                 if frac_data < 0.25
-                    uu(ii, jj) = NaN;
-                    vv(ii, jj) = NaN;
-                    mask(ii, jj) = false;
+                    roi(ii, jj) = false;
                     continue
                 end                    
                 
-                % find data centroid for sample window
-                [rr_cntr(ii, jj), cc_cntr(ii, jj)] = ...
-                    yalebox_piv_centroid(samp_pos(2), samp_pos(1), samp, 0);
-
                 % compute normalized cross-correlation
                 xcr = normxcorr2(samp, intr);
                                 
@@ -211,28 +205,30 @@ for gg = 1:ngrid
 %         warning('on', 'SPLINES:TPAPS:NaNs');
         
         % option 2: scattered interpolant
-        try
-            [cc_grid, rr_grid] = meshgrid(cc, rr);
+        
+%         try
+%             [cc_grid, rr_grid] = meshgrid(cc, rr);
+%             
+%             interpolant = scatteredInterpolant(cc_cntr(:), rr_cntr(:), uu(:), ...
+%                 'nearest', 'nearest');
+%             uu = interpolant(cc_grid, rr_grid);
+%             
+%             interpolant.Values = vv(:);
+%             vv = interpolant(cc_grid, rr_grid);
+%         catch err
+%             fprintf(getReport(err));
+%         end
             
-            interpolant = scatteredInterpolant(cc_cntr(:), rr_cntr(:), uu(:), ...
-                'nearest', 'nearest');
-            uu = interpolant(cc_grid, rr_grid);
-            
-            interpolant.Values = vv(:);
-            vv = interpolant(cc_grid, rr_grid);
-        catch err
-            fprintf(getReport(err));
-        end
-            
-        keyboard
         
         % debug: plot centroids and regular grid {
-        imagesc(ini);
+        imagesc(ini); colormap('gray');
         hold on
-        plot(cc_cntr(:), rr_cntr(:), '.k')
+        plot(cc_cntr(:), rr_cntr(:), 'xb')
         [cc_grid, rr_grid] = meshgrid(cc, rr);
         plot(cc_grid(:), rr_grid(:), 'or')
         % } debug
+        
+        keyboard
         
         % % debug {
         % show_valid(drop, uu, vv);
@@ -243,9 +239,9 @@ for gg = 1:ngrid
     
 end % gg
 
-% re-apply mask
-uu(~mask) = NaN;
-vv(~mask) = NaN;
+% delete points outside the ROI
+uu(~roi) = NaN;
+vv(~roi) = NaN;
 
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
