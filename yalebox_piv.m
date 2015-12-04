@@ -193,13 +193,16 @@ for gg = 1:ngrid
         
         interpolant = scatteredInterpolant(...
             cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
-            'natural', 'nearest');
+            'nearest', 'nearest');
         uu = interpolant(cc_grid, rr_grid);
         
         interpolant.Values = vv(valid & roi);
         vv = interpolant(cc_grid, rr_grid);
         
-        % [uu, vv] = pppiv(uu, vv, roi);
+        % smooth
+        kern = ones(3)/9;
+        uu = imfilter(uu, kern, 'symmetric', 'same');
+        vv = imfilter(vv, kern, 'symmetric', 'same');
         
         % % debug: plot centroids and regular grid {
         % imagesc(ini); colormap('gray');
@@ -214,8 +217,12 @@ for gg = 1:ngrid
         % pause
         % % } debug
         
-        % nan_roi = double(roi); nan_roi(~roi) = NaN; subplot(2,1,1); imagesc(uu.*nan_roi); subplot(2,1,2); imagesc(vv.*nan_roi);
-        keyboard
+        % debug: quick plot {
+        nan_roi = double(roi); nan_roi(~roi) = NaN; 
+        subplot(2,1,1); imagesc(uu.*nan_roi); title('uu');
+        subplot(2,1,2); imagesc(vv.*nan_roi); title('vv');
+        drawnow
+        % } debug
         
     end % pp
     
