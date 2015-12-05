@@ -1,5 +1,5 @@
-function [uu1, vv1] = yalebox_piv_interp2(r0, c0, uu0, vv0, r1, c1, method)
-% function [uu1, vv1] = yalebox_piv_interp2(r0, c0, uu0, vv0, r1, c1, method)
+function [uu1, vv1] = yalebox_piv_interp2d(r0, c0, uu0, vv0, r1, c1, method)
+% function [uu1, vv1] = yalebox_piv_interp2d(r0, c0, uu0, vv0, r1, c1, method)
 %
 % Interpolate a vector field from one gridded coordinate system to another. Uses
 % the griddedInterpolate class, which supports extrapolation for all available

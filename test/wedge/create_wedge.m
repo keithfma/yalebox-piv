@@ -3,7 +3,7 @@
 %% Define parameters 
 
 % file names
-dir_name = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/prep/2_crop/sidef/';
+dir_name = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/image/crop_sidef/';
 ini_file = 'fault_ss_01_sidef_250.png';
 fin_file = 'fault_ss_01_sidef_251.png';
 out_file = 'fault_ss_01_sidef_250_251.mat';

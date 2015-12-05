@@ -103,7 +103,8 @@ for gg = 1:ngrid
     nr = length(rr);
     nc = length(cc);
     
-    % interpolate/extrapolate displacements to new sample grid    
+    % interpolate/extrapolate displacements from old to new sample grid    
+    % CHECK HERE
     [uu, vv] = yalebox_piv_interp2d(rr_old, cc_old, uu, vv, rr, cc, 'spline');
     
     % loop over image deformation passes
@@ -115,36 +116,40 @@ for gg = 1:ngrid
         end
         
         % interpolate/extrapolate displacement vectors to full image resolution
+        % CHECK HERE
         [uu_full, vv_full] = yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
         
         % deform images (does nothing if uu0 and vv0 are 0)
+        % CHECK HERE: deformation does not yield clean edges
         defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
         defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
                
-        % set mask to true
-        mask = true(nr, nc);
+        % all grid points start in the ROI
+        roi = true(nr, nc);
         
         % set subpixel correlation value matrix to zero
         cval = zeros(nr, nc);
+        
+        % reset data centroid grids
+        rr_cntr = zeros(nr, nc);
+        cc_cntr = zeros(nr, nc);
         
         % loop over sample grid
         for jj = 1:nc
             for ii = 1:nr
                 
                 % get sample and (offset) interrogation windows
-                [samp, samp_pos, frac_data] = ...
+                [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
                     yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
                 [intr, intr_pos] = ...
                     yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
                    
-                % skip and mask if sample window is too empty to yield good data
+                % skip and remove from ROI if sample window is too empty
                 if frac_data < 0.25
-                    uu(ii, jj) = NaN;
-                    vv(ii, jj) = NaN;
-                    mask(ii, jj) = false;
+                    roi(ii, jj) = false;
                     continue
-                end  
-
+                end                    
+                
                 % compute normalized cross-correlation
                 xcr = normxcorr2(samp, intr);
                                 
@@ -158,7 +163,7 @@ for gg = 1:ngrid
                 end
                 
                 % find displacement from position of the correlation max
-                %   - account for padding (-samplen(gg))
+                %   - account for padding in cross-correlation (-samplen(gg))
                 %   - account for relative position of interogation and sample
                 %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
                 delta_uu = cpeak-samplen(gg)-(samp_pos(1)-intr_pos(1));
@@ -180,28 +185,51 @@ for gg = 1:ngrid
             end % ii
         end % jj
         
-        % find invalid displacement vectors
-        drop = yalebox_piv_valid_nmed(uu, vv, valid_max, valid_eps);
+        % find and drop invalid displacement vectors
+        valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);  
         
-        % debug {
-        show_valid(drop, uu, vv);
-        pause
-        % } debug
+        % interpolate/extrapolate/smooth 
+
+        %...option 1: scattered interpolation from partial centroid grid
+        [cc_grid, rr_grid] = meshgrid(cc, rr);
         
-        % drop invalid displacement vectors
-        uu(drop) = NaN;
-        vv(drop) = NaN;   
+        interpolant = scatteredInterpolant(...
+            cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
+            'nearest', 'nearest');
+        uu = interpolant(cc_grid, rr_grid);
         
-        % validate, smooth, and interpolate (DCT-PLS)
-        [uu, vv] = pppiv(uu, vv);              
+        interpolant.Values = vv(valid & roi);
+        vv = interpolant(cc_grid, rr_grid);
+        
+        kern = ones(3)/9;
+        uu = imfilter(uu, kern, 'symmetric', 'same');
+        vv = imfilter(vv, kern, 'symmetric', 'same');
+
+        % %...option 2: PLS, ignoring centroid grid
+        % uu(~valid & ~roi) = NaN;
+        % vv(~valid & ~roi) = NaN;
+        % [uu, vv] = pppiv(uu, vv);
+        
+        % % debug: plot centroids and regular grid {
+        % imagesc(ini); colormap('gray');
+        % hold on
+        % plot(cc_cntr(:), rr_cntr(:), 'xb')
+        % [cc_grid, rr_grid] = meshgrid(cc, rr);
+        % plot(cc_grid(:), rr_grid(:), 'or')
+        % % } debug
+
+        % % debug {
+        % show_valid(drop, uu, vv);
+        % pause
+        % % } debug
         
     end % pp
     
 end % gg
 
-% re-apply mask
-uu(~mask) = NaN;
-vv(~mask) = NaN;
+% delete points outside the ROI
+uu(~roi) = NaN;
+vv(~roi) = NaN;
 
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
