@@ -52,10 +52,10 @@ switch test_case
         dir = 2;
         
         % piv parameters
-        samplen = [30];%, 20];
-        sampspc = [15];%, 10];
-        intrlen = [60];%, 30];
-        npass = [1];%, 5];      
+        samplen = [30, 20];
+        sampspc = [15, 10];
+        intrlen = [60, 30];
+        npass = [1, 5];      
         valid_max = 2;
         valid_eps = 0.01;
         

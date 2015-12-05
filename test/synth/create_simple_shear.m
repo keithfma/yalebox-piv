@@ -42,10 +42,10 @@ assert(ismember(dir, [1, 2]), 'dir must be either 1 or 2');
 validateattributes(show, {'numeric', 'logical'}, {'binary'}, ... 
     'create_simple_shear', 'show');
 
-% read template data to intensity matrix
+% read template data to normalized intensity matrix
 ini = imread(template);
 ini = rgb2hsv(ini);
-ini = ini(:, :, 3);
+ini = yalebox_prep_intensity(ini, true(size(ini(:,:,1))), 31);
 
 % compute displacement fields
 [nr, nc] = size(ini);
@@ -60,8 +60,10 @@ elseif dir == 2
     vv = zeros(nr, nc);
 end
 
-% apply transformation
-fin = imwarp(ini, cat(3, -uu, -vv), 'cubic', 'FillValues', NaN);
+% apply transformation, trim range overshoot due to interpolation
+fin = imwarp(ini, cat(3, -uu, -vv), 'cubic', 'FillValues', 0);
+fin(fin<0) = 0+eps;
+fin(fin>1) = 1-eps;
 
 % trim images and displacements
 if dir == 1
