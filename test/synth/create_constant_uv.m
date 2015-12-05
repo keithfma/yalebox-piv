@@ -42,7 +42,7 @@ validateattributes(show, {'numeric', 'logical'}, {'binary'}, ...
 % read template data to intensity matrix
 ii = imread(template);
 ii = rgb2hsv(ii);
-ii = ii(:, :, 3);
+ii = yalebox_prep_intensity(ii, true(size(ii(:,:,1))), 31);
 
 % apply displacements by cropping the template
 if u > 0
@@ -92,9 +92,3 @@ if show
         pause(1)
     end
 end
-
-
-
-
-
-
