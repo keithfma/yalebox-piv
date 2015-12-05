@@ -188,7 +188,9 @@ for gg = 1:ngrid
         % find and drop invalid displacement vectors
         valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);  
         
-        % interpolate/extrapolate from partial centroid grid to full regular grid
+        % interpolate/extrapolate/smooth 
+
+        %...option 1: scattered interpolation from partial centroid grid
         [cc_grid, rr_grid] = meshgrid(cc, rr);
         
         interpolant = scatteredInterpolant(...
@@ -199,10 +201,14 @@ for gg = 1:ngrid
         interpolant.Values = vv(valid & roi);
         vv = interpolant(cc_grid, rr_grid);
         
-        % smooth
         kern = ones(3)/9;
         uu = imfilter(uu, kern, 'symmetric', 'same');
         vv = imfilter(vv, kern, 'symmetric', 'same');
+
+        % %...option 2: PLS, ignoring centroid grid
+        % uu(~valid & ~roi) = NaN;
+        % vv(~valid & ~roi) = NaN;
+        % [uu, vv] = pppiv(uu, vv);
         
         % % debug: plot centroids and regular grid {
         % imagesc(ini); colormap('gray');
@@ -216,13 +222,6 @@ for gg = 1:ngrid
         % show_valid(drop, uu, vv);
         % pause
         % % } debug
-        
-        % debug: quick plot {
-        nan_roi = double(roi); nan_roi(~roi) = NaN; 
-        subplot(2,1,1); imagesc(uu.*nan_roi); title('uu');
-        subplot(2,1,2); imagesc(vv.*nan_roi); title('vv');
-        drawnow
-        % } debug
         
     end % pp
     
