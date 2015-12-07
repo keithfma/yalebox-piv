@@ -189,26 +189,34 @@ for gg = 1:ngrid
         valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);  
         
         % interpolate/extrapolate/smooth 
-
-        %...option 1: scattered interpolation from partial centroid grid
-        [cc_grid, rr_grid] = meshgrid(cc, rr);
         
-        interpolant = scatteredInterpolant(...
-            cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
-            'nearest', 'nearest');
-        uu = interpolant(cc_grid, rr_grid);
-        
-        interpolant.Values = vv(valid & roi);
-        vv = interpolant(cc_grid, rr_grid);
-        
-        kern = ones(3)/9;
-        uu = imfilter(uu, kern, 'symmetric', 'same');
-        vv = imfilter(vv, kern, 'symmetric', 'same');
+        % %...option 1: scattered interpolation from partial centroid grid
+        % [cc_grid, rr_grid] = meshgrid(cc, rr);
+        % 
+        % interpolant = scatteredInterpolant(...
+        %     cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
+        %     'nearest', 'nearest');
+        % uu = interpolant(cc_grid, rr_grid);
+        % 
+        % interpolant.Values = vv(valid & roi);
+        % vv = interpolant(cc_grid, rr_grid);
+        % 
+        % kern = ones(3)/9;
+        % uu = imfilter(uu, kern, 'symmetric', 'same');
+        % vv = imfilter(vv, kern, 'symmetric', 'same');
 
         % %...option 2: PLS, ignoring centroid grid
         % uu(~valid & ~roi) = NaN;
         % vv(~valid & ~roi) = NaN;
         % [uu, vv] = pppiv(uu, vv);
+        
+        % option 3: spline in tension
+        s = 0.5;
+        keep = valid & roi;
+        [cc_grid, rr_grid] = meshgrid(cc, rr);
+        uu(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), uu(keep), s);
+        vv(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), vv(keep), s);
+        [uu, vv] = pppiv(uu, vv, '2x2');
         
         % % debug: plot centroids and regular grid {
         % imagesc(ini); colormap('gray');
@@ -222,6 +230,8 @@ for gg = 1:ngrid
         % show_valid(drop, uu, vv);
         % pause
         % % } debug
+        
+        % subplot(2,1,1); imagesc(uu.*roi); axis equal; colorbar; subplot(2,1,2); imagesc(vv.*roi); axis equal; colorbar;
         
     end % pp
     
