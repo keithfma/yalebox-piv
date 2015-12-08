@@ -81,10 +81,10 @@ switch test_case
 %         data_file = 'fault_ss_01_sidef_025_026.mat';
         
         % piv parameters
-        samplen = [30, 30, 15];
-        sampspc = [30, 30, 15];
-        intrlen = [120, 60, 30];
-        npass = [1, 3, 3];
+        samplen = [30, 30];%, 15];
+        sampspc = [30, 15];%, 15];
+        intrlen = [120, 60];%, 30];
+        npass = [1, 3];%, 3];
         valid_max = 2;
         valid_eps = 0.01;
         

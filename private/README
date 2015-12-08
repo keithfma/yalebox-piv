@@ -21,3 +21,5 @@ derivativesByFilter.m
 equation (by John D'Errico, by way of the MATLAB file exchange).
 
 inpaint_nans.m
+
+(4) spline2d from Wessel & Bercovici 1998 tspline MATLAB package
