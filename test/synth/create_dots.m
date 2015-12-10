@@ -1,4 +1,4 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots(img_size)
+function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, A)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -8,22 +8,41 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size)
 %
 % img_size = Vector, length == 2, [row, col] size of the output images
 %
+% A = Matrix, size == [2, 3], affine transformation matrix using homogenous
+%   coordinates Elements include the all comoponents of the displacement
+%   gradient tensor as well as constant offsets in the x and y directions:
+%       [du/dx, du/dy, tx; 
+%        dv/dx, dv/dy, ty]
+%
 % %
 
 %% initialize
 
+% set defaults
+narginchk(0,2);
+if nargin == 0; img_size = [25, 25]; end
+if nargin < 2; A = [1, 0.5, 20; 0, 1, 5]; end
+
 % check for sane inputs
-narginchk(1,1);
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2}, ...
     mfilename, 'img_size');
+validateattributes(A, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'A');
+A = [A; 0, 0, 1];
 
 %% main
 
-pts = random_grid([1, img_size(2)], [1, img_size(1)], 5);
+pts = random_grid([1, img_size(2)], [1, img_size(1)], 5); % [x, y]
+pts_homo = [pts'; ones(1, size(pts, 1))]; % [x; y; ones()]
+pts_fwd_homo = A*pts_homo;
+pts_fwd = pts_fwd_homo(1:2, :)';
 
 %% debug
 
-keyboard
+hold off
+triplot(delaunayTriangulation(pts), 'Color', 'b');
+hold on
+triplot(delaunayTriangulation(pts_fwd), 'Color', 'r');
+legend('ini', 'fin')
 
 % dummy output arguments
 ini = [];
