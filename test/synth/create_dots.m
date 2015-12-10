@@ -32,9 +32,9 @@ A = [A; 0, 0, 1];
 %% main
 
 % compute the reverse affine transformation of the image bounding box
-bbox = [1, img_size(2), img_size(2),           1; 
-        1,           1, img_size(1), img_size(1)];
-bbox_homo = [bbox; ones(1,4)];
+bbox = [1, img_size(2), img_size(2),           1, 1; 
+        1,           1, img_size(1), img_size(1), 1];
+bbox_homo = [bbox; ones(1,5)];
 bbox_rev_homo = inv(A)*bbox_homo;
 bbox_rev = bbox_rev_homo(1:2, :);
 
@@ -42,20 +42,20 @@ bbox_rev = bbox_rev_homo(1:2, :);
 pts_xlim = [ min([bbox(1,:), bbox_rev(1,:)]), max([bbox(1,:), bbox_rev(1,:)]) ];
 pts_ylim = [ min([bbox(2,:), bbox_rev(2,:)]), max([bbox(2,:), bbox_rev(2,:)]) ];
 
-% % generate a random grid
-% pts = random_grid([1, img_size(2)], [1, img_size(1)], 5); % [x, y]
+% generate a random grid
+pts = random_grid(pts_xlim, pts_ylim, 5); % [x, y]
 
 
 %% debug
 
-% plot image and point limits
+% plot point grids 
 hold off
-triplot(delaunayTriangulation(bbox'), 'Color', 'b');
+plot(bbox(1,:), bbox(2,:), '-k');
 hold on
-triplot(delaunayTriangulation(bbox_rev'), 'Color', 'r');
-plot([pts_xlim(1), pts_xlim(2), pts_xlim(2), pts_xlim(1), pts_xlim(1)], ...
-    [pts_ylim(1), pts_ylim(1), pts_ylim(2), pts_ylim(2), pts_ylim(1)], '-g');
-legend('img', 'rev', 'pts_lim')
+plot(bbox_rev(1,:), bbox_rev(2,:), '--k');
+% triplot(delaunayTriangulation(pts), 'Color', 'r');
+plot(pts(:,1), pts(:,2), 'xr');
+legend('img', 'rev', 'pts')
 
 keyboard
 
@@ -88,7 +88,7 @@ function pts = random_grid(xlim, ylim, min_spc)
 max_num_attempts = 1e3;
 
 % initialize
-new_pt = @() rand(1,2).*[range(xlim)+xlim(1), range(ylim)+ylim(1)];
+new_pt = @() rand(1,2).*[range(xlim), range(ylim)]+[xlim(1), ylim(1)];
 tri = delaunayTriangulation([new_pt(); new_pt(); new_pt()]);
 
 % add random points until there are num_pts of them in the set
