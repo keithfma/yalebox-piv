@@ -1,4 +1,4 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots()
+function [ini, fin, xx, yy, uu, vv] = create_dots(img_size)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -6,30 +6,41 @@ function [ini, fin, xx, yy, uu, vv] = create_dots()
 %
 % Arguments:
 %
+% img_size = Vector, length == 2, [row, col] size of the output images
+%
 % %
 
-% debug: dummy input arguments {
-% } debug 
+%% initialize
 
-pts = random_grid(1000, [0, 1], [0, 1], 0.01);
+% check for sane inputs
+narginchk(1,1);
+validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2}, ...
+    mfilename, 'img_size');
 
-% debug: dummy output arguments {
+%% main
+
+pts = random_grid([1, img_size(2)], [1, img_size(1)], 5);
+
+%% debug
+
+keyboard
+
+% dummy output arguments
 ini = [];
 fin = [];
 xx = [];
 yy = [];
 uu = [];
 vv = [];
-% } debug
 
-function pts = random_grid(num_pts, xlim, ylim, min_spc)
+end
+
+function pts = random_grid(xlim, ylim, min_spc)
 %
 % Generate a set of num_pts random points within the limits xlim and ylim with a
 % minimum spacing of min_spc.
 %
 % Arguments:
-%
-% num_pts = Scalar, integer, number of points in the output set
 %
 % xlim, ylim = Vectors, length==2 , [minimum, maximum] coordinates for points in
 %   the set
@@ -45,10 +56,10 @@ max_num_attempts = 1e3;
 % initialize
 new_pt = @() rand(1,2).*[range(xlim)+xlim(1), range(ylim)+ylim(1)];
 tri = delaunayTriangulation([new_pt(); new_pt(); new_pt()]);
-num_attempts = 0;
 
 % add random points until there are num_pts of them in the set
-while size(tri.Points, 1) < num_pts && num_attempts <= max_num_attempts
+num_attempts = 0;
+while num_attempts <= max_num_attempts
     
     % insert a new point into triangulation
     tri.Points(end+1, :) = new_pt();
@@ -71,3 +82,5 @@ while size(tri.Points, 1) < num_pts && num_attempts <= max_num_attempts
 end
 
 pts = tri.Points;
+
+end
