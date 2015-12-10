@@ -31,18 +31,34 @@ A = [A; 0, 0, 1];
 
 %% main
 
-pts = random_grid([1, img_size(2)], [1, img_size(1)], 5); % [x, y]
-pts_homo = [pts'; ones(1, size(pts, 1))]; % [x; y; ones()]
-pts_fwd_homo = A*pts_homo;
-pts_fwd = pts_fwd_homo(1:2, :)';
+% compute the forward and reverse affine transformation of the image bounding box
+bbox = [1, img_size(2), img_size(2),           1; 
+        1,           1, img_size(1), img_size(1)];
+bbox_homo = [bbox; ones(1,4)];
+bbox_fwd_homo = A*bbox_homo;
+bbox_rev_homo = inv(A)*bbox_homo;
+bbox_fwd = bbox_fwd_homo(1:2, :);
+bbox_rev = bbox_rev_homo(1:2, :);
+
+% % generate a random grid
+% pts = random_grid([1, img_size(2)], [1, img_size(1)], 5); % [x, y]
+% pts_homo = [pts'; ones(1, size(pts, 1))]; % [x; y; ones()]
+% pts_fwd_homo = A*pts_homo;
+% pts_fwd = pts_fwd_homo(1:2, :)';
+% pts_rev_homo = inv(A)*pts_homo;
+% pts_rev = pts_rev_homo(1:2, :)';
+
 
 %% debug
 
 hold off
-triplot(delaunayTriangulation(pts), 'Color', 'b');
+triplot(delaunayTriangulation(bbox'), 'Color', 'b');
 hold on
-triplot(delaunayTriangulation(pts_fwd), 'Color', 'r');
-legend('ini', 'fin')
+triplot(delaunayTriangulation(bbox_fwd'), 'Color', 'r');
+triplot(delaunayTriangulation(bbox_rev'), 'Color', 'g');
+legend('ini', 'fin', 'rev')
+
+keyboard
 
 % dummy output arguments
 ini = [];
