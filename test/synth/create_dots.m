@@ -31,32 +31,31 @@ A = [A; 0, 0, 1];
 
 %% main
 
-% compute the forward and reverse affine transformation of the image bounding box
+% compute the reverse affine transformation of the image bounding box
 bbox = [1, img_size(2), img_size(2),           1; 
         1,           1, img_size(1), img_size(1)];
 bbox_homo = [bbox; ones(1,4)];
-bbox_fwd_homo = A*bbox_homo;
 bbox_rev_homo = inv(A)*bbox_homo;
-bbox_fwd = bbox_fwd_homo(1:2, :);
 bbox_rev = bbox_rev_homo(1:2, :);
+
+% get the footprint of the points needed to fully populate ini and fin
+pts_xlim = [ min([bbox(1,:), bbox_rev(1,:)]), max([bbox(1,:), bbox_rev(1,:)]) ];
+pts_ylim = [ min([bbox(2,:), bbox_rev(2,:)]), max([bbox(2,:), bbox_rev(2,:)]) ];
 
 % % generate a random grid
 % pts = random_grid([1, img_size(2)], [1, img_size(1)], 5); % [x, y]
-% pts_homo = [pts'; ones(1, size(pts, 1))]; % [x; y; ones()]
-% pts_fwd_homo = A*pts_homo;
-% pts_fwd = pts_fwd_homo(1:2, :)';
-% pts_rev_homo = inv(A)*pts_homo;
-% pts_rev = pts_rev_homo(1:2, :)';
 
 
 %% debug
 
+% plot image and point limits
 hold off
 triplot(delaunayTriangulation(bbox'), 'Color', 'b');
 hold on
-triplot(delaunayTriangulation(bbox_fwd'), 'Color', 'r');
-triplot(delaunayTriangulation(bbox_rev'), 'Color', 'g');
-legend('ini', 'fin', 'rev')
+triplot(delaunayTriangulation(bbox_rev'), 'Color', 'r');
+plot([pts_xlim(1), pts_xlim(2), pts_xlim(2), pts_xlim(1), pts_xlim(1)], ...
+    [pts_ylim(1), pts_ylim(1), pts_ylim(2), pts_ylim(2), pts_ylim(1)], '-g');
+legend('img', 'rev', 'pts_lim')
 
 keyboard
 
