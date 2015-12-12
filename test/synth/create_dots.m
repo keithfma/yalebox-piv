@@ -37,17 +37,13 @@ validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'tform
 
 % compute the reverse affine transformation of the image bounding box
 
-bbox = [          1,           1;
-                  1, img_size(2);
-        img_size(1), img_size(2);
-        img_size(1),           1;
-                  1,           1];
-              
-bbox_rev = affine_transform(tform, bbox, 0);
+x_bbox = [1, img_size(2), img_size(2),           1, 1];            
+y_bbox = [1,           1, img_size(1), img_size(1), 1];              
+[x_bbox_rev, y_bbox_rev] = affine_trans(tform, x_bbox, y_bbox, 0);
 
 % get the footprint of the points needed to fully populate ini and fin
-pts_xlim = [ min([bbox(:,1); bbox_rev(:,1)]); max([bbox(:,1); bbox_rev(:,1)]) ];
-pts_ylim = [ min([bbox(:,2); bbox_rev(:,2)]); max([bbox(:,2); bbox_rev(:,2)]) ];
+pts_xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
+pts_ylim = [ min([y_bbox(:); y_bbox_rev(:)]); max([y_bbox(:); y_bbox_rev(:)]) ];
 
 % generate a random grid
 pts = random_grid(pts_xlim, pts_ylim, 5); % [x, y]
@@ -76,17 +72,18 @@ vv = [];
 
 end
 
-function pts_out = affine_transform(tform, pts_in, fwd)
-% function pts_out = affine_transform(tform, pts_in, fwd)
+function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
+% function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
 % 
 % tform = 2x3 affine transformation matrix
 %
-% pts_in = Nx2 matrix of [x, y] point coordinates
+% x_pts_in, y_pts_in = vectors of x, y point coordinates
 %
 % fwd = Scalar, logical, flag indicating if the transform should be forward (1)
 %   or reverse (0)
 %
-% pts_out = Nx2 matrix of transformed [x,y] point coordinates
+% x_pts_out, y_pts_out = vectors of transformed x,y point coordinates
+%
 % %
 
 % get full transform matrix
@@ -95,14 +92,42 @@ if ~fwd;
     A = inv(A); 
 end
 
-% transform
-pts_in = [pts_in, ones(size(pts_in, 1), 1)]';
+% transform points, maintaining vector shape
+pts_in = [x_pts_in(:)'; y_pts_in(:)'; ones(1, length(x_pts_in))];
+
 pts_out = A*pts_in;
-pts_out = pts_out(1:2,:)';
+
+x_pts_out = reshape(pts_out(1,:), size(x_pts_in));
+y_pts_out = reshape(pts_out(2,:), size(y_pts_in));
 
 end
 
 function pts = random_grid(xlim, ylim, min_spc)
+%
+% Generate a set of num_pts random points within the limits xlim and ylim with a
+% minimum spacing of min_spc.
+%
+% Arguments:
+%
+% xlim, ylim = Vectors, length==2 , [minimum, maximum] coordinates for points in
+%   the set
+%
+% min_spc = Scalar, minimum permissible distance between any pair of points in
+%   the set
+%
+% %
+
+% generate an intial dense grid of points, and compute the foward transform
+[xx, yy] = meshgrid(xlim(1):xlim(2), ylim(1):ylim(2));
+xx = xx(:); 
+yy = yy(:);
+
+
+end
+
+
+
+function pts = random_grid_old(xlim, ylim, min_spc)
 %
 % Generate a set of num_pts random points within the limits xlim and ylim with a
 % minimum spacing of min_spc.
