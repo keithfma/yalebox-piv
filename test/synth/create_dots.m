@@ -1,4 +1,4 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, A)
+function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -8,7 +8,7 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, A)
 %
 % img_size = Vector, length == 2, [row, col] size of the output images
 %
-% A = Matrix, size == [2, 3], affine transformation matrix using homogenous
+% tform = Matrix, size == [2, 3], affine transformation matrix using homogenous
 %   coordinates Elements include the all comoponents of the displacement
 %   gradient tensor as well as constant offsets in the x and y directions:
 %       [du/dx, du/dy, tx; 
@@ -20,27 +20,34 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, A)
 
 % set defaults
 narginchk(0,2);
-if nargin == 0; img_size = [25, 25]; end
-if nargin < 2; A = [1, 0.5, 20; 0, 1, 5]; end
+if nargin == 0; 
+    img_size = [25, 25]; 
+end
+if nargin < 2;  
+    tform = [1, 0.5, 20; 
+             0,   1,  5]; 
+end
 
 % check for sane inputs
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2}, ...
     mfilename, 'img_size');
-validateattributes(A, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'A');
-A = [A; 0, 0, 1];
+validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'tform');
 
 %% main
 
 % compute the reverse affine transformation of the image bounding box
-bbox = [1, img_size(2), img_size(2),           1, 1; 
-        1,           1, img_size(1), img_size(1), 1];
-bbox_homo = [bbox; ones(1,5)];
-bbox_rev_homo = inv(A)*bbox_homo;
-bbox_rev = bbox_rev_homo(1:2, :);
+
+bbox = [          1,           1;
+                  1, img_size(2);
+        img_size(1), img_size(2);
+        img_size(1),           1;
+                  1,           1];
+              
+bbox_rev = affine_transform(tform, bbox, 0);
 
 % get the footprint of the points needed to fully populate ini and fin
-pts_xlim = [ min([bbox(1,:), bbox_rev(1,:)]), max([bbox(1,:), bbox_rev(1,:)]) ];
-pts_ylim = [ min([bbox(2,:), bbox_rev(2,:)]), max([bbox(2,:), bbox_rev(2,:)]) ];
+pts_xlim = [ min([bbox(:,1); bbox_rev(:,1)]); max([bbox(:,1); bbox_rev(:,1)]) ];
+pts_ylim = [ min([bbox(:,2); bbox_rev(:,2)]); max([bbox(:,2); bbox_rev(:,2)]) ];
 
 % generate a random grid
 pts = random_grid(pts_xlim, pts_ylim, 5); % [x, y]
@@ -50,9 +57,9 @@ pts = random_grid(pts_xlim, pts_ylim, 5); % [x, y]
 
 % plot point grids 
 hold off
-plot(bbox(1,:), bbox(2,:), '-k');
+plot(bbox(:,1), bbox(:,2), '-k');
 hold on
-plot(bbox_rev(1,:), bbox_rev(2,:), '--k');
+plot(bbox_rev(:,1), bbox_rev(:,2), '--k');
 % triplot(delaunayTriangulation(pts), 'Color', 'r');
 plot(pts(:,1), pts(:,2), 'xr');
 legend('img', 'rev', 'pts')
@@ -66,6 +73,32 @@ xx = [];
 yy = [];
 uu = [];
 vv = [];
+
+end
+
+function pts_out = affine_transform(tform, pts_in, fwd)
+% function pts_out = affine_transform(tform, pts_in, fwd)
+% 
+% tform = 2x3 affine transformation matrix
+%
+% pts_in = Nx2 matrix of [x, y] point coordinates
+%
+% fwd = Scalar, logical, flag indicating if the transform should be forward (1)
+%   or reverse (0)
+%
+% pts_out = Nx2 matrix of transformed [x,y] point coordinates
+% %
+
+% get full transform matrix
+A = [tform; 0 0 1]; 
+if ~fwd; 
+    A = inv(A); 
+end
+
+% transform
+pts_in = [pts_in, ones(size(pts_in, 1), 1)]';
+pts_out = A*pts_in;
+pts_out = pts_out(1:2,:)';
 
 end
 
