@@ -132,6 +132,9 @@ switch test_case
         ampl_black = -2;
         sigma = 3;
         max_attempts = 1e2;
+        bnd_mean = 0.75;
+        bnd_ampl = 0.1;
+        bnd_freq = 1;
         
         init_from_file = 1;
         init_filename = 'test/synth/init_synth.mat';
@@ -151,7 +154,8 @@ switch test_case
         else
             [ini, fin, xx0, yy0, uu0, vv0] = ...
                 create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
-                    ampl_black, sigma, max_attempts, 0);
+                    ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
+                    bnd_freq, 0);
                 
             save(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
         end

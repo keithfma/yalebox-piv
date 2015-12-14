@@ -1,6 +1,7 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
-                                          prob_white, ampl_white, ampl_black, ...
-                                          sigma, max_attempts, show)
+function [ini, fin, xx, yy, uu, vv] = ...
+    create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
+                ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
+                bnd_freq, show)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -30,14 +31,23 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
 % max_attempts = Scalar, integer, maximum number of times to attempt adding a
 %   random point to the grid before considering the grid complete 
 %
-% show = Logical flag, 1 to show debugging plots, 0 not to show them
+% bnd_mean = Scalar, mean value of the boundary line in the initial grid,
+%   normalized coordinates so the range is [0, 1] show = Logical flag, 1 to show
+%
+% bnd_ampl = Scalar, amplitude of the boundary sinudoid in the initial grid,
+%   normalized by img_size(1)
+%
+% bnd_freq = Scalar, frequency of the boundary sinusoid, in cycles per image
+%   width
+%
+% show = Scalar, logical flag, 1 to show debugging plots, 0 not to show them
 %
 % %
 
 %% initialize
 
 % set defaults
-narginchk(0,9);
+narginchk(0,13);
 if nargin == 0 || isempty(img_size)
     img_size = [100, 100]; 
 end 
@@ -62,8 +72,17 @@ end
 if nargin < 8 || isempty(max_attempts)
     max_attempts = 1e2;
 end
-if nargin < 9 || isempty(show)
-    show = 1;
+if nargin < 9 || isempty(bnd_mean)
+    bnd_mean = 0.75;
+end
+if nargin < 10 || isempty(bnd_ampl)
+    bnd_ampl = 0.1;
+end
+if nargin < 11 || isempty(bnd_freq)
+    bnd_freq = 1;
+end
+if nargin < 12 || isempty(show)
+    show = 0;
 end
 
 % check for sane inputs
@@ -76,7 +95,10 @@ validateattributes(ampl_black, {'numeric'}, {'scalar'});
 validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
 validateattributes(max_attempts, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(show, {'numeric'}, {'scalar', 'binary'});
-    
+validateattributes(bnd_mean, {'numeric'}, {'scalar'});
+validateattributes(bnd_ampl, {'numeric'}, {'scalar'});
+validateattributes(bnd_freq, {'numeric'}, {'scalar'});
+
 %% get particle locations in initial and final images
 tic
 
@@ -88,27 +110,30 @@ y_bbox = [1,           1, img_size(1), img_size(1), 1];
 % get limits and footprint needed to fully populate ini and fin
 xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
 ylim = [ min([y_bbox(:); y_bbox_rev(:)]); max([y_bbox(:); y_bbox_rev(:)]) ];
-xfoot = xlim([1, 2, 2, 1]);
-yfoot = ylim([1, 1, 2, 2]);
-[xfoot_fwd, yfoot_fwd] = affine_trans(tform, xfoot, yfoot, 1);
 
-% get initial grid and its forward transform from the footprint
-tri = delaunayTriangulation(xfoot, yfoot);
-tri_fwd = delaunayTriangulation(xfoot_fwd, yfoot_fwd);
+% define boundary test function
+in_bnd = @(x,y) y/img_size(1) <= ...
+    bnd_mean + bnd_ampl*sin(2*pi*x/img_size(2)*bnd_freq);
 
 % add random points to grid until it is "full" (i.e. too hard to add more)
+tri = delaunayTriangulation();
+tri_fwd = delaunayTriangulation();
 num_attempts = 0;
 while num_attempts <= max_attempts
     
-    % new random point and its forward transform
+    % new random point and its forward transform, skip if outside the boundary 
     xpt = rand()*range(xlim)+xlim(1);
-    ypt = rand()*range(ylim)+ylim(1);
+    ypt = rand()*range(ylim)+ylim(1);    
+    if ~in_bnd(xpt, ypt); continue; end    
     [xpt_fwd, ypt_fwd] = affine_trans(tform, xpt, ypt, 1);
     
     % append to triangulations
     tri.Points(end+1, :) = [xpt, ypt];
     tri_fwd.Points(end+1, :) = [xpt_fwd, ypt_fwd];
     ipt = size(tri.Points, 1);
+    if ipt < 3 % build initial triangulation
+        continue
+    end
     
     % accept or reject point based on distance to neighbors 
     min_dist = min( min_dist_to_nbrs(tri, ipt), min_dist_to_nbrs(tri_fwd, ipt) );
@@ -208,6 +233,7 @@ if show
     count = 0;
     while count<10
         imagesc(ini);
+        set(gca, 'YDir', 'normal');
         hold on;
         plot(x_pts, y_pts, '.k');
         title('ini');
@@ -215,6 +241,7 @@ if show
         pause(1)
         
         imagesc(fin);
+        set(gca, 'YDir', 'normal');
         hold on;
         plot(x_pts_fwd, y_pts_fwd, '.k');
         title('fin');
