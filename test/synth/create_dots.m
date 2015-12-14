@@ -152,30 +152,24 @@ vv = y1-y0;
 % set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
 % % } debug
 
-% debug: plot images with points {
-figure
-while 1    
-    imagesc(ini);
-    hold on;
-    plot(x_pts, y_pts, 'xk');
-    title('ini');
-    hold off    
-    pause(1)
-
-    imagesc(fin);
-    hold on;
-    plot(x_pts_fwd, y_pts_fwd, 'xk');
-    title('fin');
-    hold off
-    pause(1)
-end
-% } debug
-
-% dummy output arguments
-uu = [];
-vv = [];
-
-keyboard
+% % debug: plot images with points {
+% figure
+% while 1    
+%     imagesc(ini);
+%     hold on;
+%     plot(x_pts, y_pts, 'xk');
+%     title('ini');
+%     hold off    
+%     pause(1)
+% 
+%     imagesc(fin);
+%     hold on;
+%     plot(x_pts_fwd, y_pts_fwd, 'xk');
+%     title('fin');
+%     hold off
+%     pause(1)
+% end
+% % } debug
 
 end
 
