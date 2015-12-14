@@ -133,7 +133,7 @@ switch test_case
         sigma = 3;
         max_attempts = 1e2;
         
-        init_from_file = 0;
+        init_from_file = 1;
         init_filename = 'test/synth/init_synth.mat';
         
         % piv parameters
