@@ -72,6 +72,7 @@ validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
 validateattributes(max_attempts, {'numeric'}, {'scalar', 'integer', 'positive'});
     
 %% get particle locations in initial and final images
+tic
 
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
@@ -123,7 +124,9 @@ y_pts = tri.Points(:,2);
 x_pts_fwd = tri_fwd.Points(:,1);
 y_pts_fwd = tri_fwd.Points(:,2);
 
+toc
 %% generate images from particle locations
+tic
 
 % randomly sort particles into black and white colors
 npts = length(x_pts);
@@ -151,7 +154,8 @@ for ii = 1:length(yy)
         
     end
 end
-    
+
+toc
 %% generate displacements for each pixel
 
 [x0, y0] = meshgrid(xx, yy);
