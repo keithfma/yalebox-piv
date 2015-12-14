@@ -1,4 +1,4 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
+function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -14,30 +14,28 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
 %       [du/dx, du/dy, tx; 
 %        dv/dx, dv/dy, ty]
 %
+% min_spc = Scalar, minimum spacing in pixels between particles, enforced for
+%   both the initial and final grids
+%
 % %
 
 %% initialize
 
 % debug parameters
-min_spc = 3;
 max_attempts = 1e2;
 ampl = 2;
 sigma = 3;
 
 % set defaults
-narginchk(0,2);
-if nargin == 0; 
-    img_size = [25, 25]; 
-end
-if nargin < 2;  
-    tform = [1, 0.05,  5; 
-             0,   1,  5]; 
-end
+narginchk(0,3);
+if nargin == 0; img_size = [100, 100]; end 
+if nargin < 2;  tform = [1, 0.05,  5; 0,   1,  5]; end 
+if nargin < 3;  min_spc = 3; end
 
 % check for sane inputs
-validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2}, ...
-    mfilename, 'img_size');
-validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'tform');
+validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2});
+validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]});
+validateattributes(min_spc, {'numeric'}, {'scalar', 'positive'});
 
 %% get particle locations in initial and final images
 
