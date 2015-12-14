@@ -1,6 +1,6 @@
 function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
                                           prob_white, ampl_white, ampl_black, ...
-                                          sigma)
+                                          sigma, max_attempts)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -19,23 +19,23 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
 % min_spc = Scalar, minimum spacing in pixels between particles, enforced for
 %   both the initial and final grids
 %
+% prob_white = Scalar, probability that a give particle is white
+%
 % ampl_white = Scalar, amplitude for gaussian model of white particles
 %
 % ampl_black = Scalar, amplitude for gaussian model of black particles
 %
 % sigma = Scalar, standard deviation of gaussian model for all particles
 % 
-% prob_white = Scalar, probability that a give particle is white
-% 
+% max_attempts = Scalar, integer, maximum number of times to attempt adding a
+%   random point to the grid before considering the grid complete 
+%
 % %
 
 %% initialize
 
-% parameters
-max_attempts = 1e2;
-
 % set defaults
-narginchk(0,7);
+narginchk(0,8);
 if nargin == 0 || isempty(img_size)
     img_size = [100, 100]; 
 end 
@@ -57,6 +57,9 @@ end
 if nargin < 7 || isempty(sigma)
     sigma = 3;
 end
+if nargin < 8 || isempty(max_attempts)
+    max_attempts = 1e2;
+end
 
 % check for sane inputs
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2});
@@ -66,8 +69,8 @@ validateattributes(prob_white, {'numeric'}, {'scalar', '>=' 0, '<=', 1});
 validateattributes(ampl_white, {'numeric'}, {'scalar'});
 validateattributes(ampl_black, {'numeric'}, {'scalar'});
 validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
+validateattributes(max_attempts, {'numeric'}, {'scalar', 'integer', 'positive'});
     
-
 %% get particle locations in initial and final images
 
 % compute the reverse affine transformation of the image bounding box
