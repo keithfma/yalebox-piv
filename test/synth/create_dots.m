@@ -21,8 +21,8 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
 % debug parameters
 min_spc = 3;
 max_attempts = 1e2;
-particle_ampl = 1;
-particle_sigma = 1;
+ampl = 2;
+sigma = 3;
 
 % set defaults
 narginchk(0,2);
@@ -30,7 +30,7 @@ if nargin == 0;
     img_size = [25, 25]; 
 end
 if nargin < 2;  
-    tform = [1, 0.5, 20; 
+    tform = [1, 0.05,  5; 
              0,   1,  5]; 
 end
 
@@ -91,7 +91,13 @@ y_pts = tri.Points(:,2);
 x_pts_fwd = tri_fwd.Points(:,1);
 y_pts_fwd = tri_fwd.Points(:,2);
 
-%% generate images from particle locations
+%% generate images and displacements 
+
+% randomly sort particles into black and white colors
+npts = length(x_pts);
+aa = ones(npts, 1);
+aa(rand(npts, 1)<0.5) = -1;
+aa = ampl*aa; 
 
 % init coords and images
 yy = 1:img_size(1);
@@ -99,13 +105,16 @@ xx = 1:img_size(2);
 ini = zeros(img_size);
 fin = zeros(img_size);
 
+% compute values at all pixel location in ini and fin
+sigma2 = sigma^2;
 for ii = 1:length(yy)
     for jj = 1:length(xx)
         
-        vals = particle_ampl*exp(...
-                -((x_pts-xx(jj)).^2+(y_pts-yy(ii)).^2)/(particle_sigma^2) );
-        
+        vals = aa.*exp( -((x_pts-xx(jj)).^2+(y_pts-yy(ii)).^2)/sigma2 );
         ini(ii, jj) = sum(vals);
+        
+        vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
+        fin(ii, jj) = sum(vals);
         
     end
 end
@@ -136,15 +145,24 @@ end
 
 % debug: plot images with points {
 figure
+while 1    
+    imagesc(ini);
+    hold on;
+    plot(x_pts, y_pts, 'xk');
+    title('ini');
+    hold off    
+    pause(1)
 
-imagesc(ini);
-hold on;
-plot(x_pts, y_pts, 'xk');
-title('ini');
+    imagesc(fin);
+    hold on;
+    plot(x_pts_fwd, y_pts_fwd, 'xk');
+    title('fin');
+    hold off
+    pause(1)
+end
 % } debug
 
 % dummy output arguments
-fin = [];
 uu = [];
 vv = [];
 
