@@ -1,4 +1,6 @@
-function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc)
+function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
+                                          prob_white, ampl_white, ampl_black, ...
+                                          sigma)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -17,25 +19,54 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc)
 % min_spc = Scalar, minimum spacing in pixels between particles, enforced for
 %   both the initial and final grids
 %
+% ampl_white = Scalar, amplitude for gaussian model of white particles
+%
+% ampl_black = Scalar, amplitude for gaussian model of black particles
+%
+% sigma = Scalar, standard deviation of gaussian model for all particles
+% 
+% prob_white = Scalar, probability that a give particle is white
+% 
 % %
 
 %% initialize
 
-% debug parameters
+% parameters
 max_attempts = 1e2;
-ampl = 2;
-sigma = 3;
 
 % set defaults
-narginchk(0,3);
-if nargin == 0; img_size = [100, 100]; end 
-if nargin < 2;  tform = [1, 0.05,  5; 0,   1,  5]; end 
-if nargin < 3;  min_spc = 3; end
+narginchk(0,7);
+if nargin == 0 || isempty(img_size)
+    img_size = [100, 100]; 
+end 
+if nargin < 2 || isempty(tform)  
+    tform = [1, 0.05,  5; 0,   1,  5]; 
+end 
+if nargin < 3 || isempty(min_spc)
+    min_spc = 3; 
+end
+if nargin < 4 || isempty(prob_white)
+    prob_white = 0.5;
+end
+if nargin < 5 || isempty(ampl_white) 
+    ampl_white = 2;
+end
+if nargin < 6 || isempty(ampl_black)
+    ampl_black = -2;
+end
+if nargin < 7 || isempty(sigma)
+    sigma = 3;
+end
 
 % check for sane inputs
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2});
 validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]});
 validateattributes(min_spc, {'numeric'}, {'scalar', 'positive'});
+validateattributes(prob_white, {'numeric'}, {'scalar', '>=' 0, '<=', 1});
+validateattributes(ampl_white, {'numeric'}, {'scalar'});
+validateattributes(ampl_black, {'numeric'}, {'scalar'});
+validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
+    
 
 %% get particle locations in initial and final images
 
@@ -93,9 +124,10 @@ y_pts_fwd = tri_fwd.Points(:,2);
 
 % randomly sort particles into black and white colors
 npts = length(x_pts);
+is_white = rand(npts, 1) > prob_white ;
 aa = ones(npts, 1);
-aa(rand(npts, 1)<0.5) = -1;
-aa = ampl*aa; 
+aa(is_white) = ampl_white;
+aa(~is_white) = ampl_black;
 
 % init coords and images
 yy = 1:img_size(1);
