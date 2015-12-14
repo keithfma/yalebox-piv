@@ -82,7 +82,7 @@ if nargin < 11 || isempty(bnd_freq)
     bnd_freq = 1;
 end
 if nargin < 12 || isempty(show)
-    show = 0;
+    show = 1;
 end
 
 % check for sane inputs
@@ -177,16 +177,25 @@ sigma2 = sigma^2;
 for ii = 1:length(yy)
     for jj = 1:length(xx)
         
-        vals = aa.*exp( -((x_pts-xx(jj)).^2+(y_pts-yy(ii)).^2)/sigma2 );
-        ini(ii, jj) = sum(vals);
-        
-        vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
-        fin(ii, jj) = sum(vals);
+        if in_bnd(xx(jj), yy(ii))
+            vals = aa.*exp( -((x_pts-xx(jj)).^2+(y_pts-yy(ii)).^2)/sigma2 );
+            ini(ii, jj) = sum(vals);
+        else
+            ini(ii,jj) = NaN;
+        end
+      
+        [xx_rev, yy_rev] = affine_trans(tform, xx(jj), yy(ii), 0);
+        if in_bnd(xx_rev, yy_rev)        
+            vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
+            fin(ii, jj) = sum(vals);
+        else
+            fin(ii,jj) = NaN;
+        end
         
     end
 end
 
-% rescale ini and fin to the range [0, 1]
+% rescale ini and fin to the range [0, 1], but maintain the roi mask
 min_val = min([ini(:); fin(:)]);
 ini = ini-min_val;
 fin = fin-min_val;
@@ -194,6 +203,9 @@ fin = fin-min_val;
 max_val = max([ini(:); fin(:)]); 
 ini = ini./max_val;
 fin = fin./max_val;
+
+ini(isnan(ini)) = 0;
+fin(isnan(fin)) = 0;
 
 toc
 %% generate displacements for each pixel

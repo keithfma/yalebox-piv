@@ -141,7 +141,7 @@ switch test_case
         
         % piv parameters
         samplen = [30];
-        sampspc = [30];
+        sampspc = [15];
         intrlen = [100];
         npass = [3];      
         valid_max = 2;
