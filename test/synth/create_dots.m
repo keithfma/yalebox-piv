@@ -91,7 +91,7 @@ y_pts = tri.Points(:,2);
 x_pts_fwd = tri_fwd.Points(:,1);
 y_pts_fwd = tri_fwd.Points(:,2);
 
-%% generate images and displacements 
+%% generate images from particle locations
 
 % randomly sort particles into black and white colors
 npts = length(x_pts);
@@ -118,7 +118,16 @@ for ii = 1:length(yy)
         
     end
 end
-        
+    
+%% generate displacements for each pixel
+
+[x0, y0] = meshgrid(xx, yy);
+[x1, y1] = affine_trans(tform, x0(:), y0(:), 1);
+x1 = reshape(x1, img_size);
+y1 = reshape(y1, img_size);
+
+uu = x1-x0;
+vv = y1-y0;
 
 %% debug
 
