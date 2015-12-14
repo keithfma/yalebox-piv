@@ -19,8 +19,10 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
 %% initialize
 
 % debug parameters
-min_spc = 2;
+min_spc = 3;
 max_attempts = 1e2;
+particle_ampl = 1;
+particle_sigma = 1;
 
 % set defaults
 narginchk(0,2);
@@ -91,45 +93,62 @@ y_pts_fwd = tri_fwd.Points(:,2);
 
 %% generate images from particle locations
 
+% init coords and images
 yy = 1:img_size(1);
 xx = 1:img_size(2);
-[xg, yg] = meshgrid(xx, yy);
 ini = zeros(img_size);
 fin = zeros(img_size);
 
-keyboard
-
+for ii = 1:length(yy)
+    for jj = 1:length(xx)
+        
+        vals = particle_ampl*exp(...
+                -((x_pts-xx(jj)).^2+(y_pts-yy(ii)).^2)/(particle_sigma^2) );
+        
+        ini(ii, jj) = sum(vals);
+        
+    end
+end
+        
 
 %% debug
 
-% debug: plot grids {
-plt_xlim = [ min([x_pts; x_pts_fwd]), max([x_pts; x_pts_fwd]) ];
-plt_ylim = [ min([y_pts; y_pts_fwd]), max([y_pts; y_pts_fwd]) ];
+% % debug: plot grids {
+% plt_xlim = [ min([x_pts; x_pts_fwd]), max([x_pts; x_pts_fwd]) ];
+% plt_ylim = [ min([y_pts; y_pts_fwd]), max([y_pts; y_pts_fwd]) ];
+% 
+% figure
+% 
+% subplot(1,2,1)
+% patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
+% hold on
+% % plot(x_pts, y_pts, 'xb'); 
+% triplot(tri, 'Color', 'b');
+% set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
+% 
+% subplot(1,2,2)
+% patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
+% hold on
+% % plot(x_pts_fwd, y_pts_fwd, 'xb');
+% triplot(tri_fwd, 'Color', 'b');
+% set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
+% % } debug
 
+% debug: plot images with points {
 figure
 
-subplot(1,2,1)
-patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-hold on
-% plot(x_pts, y_pts, 'xb'); 
-triplot(tri, 'Color', 'b');
-set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
-
-subplot(1,2,2)
-patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-hold on
-% plot(x_pts_fwd, y_pts_fwd, 'xb');
-triplot(tri_fwd, 'Color', 'b');
-set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
+imagesc(ini);
+hold on;
+plot(x_pts, y_pts, 'xk');
+title('ini');
 % } debug
 
 % dummy output arguments
-ini = [];
 fin = [];
-xx = [];
-yy = [];
 uu = [];
 vv = [];
+
+keyboard
 
 end
 
