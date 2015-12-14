@@ -217,22 +217,22 @@ for gg = 1:ngrid
         uu(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), uu(keep), s);
         vv(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), vv(keep), s);
         
-        % debug: measure impact of smoothing step {
-        uur = uu;
-        vvr = vv;
-        % } debug 
+        % % debug: measure impact of smoothing step (1 of 2) {
+        % uur = uu;
+        % vvr = vv;
+        % % } debug 
         
         [uu, vv] = pppiv(uu, vv, '2x2');
         
-        % debug: measure impact of smoothing step {
-        figure
-        subplot(1,2,1);
-        imagesc(uur-uu);
-        title('U: rough - smooth');        
-        subplot(1,2,2);
-        imagesc(vvr-vv);
-        title('V: rough - smooth');
-        pause
+        % % debug: measure impact of smoothing step (2 of 2) {
+        % figure
+        % subplot(1,2,1);
+        % imagesc(uur-uu);
+        % title('U: rough - smooth');        
+        % subplot(1,2,2);
+        % imagesc(vvr-vv);
+        % title('V: rough - smooth');
+        % pause
         % } debug
         
         % % debug: plot centroids and regular grid {
