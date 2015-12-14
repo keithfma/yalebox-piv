@@ -133,14 +133,14 @@ switch test_case
         sigma = 3;
         max_attempts = 1e2;
         
-        init_from_file = 1;
-        init_filename = 'test/wedge/init_synth.mat';
+        init_from_file = 0;
+        init_filename = 'test/synth/init_synth.mat';
         
         % piv parameters
-        samplen = [30, 20];
-        sampspc = [15, 10];
-        intrlen = [60, 30];
-        npass = [1, 5];      
+        samplen = [30];
+        sampspc = [30];
+        intrlen = [100];
+        npass = [3];      
         valid_max = 2;
         valid_eps = 0.01;
         
@@ -151,7 +151,8 @@ switch test_case
         else
             [ini, fin, xx0, yy0, uu0, vv0] = ...
                 create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
-                    ampl_black, sigma, max_attempts);
+                    ampl_black, sigma, max_attempts, 0);
+                
             save(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
         end
                    

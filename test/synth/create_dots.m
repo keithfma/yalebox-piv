@@ -1,6 +1,6 @@
 function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
                                           prob_white, ampl_white, ampl_black, ...
-                                          sigma, max_attempts)
+                                          sigma, max_attempts, show)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -30,12 +30,14 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform, min_spc, ...
 % max_attempts = Scalar, integer, maximum number of times to attempt adding a
 %   random point to the grid before considering the grid complete 
 %
+% show = Logical flag, 1 to show debugging plots, 0 not to show them
+%
 % %
 
 %% initialize
 
 % set defaults
-narginchk(0,8);
+narginchk(0,9);
 if nargin == 0 || isempty(img_size)
     img_size = [100, 100]; 
 end 
@@ -60,6 +62,9 @@ end
 if nargin < 8 || isempty(max_attempts)
     max_attempts = 1e2;
 end
+if nargin < 9 || isempty(show)
+    show = 1;
+end
 
 % check for sane inputs
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2});
@@ -70,6 +75,7 @@ validateattributes(ampl_white, {'numeric'}, {'scalar'});
 validateattributes(ampl_black, {'numeric'}, {'scalar'});
 validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
 validateattributes(max_attempts, {'numeric'}, {'scalar', 'integer', 'positive'});
+validateattributes(show, {'numeric'}, {'scalar', 'binary'});
     
 %% get particle locations in initial and final images
 tic
@@ -155,6 +161,15 @@ for ii = 1:length(yy)
     end
 end
 
+% rescale ini and fin to the range [0, 1]
+min_val = min([ini(:); fin(:)]);
+ini = ini-min_val;
+fin = fin-min_val;
+
+max_val = max([ini(:); fin(:)]); 
+ini = ini./max_val;
+fin = fin./max_val;
+
 toc
 %% generate displacements for each pixel
 
@@ -166,47 +181,50 @@ y1 = reshape(y1, img_size);
 uu = x1-x0;
 vv = y1-y0;
 
-%% debug
+%% debug plots
 
-% % debug: plot grids {
-% plt_xlim = [ min([x_pts; x_pts_fwd]), max([x_pts; x_pts_fwd]) ];
-% plt_ylim = [ min([y_pts; y_pts_fwd]), max([y_pts; y_pts_fwd]) ];
-% 
-% figure
-% 
-% subplot(1,2,1)
-% patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-% hold on
-% % plot(x_pts, y_pts, 'xb'); 
-% triplot(tri, 'Color', 'b');
-% set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
-% 
-% subplot(1,2,2)
-% patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-% hold on
-% % plot(x_pts_fwd, y_pts_fwd, 'xb');
-% triplot(tri_fwd, 'Color', 'b');
-% set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
-% % } debug
+if show
+    
+    % plot initial and deformed grids
+    plt_xlim = [ min([x_pts; x_pts_fwd]), max([x_pts; x_pts_fwd]) ];
+    plt_ylim = [ min([y_pts; y_pts_fwd]), max([y_pts; y_pts_fwd]) ];
+    
+    figure
+    
+    subplot(1,2,1)
+    patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
+    hold on
+    triplot(tri, 'Color', 'b');
+    set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
+    
+    subplot(1,2,2)
+    patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
+    hold on
+    triplot(tri_fwd, 'Color', 'b');
+    set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
+    
+    % alternately plot each image
+    figure
+    count = 0;
+    while count<10
+        imagesc(ini);
+        hold on;
+        plot(x_pts, y_pts, '.k');
+        title('ini');
+        hold off
+        pause(1)
+        
+        imagesc(fin);
+        hold on;
+        plot(x_pts_fwd, y_pts_fwd, '.k');
+        title('fin');
+        hold off
+        pause(1)
+        
+        count = count+1;
+    end
 
-% % debug: plot images with points {
-% figure
-% while 1    
-%     imagesc(ini);
-%     hold on;
-%     plot(x_pts, y_pts, 'xk');
-%     title('ini');
-%     hold off    
-%     pause(1)
-% 
-%     imagesc(fin);
-%     hold on;
-%     plot(x_pts_fwd, y_pts_fwd, 'xk');
-%     title('fin');
-%     hold off
-%     pause(1)
-% end
-% % } debug
+end
 
 end
 
