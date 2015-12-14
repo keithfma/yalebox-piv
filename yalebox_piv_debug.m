@@ -5,6 +5,7 @@ function [xx, yy, uu, vv] = yalebox_piv_debug(test_case)
 %   (1) Constant offset in x- and y-directions
 %   (2) Simple shear, gamma = du/dy
 %   (3) Wedge image pair
+%   (4) Synthetic image, simple shear with offset
 %
 % %
 
@@ -119,6 +120,56 @@ switch test_case
         colorbar
         axis equal
         axis tight        
+        
+    case 4
+        
+        % case parameters
+        img_size = [500, 500];
+        tform = [1, 0.05,  5; 0,   1,  5];
+        min_spc = 3;
+        prob_white = 0.5;
+        ampl_white = 2;
+        ampl_black = -2;
+        sigma = 3;
+        max_attempts = 1e2;
+        bnd_mean = 0.75;
+        bnd_ampl = 0.1;
+        bnd_freq = 1;
+        
+        init_from_file = 1;
+        init_filename = 'test/synth/init_synth.mat';
+        
+        % piv parameters
+        samplen = [30];
+        sampspc = [15];
+        intrlen = [100];
+        npass = [3];      
+        valid_max = 2;
+        valid_eps = 0.01;
+        
+        % init input variables, either from file (fast) or computationally (slow)
+        if init_from_file && exist(init_filename, 'file')==2 
+            load(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+            
+        else
+            [ini, fin, xx0, yy0, uu0, vv0] = ...
+                create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
+                    ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
+                    bnd_freq, 0);
+                
+            save(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+        end
+                   
+        % run piv
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
+                               sampspc, intrlen, npass, valid_max, ...
+                               valid_eps, 1);
+                           
+        % analyze results        
+        uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
+        vv_err = get_err(xx0, yy0, vv0, xx, yy, vv);
+        print_err_qnt(uu_err, vv_err);
+        show_err(uu_err, vv_err);
                 
     otherwise
         error('Invalid test case selected');
