@@ -20,6 +20,7 @@ function [ini, fin, xx, yy, uu, vv] = create_dots(img_size, tform)
 
 % debug parameters
 min_spc = 2;
+max_attempts = 1e2;
 
 % set defaults
 narginchk(0,2);
@@ -36,56 +37,68 @@ validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2}, ...
     mfilename, 'img_size');
 validateattributes(tform, {'numeric'}, {'2d', 'size', [2, 3]}, mfilename, 'tform');
 
-%% main
+%% get particle locations in initial and final images
 
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
 y_bbox = [1,           1, img_size(1), img_size(1), 1];              
 [x_bbox_rev, y_bbox_rev] = affine_trans(tform, x_bbox, y_bbox, 0);
 
-% get the footprint of the points needed to fully populate ini and fin
-pts_xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
-pts_ylim = [ min([y_bbox(:); y_bbox_rev(:)]); max([y_bbox(:); y_bbox_rev(:)]) ];
+% get limits and footprint needed to fully populate ini and fin
+xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
+ylim = [ min([y_bbox(:); y_bbox_rev(:)]); max([y_bbox(:); y_bbox_rev(:)]) ];
+xfoot = xlim([1, 2, 2, 1]);
+yfoot = ylim([1, 1, 2, 2]);
+[xfoot_fwd, yfoot_fwd] = affine_trans(tform, xfoot, yfoot, 1);
 
-% generate an intial dense grid and its forward transform
-[xx, yy] = meshgrid(pts_xlim(1):pts_xlim(2), pts_ylim(1):pts_ylim(2));
-xx = xx(:); 
-yy = yy(:);
-[xx_fwd, yy_fwd] = affine_trans(tform, xx, yy, 1);
+% get initial grid and its forward transform from the footprint
+tri = delaunayTriangulation(xfoot, yfoot);
+tri_fwd = delaunayTriangulation(xfoot_fwd, yfoot_fwd);
 
-% triangulate the initial and deformed grids (for finding neighbors)
-tri = delaunayTriangulation([xx, yy]);
-tri_fwd = delaunayTriangulation([xx_fwd, yy_fwd]);
-
-% point vectors are not used again
-clear xx yy xx_fwd yy_fwd
+% add random points to grid until it is "full" (i.e. too hard to add more)
+num_attempts = 0;
+while num_attempts <= max_attempts
     
-% prune initial grid to desired spacing
-npts = length(tri.Points(:,1));
-order = randperm(npts);
-for ii = 1:npts % iterate over all points in random order
+    % new random point and its forward transform
+    xpt = rand()*range(xlim)+xlim(1);
+    ypt = rand()*range(ylim)+ylim(1);
+    [xpt_fwd, ypt_fwd] = affine_trans(tform, xpt, ypt, 1);
     
-    % get minimum spacing in original and deformed grids
-    kk = order(ii);
-    d0 = min_dist_to_nbrs(tri, kk);
-    d1 = min_dist_to_nbrs(tri_fwd, kk);
+    % append to triangulations
+    tri.Points(end+1, :) = [xpt, ypt];
+    tri_fwd.Points(end+1, :) = [xpt_fwd, ypt_fwd];
+    ipt = size(tri.Points, 1);
     
-    % remove point if it fall below the minimum spacing
-    if min(d0, d1) < min_spc
-        tri.Points(kk, :) = [];
-        tri_fwd.Points(kk ,:) = [];
-        order(order>kk) = order(order>kk)-1;
+    % accept or reject point based on distance to neighbors 
+    min_dist = min( min_dist_to_nbrs(tri, ipt), min_dist_to_nbrs(tri_fwd, ipt) );
+    if min_dist >= min_spc
+        % accept point
+        num_attempts = 0;
+    else
+        % reject point
+        tri.Points(ipt, :) = [];
+        tri_fwd.Points(ipt, :) = [];
+        num_attempts = num_attempts+1;            
     end
     
 end
-
-% extract points and delete triangulations
+                    
+% extract points as vectors
 x_pts = tri.Points(:,1);
 y_pts = tri.Points(:,2);
-clear tri
 x_pts_fwd = tri_fwd.Points(:,1);
 y_pts_fwd = tri_fwd.Points(:,2);
-clear tri_fwd
+
+%% generate images from particle locations
+
+yy = 1:img_size(1);
+xx = 1:img_size(2);
+[xg, yg] = meshgrid(xx, yy);
+ini = zeros(img_size);
+fin = zeros(img_size);
+
+keyboard
+
 
 %% debug
 
@@ -98,17 +111,17 @@ figure
 subplot(1,2,1)
 patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
 hold on
-plot(x_pts, y_pts, 'xb'); 
+% plot(x_pts, y_pts, 'xb'); 
+triplot(tri, 'Color', 'b');
 set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
 
 subplot(1,2,2)
 patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
 hold on
-plot(x_pts_fwd, y_pts_fwd, 'xb'); 
+% plot(x_pts_fwd, y_pts_fwd, 'xb');
+triplot(tri_fwd, 'Color', 'b');
 set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
 % } debug
-
-keyboard
 
 % dummy output arguments
 ini = [];
@@ -161,62 +174,10 @@ function min_dist = min_dist_to_nbrs(dt, idx)
  % get indices of all connected neighbors from triangulation 
 attach = cell2mat(vertexAttachments(dt, idx));
 nbr = dt.ConnectivityList(attach, :);
-nbr = unique(nbr(:));
-nbr = nbr(nbr~=idx);
+nbr = unique(nbr(nbr~=idx));
 
 % git minumum distance
 dist = sqrt(sum(bsxfun(@minus, dt.Points(idx,:), dt.Points(nbr, :)).^2, 2));
 min_dist = min(dist);
 
 end
-
-
-% function pts = random_grid_old(xlim, ylim, min_spc)
-% %
-% % Generate a set of num_pts random points within the limits xlim and ylim with a
-% % minimum spacing of min_spc.
-% %
-% % Arguments:
-% %
-% % xlim, ylim = Vectors, length==2 , [minimum, maximum] coordinates for points in
-% %   the set
-% %
-% % min_spc = Scalar, minimum permissible distance between any pair of points in
-% %   the set
-% %
-% % %
-% 
-% % parameters
-% max_num_attempts = 1e3;
-% 
-% % initialize
-% new_pt = @() rand(1,2).*[range(xlim), range(ylim)]+[xlim(1), ylim(1)];
-% tri = delaunayTriangulation([new_pt(); new_pt(); new_pt()]);
-% 
-% % add random points until there are num_pts of them in the set
-% num_attempts = 0;
-% while num_attempts <= max_num_attempts
-%     
-%     % insert a new point into triangulation
-%     tri.Points(end+1, :) = new_pt();
-%     
-%     % find distance to all connected neighbors for the new point
-%     attach = cell2mat(vertexAttachments(tri, size(tri.Points, 1)));
-%     nbr = tri.ConnectivityList(attach, :);
-%     nbr = unique(nbr(:));
-%     nbr = nbr(nbr~=size(tri.Points, 1));
-%     dist = sqrt(sum(bsxfun(@minus, tri.Points(end,:), tri.Points(nbr, :)).^2, 2));
-%     
-%     % accept or reject the new point
-%     if min(dist) >= min_spc
-%         num_attempts = 0;
-%     else
-%         tri.Points(end, :) = [];
-%         num_attempts = num_attempts+1;            
-%     end
-%     
-% end
-% 
-% pts = tri.Points;
-% 
-% end
