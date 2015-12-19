@@ -66,9 +66,8 @@ check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init full-resolution grids
-[cc_full, rr_full] = meshgrid(1:size(ini, 2), 1:size(ini, 1));
-uu_full = zeros(size(ini));
-vv_full = zeros(size(ini));
+cc_full = 1:size(ini, 2);
+rr_full = 1:size(ini, 1);
 
 % init sample grids 
 [rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
@@ -82,6 +81,8 @@ np = length(samplen);
 for pp = 1:np-1
     
     % deform images (does nothing if uu0 and vv0 are 0)
+    [uu_full, vv_full] = ...
+        yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
     defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
     defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
     
@@ -142,25 +143,18 @@ for pp = 1:np-1
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
     keep = valid & roi;
     
+    
+    % interpolate/extrapolate/smooth displacements to next sample grid
+    
     % debug: interpolation parameter {
     s = 0.5; 
     % } debug
     
-    % intermediate pass, interpolate/extrapolate/smooth to full image grid
-    if pp < np        
-        uu_full(:) = spline2d(cc_full(:), rr_full(:), cc_cntr(keep), ...
-            rr_cntr(keep), uu(keep), s);
-        vv_full(:) = spline2d(cc_full(:), rr_full(:), cc_cntr(keep), ...
-            rr_cntr(keep), vv(keep), s);
-    end
-    
-    % all passes, get next sample grid
     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
     nr = length(rr);
-    nc = length(cc);
-    
-    % interpolate/extrapolate/smooth displacements to next sample grid
+    nc = length(cc);    
     [cc_grid, rr_grid] = meshgrid(cc, rr);    
+    
     uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         uu(keep), s);
     uu = reshape(uu, size(cc_grid));
