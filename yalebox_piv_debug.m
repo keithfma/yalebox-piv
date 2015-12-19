@@ -140,10 +140,10 @@ switch test_case
         init_filename = 'test/synth/init_synth.mat';
         
         % piv parameters
-        samplen = [30];
-        sampspc = [15];
-        intrlen = [100];
-        npass = [3];      
+        samplen = [30, 30];
+        sampspc = [30, 15];
+        intrlen = [100, 60];
+        npass = [1, 3];      
         valid_max = 2;
         valid_eps = 0.01;
         
