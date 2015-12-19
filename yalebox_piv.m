@@ -162,6 +162,8 @@ for pp = 1:np-1
         vv(keep), s);
     vv = reshape(vv, size(cc_grid));
     
+    [uu, vv] = pppiv(uu, vv, '2x2');
+    
 end
 % end multipass loop
 
