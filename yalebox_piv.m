@@ -1,15 +1,15 @@
 function [xx, yy, uu, vv] = ...
-    yalebox_piv(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
-                npass, valid_max, valid_eps, verbose)                 
+    yalebox_piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, ...
+        intrlen, npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
 %
-%   ini = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the start of the step to be analyzed.
+%   ini, fin = 2D matrix, double, range 0 to 1, normalized grayscale image from
+%       the start and end of the step to be analyzed.
 %
-%   fin = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the end of the step to be analyzed.
+%   ini_roi, fin_roi = 2D matrix, logical, mask indicating pixels where there is
+%       sand (1) and where there is only background (0) that should be ignored.
 %
 %   xx = Vector, double, increasing, x-direction coordinate vector, length
 %       must match the columns in ini and fin.

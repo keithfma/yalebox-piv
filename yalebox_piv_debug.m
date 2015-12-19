@@ -149,21 +149,31 @@ switch test_case
         
         % init input variables, either from file (fast) or computationally (slow)
         if init_from_file && exist(init_filename, 'file')==2 
-            load(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+            vars = load(init_filename, 'ini', 'fin', 'ini_roi', 'fin_roi', ...
+                'xx0', 'yy0', 'uu0', 'vv0');
+            ini = vars.ini;
+            fin = vars.fin;
+            ini_roi = vars.ini_roi;
+            fin_roi= vars.fin_roi;
+            xx0 = vars.xx0;
+            yy0 = vars.yy0;
+            uu0 = vars.uu0;
+            vv0 = vars.vv0;
             
         else
-            [ini, fin, xx0, yy0, uu0, vv0] = ...
+            [ini, fin, ini_roi, fin_roi, xx0, yy0, uu0, vv0] = ...
                 create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
                     ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
                     bnd_freq, 0);
                 
-            save(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+            save(init_filename, 'ini', 'fin', 'ini_roi', 'fin_roi', 'xx0', ...
+                    'yy0', 'uu0', 'vv0');
         end
                    
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, valid_max, ...
-                               valid_eps, 1);
+        [xx, yy, uu, vv] = ...
+            yalebox_piv(ini, fin, ini_roi, fin_roi, xx0, yy0, samplen, ...
+                sampspc, intrlen, npass, valid_max, valid_eps, 1);
                            
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);
