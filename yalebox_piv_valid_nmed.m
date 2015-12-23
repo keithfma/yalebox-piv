@@ -26,7 +26,7 @@ function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
 % References: 
 %
 % [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
-% data. Experiments in Fluids, 39(6), 1096–1100. doi:10.1007/s00348-005-0016-6
+% data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
 % define parameters
 nnbr = 24; % number of nearest non-NaN neighbors to include in test

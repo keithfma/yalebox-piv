@@ -23,12 +23,12 @@ switch test_case
         vconst = 9;        
         
         % piv parameters
-        samplen = [30, 20];
-        sampspc = [15, 10];
-        intrlen = [60, 30];
-        npass = [2, 2];
+        samplen = [60, 30];
+        sampspc = [30, 15];
+        intrlen = [120, 60];
+        npass = [3, 3];
         valid_max = 2;
-        valid_eps = 0.1;
+        valid_eps = 0.01;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...

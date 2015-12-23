@@ -143,11 +143,10 @@ for pp = 1:np-1
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
     keep = valid & roi;
     
-    
     % interpolate/extrapolate/smooth displacements to next sample grid
     
     % debug: interpolation parameter {
-    s = 0.1; 
+    t = 0.9; 
     % } debug
     
     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
@@ -156,19 +155,24 @@ for pp = 1:np-1
     [cc_grid, rr_grid] = meshgrid(cc, rr);    
     
     uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        uu(keep), s);
+        uu(keep), t);
     uu = reshape(uu, size(cc_grid));
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        vv(keep), s);
+        vv(keep), t);
     vv = reshape(vv, size(cc_grid));
-    
-    [uu, vv] = pppiv(uu, vv);
     
     % debug: simple plot {
     subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
     subplot(2,1,2); imagesc(vv); axis equal; colorbar;
-    keyboard
+    pause
     % } debug 
+    
+    [uu, vv] = pppiv(uu, vv, '3x3');
+    % debug: simple plot {
+    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
+    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
+    pause
+    % } debug
     
 end
 % end multipass loop
