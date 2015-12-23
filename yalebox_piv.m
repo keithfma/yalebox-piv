@@ -147,7 +147,7 @@ for pp = 1:np-1
     % interpolate/extrapolate/smooth displacements to next sample grid
     
     % debug: interpolation parameter {
-    s = 0.5; 
+    s = 0.1; 
     % } debug
     
     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
@@ -162,7 +162,13 @@ for pp = 1:np-1
         vv(keep), s);
     vv = reshape(vv, size(cc_grid));
     
-    [uu, vv] = pppiv(uu, vv, '2x2');
+    [uu, vv] = pppiv(uu, vv);
+    
+    % debug: simple plot {
+    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
+    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
+    keyboard
+    % } debug 
     
 end
 % end multipass loop
