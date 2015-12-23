@@ -23,19 +23,19 @@ switch test_case
         vconst = 9;        
         
         % piv parameters
-        samplen = [30, 20];
-        sampspc = [15, 10];
-        intrlen = [60, 30];
-        npass = [2, 2];
+        samplen = [60, 30];
+        sampspc = [30, 15];
+        intrlen = [120, 60];
+        npass = [3, 3];
         valid_max = 2;
-        valid_eps = 0.1;
+        valid_eps = 0.01;
         
         % create input variables
         [ini, fin, xx0, yy0, uu0, vv0] = ...
             create_constant_uv(template, uconst, vconst);
         
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, ini~=0, fin~=0, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);
         
@@ -65,7 +65,7 @@ switch test_case
             create_simple_shear(template, gamma, dir);
 
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, ini~=0, fin~=0, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);
                            
@@ -95,7 +95,7 @@ switch test_case
         yy0 = yy; %#ok!
         
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
+        [xx, yy, uu, vv] = yalebox_piv(ini, fin, ini~=0, fin~=0, xx0, yy0, samplen, ...
                                sampspc, intrlen, npass, valid_max, ...
                                valid_eps, 1);  
                     
@@ -140,30 +140,40 @@ switch test_case
         init_filename = 'test/synth/init_synth.mat';
         
         % piv parameters
-        samplen = [30];
-        sampspc = [15];
-        intrlen = [100];
-        npass = [3];      
+        samplen = [30, 30];
+        sampspc = [30, 15];
+        intrlen = [100, 60];
+        npass = [1, 3];      
         valid_max = 2;
         valid_eps = 0.01;
         
         % init input variables, either from file (fast) or computationally (slow)
         if init_from_file && exist(init_filename, 'file')==2 
-            load(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+            vars = load(init_filename, 'ini', 'fin', 'ini_roi', 'fin_roi', ...
+                'xx0', 'yy0', 'uu0', 'vv0');
+            ini = vars.ini;
+            fin = vars.fin;
+            ini_roi = vars.ini_roi;
+            fin_roi= vars.fin_roi;
+            xx0 = vars.xx0;
+            yy0 = vars.yy0;
+            uu0 = vars.uu0;
+            vv0 = vars.vv0;
             
         else
-            [ini, fin, xx0, yy0, uu0, vv0] = ...
+            [ini, fin, ini_roi, fin_roi, xx0, yy0, uu0, vv0] = ...
                 create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
                     ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
                     bnd_freq, 0);
                 
-            save(init_filename, 'ini', 'fin', 'xx0', 'yy0', 'uu0', 'vv0');
+            save(init_filename, 'ini', 'fin', 'ini_roi', 'fin_roi', 'xx0', ...
+                    'yy0', 'uu0', 'vv0');
         end
                    
         % run piv
-        [xx, yy, uu, vv] = yalebox_piv(ini, fin, xx0, yy0, samplen, ...
-                               sampspc, intrlen, npass, valid_max, ...
-                               valid_eps, 1);
+        [xx, yy, uu, vv] = ...
+            yalebox_piv(ini, fin, ini_roi, fin_roi, xx0, yy0, samplen, ...
+                sampspc, intrlen, npass, valid_max, valid_eps, 1);
                            
         % analyze results        
         uu_err = get_err(xx0, yy0, uu0, xx, yy, uu);

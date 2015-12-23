@@ -1,7 +1,9 @@
-function [ini, fin, xx, yy, uu, vv] = ...
+function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
     create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
-                ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
-                bnd_freq, show)
+        ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq, show)
+% function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
+%    create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
+%        ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq, show)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
@@ -100,7 +102,6 @@ validateattributes(bnd_ampl, {'numeric'}, {'scalar'});
 validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 
 %% get particle locations in initial and final images
-tic
 
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
@@ -155,9 +156,7 @@ y_pts = tri.Points(:,2);
 x_pts_fwd = tri_fwd.Points(:,1);
 y_pts_fwd = tri_fwd.Points(:,2);
 
-toc
 %% generate images from particle locations
-tic
 
 % randomly sort particles into black and white colors
 npts = length(x_pts);
@@ -195,7 +194,7 @@ for ii = 1:length(yy)
     end
 end
 
-% rescale ini and fin to the range [0, 1], but maintain the roi mask
+% rescale ini and fin to the range [0, 1], and get the roi mask
 min_val = min([ini(:); fin(:)]);
 ini = ini-min_val;
 fin = fin-min_val;
@@ -204,10 +203,12 @@ max_val = max([ini(:); fin(:)]);
 ini = ini./max_val;
 fin = fin./max_val;
 
-ini(isnan(ini)) = 0;
-fin(isnan(fin)) = 0;
+ini_roi = ~isnan(ini);
+fin_roi = ~isnan(fin);
 
-toc
+ini(~ini_roi) = 0;
+fin(~fin_roi) = 0;
+
 %% generate displacements for each pixel
 
 [x0, y0] = meshgrid(xx, yy);

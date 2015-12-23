@@ -1,15 +1,15 @@
 function [xx, yy, uu, vv] = ...
-    yalebox_piv(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
-                npass, valid_max, valid_eps, verbose)                 
+    yalebox_piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, ...
+        intrlen, npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
 %
-%   ini = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the start of the step to be analyzed.
+%   ini, fin = 2D matrix, double, range 0 to 1, normalized grayscale image from
+%       the start and end of the step to be analyzed.
 %
-%   fin = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the end of the step to be analyzed.
+%   ini_roi, fin_roi = 2D matrix, logical, mask indicating pixels where there is
+%       sand (1) and where there is only background (0) that should be ignored.
 %
 %   xx = Vector, double, increasing, x-direction coordinate vector, length
 %       must match the columns in ini and fin.
@@ -58,201 +58,124 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
-% temporary
-warning off images:removing:function
-
 % parse inputs
-check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
-    valid_max, valid_eps, verbose);
+check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
+    npass, valid_max, valid_eps, verbose);
 
-% report input arguments
-if verbose
-    print_sep('Input Arguments');
-    print_input(ini, fin, xx, yy, samplen, sampspc, intrlen, npass, ...
-        valid_max, valid_eps);
-end
+% expand grid definition vectors to reflect the number of passes
+[samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
-% init coordinates for full image
-rr_full = 1:size(ini, 1);
+% init full-resolution grids
 cc_full = 1:size(ini, 2);
+rr_full = 1:size(ini, 1);
 
-% init sample grid 
+% init sample grids 
 [rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
 nr = length(rr);
 nc = length(cc);
-
-% init displacements as zero
 uu = zeros(nr, nc); 
 vv = zeros(nr, nc); 
 
-% loop over grid resolutions
-ngrid = length(samplen);
-for gg = 1:ngrid
+% multipass loop
+np = length(samplen);
+for pp = 1:np-1
     
-    % report grid refinement step
-    if verbose
-        print_sep(sprintf('grid refinement step %i of %i', gg, ngrid));
-    end
+    % deform images (does nothing if uu0 and vv0 are 0)
+    [uu_full, vv_full] = ...
+        yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
+    defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
+    defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
     
-    % copy old sample grid
-    rr_old = rr;
-    cc_old = cc;
+    % all grid points start in the ROI
+    roi = true(nr, nc);
     
-    % get new sample grid    
-    [rr, cc] = yalebox_piv_sample_grid(samplen(gg), sampspc(gg), size(ini));
+    % set subpixel correlation value matrix to zero
+    cval = zeros(nr, nc);
+    
+    % reset data centroid grids
+    rr_cntr = zeros(nr, nc);
+    cc_cntr = zeros(nr, nc);
+    
+    % sample grid loops
+    for jj = 1:nc
+        for ii = 1:nr
+            
+            % get sample and (offset) interrogation windows
+            [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
+                yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(pp));
+            [intr, intr_pos] = ...
+                yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
+            
+            % skip and remove from ROI if sample window is too empty
+            if frac_data < 0.25
+                roi(ii, jj) = false;
+                continue
+            end
+            
+            % compute normalized cross-correlation
+            xcr = normxcorr2(samp, intr);
+            
+            % find correlation plane max, subpixel precision
+            [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
+            % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
+            if stat == false
+                uu(ii, jj) = NaN;
+                vv(ii, jj) = NaN;
+                continue
+            end
+            
+            % find displacement from position of the correlation max
+            %   - account for padding in cross-correlation (-samplen(gg))
+            %   - account for relative position of interogation and sample
+            %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
+            delta_uu = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
+            delta_vv = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
+            
+            uu(ii, jj) = uu(ii, jj)+delta_uu;
+            vv(ii, jj) = vv(ii, jj)+delta_vv;
+            cval(ii, jj) = val;
+            
+        end % ii
+    end % jj
+    % end sample grid loops
+    
+    % find and drop invalid displacement vectors
+    valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
+    keep = valid & roi;
+    
+    % interpolate/extrapolate/smooth displacements to next sample grid
+    
+    % debug: interpolation parameter {
+    t = 0.9; 
+    % } debug
+    
+    [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
     nr = length(rr);
-    nc = length(cc);
+    nc = length(cc);    
+    [cc_grid, rr_grid] = meshgrid(cc, rr);    
     
-    % interpolate/extrapolate displacements from old to new sample grid    
-    % CHECK HERE
-    [uu, vv] = yalebox_piv_interp2d(rr_old, cc_old, uu, vv, rr, cc, 'spline');
+    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        uu(keep), t);
+    uu = reshape(uu, size(cc_grid));
+    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        vv(keep), t);
+    vv = reshape(vv, size(cc_grid));
     
-    % loop over image deformation passes
-    for pp = 1:npass(gg)
-        
-        % report image deformation step
-        if verbose
-            print_sep(sprintf('\timage deformation pass %i of %i', pp, npass(gg)));
-        end
-        
-        % interpolate/extrapolate displacement vectors to full image resolution
-        % CHECK HERE
-        [uu_full, vv_full] = yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
-        
-        % deform images (does nothing if uu0 and vv0 are 0)
-        % CHECK HERE: deformation does not yield clean edges
-        defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
-        defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
-               
-        % all grid points start in the ROI
-        roi = true(nr, nc);
-        
-        % set subpixel correlation value matrix to zero
-        cval = zeros(nr, nc);
-        
-        % reset data centroid grids
-        rr_cntr = zeros(nr, nc);
-        cc_cntr = zeros(nr, nc);
-        
-        % loop over sample grid
-        for jj = 1:nc
-            for ii = 1:nr
-                
-                % get sample and (offset) interrogation windows
-                [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
-                    yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(gg));
-                [intr, intr_pos] = ...
-                    yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(gg));
-                   
-                % skip and remove from ROI if sample window is too empty
-                if frac_data < 0.25
-                    roi(ii, jj) = false;
-                    continue
-                end                    
-                
-                % compute normalized cross-correlation
-                xcr = normxcorr2(samp, intr);
-                                
-                % find correlation plane max, subpixel precision
-                [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
-                % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
-                if stat == false
-                    uu(ii, jj) = NaN;
-                    vv(ii, jj) = NaN;
-                    continue
-                end
-                
-                % find displacement from position of the correlation max
-                %   - account for padding in cross-correlation (-samplen(gg))
-                %   - account for relative position of interogation and sample
-                %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-                delta_uu = cpeak-samplen(gg)-(samp_pos(1)-intr_pos(1));
-                delta_vv = rpeak-samplen(gg)-(samp_pos(2)-intr_pos(2));
-                
-                uu(ii, jj) = uu(ii, jj)+delta_uu;
-                vv(ii, jj) = vv(ii, jj)+delta_vv;
-                cval(ii, jj) = val;
-                
-                % % debug {
-                % fprintf('CVAL = %f\n', cval(ii, jj));
-                % figure(1)
-                % show_win(defm_ini, defm_fin, rr(ii), cc(jj), samp, samp_pos, intr, intr_pos);
-                % figure(2)
-                % show_xcor(xcr, rpeak, cpeak);
-                % pause
-                % % } debug
-                
-            end % ii
-        end % jj
-        
-        % find and drop invalid displacement vectors
-        valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);  
-        
-        % interpolate/extrapolate/smooth 
-        
-        % %...option 1: scattered interpolation from partial centroid grid
-        % [cc_grid, rr_grid] = meshgrid(cc, rr);
-        % 
-        % interpolant = scatteredInterpolant(...
-        %     cc_cntr(valid & roi), rr_cntr(valid & roi), uu(valid & roi), ...
-        %     'nearest', 'nearest');
-        % uu = interpolant(cc_grid, rr_grid);
-        % 
-        % interpolant.Values = vv(valid & roi);
-        % vv = interpolant(cc_grid, rr_grid);
-        % 
-        % kern = ones(3)/9;
-        % uu = imfilter(uu, kern, 'symmetric', 'same');
-        % vv = imfilter(vv, kern, 'symmetric', 'same');
-
-        % %...option 2: PLS, ignoring centroid grid
-        % uu(~valid & ~roi) = NaN;
-        % vv(~valid & ~roi) = NaN;
-        % [uu, vv] = pppiv(uu, vv);
-        
-        % option 3: spline in tension
-        s = 0.5;
-        keep = valid & roi;
-        [cc_grid, rr_grid] = meshgrid(cc, rr);
-        uu(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), uu(keep), s);
-        vv(:) = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), vv(keep), s);
-        
-        % % debug: measure impact of smoothing step (1 of 2) {
-        % uur = uu;
-        % vvr = vv;
-        % % } debug 
-        
-        [uu, vv] = pppiv(uu, vv, '2x2');
-        
-        % % debug: measure impact of smoothing step (2 of 2) {
-        % figure
-        % subplot(1,2,1);
-        % imagesc(uur-uu);
-        % title('U: rough - smooth');        
-        % subplot(1,2,2);
-        % imagesc(vvr-vv);
-        % title('V: rough - smooth');
-        % pause
-        % } debug
-        
-        % % debug: plot centroids and regular grid {
-        % imagesc(ini); colormap('gray');
-        % hold on
-        % plot(cc_cntr(:), rr_cntr(:), 'xb')
-        % [cc_grid, rr_grid] = meshgrid(cc, rr);
-        % plot(cc_grid(:), rr_grid(:), 'or')
-        % % } debug
-
-        % % debug {
-        % show_valid(drop, uu, vv);
-        % pause
-        % % } debug
-        
-        % subplot(2,1,1); imagesc(uu.*roi); axis equal; colorbar; subplot(2,1,2); imagesc(vv.*roi); axis equal; colorbar;
-        
-    end % pp
+    % debug: simple plot {
+    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
+    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
+    pause
+    % } debug 
     
-end % gg
+    [uu, vv] = pppiv(uu, vv, '3x3');
+    % debug: simple plot {
+    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
+    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
+    pause
+    % } debug
+    
+end
+% end multipass loop
 
 % delete points outside the ROI
 uu(~roi) = NaN;
@@ -274,56 +197,61 @@ end
 
 %% subroutines
 
-function [] = check_input(ini, fin, xx, yy, samplen, sampspc, intrlen, ...
-                  npass, valid_max, valid_eps, verbose)
+function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
+%
+% Expand the grid definition vectors to include the correct number of passes for
+% each grid. Input arguments are defined above, but use shortened names here:
+% samplen -> slen, intrlen -> ilen, sampspc -> sspc, npass -> np. 
+%
+% Note: outputs are intentionally not preallocated - these vectors are small and
+% the performace cost is negligible. 
+% %
+
+slen_ex = [];
+ilen_ex = [];
+sspc_ex = [];
+
+for ii = 1:length(np)
+   slen_ex = [slen_ex, repmat(slen(ii), 1, np(ii))]; %#ok!
+   ilen_ex = [ilen_ex, repmat(ilen(ii), 1, np(ii))]; %#ok!
+   sspc_ex = [sspc_ex, repmat(sspc(ii), 1, np(ii))]; %#ok!
+end
+
+% repeat the last element to simplify interpolation code for the final pass
+slen_ex(end+1) = slen_ex(end);
+ilen_ex(end+1) = ilen_ex(end);
+sspc_ex(end+1) = sspc_ex(end);
+
+end
+
+function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
+    sampspc, intrlen, npass, valid_max, valid_eps, verbose)
+%
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
-              
-validateattributes(ini,...
-    {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1}, ...
-    mfilename, 'ini');
-[nr, nc] = size(ini);
+% %
 
-validateattributes(fin,...
-    {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]}, ...
-    mfilename, 'fin');
+[nr, nc] = size(ini); % image size
+ng = numel(samplen); % number of grid refinement steps
 
-validateattributes(xx, ...
-    {'double'}, {'vector', 'real', 'nonnan', 'numel', nc}, ...
-    mfilename, 'xx');
-
-validateattributes(yy, ...
-    {'double'}, {'vector', 'real', 'nonnan', 'numel', nr}, ...
-    mfilename, 'yy');
-
-validateattributes(samplen, ...
-    {'numeric'}, {'vector', 'integer', 'positive', 'nonnan', }, ...
-    mfilename, 'samplen');
-
-ngrid = numel(samplen);
-
-validateattributes(sampspc, ...
-    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive', 'nonnan', }, ...
-    mfilename, 'sampspc');
-
-validateattributes(intrlen, ...
-    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive', 'nonnan', }, ...
-    mfilename, 'intrlen');
-
-validateattributes(npass, ...
-    {'numeric'}, {'vector', 'numel', ngrid, 'integer', 'positive'}, ...
-    mfilename, 'npass');
-
-validateattributes(valid_max, ...
-    {'double'}, {'scalar', 'positive'}, ...
-    mfilename, 'valid_max');
-
-validateattributes(valid_eps, ...
-    {'double'}, {'scalar', 'positive'}, ...
-    mfilename, 'valid_eps');
-
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'}, ...
-    mfilename, 'verbose');
+validateattributes(ini, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
+validateattributes(fin, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, ...
+    'size', [nr, nc]});
+validateattributes(ini_roi, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(fin_roi, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(xx, {'double'}, {'vector', 'real', 'nonnan', 'numel', nc});
+validateattributes(yy, {'double'}, {'vector', 'real', 'nonnan', 'numel', nr});
+validateattributes(samplen, {'numeric'}, {'vector', 'integer', 'positive', ...
+    'nonnan'});
+validateattributes(sampspc, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
+    'positive', 'nonnan'});
+validateattributes(intrlen, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
+    'positive', 'nonnan'});
+validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
+    'positive'});
+validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
+validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
+validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end
 
