@@ -48,12 +48,15 @@ function [ini, fin, ini_roi, fin_roi, xx, yy] = ...
 % ini, fin = 
 % 
 % ini_roi, fin_roi =  
+%
+% xx, yy = 
+%
 % %
 
 %% initialize
 
 % set defaults
-narginchk(0,13);
+narginchk(0,11);
 if nargin == 0 || isempty(img_size)
     img_size = [100, 100]; 
 end 
@@ -84,7 +87,7 @@ end
 if nargin < 10 || isempty(bnd_ampl)
     bnd_ampl = 0.1;
 end
-if nargin < 11 
+if nargin < 11 || isempty(bnd_freq)
     bnd_freq = 1;
 end
 
