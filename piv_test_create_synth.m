@@ -1,4 +1,4 @@
-function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
+function [ini, fin, ini_roi, fin_roi, xx, yy] = ...
     piv_test_create_synth(img_size, tform, min_spc, prob_white, ampl_white, ...
         ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq)
 %
@@ -48,11 +48,6 @@ function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
 % ini, fin = 
 % 
 % ini_roi, fin_roi =  
-% 
-% xx, yy =  
-% 
-% uu, vv
-%
 % %
 
 %% initialize
@@ -111,7 +106,7 @@ validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
 y_bbox = [1,           1, img_size(1), img_size(1), 1];              
-[x_bbox_rev, y_bbox_rev] = affine_trans(tform, x_bbox, y_bbox, 0);
+[x_bbox_rev, y_bbox_rev] = piv_test_util_transform(tform, x_bbox, y_bbox, 0);
 
 % get limits and footprint needed to fully populate ini and fin
 xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
@@ -131,7 +126,7 @@ while num_attempts <= max_attempts
     xpt = rand()*range(xlim)+xlim(1);
     ypt = rand()*range(ylim)+ylim(1);    
     if ~in_bnd(xpt, ypt); continue; end    
-    [xpt_fwd, ypt_fwd] = affine_trans(tform, xpt, ypt, 1);
+    [xpt_fwd, ypt_fwd] = piv_test_util_transform(tform, xpt, ypt, 1);
     
     % append to triangulations
     tri.Points(end+1, :) = [xpt, ypt];
@@ -188,7 +183,7 @@ for ii = 1:length(yy)
             ini(ii,jj) = NaN;
         end
       
-        [xx_rev, yy_rev] = affine_trans(tform, xx(jj), yy(ii), 0);
+        [xx_rev, yy_rev] = piv_test_util_transform(tform, xx(jj), yy(ii), 0);
         if in_bnd(xx_rev, yy_rev)        
             vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
             fin(ii, jj) = sum(vals);
@@ -214,49 +209,9 @@ fin_roi = ~isnan(fin);
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
 
-%% generate displacements for each pixel
-
-[x0, y0] = meshgrid(xx, yy);
-[x1, y1] = affine_trans(tform, x0(:), y0(:), 1);
-x1 = reshape(x1, img_size);
-y1 = reshape(y1, img_size);
-
-uu = x1-x0;
-vv = y1-y0;
-
 end
 
 %% subroutines
-
-function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
-% function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
-% 
-% tform = 2x3 affine transformation matrix
-%
-% x_pts_in, y_pts_in = vectors of x, y point coordinates
-%
-% fwd = Scalar, logical, flag indicating if the transform should be forward (1)
-%   or reverse (0)
-%
-% x_pts_out, y_pts_out = vectors of transformed x,y point coordinates
-%
-% %
-
-% get full transform matrix
-A = [tform; 0 0 1]; 
-if ~fwd; 
-    A = inv(A); 
-end
-
-% transform points, maintaining vector shape
-pts_in = [x_pts_in(:)'; y_pts_in(:)'; ones(1, length(x_pts_in))];
-
-pts_out = A*pts_in;
-
-x_pts_out = reshape(pts_out(1,:), size(x_pts_in));
-y_pts_out = reshape(pts_out(2,:), size(y_pts_in));
-
-end
 
 function min_dist = min_dist_to_nbrs(dt, idx)
 % function min_dist = min_dist_to_nbrs(dt, idx)
