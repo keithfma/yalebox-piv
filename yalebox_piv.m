@@ -110,18 +110,43 @@ for pp = 1:np-1
             [intr, intr_pos] = ...
                 yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
             
-            imagesc(ini);
+            
+            % debug: plot window to get centroids
+            
+            imagesc(ini)
+            
+%             patch([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
+%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
+%                 [1,0,0], 'EdgeColor', 'None');            
+
             hold on
             
-            plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-                [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-                '-k');
+            [cp0, rp0] = meshgrid(-100:(size(ini_roi,2)+100), -100:(size(ini_roi,1)+100));
+            plot(cp0, rp0, '.k');
+            
+            hold on
+            
+            [rp, cp] = find(ini_roi);
+            plot(cp, rp, 'ok');
+                   
+            hold on
+            
+%             plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
+%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
+%                 '-k');
             plot([samp_pos(1), samp_pos(1)+samp_pos(3)], ...
                 [samp_pos(2)+0.5*samp_pos(4), samp_pos(2)+0.5*samp_pos(4)], '-k');
+            
+            hold on
+            
             plot([samp_pos(1)+0.5*samp_pos(3), samp_pos(1)+0.5*samp_pos(3)], ...
                 [samp_pos(2), samp_pos(2)+samp_pos(4)], '-k');
             
-            plot(cc_cntr(ii,jj), rr_cntr(ii,jj), 'xk');
+            hold on
+
+            plot(cc_cntr(ii,jj), rr_cntr(ii,jj), '^r');
+
+            hold on
             
             set(gca, 'XLim', [samp_pos(1), samp_pos(1)+samp_pos(3)], ...
                 'YLim', [samp_pos(2), samp_pos(2)+samp_pos(4)]);

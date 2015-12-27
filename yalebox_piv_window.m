@@ -49,7 +49,7 @@ c0 = floor(c_center-hlen);
 c1 =  ceil(c_center+hlen);
 
 % generate position vector for output
-pos = [c0, r0, c1-c0+1, r1-r0+1];
+pos = [c0, r0, c1-c0, r1-r0];
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
