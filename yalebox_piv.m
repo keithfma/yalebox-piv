@@ -103,8 +103,31 @@ for pp = 1:np-1
             % get sample and (offset) interrogation windows
             [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
                 yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(pp));
+            
+%             fprintf('frac = %f; grid = %f, %f; centroid = %f, %f\n', ...
+%                 frac_data, rr(ii), cc(jj), rr_cntr(ii,jj), cc_cntr(ii,jj));
+            
             [intr, intr_pos] = ...
                 yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
+            
+            imagesc(ini);
+            hold on
+            
+            plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
+                [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
+                '-k');
+            plot([samp_pos(1), samp_pos(1)+samp_pos(3)], ...
+                [samp_pos(2)+0.5*samp_pos(4), samp_pos(2)+0.5*samp_pos(4)], '-k');
+            plot([samp_pos(1)+0.5*samp_pos(3), samp_pos(1)+0.5*samp_pos(3)], ...
+                [samp_pos(2), samp_pos(2)+samp_pos(4)], '-k');
+            
+            plot(cc_cntr(ii,jj), rr_cntr(ii,jj), 'xk');
+            
+            set(gca, 'XLim', [samp_pos(1), samp_pos(1)+samp_pos(3)], ...
+                'YLim', [samp_pos(2), samp_pos(2)+samp_pos(4)]);
+            
+            hold off
+            pause
             
             % skip and remove from ROI if sample window is too empty
             if frac_data < 0.25
@@ -145,6 +168,11 @@ for pp = 1:np-1
     
     % interpolate/extrapolate/smooth displacements to next sample grid
     
+    uu0 = uu;
+    vv0 = vv;    
+    uu0(~keep) = NaN;
+    vv0(~keep) = NaN;
+    
     % debug: interpolation parameter {
     t = 0.9; 
     % } debug
@@ -153,6 +181,13 @@ for pp = 1:np-1
     nr = length(rr);
     nc = length(cc);    
     [cc_grid, rr_grid] = meshgrid(cc, rr);    
+
+%     uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
+%         uu(keep), t);
+%     uu = reshape(uu, size(cc_grid));
+%     vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
+%         vv(keep), t);
+%     vv = reshape(vv, size(cc_grid));
     
     uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         uu(keep), t);
@@ -160,19 +195,14 @@ for pp = 1:np-1
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
+        
+%     [uu, vv] = pppiv(uu, vv, '3x3');
     
-    % debug: simple plot {
-    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
-    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
-    pause
-    % } debug 
-    
-    [uu, vv] = pppiv(uu, vv, '3x3');
-    % debug: simple plot {
-    subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
-    subplot(2,1,2); imagesc(vv); axis equal; colorbar;
-    pause
-    % } debug
+%     % debug: simple plot {
+%     subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
+%     subplot(2,1,2); imagesc(vv); axis equal; colorbar;
+%     pause
+%     % } debug
     
 end
 % end multipass loop
