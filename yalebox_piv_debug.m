@@ -56,7 +56,7 @@ switch test_case
         samplen = [30];%, 20];
         sampspc = [15];%, 10];
         intrlen = [60];%, 30];
-        npass = [1];%, 5];      
+        npass = [3];%, 5];      
         valid_max = 2;
         valid_eps = 0.01;
         

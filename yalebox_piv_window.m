@@ -75,8 +75,8 @@ win = [zeros(pb, pl+snc+pr);
          
 % replace no-data pixels with random noise too
 no_data = win==0;
-% rand_win = rand(size(win));
-% win(no_data) = rand_win(no_data);
+rand_win = rand(size(win));
+win(no_data) = rand_win(no_data);
 
 % compute fraction of the window that has data
 frac_data = 1-sum(no_data(:))/numel(win);
@@ -88,13 +88,8 @@ if nargout >= 4
     r_centroid = sum(r_data)/n_data;
     c_centroid = sum(c_data)/n_data;    
     
-%     fprintf('r_centroid = %f, c_centroid = %f\n', r_centroid, c_centroid);
-%     imagesc(win); hold on; plot(c_centroid, r_centroid, 'xk'); hold off
-    
     % convert centroid from local coordinates to full (parent) matrix coordinates
     r_centroid = r_centroid+pos(2)-1;
     c_centroid = c_centroid+pos(1)-1;
-    
-    
     
 end

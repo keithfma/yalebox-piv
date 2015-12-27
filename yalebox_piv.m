@@ -104,55 +104,8 @@ for pp = 1:np-1
             [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
                 yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(pp));
             
-%             fprintf('frac = %f; grid = %f, %f; centroid = %f, %f\n', ...
-%                 frac_data, rr(ii), cc(jj), rr_cntr(ii,jj), cc_cntr(ii,jj));
-            
             [intr, intr_pos] = ...
                 yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
-            
-            
-            % debug: plot window to get centroids
-            
-            imagesc(ini)
-            
-%             patch([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-%                 [1,0,0], 'EdgeColor', 'None');            
-
-            hold on
-            
-            [cp0, rp0] = meshgrid(-100:(size(ini_roi,2)+100), -100:(size(ini_roi,1)+100));
-            plot(cp0, rp0, '.k');
-            
-            hold on
-            
-            [rp, cp] = find(ini_roi);
-            plot(cp, rp, 'ok');
-                   
-            hold on
-            
-%             plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-%                 '-k');
-            plot([samp_pos(1), samp_pos(1)+samp_pos(3)], ...
-                [samp_pos(2)+0.5*samp_pos(4), samp_pos(2)+0.5*samp_pos(4)], '-k');
-            
-            hold on
-            
-            plot([samp_pos(1)+0.5*samp_pos(3), samp_pos(1)+0.5*samp_pos(3)], ...
-                [samp_pos(2), samp_pos(2)+samp_pos(4)], '-k');
-            
-            hold on
-
-            plot(cc_cntr(ii,jj), rr_cntr(ii,jj), '^r');
-
-            hold on
-            
-            set(gca, 'XLim', [samp_pos(1), samp_pos(1)+samp_pos(3)], ...
-                'YLim', [samp_pos(2), samp_pos(2)+samp_pos(4)]);
-            
-            hold off
-            pause
             
             % skip and remove from ROI if sample window is too empty
             if frac_data < 0.25
@@ -193,10 +146,12 @@ for pp = 1:np-1
     
     % interpolate/extrapolate/smooth displacements to next sample grid
     
+    % debug: preserve original displacements {
     uu0 = uu;
     vv0 = vv;    
     uu0(~keep) = NaN;
     vv0(~keep) = NaN;
+    % } debug 
     
     % debug: interpolation parameter {
     t = 0.9; 
@@ -207,12 +162,14 @@ for pp = 1:np-1
     nc = length(cc);    
     [cc_grid, rr_grid] = meshgrid(cc, rr);    
 
-%     uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
-%         uu(keep), t);
-%     uu = reshape(uu, size(cc_grid));
-%     vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
-%         vv(keep), t);
-%     vv = reshape(vv, size(cc_grid));
+    % % debug: ignore centroid grid {
+    % uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
+    %     uu(keep), t);
+    % uu = reshape(uu, size(cc_grid));
+    % vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
+    %     vv(keep), t);
+    % vv = reshape(vv, size(cc_grid));
+    % % } debug
     
     uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         uu(keep), t);
@@ -220,14 +177,16 @@ for pp = 1:np-1
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
-        
-%     [uu, vv] = pppiv(uu, vv, '3x3');
+      
+    % % smooth displacements
+    % [uu, vv] = pppiv(uu, vv, '3x3');
     
-%     % debug: simple plot {
-%     subplot(2,1,1); imagesc(uu); axis equal; colorbar; 
-%     subplot(2,1,2); imagesc(vv); axis equal; colorbar;
-%     pause
-%     % } debug
+    % % debug: display effect of interpolation and smoothing steps
+    % subplot(1,2,1); imagesc(uu0-uu); title('uu0-uu'); colorbar
+    % subplot(1,2,2); imagesc(vv0-vv); title('vv0-vv'); colorbar
+    % pause
+    % } debug
+    
     
 end
 % end multipass loop
