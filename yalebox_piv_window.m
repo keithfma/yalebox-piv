@@ -49,7 +49,7 @@ c0 = floor(c_center-hlen);
 c1 =  ceil(c_center+hlen);
 
 % generate position vector for output
-pos = [c0, r0, c1-c0+1, r1-r0+1];
+pos = [c0, r0, c1-c0, r1-r0];
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
@@ -86,9 +86,10 @@ if nargout >= 4
     [r_data, c_data] = find(~no_data);
     n_data = length(r_data);
     r_centroid = sum(r_data)/n_data;
-    c_centroid = sum(c_data)/n_data;
+    c_centroid = sum(c_data)/n_data;    
     
     % convert centroid from local coordinates to full (parent) matrix coordinates
-    r_centroid = r_centroid+r0-1;
-    c_centroid = c_centroid+c0-1;
+    r_centroid = r_centroid+pos(2)-1;
+    c_centroid = c_centroid+pos(1)-1;
+    
 end

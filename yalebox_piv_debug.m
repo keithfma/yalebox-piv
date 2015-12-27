@@ -50,13 +50,13 @@ switch test_case
         % case parameters
         template = 'template_fault_ss_01_sidef_251.png';
         gamma = 0.05;
-        dir = 2;
+        dir = 1;
         
         % piv parameters
-        samplen = [30, 20];
-        sampspc = [15, 10];
-        intrlen = [60, 30];
-        npass = [1, 5];      
+        samplen = [30];%, 20];
+        sampspc = [15];%, 10];
+        intrlen = [60];%, 30];
+        npass = [3];%, 5];      
         valid_max = 2;
         valid_eps = 0.01;
         
@@ -125,25 +125,26 @@ switch test_case
         
         % case parameters
         img_size = [500, 500];
-        tform = [1, 0.05,  5; 0,   1,  5];
+        tform = [1, 0.05,  0; ...
+                 0,    1,  0];
         min_spc = 3;
         prob_white = 0.5;
         ampl_white = 2;
         ampl_black = -2;
         sigma = 3;
         max_attempts = 1e2;
-        bnd_mean = 0.75;
-        bnd_ampl = 0.1;
+        bnd_mean = 1.1;
+        bnd_ampl = 0;
         bnd_freq = 1;
         
         init_from_file = 1;
         init_filename = 'test/synth/init_synth.mat';
         
         % piv parameters
-        samplen = [30, 30];
-        sampspc = [30, 15];
-        intrlen = [100, 60];
-        npass = [1, 3];      
+        samplen = [30];%, 30];
+        sampspc = [30];%, 15];
+        intrlen = [100];%, 60];
+        npass = [1];%, 3];      
         valid_max = 2;
         valid_eps = 0.01;
         
@@ -164,7 +165,7 @@ switch test_case
             [ini, fin, ini_roi, fin_roi, xx0, yy0, uu0, vv0] = ...
                 create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
                     ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, ...
-                    bnd_freq, 0);
+                    bnd_freq, 1);
                 
             save(init_filename, 'ini', 'fin', 'ini_roi', 'fin_roi', 'xx0', ...
                     'yy0', 'uu0', 'vv0');
