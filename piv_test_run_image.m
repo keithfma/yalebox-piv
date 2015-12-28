@@ -8,10 +8,10 @@ function [] = piv_test_run_image()
 %% parameters
 
 % image parameters
-tform = [1, 0.15,   10;  
-         0.15,  1,  10];
-bnd_mean = 1.1;
-bnd_ampl = 0;
+tform = [1, 0.05,   10;  
+         0,    1,  10];
+bnd_mean = 0.7;
+bnd_ampl = 0.2;
 bnd_freq = 1;
 
 % piv parameters

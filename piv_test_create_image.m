@@ -86,3 +86,46 @@ rect = [clim(1), rlim(1), clim(2)-clim(1), rlim(2)-rlim(1)];
 ini = imcrop(im, rect);
 fin = imcrop(im_fwd, rect);
 
+%% impose boundary
+
+% converstion from image to normalized coordinates
+
+% generate the boundary line in normalized coordinates 
+bnd_x_norm = -1:0.001:2; % 3x image width, small step
+bnd_y_norm =  bnd_mean + bnd_ampl*sin(2*pi*bnd_x_norm*bnd_freq);
+
+% convert to image coordinates
+bnd_x = bnd_x_norm*range(xx)+min(xx);
+bnd_y = bnd_y_norm*range(yy)+min(yy);
+
+% get forward transform
+[bnd_x_fwd, bnd_y_fwd] = piv_test_util_transform(tform, bnd_x, bnd_y, 1);
+
+% interpolate to image coordinates and remove pixels above the boundary
+bnd_y_ini = floor( interp1(bnd_x, bnd_y, xx) );
+for j = 1:length(xx)
+    idx = find(yy == bnd_y_ini(j));    
+    ini(idx:end, j, :) = 0;
+end
+
+bnd_y_fin = floor( interp1(bnd_x_fwd, bnd_y_fwd, xx) );
+for j = 1:length(xx)
+    idx = find(yy == bnd_y_fin(j));    
+    fin(idx:end, j, :) = 0;
+end
+
+% get roi for ini and fin
+ini_roi = ini~=0;
+fin_roi = fin~=0;
+
+%% debug
+
+% plot images
+figure(1)
+imagesc(rgb2gray(ini))
+set(gca, 'YDir', 'normal');
+
+figure(2)
+imagesc(rgb2gray(fin))
+set(gca, 'YDir', 'normal');
+
