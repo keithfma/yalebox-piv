@@ -39,8 +39,12 @@ T = tform(:, 3);
 
 %% generate initial and final images
 
-% load template with undeformed coordinate grid
+% load template and convert to normalized grayscale 
 im = imread(template_filename);
+im = rgb2hsv(im);
+im = yalebox_prep_intensity(im, true(size(im(:,:,1))), 31);
+
+% get undeformed coordinate grid
 xx = 0:size(im,2)-1;
 yy = 0:size(im,1)-1;
 [xgrid, ygrid] = meshgrid(xx, yy);
@@ -54,21 +58,30 @@ vv = ygrid_fwd-ygrid;
 
 im_fwd = imwarp(im, -cat(3, uu, vv), 'cubic', 'FillValues', 0);
 
-% find largest rectangular region that is fully populated in both im and fwd
+% crop to largest rectangular region that is fully populated in both im and fwd
+%... uses 3rd party functions from the file exchange, see private folder
 
-% 
 roi = im(:,:,1)>0 & im_fwd(:,:,1)>0;
 
-[C, H, W] = FindLargestRectangles(roi, [0 0 1]);
-[~, idx] = max(C(:));
-[r0, c0] = ind2sub(size(roi), idx);
-rect = [c0, r0, W(r0,c0), H(r0,c0)];
+if any(roi == 0)
+    
+    [C, H, W] = FindLargestRectangles(roi, [0 0 1]);
+    [~, idx] = max(C(:));
+    [r0, c0] = ind2sub(size(roi), idx);
+    rect = [c0, r0, W(r0,c0), H(r0,c0)];
+    
+    % crop to get ini and fin
+    ini = imcrop(im, rect);
+    fin = imcrop(im_fwd, rect);
+    xx = xx(rect(1):(rect(1)+rect(3)-1));
+    yy = yy(rect(2):(rect(2)+rect(4)-1));
+    
+else
+    
+    ini = im;
+    fin = im_fwd;
+end
 
-% crop to get ini and fin
-ini = imcrop(im, rect);
-fin = imcrop(im_fwd, rect);
-xx = xx(rect(1):(rect(1)+rect(3)-1));
-yy = yy(rect(2):(rect(2)+rect(4)-1));
 
 
 %% impose boundary
@@ -103,14 +116,14 @@ end
 ini_roi = ini~=0;
 fin_roi = fin~=0;
 
-%% debug
-
-% plot images
-figure(1)
-imagesc(rgb2gray(ini))
-set(gca, 'YDir', 'normal');
-
-figure(2)
-imagesc(rgb2gray(fin))
-set(gca, 'YDir', 'normal');
+% %% debug
+% 
+% % plot images
+% figure(1)
+% imagesc(rgb2gray(ini))
+% set(gca, 'YDir', 'normal');
+% 
+% figure(2)
+% imagesc(rgb2gray(fin))
+% set(gca, 'YDir', 'normal');
 
