@@ -62,6 +62,16 @@ end
 
 clear F
 
+% debug: crop off border > width of equalization window {
+xx = xx(32:end-32);
+yy = yy(32:end-32);
+ini = ini(32:end-32, 32:end-32);
+fin = fin(32:end-32, 32:end-32);
+ini_roi = ini_roi(32:end-32, 32:end-32);
+fin_roi = fin_roi(32:end-32, 32:end-32);
+% } debug
+
+
 %% run PIV and analyze results
 
 % run piv

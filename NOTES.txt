@@ -16,3 +16,7 @@ A1:
 
   - applying the equalization routine to the synthetic images makes the two
     results similar (both display bias at the edge)
+
+  - cropping off 40 pixels from all sides (> width of the equalization
+    window) did not have any effect. The effect is not some "edge effect"
+    in the equalization routine.
