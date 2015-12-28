@@ -29,7 +29,7 @@ valid_max = 2;
 valid_eps = 0.01;
 
 % local parameters
-filename = 'test/create_synth.mat';
+filename = 'test/synth.mat';
 
 %% generate (or load) test images
 
