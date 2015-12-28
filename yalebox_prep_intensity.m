@@ -58,7 +58,7 @@ img = hsv(:,:,3);
 img(~mask) = 0;
 
 % local histogram equalization 
-parfor i = 1:nr
+parfor i = 1:nr 
     for j = 1:nc        
         % skip pixels outside the mask
         if mask(i,j) == 0

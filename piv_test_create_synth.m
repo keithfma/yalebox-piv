@@ -1,39 +1,40 @@
-function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
-    create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
-        ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq, show)
-% function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
-%    create_dots(img_size, tform, min_spc, prob_white, ampl_white, ...
-%        ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq, show)
+function [ini, fin, ini_roi, fin_roi, xx, yy] = ...
+    piv_test_create_synth(img_size, tform, min_spc, prob_white, ampl_white, ...
+        ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
 % truncated by a boundary, which is subjected to a constant translation +
-% homogenous deformation.
+% homogenous deformation. Care is taken to generate a random grid with a known
+% minimum distance between points that spans the domains of both initial and
+% final images. The boundary is a sinusoidal curve, with mean, amplitude and
+% frequency set by the input arguments.
 %
-% Arguments:
+% Input arguments:
 %
 % img_size = Vector, length == 2, [row, col] size of the output images
 %
 % tform = Matrix, size == [2, 3], affine transformation matrix using homogenous
-%   coordinates Elements include the all comoponents of the displacement
+%   coordinates. Elements include the all comoponents of the displacement
 %   gradient tensor as well as constant offsets in the x and y directions:
+%
 %       [du/dx, du/dy, tx; 
 %        dv/dx, dv/dy, ty]
 %
 % min_spc = Scalar, minimum spacing in pixels between particles, enforced for
-%   both the initial and final grids
+%   both the initial and final (deformed) grids.
 %
-% prob_white = Scalar, probability that a give particle is white
+% prob_white = Scalar, probability that a give particlen is white. This value
+% determines the "mix" of white and black sand in the synthetic images.
 %
-% ampl_white = Scalar, amplitude for gaussian model of white particles
-%
-% ampl_black = Scalar, amplitude for gaussian model of black particles
+% ampl_white, ampl_black = Scalar, amplitude for gaussian model of white / black
+%   particles
 %
 % sigma = Scalar, standard deviation of gaussian model for all particles
 % 
 % max_attempts = Scalar, integer, maximum number of times to attempt adding a
 %   random point to the grid before considering the grid complete 
 %
-% bnd_mean = Scalar, mean value of the boundary line in the initial grid,
+% bnd_mean = Scalar, mean value of the boundary sinusoid in the initial grid,
 %   normalized coordinates so the range is [0, 1] show = Logical flag, 1 to show
 %
 % bnd_ampl = Scalar, amplitude of the boundary sinudoid in the initial grid,
@@ -42,14 +43,20 @@ function [ini, fin, ini_roi, fin_roi, xx, yy, uu, vv] = ...
 % bnd_freq = Scalar, frequency of the boundary sinusoid, in cycles per image
 %   width
 %
-% show = Scalar, logical flag, 1 to show debugging plots, 0 not to show them
+% Output arguments:
+%
+% ini, fin = 
+% 
+% ini_roi, fin_roi =  
+%
+% xx, yy = 
 %
 % %
 
 %% initialize
 
 % set defaults
-narginchk(0,13);
+narginchk(0,11);
 if nargin == 0 || isempty(img_size)
     img_size = [100, 100]; 
 end 
@@ -83,9 +90,6 @@ end
 if nargin < 11 || isempty(bnd_freq)
     bnd_freq = 1;
 end
-if nargin < 12 || isempty(show)
-    show = 1;
-end
 
 % check for sane inputs
 validateattributes(img_size, {'numeric'}, {'integer', '>', 1, 'numel', 2});
@@ -96,7 +100,6 @@ validateattributes(ampl_white, {'numeric'}, {'scalar'});
 validateattributes(ampl_black, {'numeric'}, {'scalar'});
 validateattributes(sigma, {'numeric'}, {'scalar', 'positive'});
 validateattributes(max_attempts, {'numeric'}, {'scalar', 'integer', 'positive'});
-validateattributes(show, {'numeric'}, {'scalar', 'binary'});
 validateattributes(bnd_mean, {'numeric'}, {'scalar'});
 validateattributes(bnd_ampl, {'numeric'}, {'scalar'});
 validateattributes(bnd_freq, {'numeric'}, {'scalar'});
@@ -106,7 +109,7 @@ validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
 y_bbox = [1,           1, img_size(1), img_size(1), 1];              
-[x_bbox_rev, y_bbox_rev] = affine_trans(tform, x_bbox, y_bbox, 0);
+[x_bbox_rev, y_bbox_rev] = piv_test_util_transform(tform, x_bbox, y_bbox, 0);
 
 % get limits and footprint needed to fully populate ini and fin
 xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
@@ -126,7 +129,7 @@ while num_attempts <= max_attempts
     xpt = rand()*range(xlim)+xlim(1);
     ypt = rand()*range(ylim)+ylim(1);    
     if ~in_bnd(xpt, ypt); continue; end    
-    [xpt_fwd, ypt_fwd] = affine_trans(tform, xpt, ypt, 1);
+    [xpt_fwd, ypt_fwd] = piv_test_util_transform(tform, xpt, ypt, 1);
     
     % append to triangulations
     tri.Points(end+1, :) = [xpt, ypt];
@@ -183,7 +186,7 @@ for ii = 1:length(yy)
             ini(ii,jj) = NaN;
         end
       
-        [xx_rev, yy_rev] = affine_trans(tform, xx(jj), yy(ii), 0);
+        [xx_rev, yy_rev] = piv_test_util_transform(tform, xx(jj), yy(ii), 0);
         if in_bnd(xx_rev, yy_rev)        
             vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
             fin(ii, jj) = sum(vals);
@@ -209,94 +212,9 @@ fin_roi = ~isnan(fin);
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
 
-%% generate displacements for each pixel
-
-[x0, y0] = meshgrid(xx, yy);
-[x1, y1] = affine_trans(tform, x0(:), y0(:), 1);
-x1 = reshape(x1, img_size);
-y1 = reshape(y1, img_size);
-
-uu = x1-x0;
-vv = y1-y0;
-
-%% debug plots
-
-if show
-    
-    % plot initial and deformed grids
-    plt_xlim = [ min([x_pts; x_pts_fwd]), max([x_pts; x_pts_fwd]) ];
-    plt_ylim = [ min([y_pts; y_pts_fwd]), max([y_pts; y_pts_fwd]) ];
-    
-    figure
-    
-    subplot(1,2,1)
-    patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-    hold on
-    triplot(tri, 'Color', 'b');
-    set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
-    
-    subplot(1,2,2)
-    patch(x_bbox, y_bbox, 'k', 'FaceAlpha', 0.5, 'LineStyle', 'None');
-    hold on
-    triplot(tri_fwd, 'Color', 'b');
-    set(gca, 'XLim', plt_xlim, 'YLim', plt_ylim);
-    
-    % alternately plot each image
-    figure
-    count = 0;
-    while count<10
-        imagesc(ini);
-        set(gca, 'YDir', 'normal');
-        hold on;
-        plot(x_pts, y_pts, '.k');
-        title('ini');
-        hold off
-        pause(1)
-        
-        imagesc(fin);
-        set(gca, 'YDir', 'normal');
-        hold on;
-        plot(x_pts_fwd, y_pts_fwd, '.k');
-        title('fin');
-        hold off
-        pause(1)
-        
-        count = count+1;
-    end
-
 end
 
-end
-
-function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
-% function [x_pts_out, y_pts_out] = affine_trans(tform, x_pts_in, y_pts_in, fwd)
-% 
-% tform = 2x3 affine transformation matrix
-%
-% x_pts_in, y_pts_in = vectors of x, y point coordinates
-%
-% fwd = Scalar, logical, flag indicating if the transform should be forward (1)
-%   or reverse (0)
-%
-% x_pts_out, y_pts_out = vectors of transformed x,y point coordinates
-%
-% %
-
-% get full transform matrix
-A = [tform; 0 0 1]; 
-if ~fwd; 
-    A = inv(A); 
-end
-
-% transform points, maintaining vector shape
-pts_in = [x_pts_in(:)'; y_pts_in(:)'; ones(1, length(x_pts_in))];
-
-pts_out = A*pts_in;
-
-x_pts_out = reshape(pts_out(1,:), size(x_pts_in));
-y_pts_out = reshape(pts_out(2,:), size(y_pts_in));
-
-end
+%% subroutines
 
 function min_dist = min_dist_to_nbrs(dt, idx)
 % function min_dist = min_dist_to_nbrs(dt, idx)
