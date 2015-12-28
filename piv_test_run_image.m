@@ -10,22 +10,57 @@ function [] = piv_test_run_image()
 % image parameters
 tform = [1, 0, 0;  
          0, 1, 0];
-bnd_mean = 0.7;
-bnd_ampl = 0.2;
+bnd_mean = 1.1;
+bnd_ampl = 0.0;
 bnd_freq = 1;
 
 % piv parameters
 samplen = 30;
-sampspc = 30;
+sampspc = 15;
 intrlen = 100;
 npass = 1;
 valid_max = 2;
 valid_eps = 0.01;
 
-%% generate test images
+% local parameters
+data_file = 'test/image.mat';
 
-[ini, fin, ini_roi, fin_roi, xx, yy] = ...
-    piv_test_create_image(tform, bnd_mean, bnd_ampl, bnd_freq);
+%% generate (or load) test images
+
+% check if defined parameters match saved parameters
+try
+    F = load(data_file, 'tform', 'bnd_mean', 'bnd_ampl', 'bnd_freq');
+    same = all(F.tform(:) == tform(:)) && ...
+        F.bnd_mean == bnd_mean && ...
+        F.bnd_ampl == bnd_ampl && ...
+        F.bnd_freq == bnd_freq;
+catch
+    same = 0;
+end
+
+% load PIV input data
+if same
+    fprintf('parameters are not modified, loading input variables from file\n');
+    F = load(data_file, 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
+    ini = F.ini;
+    ini_roi = F.ini_roi;
+    fin = F.fin;
+    fin_roi = F.fin_roi;
+    xx = F.xx;
+    yy = F.yy;
+    
+else
+    fprintf('Parameters are modified, generating new input variables\n');
+    
+    [ini, fin, ini_roi, fin_roi, xx, yy] = ...
+        piv_test_create_image(tform, bnd_mean, bnd_ampl, bnd_freq);
+    
+    save(data_file, 'tform', 'bnd_mean', 'bnd_ampl', 'bnd_freq', 'ini', ...
+            'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
+
+end
+
+clear F
 
 %% run PIV and analyze results
 
@@ -54,3 +89,5 @@ vv_error = vv-vv_exact;
 piv_test_util_print_error(uu_error, vv_error);
 piv_test_util_plot_error(uu_error, vv_error);
 piv_test_util_plot(xx, yy, uu, vv, displ, Dd);
+
+keyboard

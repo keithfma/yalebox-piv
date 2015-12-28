@@ -8,8 +8,9 @@ function [] = piv_test_run_synth()
 %% parameters
 
 % synthetic image parameters
-img_size = [100, 100];
-tform = [1, 0, 0;  0, 1, 0];
+img_size = [500, 500];
+tform = [1, 0, 0;  
+         0, 1, 0];
 min_spc = 3;
 prob_white = 0.5;
 ampl_white = 1;
@@ -22,20 +23,20 @@ bnd_freq = 1;
 
 % piv parameters
 samplen = 30;
-sampspc = 30;
+sampspc = 15;
 intrlen = 100;
 npass = 1;
 valid_max = 2;
 valid_eps = 0.01;
 
 % local parameters
-filename = 'test/synth.mat';
+data_file = 'test/synth.mat';
 
 %% generate (or load) test images
 
 % check if defined parameters match saved parameters
 try
-    F = load(filename, 'img_size', 'tform', 'min_spc', 'prob_white', ...
+    F = load(data_file, 'img_size', 'tform', 'min_spc', 'prob_white', ...
         'ampl_white', 'ampl_black', 'sigma', 'max_attempts', 'bnd_mean', ...
         'bnd_ampl', 'bnd_freq');
     same = all(F.img_size == img_size) && ...
@@ -56,7 +57,7 @@ end
 % load PIV input data
 if same
     fprintf('parameters are not modified, loading input variables from file\n');
-    F = load(filename, 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
+    F = load(data_file, 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
     ini = F.ini;
     ini_roi = F.ini_roi;
     fin = F.fin;
@@ -71,7 +72,7 @@ else
         img_size, tform, min_spc, prob_white, ampl_white, ampl_black, sigma, ...
         max_attempts, bnd_mean, bnd_ampl, bnd_freq);      
     
-    save(filename, 'img_size', 'tform', 'min_spc', 'prob_white', ...
+    save(data_file, 'img_size', 'tform', 'min_spc', 'prob_white', ...
         'ampl_white', 'ampl_black', 'sigma', 'max_attempts', 'bnd_mean', ...
         'bnd_ampl', 'bnd_freq', 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
 

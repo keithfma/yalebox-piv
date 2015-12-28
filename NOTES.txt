@@ -1,1 +1,8 @@
 Current issue: understand and eliminate spurious edge gradients.
+
+Q1: Are there spurious edge gradients for...
+  - fully populated images 
+  - with displacement
+  - single pass
+  - spline interpolation of outliers
+  - no smoothing
