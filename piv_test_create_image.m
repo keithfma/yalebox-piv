@@ -33,16 +33,13 @@ validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 % local parameters
 template_filename = 'test/template_fault_ss_01_sidef_251.png';
 
-% debug: split transform into jacobian and translation
-D = tform(:, 1:2);
-T = tform(:, 3);
-
 %% generate initial and final images
 
 % load template and convert to normalized grayscale 
 im = imread(template_filename);
 im = rgb2hsv(im);
-im = yalebox_prep_intensity(im, true(size(im(:,:,1))), 31);
+im = im(:,:,3);
+im = prep_intensity(im, true(size(im)), 31);
 
 % get undeformed coordinate grid
 xx = 0:size(im,2)-1;

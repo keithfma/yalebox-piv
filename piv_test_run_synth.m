@@ -8,7 +8,7 @@ function [] = piv_test_run_synth()
 %% parameters
 
 % synthetic image parameters
-img_size = [500, 500];
+img_size = [276, 383];
 tform = [1, 0, 0;  
          0, 1, 0];
 min_spc = 3;

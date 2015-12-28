@@ -197,7 +197,7 @@ for ii = 1:length(yy)
     end
 end
 
-% rescale ini and fin to the range [0, 1], and get the roi mask
+% rescale ini and fin to the range [0, 1]
 min_val = min([ini(:); fin(:)]);
 ini = ini-min_val;
 fin = fin-min_val;
@@ -206,11 +206,16 @@ max_val = max([ini(:); fin(:)]);
 ini = ini./max_val;
 fin = fin./max_val;
 
+% get roi masks
 ini_roi = ~isnan(ini);
 fin_roi = ~isnan(fin);
 
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
+
+% normalize contrast
+ini = prep_intensity(ini, true(size(ini)), 31);
+fin = prep_intensity(fin, true(size(fin)), 31);
 
 end
 

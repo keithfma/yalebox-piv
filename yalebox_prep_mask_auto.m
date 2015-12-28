@@ -39,8 +39,7 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win
 % check for sane arguments, set default values
 narginchk(7,8);
 
-validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1}, ...
-    'yalebox_prep_intensity', 'hsv');
+validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1});
 
 validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}, ...
     'yalebox_prep_mask_auto', 'hue_lim');

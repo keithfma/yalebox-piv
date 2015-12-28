@@ -6,3 +6,13 @@ Q1: Are there spurious edge gradients for...
   - single pass
   - spline interpolation of outliers
   - no smoothing
+
+A1:
+  - initial tests show NO edge effects for the synth test, but YES edge
+  effects in image test.
+  
+  - the above remains true when the images size for synth is set the same as
+  image, the edges are recongizably different, but not worse. 
+
+  - applying the equalization routine to the synthetic images makes the two
+    results similar (both display bias at the edge)

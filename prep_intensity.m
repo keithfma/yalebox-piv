@@ -1,11 +1,7 @@
-function eql = yalebox_prep_intensity(hsv, mask, nwin, show)
-% function img = yalebox_prep_intensity(hsv, mask, nwin, show)
+function eql = prep_intensity(img, mask, nwin, show)
+% function eql = prep_intensity(img, mask, nwin, show)
 %
 % Convert masked color image to "equalized" grayscale image. 
-%
-% The conversion from color to grayscale uses the HSV transform, keeping only
-% the "value" layer. NOTE: This transformation is not unique, and may not be the
-% best in terms of preserving information from the original image.
 %
 % Equalization transforms pixel intensity so that the image histogram is
 % approximately uniform. A simple adaptive (local window) method is used, in
@@ -16,7 +12,7 @@ function eql = yalebox_prep_intensity(hsv, mask, nwin, show)
 %
 % Arguments:
 %
-%   hsv = 3D matrix, double, Color image in HSV colorspace.
+%   img = 2D matrix, double, grayscale image in the range [0, 1].
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
@@ -27,8 +23,8 @@ function eql = yalebox_prep_intensity(hsv, mask, nwin, show)
 %       equalized intensity images and some simple comparison statistics,
 %       default = false
 %
-%   eql = 2D matrix, size(mask), double, normalized intensity image derived from
-%     hsv, uniform distribution in the range [0, 1].
+%   eql = 2D matrix, size(mask), double, normalized intensity image with uniform
+%       distribution in the range [0, 1].
 %
 % %
 
@@ -37,22 +33,15 @@ narginchk(3, 4)
 if nargin == 3; show = false; end
 
 % check for sane inputs
-validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1}, ...
-    'yalebox_prep_intensity', 'hsv');
-validateattributes(mask, {'logical'}, {'2d', 'size', [size(hsv,1), size(hsv, 2)]}, ...
-    'yalebox_prep_intensity', 'mask');
-validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'}, ...
-    'yalebox_prep_intensity', 'nwin');
-validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
-    'yalebox_prep_world_coord', 'show');
+validateattributes(img, {'double'}, {'2d', '>=', 0, '<=', 1});
+validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
+validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'});
+validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 
 % get constants, preallocate variables
-[nr, nc, ~] = size(hsv);
+[nr, nc] = size(img);
 eql = zeros(nr, nc);
 nhalfwin = floor(nwin/2);
-
-% convert to grayscale
-img = hsv(:,:,3);
 
 % apply mask
 img(~mask) = 0;
