@@ -27,10 +27,6 @@ valid_eps = 0.01;
 [ini, fin, ini_roi, fin_roi, xx, yy] = ...
     piv_test_create_image(tform, bnd_mean, bnd_ampl, bnd_freq);
 
-% standard preprocessing steps
-
-
-
 %% run PIV and analyze results
 
 % run piv
