@@ -30,3 +30,59 @@ validateattributes(bnd_mean, {'numeric'}, {'scalar'});
 validateattributes(bnd_ampl, {'numeric'}, {'scalar'});
 validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 
+% local parameters
+template_filename = 'test/template_fault_ss_01_sidef_251.png';
+
+% debug: split transform into jacobian and translation
+D = tform(:, 1:2);
+T = tform(:, 3);
+
+%% generate initial and final images
+
+% load template with undeformed coordinate grid
+im = imread(template_filename);
+xx = 0:size(im,2)-1;
+yy = 0:size(im,1)-1;
+[xgrid, ygrid] = meshgrid(xx, yy);
+
+% get forward transform displacements and image
+[xgrid_fwd, ygrid_fwd] = piv_test_util_transform(tform, xgrid(:), ygrid(:), 1);
+xgrid_fwd = reshape(xgrid_fwd, size(xgrid));
+ygrid_fwd = reshape(ygrid_fwd, size(ygrid));
+uu_fwd = xgrid_fwd-xgrid;
+vv_fwd = ygrid_fwd-ygrid;
+
+im_fwd = imwarp(im, -0.5*cat(3, uu_fwd, vv_fwd), 'cubic', 'FillValues', 0);
+
+% find largest rectangular region that is fully populated in both im and fwd
+roi = im(:,:,1)>0 & im_fwd(:,:,1)>0;
+
+clim = [1, size(roi,2)];
+for i = 1:size(roi,1)
+    
+    c0 = find(roi(i,:), 1, 'first');    
+    if ~isempty(c0); clim(1) = max(clim(1), c0); end
+    
+    c1 = find(roi(i,:), 1, 'last');
+    if ~isempty(c1); clim(2) = max(clim(2), c1); end
+    
+end
+
+rlim = [1, size(roi,1)];
+for j = 1:size(roi,2)
+    
+    r0 = find(roi(:,j), 1, 'first');    
+    if ~isempty(r0); rlim(1) = max(rlim(1), r0); end
+    
+    r1 = find(roi(:,j), 1, 'last');
+    if ~isempty(r1); rlim(2) = max(rlim(2), r1); end
+    
+end
+
+% crop to get ini and fin
+xx = xx(clim(1):clim(2));
+yy = yy(rlim(1):rlim(2));
+rect = [clim(1), rlim(1), clim(2)-clim(1), rlim(2)-rlim(1)];
+ini = imcrop(im, rect);
+fin = imcrop(im_fwd, rect);
+
