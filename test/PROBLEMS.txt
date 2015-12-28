@@ -1,5 +1,0 @@
-(1) off-by-one error for odd window size
-
-(2) poor performance at image boundaries
-  I think that the correlation for offsets beyond the image boundary should
-  include only valid points, how can this be implemented?
