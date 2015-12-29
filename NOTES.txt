@@ -78,3 +78,34 @@ A7:
   1) For image test with non-zero dudy, errors increase with increasing shear, but there is not
   concentrated high-error on the boundary. Switching back to the non-masked
   correlation yields noticable edge effect errors.
+
+Q8: What is the effect of smoothing?
+
+  0) Found a bug in the use of pppiv, in which I failed to supply an ROI (had
+  previously uses NaNs, then stopped).
+
+  1) For zero-displacement tests, it reduces noise, with no additional edge
+  effects.
+
+  2) For constant displacements in x, or y, or both, smoothing reduces noise
+  without adding edge effects 
+
+  3) For non-zero dudy shear, smoothing adds gradients at horizontal edges.
+  Specifically, the bottom boundary, and horizontal or convex portions of the
+  top boundary. Concave parts of the boundary are not obviously affected. 
+
+  4) For non-zero dvdx shear, smoothing add gradients at vertical edges. I have
+  no ability to test the importance of convexity.
+
+
+Other observations:
+
+  The wedge test case still has substatial edge gradients in the un-smoothed,
+  normxcorr2_masked case. These disappear when a large mask erosion radius us
+  used on the original images, which suggests that the gradient is real. 
+
+  My plan is to refine the methods so that the test cases never show edge
+  gradients, then the wedge results can be interpreted with confidence. An
+  additional test using manual particle tracking may be useful if the edge
+  gradient is large enough to rise above the error in manual point selection.
+

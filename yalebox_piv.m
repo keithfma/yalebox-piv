@@ -212,8 +212,8 @@ for pp = 1:np-1
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
       
-    % % smooth displacements
-    % [uu, vv] = pppiv(uu, vv, '3x3');
+    % smooth displacements
+    [uu, vv] = pppiv(uu, vv, roi, '3x3'); % NOTE: ROI WILL NOT BE CORRECT FOR MULTIPASS    
     
 %     % debug: display effect of interpolation and smoothing steps
 %     figure(1)
