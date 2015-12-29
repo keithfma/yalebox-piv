@@ -45,3 +45,10 @@ A3: Yes...
   peaks.
 
   2) There is a significant bias in the x-direction at the lower boundary.
+
+Q4: Does a "true" masked normalized cross correlation elimiate the bias?
+
+A4:
+
+  1) YES, for the synth test with no displacement and a horizontal boundary at y
+  = 0.8. 

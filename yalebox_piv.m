@@ -114,8 +114,10 @@ for pp = 1:np-1
             end
             
             % compute normalized cross-correlation
-            xcr = normxcorr2(samp, intr);
-            
+            % xcr0 = normxcorr2(samp, intr);            
+            [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+            xcr = xcr.*double(overlap>225);            
+
             % find correlation plane max, subpixel precision
             [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
             % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
@@ -136,32 +138,32 @@ for pp = 1:np-1
             vv(ii, jj) = vv(ii, jj)+delta_vv;
             cval(ii, jj) = val;
            
-            % debug: show correlation plane
-            figure(1) 
-            imagesc(xcr);
-            colorbar
-            hold on
-            plot(rpeak, cpeak, 'xk');
-            hold off
-            
-            figure(2);
-            imagesc(xcr);
-            colorbar
-            hold on
-            plot(rpeak, cpeak, 'xk');
-            hold off
-            set(gca, 'Xlim', round(cpeak+[-3,3]), 'Ylim', round(rpeak+[-3,3]));
-                
-            figure(3);
-            imagesc(xx, yy, ini);
-            hold on
-            plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-                [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-                '-k');
-            hold off
-
-            pause
-            % } debug
+%             % debug: show correlation plane
+%             figure(1) 
+%             imagesc(xcr);
+%             colorbar
+%             hold on
+%             plot(rpeak, cpeak, 'xk');
+%             hold off
+%             
+%             figure(2);
+%             imagesc(xcr);
+%             colorbar
+%             hold on
+%             plot(rpeak, cpeak, 'xk');
+%             hold off
+%             set(gca, 'Xlim', round(cpeak+[-3,3]), 'Ylim', round(rpeak+[-3,3]));
+%                 
+%             figure(3);
+%             imagesc(xx, yy, ini);
+%             hold on
+%             plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
+%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
+%                 '-k');
+%             hold off
+% 
+%             pause
+%             % } debug
             
         end % ii
     end % jj
@@ -206,20 +208,20 @@ for pp = 1:np-1
     % % smooth displacements
     % [uu, vv] = pppiv(uu, vv, '3x3');
     
-    % % debug: display effect of interpolation and smoothing steps
-    % figure(1)
-    % % clim = [min(uu(:)), max(uu(:))];
-    % subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; % caxis(clim);
-    % subplot(1,3,2); imagesc(uu); title('uu'); colorbar; % caxis(clim);
-    % subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; % caxis(clim);
-    % 
-    % figure(2) 
-    % % clim = [min(vv(:)), max(vv(:))];
-    % subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; % caxis(clim);
-    % subplot(1,3,2); imagesc(vv); title('vv'); colorbar; % caxis(clim);
-    % subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; % caxis(clim);
-    % pause
-    % % } debug
+    % debug: display effect of interpolation and smoothing steps
+    figure(1)
+    % clim = [min(uu(:)), max(uu(:))];
+    subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; % caxis(clim);
+    subplot(1,3,2); imagesc(uu); title('uu'); colorbar; % caxis(clim);
+    subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; % caxis(clim);
+    
+    figure(2) 
+    % clim = [min(vv(:)), max(vv(:))];
+    subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; % caxis(clim);
+    subplot(1,3,2); imagesc(vv); title('vv'); colorbar; % caxis(clim);
+    subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; % caxis(clim);
+    pause
+    % } debug
     
     
 end

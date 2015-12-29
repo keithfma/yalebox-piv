@@ -75,8 +75,8 @@ win = [zeros(pb, pl+snc+pr);
          
 % replace no-data pixels with random noise too
 no_data = win==0;
-rand_win = rand(size(win));
-win(no_data) = rand_win(no_data);
+% rand_win = rand(size(win));
+% win(no_data) = rand_win(no_data);
 
 % compute fraction of the window that has data
 frac_data = 1-sum(no_data(:))/numel(win);
