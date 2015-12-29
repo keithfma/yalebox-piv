@@ -34,3 +34,14 @@ A2:
   include a flat boundary within the matrix, the edge effect appears at that
   boundary, widens (from 1 pixel to 2 pixels), and worsens (from <0.5 pix to
   <0.9 pix). 
+
+Q3: Is there any obvious difference in the correlation planes for edge- and
+interior samples?
+
+A3: Yes...
+
+  1) Sample windows that contain a significant amount of (random) background are
+  much noisier, and have poorly shaped (not gaussian, or even simple shaped)
+  peaks.
+
+  2) There is a significant bias in the x-direction at the lower boundary.
