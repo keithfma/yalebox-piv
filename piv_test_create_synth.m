@@ -206,16 +206,15 @@ max_val = max([ini(:); fin(:)]);
 ini = ini./max_val;
 fin = fin./max_val;
 
-% get roi masks
+% get and apply roi masks
 ini_roi = ~isnan(ini);
 fin_roi = ~isnan(fin);
-
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
 
 % normalize contrast
-ini = prep_intensity(ini, true(size(ini)), 31);
-fin = prep_intensity(fin, true(size(fin)), 31);
+ini = prep_intensity(ini, ini_roi, 31);
+fin = prep_intensity(fin, fin_roi, 31);
 
 end
 

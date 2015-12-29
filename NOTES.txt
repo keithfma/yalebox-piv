@@ -20,3 +20,6 @@ A1:
   - cropping off 40 pixels from all sides (> width of the equalization
     window) did not have any effect. The effect is not some "edge effect"
     in the equalization routine.
+
+  - to be sure, I disabled equalization for the synthetic images, and found that
+    the edge effect is still there, just smaller
