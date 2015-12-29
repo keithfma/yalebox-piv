@@ -51,6 +51,8 @@ ini_rgb = imread(ini_file);
 fin_rgb = imread(fin_file);  
 ini_hsv = rgb2hsv(ini_rgb);
 fin_hsv = rgb2hsv(fin_rgb);
+ini = ini_hsv(:,:,3);
+fin = fin_hsv(:,:,3);
 
 % create masks   
 mask_manual = yalebox_prep_mask_manual(ini_rgb);
@@ -64,8 +66,8 @@ ini_mask = ini_mask_auto & mask_manual;
 fin_mask = fin_mask_auto & mask_manual;
 
 % convert to intensity
-ini = prep_intensity(ini_hsv, ini_mask, eql_nwin, 0);
-fin = prep_intensity(fin_hsv, fin_mask, eql_nwin, 0);
+ini = prep_intensity(ini, ini_mask, eql_nwin, 0);
+fin = prep_intensity(fin, fin_mask, eql_nwin, 0);
 
 % create fake coordinate vectors, in pixel coordinates
 xx = 1:size(ini, 2);

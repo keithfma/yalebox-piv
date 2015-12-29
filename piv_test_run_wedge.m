@@ -1,16 +1,21 @@
-function [] = piv_test_run_wedge()
+function [] = piv_test_run_wedge(force)
 %
 % Run a hard-coded test case using a images from a wedge experiment.
 %
+% Arguments:
+%
+% force = Scalar, binary, flag indicating whether to force recomputing input
+%   variables (1) or not (0). This is useful if the downstream code has changed,
+%   but input parameters have not.
 % %
 
 %% parameters
 
 % piv parameters
-samplen = [30, 30];%, 15];
-sampspc = [30, 15];%, 15];
-intrlen = [120, 60];%, 30];
-npass = [1, 3];%, 3];
+samplen = 30;
+sampspc = 30;
+intrlen = 120;
+npass = 1;
 valid_max = 2;
 valid_eps = 0.01;
 
@@ -28,6 +33,16 @@ eql_nwin = 31;
 
 % local parameters
 data_file = 'test/wedge.mat';
+func_name = 'piv_test_run_wedge';
+
+%% parse arguments and set defaults
+
+narginchk(0,1);
+if nargin == 0 || isempty(force) 
+    force = 0;
+end
+
+validateattributes(force, {'numeric'}, {'scalar', 'binary'});
 
 %% generate (or load) test images
 
@@ -51,9 +66,21 @@ catch
     same = 0;
 end
 
+% report status
+if same 
+    fprintf('%s: Parameters are not modified\n', func_name); 
+else
+    fprintf('%s: Parameters are modified\n', func_name); 
+end
+if force
+    fprintf('%s: Force recompute enabled\n', func_name);
+else
+    fprintf('%s: Force recompute disabled\n', func_name);
+end
+
 % load PIV input data
-if same
-    fprintf('parameters are not modified, loading input variables from file\n');
+if same && ~force
+    fprintf('%s: Loading input variables from file\n', func_name);
     F = load(data_file, 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
     ini = F.ini;
     ini_roi = F.ini_roi;
@@ -63,7 +90,7 @@ if same
     yy = F.yy;
     
 else
-    fprintf('Parameters are modified, generating new input variables\n');
+    fprintf('%s: Generating new input variables\n', func_name);
     [ini, fin, ini_roi, fin_roi, xx, yy] = ...
         piv_test_create_wedge(dir_name, ini_file, fin_file, hue_lim, val_lim, ...
             entr_lim, entr_win, morph_open_rad, morph_erode_rad, eql_nwin);
