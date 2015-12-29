@@ -148,9 +148,7 @@ for pp = 1:np-1
     
     % debug: preserve original displacements {
     uu0 = uu;
-    vv0 = vv;    
-    uu0(~keep) = NaN;
-    vv0(~keep) = NaN;
+    vv0 = vv;
     % } debug 
     
     % debug: interpolation parameter {
@@ -181,10 +179,19 @@ for pp = 1:np-1
     % % smooth displacements
     % [uu, vv] = pppiv(uu, vv, '3x3');
     
-    % % debug: display effect of interpolation and smoothing steps
-    % subplot(1,2,1); imagesc(uu0-uu); title('uu0-uu'); colorbar
-    % subplot(1,2,2); imagesc(vv0-vv); title('vv0-vv'); colorbar
-    % pause
+    % debug: display effect of interpolation and smoothing steps
+    figure(1)
+    clim = [min(uu(:)), max(uu(:))];
+    subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; caxis(clim);
+    subplot(1,3,2); imagesc(uu); title('uu'); colorbar; caxis(clim);
+    subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; caxis(clim);
+    
+    figure(2) 
+    clim = [min(vv(:)), max(vv(:))];
+    subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; caxis(clim);
+    subplot(1,3,2); imagesc(vv); title('vv'); colorbar; caxis(clim);
+    subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; caxis(clim);
+    pause
     % } debug
     
     
