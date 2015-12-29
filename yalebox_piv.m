@@ -58,6 +58,10 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
+% local parameters
+min_frac_data = 0.5;
+min_frac_overlap = min_frac_data/2;
+
 % parse inputs
 check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
     npass, valid_max, valid_eps, verbose);
@@ -96,6 +100,9 @@ for pp = 1:np-1
     rr_cntr = zeros(nr, nc);
     cc_cntr = zeros(nr, nc);
     
+    % determine the minimum number of overlapping pixels for valid xcr 
+    min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);
+    
     % sample grid loops
     for jj = 1:nc
         for ii = 1:nr
@@ -108,15 +115,15 @@ for pp = 1:np-1
                 yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
             
             % skip and remove from ROI if sample window is too empty
-            if frac_data < 0.25
+            if frac_data < min_frac_data
                 roi(ii, jj) = false;
                 continue
             end
             
             % compute normalized cross-correlation
-            xcr = normxcorr2(samp, intr);            
-%             [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-%             xcr = xcr.*double(overlap>225);            
+            % xcr = normxcorr2(samp, intr);            
+            [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+            xcr = xcr.*double(overlap>min_overlap); % NOTE HARDCODED LIMIT          
 
             % find correlation plane max, subpixel precision
             [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);

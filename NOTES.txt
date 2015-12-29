@@ -52,3 +52,16 @@ A4:
 
   1) YES, for the synth test with no displacement and a horizontal boundary at y
   = 0.8. 
+
+  2) YES, for the image test " "
+
+  3) YES for both image and synth tests with horizontal boundary at y = 0.5, and
+  with a sinusoidal boundary at witn mean = 0.7 and amplitude 0.2
+
+Q5: It is necessary to cut off the correlation plane based on the number of
+  overlapping pixels. Right now, I am using an arbitrary hard-coded value.  What
+  is a reasonable choice for the overlap cutoff?
+
+A5: The cutoff must be larger than the frac_data skip value, but less than a
+  full window. I define two local parameters: a min_frac_data and a
+  min_frac_overlap. For now, these are related by a simple multiple

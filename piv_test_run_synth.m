@@ -23,8 +23,8 @@ ampl_white = 1;
 ampl_black = -1;
 sigma = 3;
 max_attempts = 1e2;
-bnd_mean = 0.8;
-bnd_ampl = 0;
+bnd_mean = 0.7;
+bnd_ampl = 0.2;
 bnd_freq = 1;
 
 % piv parameters
