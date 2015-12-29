@@ -74,3 +74,7 @@ errors to the zero offset case. The same is true for the synth case.
 Q7: Does the edge problem re-appear with non-zero shear terms?
 
 A7: 
+
+  1) For image test with non-zero dudy, errors increase with increasing shear, but there is not
+  concentrated high-error on the boundary. Switching back to the non-masked
+  correlation yields noticable edge effect errors.

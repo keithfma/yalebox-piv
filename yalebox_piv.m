@@ -123,7 +123,7 @@ for pp = 1:np-1
             % compute normalized cross-correlation
             % xcr = normxcorr2(samp, intr);            
             [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-            xcr = xcr.*double(overlap>min_overlap); % NOTE HARDCODED LIMIT          
+            xcr = xcr.*double(overlap>min_overlap);
 
             % find correlation plane max, subpixel precision
             [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);

@@ -7,8 +7,8 @@ function [win, pos, frac_data, r_centroid, c_centroid] = ...
 % padding as needed, the fraction of the window that contains data (~= 0), and
 % the centroid of the data. 
 % 
-% Regions without data are filled with random white noise to reduce thier
-% contribution to the normalized cross correlation.
+% Regions without data are filled with zeros to facilitate masking during
+% normalized cross correlation.
 %
 % For interrogation windows: Window edges are not guaranteed to be integer pixel
 % coordinates. Rounding is used to expand window extent outward to the nearest
@@ -73,12 +73,8 @@ win = [zeros(pb, pl+snc+pr);
        zeros(snr, pl), sub, zeros(snr, pr);
        zeros(pt, pl+snc+pr)]; 
          
-% replace no-data pixels with random noise too
-no_data = win==0;
-% rand_win = rand(size(win));
-% win(no_data) = rand_win(no_data);
-
 % compute fraction of the window that has data
+no_data = win==0;
 frac_data = 1-sum(no_data(:))/numel(win);
 
 if nargout >= 4

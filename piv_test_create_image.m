@@ -39,7 +39,6 @@ template_filename = 'test/template_fault_ss_01_sidef_251.png';
 im = imread(template_filename);
 im = rgb2hsv(im);
 im = im(:,:,3);
-im = prep_intensity(im, true(size(im)), 31);
 
 % get undeformed coordinate grid
 xx = 0:size(im,2)-1;
@@ -53,14 +52,14 @@ ygrid_fwd = reshape(ygrid_fwd, size(ygrid));
 uu = xgrid_fwd-xgrid;
 vv = ygrid_fwd-ygrid;
 
-im_fwd = imwarp(im, -cat(3, uu, vv), 'cubic', 'FillValues', 0);
+im_fwd = imwarp(im, -cat(3, uu, vv), 'cubic', 'FillValues', NaN);
 
 % crop to largest rectangular region that is fully populated in both im and fwd
 %... uses 3rd party functions from the file exchange, see private folder
 
-roi = im(:,:,1)>0 & im_fwd(:,:,1)>0;
+roi = ~isnan(im(:,:,1)) & ~isnan(im_fwd(:,:,1));
 
-if any(roi == 0)
+if any(roi(:) == 0)
     
     [C, H, W] = FindLargestRectangles(roi, [0 0 1]);
     [~, idx] = max(C(:));
@@ -78,8 +77,6 @@ else
     ini = im;
     fin = im_fwd;
 end
-
-
 
 %% impose boundary
 
@@ -109,9 +106,15 @@ for j = 1:length(xx)
     fin(idx:end, j, :) = 0;
 end
 
-% get roi for ini and fin
+%% finalize images
+
+% get roi 
 ini_roi = ini~=0;
 fin_roi = fin~=0;
+
+% normalize contrast
+ini = prep_intensity(ini, ini_roi, 31);
+fin = prep_intensity(fin, fin_roi, 31);
 
 % %% debug
 % 
