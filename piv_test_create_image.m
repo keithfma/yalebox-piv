@@ -64,13 +64,13 @@ if any(roi(:) == 0)
     [C, H, W] = FindLargestRectangles(roi, [0 0 1]);
     [~, idx] = max(C(:));
     [r0, c0] = ind2sub(size(roi), idx);
-    rect = [c0, r0, W(r0,c0), H(r0,c0)];
+    rect = [c0, r0, W(r0,c0)-1, H(r0,c0)-1];
     
     % crop to get ini and fin
     ini = imcrop(im, rect);
     fin = imcrop(im_fwd, rect);
-    xx = xx(rect(1):(rect(1)+rect(3)-1));
-    yy = yy(rect(2):(rect(2)+rect(4)-1));
+    xx = xx(rect(1):(rect(1)+rect(3)));
+    yy = yy(rect(2):(rect(2)+rect(4)));
     
 else
     

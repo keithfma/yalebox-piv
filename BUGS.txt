@@ -1,5 +1,2 @@
-piv_test_run_image: fails for negative displacements
-piv_test_run_image: fails for large single shear term
-piv_test_run_image: fails for negative shear term
 piv_test_run_image: questionable exact solution for dual shear terms (and
   perhaps other cases too)
