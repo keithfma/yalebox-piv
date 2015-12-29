@@ -8,18 +8,29 @@ Q1: Are there spurious edge gradients for...
   - no smoothing
 
 A1:
-  - initial tests show NO edge effects for the synth test, but YES edge
-  effects in image test.
+  1) [invalidated by #3 & #5, edge effects are reduced for un-equalized
+  synthetic images] initial tests show NO edge effects for the synth test, but
+  YES edge effects in image test.
   
-  - the above remains true when the images size for synth is set the same as
-  image, the edges are recongizably different, but not worse. 
+  2) the difference is not size - the above remains true when the images size
+  for synth is set the same as image, the edges are recongizably different, but
+  not worse. 
 
-  - applying the equalization routine to the synthetic images makes the two
+  3) applying the equalization routine to the synthetic images makes the two
     results similar (both display bias at the edge)
 
-  - cropping off 40 pixels from all sides (> width of the equalization
+  4) cropping off 40 pixels from all sides (> width of the equalization
     window) did not have any effect. The effect is not some "edge effect"
     in the equalization routine.
 
-  - to be sure, I disabled equalization for the synthetic images, and found that
+  5) to be sure, I disabled equalization for the synthetic images, and found that
     the edge effect is still there, just smaller
+
+Q2: Is the problem related to data boundaries (e.g. the roi) or to the matrix
+edges? 
+
+A2:
+  1) The problem is tied to the data boundaries, not the matrix edges. When I
+  include a flat boundary within the matrix, the edge effect appears at that
+  boundary, widens (from 1 pixel to 2 pixels), and worsens (from <0.5 pix to
+  <0.9 pix). 
