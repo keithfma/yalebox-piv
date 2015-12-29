@@ -65,3 +65,12 @@ Q5: It is necessary to cut off the correlation plane based on the number of
 A5: The cutoff must be larger than the frac_data skip value, but less than a
   full window. I define two local parameters: a min_frac_data and a
   min_frac_overlap. For now, these are related by a simple multiple
+
+Q6: Does the edge problem re-appear with non-zero (but constant) offsets?
+
+A6: NO. The image test with uu = 10, vv = 10, and both yields similar(ly small)
+errors to the zero offset case. The same is true for the synth case.
+
+Q7: Does the edge problem re-appear with non-zero shear terms?
+
+A7: 
