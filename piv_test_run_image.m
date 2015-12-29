@@ -16,7 +16,7 @@ function [] = piv_test_run_image(force)
 % image parameters
 tform = [1, 0, 0;  
          0, 1, 0];
-bnd_mean = 1.1;
+bnd_mean = 0.8;
 bnd_ampl = 0.0;
 bnd_freq = 1;
 

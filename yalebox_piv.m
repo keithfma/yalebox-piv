@@ -114,9 +114,9 @@ for pp = 1:np-1
             end
             
             % compute normalized cross-correlation
-            % xcr0 = normxcorr2(samp, intr);            
-            [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-            xcr = xcr.*double(overlap>225);            
+            xcr = normxcorr2(samp, intr);            
+%             [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+%             xcr = xcr.*double(overlap>225);            
 
             % find correlation plane max, subpixel precision
             [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
@@ -208,20 +208,20 @@ for pp = 1:np-1
     % % smooth displacements
     % [uu, vv] = pppiv(uu, vv, '3x3');
     
-    % debug: display effect of interpolation and smoothing steps
-    figure(1)
-    % clim = [min(uu(:)), max(uu(:))];
-    subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; % caxis(clim);
-    subplot(1,3,2); imagesc(uu); title('uu'); colorbar; % caxis(clim);
-    subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; % caxis(clim);
-    
-    figure(2) 
-    % clim = [min(vv(:)), max(vv(:))];
-    subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; % caxis(clim);
-    subplot(1,3,2); imagesc(vv); title('vv'); colorbar; % caxis(clim);
-    subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; % caxis(clim);
-    pause
-    % } debug
+%     % debug: display effect of interpolation and smoothing steps
+%     figure(1)
+%     % clim = [min(uu(:)), max(uu(:))];
+%     subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; % caxis(clim);
+%     subplot(1,3,2); imagesc(uu); title('uu'); colorbar; % caxis(clim);
+%     subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; % caxis(clim);
+%     
+%     figure(2) 
+%     % clim = [min(vv(:)), max(vv(:))];
+%     subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; % caxis(clim);
+%     subplot(1,3,2); imagesc(vv); title('vv'); colorbar; % caxis(clim);
+%     subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; % caxis(clim);
+%     pause
+%     % } debug
     
     
 end
