@@ -97,6 +97,28 @@ Q8: What is the effect of smoothing?
   4) For non-zero dvdx shear, smoothing add gradients at vertical edges. I have
   no ability to test the importance of convexity.
 
+Q9: Is the thin-plate-spline routine in MATLAB any better?
+
+A9: For zero displacement, constant displacement and single non-zero shear
+  terms, smoothing reduces noise without edge effects. For dual shear terms,
+  everything goes to shit.
+
+Q10: What is going wrong with the dual shear case?
+
+A10:
+
+  1) The errors are large (>1 pixel) for non-smoothed case as well.
+  
+  2) The errors return to normal levels (<0.05 pixels) only for small shear
+  terms (i.e. 0.01)
+ 
+  3) Relatively large single shear terms give errors on the order of 0.1 pixels
+
+  4) The above suggest that either (a) my single pass routine is unable to
+  adequately model this case, or, (b) my test case scripts are not computing the
+  "true" solution correctly. Given other bugs in the test case (e.g. failure for
+  negative displacements and shear terms), and also the performance for large
+  single shear terms, the latter should be explored first.
 
 Other observations:
 

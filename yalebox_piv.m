@@ -186,6 +186,24 @@ for pp = 1:np-1
     uu0 = uu;
     vv0 = vv;
     % } debug 
+
+%     % try TPAPS for interpolation and smoothing
+%     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
+%     nr = length(rr);
+%     nc = length(cc);    
+%     [cc_grid, rr_grid] = meshgrid(cc, rr);    
+%     
+%     xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];    
+%     uv_in = [uu(keep)'; vv(keep)'];    
+%     [st, p] = tpaps(xy_in, uv_in);
+%     fprintf('tpaps smoothing parameter = %f\n', p);
+%     
+%     xy_out = [cc_grid(:)'; rr_grid(:)'];
+%     uv_out = fnval(st, xy_out);
+%     
+%     uu = reshape(uv_out(1,:), nr, nc);
+%     vv = reshape(uv_out(2,:), nr, nc);
+    
     
     % debug: interpolation parameter {
     t = 0.9; 
@@ -211,9 +229,11 @@ for pp = 1:np-1
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
-      
-    % smooth displacements
-    [uu, vv] = pppiv(uu, vv, roi, '3x3'); % NOTE: ROI WILL NOT BE CORRECT FOR MULTIPASS    
+%       
+%     % smooth displacements
+%     [uu, vv] = pppiv(uu, vv, roi, '3x3'); % NOTE: ROI WILL NOT BE CORRECT FOR MULTIPASS    
+    
+    
     
 %     % debug: display effect of interpolation and smoothing steps
 %     figure(1)
