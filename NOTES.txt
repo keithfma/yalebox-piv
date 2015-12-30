@@ -299,10 +299,11 @@ A11:
 
 Q12: Why does the boundary degrade in my multipass routine?
 
-A11:
+A12:
   
   1) The problem could be related to artifacts at the edge of the deformed
-  images. These appear at all boundaries. 
+  images. The boundaries appear blurred, and there are pixels outside the range
+  [0, 1]. These artefacts appear at all boundaries. 
 
   If this is the cause, then the problem should appear for both tspline and
   tpaps in all cases with non-zero displacement. However, the automatic
@@ -315,6 +316,17 @@ A11:
   so may blur the initial sharp edges. I think the key is to ensure that
   questionable pixels are ignored by the masked_normxcorr2 routine, which means
   imposing a sharp roi mask.
+
+    a) The SmoothEdges feature in imwarp makes the boundaries worse at the image
+    edges. Turn this off.
+
+    b) Exploring the impact of the boundary on image deformation by warping the
+    ROI mask. With SmoothEdges off, there is a band 2-4 pixels wide along the
+    upper boundary that affected by the boundary. Curioiusly, the bottom and
+    sides do not appear to be affected.
+
+    c) 
+
 
 
 
