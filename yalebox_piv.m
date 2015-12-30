@@ -61,7 +61,6 @@ function [xx, yy, uu, vv] = ...
 % local parameters
 min_frac_data = 0.5;
 min_frac_overlap = min_frac_data/2;
-roi_epsilon = 1e-3; % numerical precision for roi deformation
 
 % parse inputs
 check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
@@ -93,15 +92,16 @@ for pp = 1:np-1
     defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);
    
-    % deform roi masks, and re-apply to clean up edge artefacts from warping
+    % NEW: deform roi masks, and re-apply to clean up edge artefacts from warping
+    roi_epsilon = 1e-2; % numerical precision for roi deformation
     tmp = imwarp(double(ini_roi), -cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);
-    defm_ini_roi = tmp > (1-roi_epsilon);
+    defm_ini_roi = abs(tmp-1) < roi_epsilon;
     defm_ini(~defm_ini_roi) = 0;
     
-    tmp = imwarp(double(fin_roi), -cat(3, uu_full, vv_full)/2, ...
+    tmp = imwarp(double(fin_roi), cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);
-    defm_fin_roi = tmp > (1-roi_epsilon);
+    defm_fin_roi = abs(tmp-1) < roi_epsilon;
     defm_fin(~defm_fin_roi) = 0;
     
     % all grid points start in the ROI
@@ -243,6 +243,7 @@ for pp = 1:np-1
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
+    
 %       
 %     % smooth displacements
 %     [uu, vv] = pppiv(uu, vv, roi, '3x3'); % NOTE: ROI WILL NOT BE CORRECT FOR MULTIPASS    

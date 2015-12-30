@@ -325,7 +325,36 @@ A12:
     upper boundary that affected by the boundary. Curioiusly, the bottom and
     sides do not appear to be affected.
 
-    c) 
+    c) I think I can treat this by re-masking the deformed images with a
+    deformed ROI. This is complicated by the presence of numerical overshoot in
+    the deformed ROI (so that pixels that should be 0 are not strictly 0), which
+    requires choice of a numerical tolerance (roi_epsilon). Regardless, a
+    clean deformed ROI did NOT fix the edge gradient issue, but did yeild a
+    small improvement in accuracy. Results below are for the image test with
+    dudy = 0.05
+    
+      CLEAN ROI:
+      qnt | uu    | vv    | mag
+      0.00  | 2.57e-04  | 1.65e-04  | 2.50e-03
+      0.25  | 1.35e-02  | 8.68e-03  | 2.34e-02
+      0.50  | 2.82e-02  | 1.85e-02  | 3.87e-02
+      0.75  | 5.32e-02  | 2.93e-02  | 6.23e-02
+      1.00  | 5.17e-01  | 6.37e-02  | 5.18e-01
+
+
+      ORIGINAL:
+      qnt | uu    | vv    | mag
+      0.00  | 2.57e-04  | 7.63e-05  | 2.50e-03
+      0.25  | 1.35e-02  | 8.57e-03  | 2.35e-02
+      0.50  | 2.80e-02  | 1.90e-02  | 3.87e-02
+      0.75  | 5.49e-02  | 2.98e-02  | 6.28e-02
+      1.00  | 5.51e-01  | 8.93e-02  | 5.51e-01
+
+  2) I notice that there is still an interpolation to the full grid using a
+  gridded spline interpolant, and a quick glance at its results shows anomolous
+  warping at the bottom of the image. Nothing is clearly visible at the top, but
+  it may be there as well. This is very likely a source of error to be pursued
+  ASAP.
 
 
 
@@ -340,4 +369,14 @@ Other observations:
   gradients, then the wedge results can be interpreted with confidence. An
   additional test using manual particle tracking may be useful if the edge
   gradient is large enough to rise above the error in manual point selection.
+
+  ---
+
+  Image deformation expands the range of the image beyond [0,1]. I am not sure
+  if this is a problem, and if so, how best to correct it.
+
+  ---
+
+  I'd like to stop relying on a "flag" value for masking, and instead use the
+  ROI matrices directly.
 
