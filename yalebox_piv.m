@@ -61,6 +61,7 @@ function [xx, yy, uu, vv] = ...
 % local parameters
 min_frac_data = 0.5;
 min_frac_overlap = min_frac_data/2;
+roi_epsilon = 1e-3; % numerical precision for roi deformation
 
 % parse inputs
 check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
@@ -87,19 +88,21 @@ for pp = 1:np-1
     % deform images (does nothing if uu0 and vv0 are 0)
     [uu_full, vv_full] = ...
         yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
-    defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
-    
-    defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
+    defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, ...
+        'cubic', 'FillValues', 0);    
+    defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, ...
+        'cubic', 'FillValues', 0);
    
+    % deform roi masks, and re-apply to clean up edge artefacts from warping
+    tmp = imwarp(double(ini_roi), -cat(3, uu_full, vv_full)/2, ...
+        'cubic', 'FillValues', 0);
+    defm_ini_roi = tmp > (1-roi_epsilon);
+    defm_ini(~defm_ini_roi) = 0;
     
-    % debug: warp the roi as logical and as double to identify pixels that are
-    % affected by the presence of the boundary {
-    tmp_dbl = imwarp(double(ini_roi), -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
-    tmp_log = imwarp(ini_roi, -cat(3, uu_full, vv_full)/2, 'cubic', 'FillValues', 0);
-    imagesc(double(tmp_log)-tmp_dbl)    
-    pause
-    % } debug
-    
+    tmp = imwarp(double(fin_roi), -cat(3, uu_full, vv_full)/2, ...
+        'cubic', 'FillValues', 0);
+    defm_fin_roi = tmp > (1-roi_epsilon);
+    defm_fin(~defm_fin_roi) = 0;
     
     % all grid points start in the ROI
     roi = true(nr, nc);
