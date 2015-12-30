@@ -182,10 +182,10 @@ for pp = 1:np-1
     
     % interpolate/extrapolate/smooth displacements to next sample grid
     
-    % debug: preserve original displacements {
-    uu0 = uu;
-    vv0 = vv;
-    % } debug 
+%     % debug: preserve original displacements {
+%     uu0 = uu;
+%     vv0 = vv;
+%     % } debug 
 
 %     % try TPAPS for interpolation and smoothing
 %     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));

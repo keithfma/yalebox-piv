@@ -120,6 +120,204 @@ A10:
   negative displacements and shear terms), and also the performance for large
   single shear terms, the latter should be explored first.
 
+  Update: Fixed the bugs in the create_image routine, and still get poor
+  performance for large shears. One part of the explaination could be improper
+  selection of the smoothing term, and another could be inherent difficulty in
+  matching in the presence of large gradients.
+
+Q11: Does multi-pass image deformation improve the various test cases?
+
+A11:
+
+  1) Zero offset, image test, no smoothing (tspline): error increases
+  significantely with each pass, the errors appear to be (spatially) random,
+  except at the upper boundary.  Here, there is a consistent bias in the
+  positive direction for 2 pass, and in the negative direction for 3 pass. 
+
+    1 pass
+    qnt | uu    | vv    | mag
+    0.00  | 3.39e-05  | 1.30e-05  | 6.08e-04
+    0.25  | 3.33e-03  | 3.35e-03  | 8.40e-03
+    0.50  | 7.87e-03  | 6.82e-03  | 1.30e-02
+    0.75  | 1.38e-02  | 1.22e-02  | 1.87e-02
+    1.00  | 2.82e-02  | 3.23e-02  | 3.30e-02
+
+    2 pass
+    qnt | uu    | vv    | mag
+    0.00  | 7.76e-05  | 4.90e-05  | 2.07e-03
+    0.25  | 5.34e-03  | 5.60e-03  | 1.41e-02
+    0.50  | 1.22e-02  | 1.14e-02  | 2.08e-02
+    0.75  | 2.09e-02  | 1.94e-02  | 3.08e-02
+    1.00  | 4.16e-02  | 6.55e-02  | 6.62e-02
+
+    3 pass
+    qnt | uu    | vv    | mag
+    0.00  | 1.94e-05  | 2.23e-04  | 3.05e-03
+    0.25  | 7.65e-03  | 7.41e-03  | 1.76e-02
+    0.50  | 1.57e-02  | 1.39e-02  | 2.63e-02
+    0.75  | 2.55e-02  | 2.49e-02  | 3.57e-02
+    1.00  | 4.94e-02  | 7.23e-02  | 7.44e-02
+
+  2) Zero offset, image test, tpaps smoothing, automatic selection of smoothing
+  parameter: Errors increase modestly after the first interpolation pass, then
+  stabilize. No bias at the upper boundary as observed above.
+
+  1 pass:
+    tpaps smoothing parameter = 0.000043
+    qnt | uu    | vv    | mag
+    0.00  | 3.50e-06  | 3.29e-05  | 1.80e-04
+    0.25  | 7.14e-04  | 7.71e-04  | 1.94e-03
+    0.50  | 1.50e-03  | 1.82e-03  | 3.09e-03
+    0.75  | 2.58e-03  | 3.22e-03  | 4.34e-03
+    1.00  | 6.50e-03  | 6.92e-03  | 7.27e-03
+
+  2 pass:
+    tpaps smoothing parameter = 0.000043
+    tpaps smoothing parameter = 0.000044
+    displacement vector error quantiles
+    qnt | uu    | vv    | mag
+    0.00  | 3.18e-05  | 9.45e-07  | 1.87e-04
+    0.25  | 7.27e-04  | 1.04e-03  | 2.36e-03
+    0.50  | 1.70e-03  | 2.21e-03  | 3.67e-03
+    0.75  | 3.12e-03  | 3.87e-03  | 5.24e-03
+    1.00  | 1.09e-02  | 1.33e-02  | 1.34e-02
+
+  3 pass: 
+    tpaps smoothing parameter = 0.000043
+    tpaps smoothing parameter = 0.000044
+    tpaps smoothing parameter = 0.000044
+    displacement vector error quantiles
+    qnt | uu    | vv    | mag
+    0.00  | 1.75e-06  | 7.13e-06  | 1.76e-05
+    0.25  | 7.33e-04  | 8.25e-04  | 2.21e-03
+    0.50  | 1.73e-03  | 1.99e-03  | 3.68e-03
+    0.75  | 3.28e-03  | 3.72e-03  | 5.42e-03
+    1.00  | 1.15e-02  | 1.26e-02  | 1.26e-02
+
+ 3) Constant displacement (+10, +10), tpaps smoothing, automatic smoothing
+ parameter: small increase in error with each pass
+
+  1 pass:
+    tpaps smoothing parameter = 0.000047
+    displacement vector error quantiles
+    qnt | uu    | vv    | mag
+    0.00  | 7.00e-06  | 5.55e-06  | 2.56e-04
+    0.25  | 9.83e-04  | 7.66e-04  | 2.04e-03
+    0.50  | 2.02e-03  | 1.49e-03  | 3.01e-03
+    0.75  | 3.28e-03  | 2.80e-03  | 4.29e-03
+    1.00  | 1.59e-02  | 1.31e-02  | 1.59e-02
+
+  2 pass:
+    tpaps smoothing parameter = 0.000047
+    tpaps smoothing parameter = 0.000048
+    displacement vector error quantiles
+    qnt | uu    | vv    | mag
+    0.00  | 3.17e-06  | 1.99e-06  | 1.69e-04
+    0.25  | 6.86e-04  | 9.19e-04  | 2.05e-03
+    0.50  | 1.71e-03  | 2.33e-03  | 3.74e-03
+    0.75  | 3.31e-03  | 4.32e-03  | 6.26e-03
+    1.00  | 1.99e-02  | 1.50e-02  | 1.99e-02
+
+  3 pass: 
+   tpaps smoothing parameter = 0.000047
+   tpaps smoothing parameter = 0.000048
+   tpaps smoothing parameter = 0.000047
+   displacement vector error quantiles
+   qnt  | uu    | vv    | mag
+   0.00 | 3.06e-05  | 4.11e-06  | 4.12e-04
+   0.25 | 9.11e-04  | 7.64e-04  | 2.19e-03
+   0.50 | 2.22e-03  | 2.08e-03  | 3.84e-03
+   0.75 | 3.80e-03  | 3.85e-03  | 5.80e-03
+   1.00 | 2.30e-02  | 1.69e-02  | 2.30e-02
+
+ 4) Non-zero dudy shear term (0.05), tpaps smoothing, automatic smoothing
+ parameter: 2nd pass introduces major edge gradients, but decreases the median
+ error. METHODS PROBLEM HERE. 
+
+    1) pass:
+      tpaps smoothing parameter = 0.000046
+      displacement vector error quantiles
+      qnt  | uu    | vv    | mag
+      0.00 | 9.77e-05  | 7.05e-05  | 1.22e-03
+      0.25 | 4.47e-03  | 3.24e-03  | 8.32e-03
+      0.50 | 8.41e-03  | 6.31e-03  | 1.33e-02
+      0.75 | 1.47e-02  | 1.07e-02  | 1.80e-02
+      1.00 | 5.34e-02  | 2.09e-02  | 5.34e-02
+
+    2 pass: 
+      tpaps smoothing parameter = 0.000046
+      tpaps smoothing parameter = 0.000047
+      displacement vector error quantiles
+      qnt  | uu    | vv    | mag
+      0.00 | 3.22e-05  | 3.65e-06  | 4.36e-04
+      0.25 | 2.18e-03  | 1.30e-03  | 3.78e-03
+      0.50 | 5.16e-03  | 2.63e-03  | 7.04e-03
+      0.75 | 2.49e-02  | 4.95e-03  | 2.50e-02
+      1.00 | 1.01e-01  | 1.33e-02  | 1.01e-01
+
+    3 pass:
+      tpaps smoothing parameter = 0.000046
+      tpaps smoothing parameter = 0.000047
+      tpaps smoothing parameter = 0.000047
+      displacement vector error quantiles
+      qnt | uu    | vv    | mag
+      0.00  | 4.12e-06  | 2.90e-06  | 6.05e-05
+      0.25  | 2.23e-03  | 9.26e-04  | 3.74e-03
+      0.50  | 5.49e-03  | 2.06e-03  | 7.15e-03
+      0.75  | 2.59e-02  | 4.63e-03  | 2.63e-02
+      1.00  | 9.34e-02  | 1.12e-02  | 9.35e-02
+
+  5) Non-zero dudy shear term, no smoothing, tspline interpolation with t = 0.9:
+  For more than one pass, strong gradients appear at the top and bottom of the
+  wedge, at the same time, the median error is reduced. THE METHOD PROBLEM IS
+  NOT SMOOTHING-RELATED.
+
+    1 pass:
+      displacement vector error quantiles
+      qnt | uu    | vv    | mag
+      0.00  | 3.62e-05  | 3.24e-04  | 3.96e-03
+      0.25  | 1.47e-02  | 1.02e-02  | 2.95e-02
+      0.50  | 3.38e-02  | 2.16e-02  | 4.74e-02
+      0.75  | 6.22e-02  | 3.20e-02  | 6.93e-02
+      1.00  | 1.78e-01  | 6.86e-02  | 1.79e-01
+
+    2 pass:
+      nt  | uu    | vv    | mag
+      0.00  | 2.57e-04  | 7.63e-05  | 2.50e-03
+      0.25  | 1.35e-02  | 8.57e-03  | 2.35e-02
+      0.50  | 2.80e-02  | 1.90e-02  | 3.87e-02
+      0.75  | 5.49e-02  | 2.98e-02  | 6.28e-02
+      1.00  | 5.51e-01  | 8.93e-02  | 5.51e-01
+
+    3 pass: 
+      qnt | uu    | vv    | mag
+      0.00  | 1.80e-05  | 1.87e-05  | 1.83e-03
+      0.25  | 1.19e-02  | 7.78e-03  | 2.13e-02
+      0.50  | 2.73e-02  | 1.63e-02  | 3.72e-02
+      0.75  | 5.01e-02  | 2.90e-02  | 5.98e-02
+      1.00  | 8.61e-01  | 7.66e-02  | 8.62e-01
+
+Q12: Why does the boundary degrade in my multipass routine?
+
+A11:
+  
+  1) The problem could be related to artifacts at the edge of the deformed
+  images. These appear at all boundaries. 
+
+  If this is the cause, then the problem should appear for both tspline and
+  tpaps in all cases with non-zero displacement. However, the automatic
+  selection of the smoothing parameter is nearly zero, and so gives almost all
+  weight to minimizing the roughness parameter. At this extreme, the edge
+  gradient might be smoothed.
+
+  How to improve the edges of the deformed image? Any deformation technique I
+  know of will use a kernel resampling to get pixel values in the new image, and
+  so may blur the initial sharp edges. I think the key is to ensure that
+  questionable pixels are ignored by the masked_normxcorr2 routine, which means
+  imposing a sharp roi mask.
+
+
+
 Other observations:
 
   The wedge test case still has substatial edge gradients in the un-smoothed,

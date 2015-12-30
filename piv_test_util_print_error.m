@@ -8,7 +8,7 @@ function [] = piv_test_util_print_error(uerr, verr)
 %       solutions for displacement in the x- and y-directions
 % %   
 
-qnt = 0:0.10:1;
+qnt = 0:0.25:1;
 qu = quantile(abs(uerr(:)), qnt);
 qv = quantile(abs(verr(:)), qnt);
 qm = quantile(sqrt(uerr(:).^2+verr(:).^2), qnt);
