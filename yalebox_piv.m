@@ -108,20 +108,12 @@ for pp = 1:np-1
     % all grid points start in the ROI
     roi = true(nr, nc);
     
-    % set subpixel correlation value matrix to zero
-    cval = zeros(nr, nc);
-    
     % reset data centroid grids
     rr_cntr = zeros(nr, nc);
     cc_cntr = zeros(nr, nc);
     
     % determine the minimum number of overlapping pixels for valid xcr 
     min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);
-    
-    % debug: keep track of per-pass delta-displacements {
-    duu = zeros(nr, nc);
-    dvv = zeros(nr, nc);
-    % } debug
     
     % sample grid loops
     for jj = 1:nc
@@ -136,11 +128,7 @@ for pp = 1:np-1
             
             % skip and remove from ROI if sample window is too empty
             if frac_data < min_frac_data
-                fprintf('SKIP: frac_data = %f, ii = %i, jj = %i\n', ...
-                    frac_data, ii, jj);
                 roi(ii, jj) = false;
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
                 continue
             end
             
@@ -150,13 +138,7 @@ for pp = 1:np-1
             xcr = xcr.*double(overlap>min_overlap);
 
             % find correlation plane max, subpixel precision
-            [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
-            % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
-            if stat == false
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
-                continue
-            end
+            [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr);
             
             % find displacement from position of the correlation max
             %   - account for padding in cross-correlation (-samplen(gg))
@@ -165,14 +147,8 @@ for pp = 1:np-1
             delta_uu = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
             delta_vv = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
             
-            % debug: keep track of per-pass delta-displacements {
-            duu(ii,jj) = delta_uu; 
-            dvv(ii,jj) = delta_vv;
-            % } debug
-            
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
-            cval(ii, jj) = val;
              
         end % ii
     end % jj
@@ -188,134 +164,33 @@ for pp = 1:np-1
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
     keep = valid & roi;
     
-    % interpolate/extrapolate/smooth displacements to next sample grid
-%     interp_method = 'tpaps';
-    interp_method = 'tspline';
-%     interp_method = 'lowess';
+    % interpolate/extrapolate/(add: smooth) displacements to next sample grid
 
-    % debug: keep original data
-    uu0 = uu; % uu0(~roi) = NaN;
-    vv0 = vv; % vv0(~roi) = NaN;
+    % tension parameter
+    t = 0.95;
     
-    figure
-    subplot(1,2,1); imagesc(uu0); subplot(1,2,2); imagesc(vv0)
-    pause
-    % NOTE: uu0 and vv0 are fully populated in 2nd pass 
-    % THIS MAY BE IMPORTANT -- IS MASKING WORKING OR NOT?
-    % IT IS, THE POPULATED VALUES COME FROM PREVIOUS PASSES WHICH INTERPOLATE TO THE FULL GRID
-    % NOT SURE IF THIS WOULD HAVE A NEGATIVE IMPACT...
+    % sample grid
+    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        uu(keep), t);
+    uu = reshape(uu, size(cc_grid));
+    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        vv(keep), t);
+    vv = reshape(vv, size(cc_grid));
     
-    switch interp_method
-        
-        % TPAPS: interpolation and smoothing
-        case 'tpaps'
-            
-            % smoothing parameter
-            p = [];
-            
-            % get interpolant
-%             xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
-            xy_in = [cc_grid(keep)'; rr_grid(keep)'];            
-            uv_in = [uu(keep)'; vv(keep)'];
-            [st, p] = tpaps(xy_in, uv_in, p);
-            
-            % evaluate for sample grid
-            xy_out = [cc_grid(:)'; rr_grid(:)'];
-            uv_out = fnval(st, xy_out);            
-            uu = reshape(uv_out(1,:), nr, nc);
-            vv = reshape(uv_out(2,:), nr, nc);
-            
-            % test: load exact full values for full grid displacements {
-            load('full.mat');
-            % } test
-            
-%             % evaluate for full resolution grid
-%             xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
-%             uv_out = fnval(st, xy_out);            
-%             uu_full = reshape(uv_out(1,:), size(ini));
-%             vv_full = reshape(uv_out(2,:), size(ini));
-            
-            fprintf('TPAPS smoothing parameter = %f\n', p);            
-            
-        % TSPLINE: interpolation, no smoothing
-        case 'tspline'
-            
-            % tension parameter
-            t = 0.95;
-
-            % sample grid
-            uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                uu(keep), t);
-            uu = reshape(uu, size(cc_grid));
-            vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                vv(keep), t);
-            vv = reshape(vv, size(cc_grid));
-            
-%             % test: load exact full values for full grid displacements {
-%             load('full.mat');
-%             % } test
-            
-            % full resolution
-            uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                uu(keep), t);
-            uu_full = reshape(uu_full, size(ini));
-            vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                vv(keep), t);
-            vv_full = reshape(vv_full, size(ini));
-            
-        case 'lowess'
-            
-            fit_opt = fitoptions('lowess', 'Robust', 'LAR', 'Span', 0.05);
-            
-            uu_fit = fit([cc_cntr(keep), rr_cntr(keep)], uu(keep), ...
-                'lowess', fit_opt);
-            vv_fit = fit([cc_cntr(keep), rr_cntr(keep)], vv(keep), ...
-                'lowess', fit_opt);
-            
-            uu = reshape(uu_fit(cc_grid(:), rr_grid(:)), nr, nc);
-            vv = reshape(vv_fit(cc_grid(:), rr_grid(:)), nr, nc);
-            
-%             % test: load exact full values for full grid displacements {
-%             load('full.mat');
-%             % } test
-            
-            vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
-            uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
-           
-        otherwise
-            error('invalid smoothing method');
-    end
-    
-%     % debug: plot the effect of interpolation/smoothing {
-%     figure 
-%     subplot(1,2,1); imagesc(uu-uu0); colorbar; title(sprintf('uu-uu0, pass %i', pp));
-%     subplot(1,2,2); imagesc(vv-vv0); colorbar; title(sprintf('vv-vv0, pass %i', pp));
-%     pause
-%     % } debug
-
-    % compute errors by interpolating onto the exact full grid
-    E = load('full.mat');
-    
-    uu_cntr_exact = interp2(cc_full_grid, rr_full_grid, E.uu_full, cc_cntr, rr_cntr);
-    
-    uu_grid_exact = interp2(cc_full_grid, rr_full_grid, E.uu_full, cc_grid, rr_grid);
-    
-    uu_cntr_err = uu_cntr_exact-uu0; 
-    
-    uu_grid_err = uu_grid_exact-uu; 
-    
-%     figure
-%     subplot(1,2,1); imagesc(uu_cntr_err); title('uu\_cntr\_err'); colorbar
-%     subplot(1,2,2); imagesc(uu_grid_err); title('uu\_grid\_err'); colorbar
-%     linkaxes
-
+    % full resolution
+    uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        uu(keep), t);
+    uu_full = reshape(uu_full, size(ini));
+    vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        vv(keep), t);
+    vv_full = reshape(vv_full, size(ini));
     
 end
 % end multipass loop
 
-% % delete points outside the ROI
-% uu(~roi) = NaN;
-% vv(~roi) = NaN;
+% delete points outside the ROI
+uu(~roi) = NaN;
+vv(~roi) = NaN;
 
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
@@ -324,10 +199,6 @@ vv = vv.*(yy(2)-yy(1));
 % interpolate world coordinates for displacement vectors
 xx = interp1(1:size(ini,2), xx, cc, 'linear', 'extrap');
 yy = interp1(1:size(ini,1), yy, rr, 'linear', 'extrap');
-
-% % debug {
-% keyboard
-% % } debug
 
 end
 
