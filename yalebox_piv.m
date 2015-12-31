@@ -87,9 +87,7 @@ vv = zeros(nr, nc);
 np = length(samplen);
 for pp = 1:np-1
     
-    % deform images (does nothing if uu0 and vv0 are 0)
-%     [uu_full0, vv_full0] = ...
-%         yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
+    % deform images
     defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);    
     defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, ...
@@ -220,7 +218,6 @@ for pp = 1:np-1
 %     
 %     uu = reshape(uv_out(1,:), nr, nc);
 %     vv = reshape(uv_out(2,:), nr, nc);
-    
     
     % debug: interpolation parameter {
     t = 0.9; 
