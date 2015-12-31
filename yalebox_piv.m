@@ -237,7 +237,7 @@ for pp = 1:np-1
             
             % tension parameter
 %             t = 1-eps;
-            t = 0.9;
+            t = 0.95;
 %             t = 0;
             
             % sample grid
