@@ -72,6 +72,9 @@ check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
 % init full-resolution grids
 cc_full = 1:size(ini, 2);
 rr_full = 1:size(ini, 1);
+[cc_full_grid, rr_full_grid] = meshgrid(1:size(ini, 2), 1:size(ini, 1));
+uu_full = zeros(size(ini));
+vv_full = zeros(size(ini));
 
 % init sample grids 
 [rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
@@ -85,14 +88,14 @@ np = length(samplen);
 for pp = 1:np-1
     
     % deform images (does nothing if uu0 and vv0 are 0)
-    [uu_full, vv_full] = ...
-        yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
+%     [uu_full0, vv_full0] = ...
+%         yalebox_piv_interp2d(rr, cc, uu, vv, rr_full, cc_full, 'spline');
     defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);    
     defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);
    
-    % NEW: deform roi masks, and re-apply to clean up edge artefacts from warping
+    % deform roi masks, and re-apply to clean up edge artefacts from warping
     roi_epsilon = 1e-2; % numerical precision for roi deformation
     tmp = imwarp(double(ini_roi), -cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);
@@ -243,6 +246,27 @@ for pp = 1:np-1
     vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
         vv(keep), t);
     vv = reshape(vv, size(cc_grid));
+    
+     
+    % debug: also interpolate to full image resolution (will be slow) {
+    try
+        tic
+        uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+            uu(keep), t);
+        uu_full = reshape(uu_full, size(ini));
+        toc
+        tic
+        vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+            vv(keep), t);
+        vv_full = reshape(vv_full, size(ini));
+        toc
+    catch err
+        fprintf(getReport(err));
+        keyboard
+    end
+        
+    
+    % } debug
     
 %       
 %     % smooth displacements
