@@ -190,102 +190,68 @@ for pp = 1:np-1
         end % ii
     end % jj
     % end sample grid loops
+   
+    % get next sample grid (last loop repeats same)    
+    [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
+    nr = length(rr);
+    nc = length(cc);    
+    [cc_grid, rr_grid] = meshgrid(cc, rr);
     
     % find and drop invalid displacement vectors
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
     keep = valid & roi;
     
     % interpolate/extrapolate/smooth displacements to next sample grid
-    
-%     % debug: preserve original displacements {
-%     uu0 = uu;
-%     vv0 = vv;
-%     % } debug 
-
-%     % try TPAPS for interpolation and smoothing
-%     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
-%     nr = length(rr);
-%     nc = length(cc);    
-%     [cc_grid, rr_grid] = meshgrid(cc, rr);    
-%     
-%     xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];    
-%     uv_in = [uu(keep)'; vv(keep)'];    
-%     [st, p] = tpaps(xy_in, uv_in);
-%     fprintf('tpaps smoothing parameter = %f\n', p);
-%     
-%     xy_out = [cc_grid(:)'; rr_grid(:)'];
-%     uv_out = fnval(st, xy_out);
-%     
-%     uu = reshape(uv_out(1,:), nr, nc);
-%     vv = reshape(uv_out(2,:), nr, nc);
-    
-    % debug: interpolation parameter {
-    t = 0.9; 
-    % } debug
-    
-    [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
-    nr = length(rr);
-    nc = length(cc);    
-    [cc_grid, rr_grid] = meshgrid(cc, rr);    
-
-    % % debug: ignore centroid grid {
-    % uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
-    %     uu(keep), t);
-    % uu = reshape(uu, size(cc_grid));
-    % vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), ...
-    %     vv(keep), t);
-    % vv = reshape(vv, size(cc_grid));
-    % % } debug
-    
-    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        uu(keep), t);
-    uu = reshape(uu, size(cc_grid));
-    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        vv(keep), t);
-    vv = reshape(vv, size(cc_grid));
-    
-     
-    % debug: also interpolate to full image resolution (will be slow) {
-    try
-        tic
-        uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-            uu(keep), t);
-        uu_full = reshape(uu_full, size(ini));
-        toc
-        tic
-        vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-            vv(keep), t);
-        vv_full = reshape(vv_full, size(ini));
-        toc
-    catch err
-        fprintf(getReport(err));
-        keyboard
-    end
+    % interp_method = 'tpaps';
+    interp_method = 'tspline';
+  
+    switch interp_method
         
-    
-    % } debug
-    
-%       
-%     % smooth displacements
-%     [uu, vv] = pppiv(uu, vv, roi, '3x3'); % NOTE: ROI WILL NOT BE CORRECT FOR MULTIPASS    
-    
-    
-    
-%     % debug: display effect of interpolation and smoothing steps
-%     figure(1)
-%     % clim = [min(uu(:)), max(uu(:))];
-%     subplot(1,3,1); imagesc(uu0); title('uu0'); colorbar; % caxis(clim);
-%     subplot(1,3,2); imagesc(uu); title('uu'); colorbar; % caxis(clim);
-%     subplot(1,3,3); imagesc(uu-uu0); title('uu-uu0'); colorbar; % caxis(clim);
-%     
-%     figure(2) 
-%     % clim = [min(vv(:)), max(vv(:))];
-%     subplot(1,3,1); imagesc(vv0); title('vv0'); colorbar; % caxis(clim);
-%     subplot(1,3,2); imagesc(vv); title('vv'); colorbar; % caxis(clim);
-%     subplot(1,3,3); imagesc(vv-vv0); title('vv-vv0'); colorbar; % caxis(clim);
-%     pause
-%     % } debug
-    
+        % TPAPS: interpolation and smoothing
+        case 'tpaps'
+            
+            % smoothing parameter
+            p = [];
+            
+            % get interpolant
+            xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
+            uv_in = [uu(keep)'; vv(keep)'];
+            [st, p] = tpaps(xy_in, uv_in, []);
+            
+            % evaluate for sample grid
+            xy_out = [cc_grid(:)'; rr_grid(:)'];
+            uv_out = fnval(st, xy_out);            
+            uu = reshape(uv_out(1,:), nr, nc);
+            vv = reshape(uv_out(2,:), nr, nc);
+            
+            % evaluate for full resolution grid
+            % ...coming soon!
+            
+        % TSPLINE: interpolation, no smoothing
+        case 'tspline'
+            
+            % smoothing parameter
+            t = 0.9;
+            
+            % sample grid
+            uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                uu(keep), t);
+            uu = reshape(uu, size(cc_grid));
+            vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                vv(keep), t);
+            vv = reshape(vv, size(cc_grid));
+            
+            % full resolution
+            uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                uu(keep), t);
+            uu_full = reshape(uu_full, size(ini));
+            vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                vv(keep), t);
+            vv_full = reshape(vv_full, size(ini));
+            
+        otherwise
+            error('invalid smoothing method');
+    end
     
 end
 % end multipass loop
