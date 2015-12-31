@@ -204,6 +204,7 @@ for pp = 1:np-1
     % interpolate/extrapolate/smooth displacements to next sample grid
 %     interp_method = 'tpaps';
     interp_method = 'tspline';
+%     interp_method = 'lowess';
   
     switch interp_method
         
@@ -236,10 +237,8 @@ for pp = 1:np-1
         case 'tspline'
             
             % tension parameter
-%             t = 1-eps;
             t = 0.95;
-%             t = 0;
-            
+
             % sample grid
             uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
                 uu(keep), t);
@@ -255,6 +254,20 @@ for pp = 1:np-1
             vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
                 vv(keep), t);
             vv_full = reshape(vv_full, size(ini));
+            
+        case 'lowess'
+            
+            fit_opt = fitoptions('lowess', 'Robust', 'LAR', 'Span', 0.05);
+            
+            uu_fit = fit([cc_cntr(keep), rr_cntr(keep)], uu(keep), ...
+                'lowess', fit_opt);
+            uu = reshape(uu_fit(cc_grid(:), rr_grid(:)), nr, nc);
+            uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
+            
+            vv_fit = fit([cc_cntr(keep), rr_cntr(keep)], vv(keep), ...
+                'lowess', fit_opt);
+            vv = reshape(vv_fit(cc_grid(:), rr_grid(:)), nr, nc);
+            vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
             
         otherwise
             error('invalid smoothing method');
