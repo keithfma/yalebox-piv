@@ -461,16 +461,17 @@ A13:
   were, then the displacement adjustments would show an edge gradient, which
   they do not.
 
-  2) I stored the pre-interp/smoothing grids and added plotting routines to show
-  the effect of smoothing. For TPAPS, these clearly show that smoothing
-  introduces edge gradients.
+  4) Realized I can compute errors internally for each pass  by interpolating
+  sample points onto the exact full resolution solution I have loaded. This
+  allows me to identify when boundary errors appear.
 
-  This problem could be the smoothing routine itself, or ot could be the
-  centroid grid, or god knows what.
+  For TSPLINE, the results show that interpolation from centroid to regular grid
+  HAS NO EFFECT on edge gradients. In addition, their are not obvious edge
+  gradients 
+  
+  the first pass shows no edge
+  effects.
 
-  3) Tried ignoring the centroid position for TSPLINE, found that the using
-  centroids decreases error at top and bottom boundaries and reverses its sign.
-  This suggests that the extrapolation is overshooting.
 
 
 

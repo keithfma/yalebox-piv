@@ -72,7 +72,7 @@ check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
 % init full-resolution grids
 cc_full = 1:size(ini, 2);
 rr_full = 1:size(ini, 1);
-[cc_full_grid, rr_full_grid] = meshgrid(1:size(ini, 2), 1:size(ini, 1));
+[cc_full_grid, rr_full_grid] = meshgrid(cc_full, rr_full);
 uu_full = zeros(size(ini));
 vv_full = zeros(size(ini));
 
@@ -136,7 +136,11 @@ for pp = 1:np-1
             
             % skip and remove from ROI if sample window is too empty
             if frac_data < min_frac_data
+                fprintf('SKIP: frac_data = %f, ii = %i, jj = %i\n', ...
+                    frac_data, ii, jj);
                 roi(ii, jj) = false;
+                uu(ii, jj) = NaN;
+                vv(ii, jj) = NaN;
                 continue
             end
             
@@ -161,7 +165,6 @@ for pp = 1:np-1
             delta_uu = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
             delta_vv = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
             
-            
             % debug: keep track of per-pass delta-displacements {
             duu(ii,jj) = delta_uu; 
             dvv(ii,jj) = delta_vv;
@@ -170,36 +173,7 @@ for pp = 1:np-1
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
             cval(ii, jj) = val;
-            
-            
-           
-%             % debug: show correlation plane
-%             figure(1) 
-%             imagesc(xcr);
-%             colorbar
-%             hold on
-%             plot(rpeak, cpeak, 'xk');
-%             hold off
-%             
-%             figure(2);
-%             imagesc(xcr);
-%             colorbar
-%             hold on
-%             plot(rpeak, cpeak, 'xk');
-%             hold off
-%             set(gca, 'Xlim', round(cpeak+[-3,3]), 'Ylim', round(rpeak+[-3,3]));
-%                 
-%             figure(3);
-%             imagesc(xx, yy, ini);
-%             hold on
-%             plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-%                 '-k');
-%             hold off
-% 
-%             pause
-%             % } debug
-            
+             
         end % ii
     end % jj
     % end sample grid loops
@@ -215,13 +189,21 @@ for pp = 1:np-1
     keep = valid & roi;
     
     % interpolate/extrapolate/smooth displacements to next sample grid
-    interp_method = 'tpaps';
-%     interp_method = 'tspline';
+%     interp_method = 'tpaps';
+    interp_method = 'tspline';
 %     interp_method = 'lowess';
 
     % debug: keep original data
-    uu0 = uu; uu0(~keep) = NaN;
-    vv0 = vv; vv0(~keep) = NaN;
+    uu0 = uu; % uu0(~roi) = NaN;
+    vv0 = vv; % vv0(~roi) = NaN;
+    
+    figure
+    subplot(1,2,1); imagesc(uu0); subplot(1,2,2); imagesc(vv0)
+    pause
+    % NOTE: uu0 and vv0 are fully populated in 2nd pass 
+    % THIS MAY BE IMPORTANT -- IS MASKING WORKING OR NOT?
+    % IT IS, THE POPULATED VALUES COME FROM PREVIOUS PASSES WHICH INTERPOLATE TO THE FULL GRID
+    % NOT SURE IF THIS WOULD HAVE A NEGATIVE IMPACT...
     
     switch interp_method
         
@@ -269,17 +251,17 @@ for pp = 1:np-1
                 vv(keep), t);
             vv = reshape(vv, size(cc_grid));
             
-            % test: load exact full values for full grid displacements {
-            load('full.mat');
-            % } test
+%             % test: load exact full values for full grid displacements {
+%             load('full.mat');
+%             % } test
             
-%             % full resolution
-%             uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-%                 uu(keep), t);
-%             uu_full = reshape(uu_full, size(ini));
-%             vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-%                 vv(keep), t);
-%             vv_full = reshape(vv_full, size(ini));
+            % full resolution
+            uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                uu(keep), t);
+            uu_full = reshape(uu_full, size(ini));
+            vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+                vv(keep), t);
+            vv_full = reshape(vv_full, size(ini));
             
         case 'lowess'
             
@@ -304,19 +286,36 @@ for pp = 1:np-1
             error('invalid smoothing method');
     end
     
-    % debug: plot the effect of interpolation/smoothing {
-    figure 
-    subplot(1,2,1); imagesc(uu-uu0); colorbar; title(sprintf('uu-uu0, pass %i', pp));
-    subplot(1,2,2); imagesc(vv-vv0); colorbar; title(sprintf('vv-vv0, pass %i', pp));
-    pause
-    % } debug
+%     % debug: plot the effect of interpolation/smoothing {
+%     figure 
+%     subplot(1,2,1); imagesc(uu-uu0); colorbar; title(sprintf('uu-uu0, pass %i', pp));
+%     subplot(1,2,2); imagesc(vv-vv0); colorbar; title(sprintf('vv-vv0, pass %i', pp));
+%     pause
+%     % } debug
+
+    % compute errors by interpolating onto the exact full grid
+    E = load('full.mat');
+    
+    uu_cntr_exact = interp2(cc_full_grid, rr_full_grid, E.uu_full, cc_cntr, rr_cntr);
+    
+    uu_grid_exact = interp2(cc_full_grid, rr_full_grid, E.uu_full, cc_grid, rr_grid);
+    
+    uu_cntr_err = uu_cntr_exact-uu0; 
+    
+    uu_grid_err = uu_grid_exact-uu; 
+    
+%     figure
+%     subplot(1,2,1); imagesc(uu_cntr_err); title('uu\_cntr\_err'); colorbar
+%     subplot(1,2,2); imagesc(uu_grid_err); title('uu\_grid\_err'); colorbar
+%     linkaxes
+
     
 end
 % end multipass loop
 
-% delete points outside the ROI
-uu(~roi) = NaN;
-vv(~roi) = NaN;
+% % delete points outside the ROI
+% uu(~roi) = NaN;
+% vv(~roi) = NaN;
 
 % convert displacements to world coordinates (assumes constant grid spacing)
 uu = uu.*(xx(2)-xx(1));
