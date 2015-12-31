@@ -218,7 +218,11 @@ for pp = 1:np-1
     interp_method = 'tpaps';
 %     interp_method = 'tspline';
 %     interp_method = 'lowess';
-  
+
+    % debug: keep original data
+    uu0 = uu; uu0(~keep) = NaN;
+    vv0 = vv; vv0(~keep) = NaN;
+    
     switch interp_method
         
         % TPAPS: interpolation and smoothing
@@ -298,6 +302,13 @@ for pp = 1:np-1
         otherwise
             error('invalid smoothing method');
     end
+    
+    % debug: plot the effect of smoothing {
+    figure 
+    subplot(1,2,1); imagesc(uu-uu0); colorbar; title(sprintf('uu-uu0, pass %i', pp));
+    subplot(1,2,2); imagesc(vv-vv0); colorbar; title(sprintf('vv-vv0, pass %i', pp));
+    pause
+    % } debug
     
 end
 % end multipass loop

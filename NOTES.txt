@@ -461,6 +461,13 @@ A13:
   were, then the displacement adjustments would show an edge gradient, which
   they do not.
 
+  2) I stored the pre-interp/smoothing grids and added plotting routines to show
+  the effect of smoothing. For TPAPS, these clearly show that smoothing
+  introduces edge gradients.
+
+  This problem could be the smoothing routine itself, or ot could be the
+  centroid grid, or god knows what.
+
 
 
 
