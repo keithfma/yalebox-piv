@@ -202,8 +202,8 @@ for pp = 1:np-1
     keep = valid & roi;
     
     % interpolate/extrapolate/smooth displacements to next sample grid
-    % interp_method = 'tpaps';
-    interp_method = 'tspline';
+    interp_method = 'tpaps';
+%     interp_method = 'tspline';
   
     switch interp_method
         
@@ -216,7 +216,7 @@ for pp = 1:np-1
             % get interpolant
             xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
             uv_in = [uu(keep)'; vv(keep)'];
-            [st, p] = tpaps(xy_in, uv_in, []);
+            [st, p] = tpaps(xy_in, uv_in, p);
             
             % evaluate for sample grid
             xy_out = [cc_grid(:)'; rr_grid(:)'];
@@ -225,7 +225,12 @@ for pp = 1:np-1
             vv = reshape(uv_out(2,:), nr, nc);
             
             % evaluate for full resolution grid
-            % ...coming soon!
+            xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
+            uv_out = fnval(st, xy_out);            
+            uu_full = reshape(uv_out(1,:), size(ini));
+            vv_full = reshape(uv_out(2,:), size(ini));
+            
+            fprintf('TPAPS smoothing parameter = %f\n', p);
             
         % TSPLINE: interpolation, no smoothing
         case 'tspline'

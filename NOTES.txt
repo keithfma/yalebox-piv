@@ -386,7 +386,16 @@ A12:
       0.75  | 4.93e-02  | 3.04e-02  | 5.66e-02
       1.00  | 2.21e-01  | 6.85e-02  | 2.22e-01
 
-    b) Trying the same tests with tpaps...
+    b) Trying the same tests with tpaps, the performance is very bad. Edge
+    gradients are very strong, and manually varying the smoothing parameter does
+    not improve the fit. Additionally, the interpolated full resolution
+    velocities don't have the obvious wavy artefacts I observed in the old
+    method, so if the problem is there, it is subtle. 
+
+    c) To see if overshooting is the problem, I will explore the effect of the
+    tension parameter in the TSPLINE method...
+
+    c) Trying to add smoothing after-the-fact to the TSPLINE version...
 
 
 
