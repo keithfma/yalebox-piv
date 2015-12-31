@@ -202,8 +202,8 @@ for pp = 1:np-1
     keep = valid & roi;
     
     % interpolate/extrapolate/smooth displacements to next sample grid
-    interp_method = 'tpaps';
-%     interp_method = 'tspline';
+%     interp_method = 'tpaps';
+    interp_method = 'tspline';
   
     switch interp_method
         
@@ -235,8 +235,10 @@ for pp = 1:np-1
         % TSPLINE: interpolation, no smoothing
         case 'tspline'
             
-            % smoothing parameter
+            % tension parameter
+%             t = 1-eps;
             t = 0.9;
+%             t = 0;
             
             % sample grid
             uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...

@@ -393,9 +393,31 @@ A12:
     method, so if the problem is there, it is subtle. 
 
     c) To see if overshooting is the problem, I will explore the effect of the
-    tension parameter in the TSPLINE method...
+    tension parameter in the TSPLINE method. It could be --- the solution
+    improves for (very) high values of the tension parameter. For a 2 pass test
+    with dudy = 0.05, results are below. The summary stats fail to show that the
+    max tension test has low errors in displacements at the edge, but still
+    exhibits relatively high edge strains.
+
+      t = 1-eps
+      qnt | uu    | vv    | mag
+      0.00  | 1.39e-05  | 2.01e-05  | 1.12e-03
+      0.25  | 1.09e-02  | 4.32e-03  | 1.66e-02
+      0.50  | 2.55e-02  | 1.20e-02  | 3.55e-02
+      0.75  | 4.57e-02  | 2.83e-02  | 5.49e-02
+      1.00  | 1.76e-01  | 7.47e-02  | 1.77e-01
+
+      t = 0.9
+      qnt  | uu    | vv    | mag
+      0.00  | 9.49e-05  | 1.22e-05  | 2.34e-03
+      0.25  | 1.31e-02  | 7.99e-03  | 2.31e-02
+      0.50  | 2.79e-02  | 1.84e-02  | 3.66e-02
+      0.75  | 4.64e-02  | 2.95e-02  | 5.42e-02
+      1.00  | 1.58e-01  | 6.07e-02  | 1.60e-01
 
     c) Trying to add smoothing after-the-fact to the TSPLINE version...
+
+      i) ...using pppiv, which is quick-and-dirty
 
 
 
