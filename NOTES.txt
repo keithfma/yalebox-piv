@@ -357,7 +357,7 @@ A12:
   ASAP.
 
     a) Tried using tspline to interpolate to the full grid. These results are
-    for no smoothing with dudy = 0.05. They are MUCH IMPROVED. Error maps do not
+    for no smoothing with dudy = 0.05. They are IMPROVED. Error maps do not
     show clear edge effects as they have in previous tests. However, the upper
     boundary still appears "hot" in the strain plot. This could reflect
     increased uncertainty at the boundary, or could be lingering method
@@ -415,9 +415,33 @@ A12:
       0.75  | 4.64e-02  | 2.95e-02  | 5.42e-02
       1.00  | 1.58e-01  | 6.07e-02  | 1.60e-01
 
-    c) Trying to add smoothing after-the-fact to the TSPLINE version...
+    d) Added a new interpolation/smoothing option: lowess. In theory, this
+    should behave well at data boundaries, and I should be able to extract local
+    gradient information from the fits. Also, a line fit should perfectly fit my
+    test case at the very least.
+      
+      i) For dudy = 0.05, robust = LAR, span = 0.05: single pass shows no edge
+      effects and has reduced (halved) errors, dual-pass has extreme edge
+      gradients.
 
-      i) ...using pppiv, which is quick-and-dirty
+        1 pass:
+        qnt | uu    | vv    | mag
+        0.00  | 1.10e-04  | 6.82e-06  | 9.16e-04
+        0.25  | 5.35e-03  | 3.33e-03  | 1.26e-02
+        0.50  | 1.24e-02  | 8.00e-03  | 1.79e-02
+        0.75  | 1.99e-02  | 1.44e-02  | 2.44e-02
+        1.00  | 7.00e-02  | 3.40e-02  | 7.23e-02
+
+        2 pass:
+        qnt | uu    | vv    | mag
+        0.00  | 1.00e-05  | 3.24e-06  | 2.23e-04
+        0.25  | 1.83e-03  | 1.64e-03  | 4.52e-03
+        0.50  | 5.72e-03  | 3.18e-03  | 8.56e-03
+        0.75  | 3.77e-02  | 5.82e-03  | 3.78e-02
+        1.00  | 1.32e-01  | 1.81e-02  | 1.32e-01
+
+Q13: Why do smoothed results degrade for multipass runs?
+
 
 
 

@@ -203,8 +203,8 @@ for pp = 1:np-1
     
     % interpolate/extrapolate/smooth displacements to next sample grid
 %     interp_method = 'tpaps';
-    interp_method = 'tspline';
-%     interp_method = 'lowess';
+%     interp_method = 'tspline';
+    interp_method = 'lowess';
   
     switch interp_method
         
@@ -225,13 +225,17 @@ for pp = 1:np-1
             uu = reshape(uv_out(1,:), nr, nc);
             vv = reshape(uv_out(2,:), nr, nc);
             
+%             % test: load exact full values for full grid displacements {
+%             load('full.mat');
+%             % } test
+            
             % evaluate for full resolution grid
             xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
             uv_out = fnval(st, xy_out);            
             uu_full = reshape(uv_out(1,:), size(ini));
             vv_full = reshape(uv_out(2,:), size(ini));
             
-            fprintf('TPAPS smoothing parameter = %f\n', p);
+            fprintf('TPAPS smoothing parameter = %f\n', p);            
             
         % TSPLINE: interpolation, no smoothing
         case 'tspline'
@@ -247,6 +251,10 @@ for pp = 1:np-1
                 vv(keep), t);
             vv = reshape(vv, size(cc_grid));
             
+%             % test: load exact full values for full grid displacements {
+%             load('full.mat');
+%             % } test
+            
             % full resolution
             uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
                 uu(keep), t);
@@ -261,14 +269,19 @@ for pp = 1:np-1
             
             uu_fit = fit([cc_cntr(keep), rr_cntr(keep)], uu(keep), ...
                 'lowess', fit_opt);
-            uu = reshape(uu_fit(cc_grid(:), rr_grid(:)), nr, nc);
-            uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
-            
             vv_fit = fit([cc_cntr(keep), rr_cntr(keep)], vv(keep), ...
                 'lowess', fit_opt);
-            vv = reshape(vv_fit(cc_grid(:), rr_grid(:)), nr, nc);
-            vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
             
+            uu = reshape(uu_fit(cc_grid(:), rr_grid(:)), nr, nc);
+            vv = reshape(vv_fit(cc_grid(:), rr_grid(:)), nr, nc);
+            
+            % test: load exact full values for full grid displacements {
+            load('full.mat');
+            % } test
+            
+%             vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
+%             uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
+           
         otherwise
             error('invalid smoothing method');
     end
