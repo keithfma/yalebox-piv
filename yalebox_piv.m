@@ -118,6 +118,11 @@ for pp = 1:np-1
     % determine the minimum number of overlapping pixels for valid xcr 
     min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);
     
+    % debug: keep track of per-pass delta-displacements {
+    duu = zeros(nr, nc);
+    dvv = zeros(nr, nc);
+    % } debug
+    
     % sample grid loops
     for jj = 1:nc
         for ii = 1:nr
@@ -156,9 +161,17 @@ for pp = 1:np-1
             delta_uu = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
             delta_vv = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
             
+            
+            % debug: keep track of per-pass delta-displacements {
+            duu(ii,jj) = delta_uu; 
+            dvv(ii,jj) = delta_vv;
+            % } debug
+            
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
             cval(ii, jj) = val;
+            
+            
            
 %             % debug: show correlation plane
 %             figure(1) 
@@ -202,9 +215,9 @@ for pp = 1:np-1
     keep = valid & roi;
     
     % interpolate/extrapolate/smooth displacements to next sample grid
-%     interp_method = 'tpaps';
+    interp_method = 'tpaps';
 %     interp_method = 'tspline';
-    interp_method = 'lowess';
+%     interp_method = 'lowess';
   
     switch interp_method
         
@@ -225,15 +238,15 @@ for pp = 1:np-1
             uu = reshape(uv_out(1,:), nr, nc);
             vv = reshape(uv_out(2,:), nr, nc);
             
-%             % test: load exact full values for full grid displacements {
-%             load('full.mat');
-%             % } test
+            % test: load exact full values for full grid displacements {
+            load('full.mat');
+            % } test
             
-            % evaluate for full resolution grid
-            xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
-            uv_out = fnval(st, xy_out);            
-            uu_full = reshape(uv_out(1,:), size(ini));
-            vv_full = reshape(uv_out(2,:), size(ini));
+%             % evaluate for full resolution grid
+%             xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
+%             uv_out = fnval(st, xy_out);            
+%             uu_full = reshape(uv_out(1,:), size(ini));
+%             vv_full = reshape(uv_out(2,:), size(ini));
             
             fprintf('TPAPS smoothing parameter = %f\n', p);            
             
@@ -275,12 +288,12 @@ for pp = 1:np-1
             uu = reshape(uu_fit(cc_grid(:), rr_grid(:)), nr, nc);
             vv = reshape(vv_fit(cc_grid(:), rr_grid(:)), nr, nc);
             
-            % test: load exact full values for full grid displacements {
-            load('full.mat');
-            % } test
+%             % test: load exact full values for full grid displacements {
+%             load('full.mat');
+%             % } test
             
-%             vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
-%             uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
+            vv_full = reshape(vv_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
+            uu_full = reshape(uu_fit(cc_full_grid(:), rr_full_grid(:)), size(ini));
            
         otherwise
             error('invalid smoothing method');

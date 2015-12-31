@@ -442,6 +442,27 @@ A12:
 
 Q13: Why do smoothed results degrade for multipass runs?
 
+A13:
+
+  1) I generated exact full resolution solutions for the images test case with
+  dudy = 0.05, which I can load instead of interpolation to full resolution.
+  This removes errors associated with the displacement field for image
+  interpolation.
+
+  In addition, I keep track of the velocity field adjustments made for each pass
+  (duu stores all the delta_uu values). This data allows me to check whether the
+  PIV is performing poorly at the boundaries for pass > 1.
+
+  The results are puzzling: 
+    - Exact full resolution solutions have no influence on the edge gradients.
+    - Displacement adjustments for pass > 1 appear spatially random.
+
+  Thus, it is NOT the image deformation or the PIV routine itself --- if it
+  were, then the displacement adjustments would show an edge gradient, which
+  they do not.
+
+
+
 
 
 
