@@ -232,7 +232,8 @@ for pp = 1:np-1
             p = [];
             
             % get interpolant
-            xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
+%             xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
+            xy_in = [cc_grid(keep)'; rr_grid(keep)'];            
             uv_in = [uu(keep)'; vv(keep)'];
             [st, p] = tpaps(xy_in, uv_in, p);
             
@@ -268,17 +269,17 @@ for pp = 1:np-1
                 vv(keep), t);
             vv = reshape(vv, size(cc_grid));
             
-%             % test: load exact full values for full grid displacements {
-%             load('full.mat');
-%             % } test
+            % test: load exact full values for full grid displacements {
+            load('full.mat');
+            % } test
             
-            % full resolution
-            uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                uu(keep), t);
-            uu_full = reshape(uu_full, size(ini));
-            vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                vv(keep), t);
-            vv_full = reshape(vv_full, size(ini));
+%             % full resolution
+%             uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+%                 uu(keep), t);
+%             uu_full = reshape(uu_full, size(ini));
+%             vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+%                 vv(keep), t);
+%             vv_full = reshape(vv_full, size(ini));
             
         case 'lowess'
             
@@ -303,7 +304,7 @@ for pp = 1:np-1
             error('invalid smoothing method');
     end
     
-    % debug: plot the effect of smoothing {
+    % debug: plot the effect of interpolation/smoothing {
     figure 
     subplot(1,2,1); imagesc(uu-uu0); colorbar; title(sprintf('uu-uu0, pass %i', pp));
     subplot(1,2,2); imagesc(vv-vv0); colorbar; title(sprintf('vv-vv0, pass %i', pp));

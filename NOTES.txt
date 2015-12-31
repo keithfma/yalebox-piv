@@ -468,6 +468,10 @@ A13:
   This problem could be the smoothing routine itself, or ot could be the
   centroid grid, or god knows what.
 
+  3) Tried ignoring the centroid position for TSPLINE, found that the using
+  centroids decreases error at top and bottom boundaries and reverses its sign.
+  This suggests that the extrapolation is overshooting.
+
 
 
 
