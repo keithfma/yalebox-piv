@@ -72,7 +72,7 @@ check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
 % init full-resolution grids
 cc_full = 1:size(ini, 2);
 rr_full = 1:size(ini, 1);
-[cc_full_grid, rr_full_grid] = meshgrid(1:size(ini, 2), 1:size(ini, 1));
+[cc_full_grid, rr_full_grid] = meshgrid(cc_full, rr_full);
 uu_full = zeros(size(ini));
 vv_full = zeros(size(ini));
 
@@ -108,9 +108,6 @@ for pp = 1:np-1
     % all grid points start in the ROI
     roi = true(nr, nc);
     
-    % set subpixel correlation value matrix to zero
-    cval = zeros(nr, nc);
-    
     % reset data centroid grids
     rr_cntr = zeros(nr, nc);
     cc_cntr = zeros(nr, nc);
@@ -141,13 +138,7 @@ for pp = 1:np-1
             xcr = xcr.*double(overlap>min_overlap);
 
             % find correlation plane max, subpixel precision
-            [rpeak, cpeak, val, stat] = yalebox_piv_peak_gauss2d(xcr);
-            % [rpeak, cpeak, stat] = peak_optim_fourier(xcr);
-            if stat == false
-                uu(ii, jj) = NaN;
-                vv(ii, jj) = NaN;
-                continue
-            end
+            [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr);
             
             % find displacement from position of the correlation max
             %   - account for padding in cross-correlation (-samplen(gg))
@@ -158,35 +149,7 @@ for pp = 1:np-1
             
             uu(ii, jj) = uu(ii, jj)+delta_uu;
             vv(ii, jj) = vv(ii, jj)+delta_vv;
-            cval(ii, jj) = val;
-           
-%             % debug: show correlation plane
-%             figure(1) 
-%             imagesc(xcr);
-%             colorbar
-%             hold on
-%             plot(rpeak, cpeak, 'xk');
-%             hold off
-%             
-%             figure(2);
-%             imagesc(xcr);
-%             colorbar
-%             hold on
-%             plot(rpeak, cpeak, 'xk');
-%             hold off
-%             set(gca, 'Xlim', round(cpeak+[-3,3]), 'Ylim', round(rpeak+[-3,3]));
-%                 
-%             figure(3);
-%             imagesc(xx, yy, ini);
-%             hold on
-%             plot([samp_pos(1), samp_pos(1)+samp_pos(3), samp_pos(1)+samp_pos(3), samp_pos(1), samp_pos(1)], ...
-%                 [samp_pos(2), samp_pos(2), samp_pos(2)+samp_pos(4), samp_pos(2)+samp_pos(4), samp_pos(2)], ...
-%                 '-k');
-%             hold off
-% 
-%             pause
-%             % } debug
-            
+             
         end % ii
     end % jj
     % end sample grid loops
@@ -201,64 +164,26 @@ for pp = 1:np-1
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
     keep = valid & roi;
     
-    % interpolate/extrapolate/smooth displacements to next sample grid
-%     interp_method = 'tpaps';
-    interp_method = 'tspline';
-  
-    switch interp_method
-        
-        % TPAPS: interpolation and smoothing
-        case 'tpaps'
-            
-            % smoothing parameter
-            p = [];
-            
-            % get interpolant
-            xy_in = [cc_cntr(keep)'; rr_cntr(keep)'];
-            uv_in = [uu(keep)'; vv(keep)'];
-            [st, p] = tpaps(xy_in, uv_in, p);
-            
-            % evaluate for sample grid
-            xy_out = [cc_grid(:)'; rr_grid(:)'];
-            uv_out = fnval(st, xy_out);            
-            uu = reshape(uv_out(1,:), nr, nc);
-            vv = reshape(uv_out(2,:), nr, nc);
-            
-            % evaluate for full resolution grid
-            xy_out = [cc_full_grid(:)'; rr_full_grid(:)'];
-            uv_out = fnval(st, xy_out);            
-            uu_full = reshape(uv_out(1,:), size(ini));
-            vv_full = reshape(uv_out(2,:), size(ini));
-            
-            fprintf('TPAPS smoothing parameter = %f\n', p);
-            
-        % TSPLINE: interpolation, no smoothing
-        case 'tspline'
-            
-            % tension parameter
-%             t = 1-eps;
-            t = 0.95;
-%             t = 0;
-            
-            % sample grid
-            uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                uu(keep), t);
-            uu = reshape(uu, size(cc_grid));
-            vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                vv(keep), t);
-            vv = reshape(vv, size(cc_grid));
-            
-            % full resolution
-            uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                uu(keep), t);
-            uu_full = reshape(uu_full, size(ini));
-            vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-                vv(keep), t);
-            vv_full = reshape(vv_full, size(ini));
-            
-        otherwise
-            error('invalid smoothing method');
-    end
+    % interpolate/extrapolate/(add: smooth) displacements to next sample grid
+
+    % tension parameter
+    t = 0.95;
+    
+    % sample grid
+    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        uu(keep), t);
+    uu = reshape(uu, size(cc_grid));
+    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        vv(keep), t);
+    vv = reshape(vv, size(cc_grid));
+    
+    % full resolution
+    uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        uu(keep), t);
+    uu_full = reshape(uu_full, size(ini));
+    vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
+        vv(keep), t);
+    vv_full = reshape(vv_full, size(ini));
     
 end
 % end multipass loop
@@ -274,10 +199,6 @@ vv = vv.*(yy(2)-yy(1));
 % interpolate world coordinates for displacement vectors
 xx = interp1(1:size(ini,2), xx, cc, 'linear', 'extrap');
 yy = interp1(1:size(ini,1), yy, rr, 'linear', 'extrap');
-
-% % debug {
-% keyboard
-% % } debug
 
 end
 
