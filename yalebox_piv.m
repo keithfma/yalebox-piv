@@ -154,36 +154,39 @@ for pp = 1:np-1
     end % jj
     % end sample grid loops
    
+    % find and drop invalid displacement vectors
+    valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
+    keep = valid & roi;
+    
     % get next sample grid (last loop repeats same)    
     [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
     nr = length(rr);
     nc = length(cc);    
     [cc_grid, rr_grid] = meshgrid(cc, rr);
     
-    % find and drop invalid displacement vectors
-    valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
-    keep = valid & roi;
-    
-    % interpolate/extrapolate/(add: smooth) displacements to next sample grid
-
-    % tension parameter
-    t = 0.95;
-    
-    % sample grid
-    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        uu(keep), t);
-    uu = reshape(uu, size(cc_grid));
-    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        vv(keep), t);
+    % interpolate/extrapolate displacements to next sample grid
+    t = 0.95; % tension parameter    
+    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), uu(keep), t);
+    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), vv(keep), t);
+    uu = reshape(uu, size(cc_grid));    
     vv = reshape(vv, size(cc_grid));
     
-    % full resolution
-    uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        uu(keep), t);
-    uu_full = reshape(uu_full, size(ini));
-    vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_cntr(keep), rr_cntr(keep), ...
-        vv(keep), t);
-    vv_full = reshape(vv_full, size(ini));
+    % smooth displacements (skip for final pass)
+    if pp < np-1
+        kernel = fspecial('average', 3);
+        uu(~roi) = NaN;
+        vv(~roi) = NaN;
+        uu = nanconv(uu, kernel, 'edge', 'nanout');
+        vv = nanconv(vv, kernel, 'edge', 'nanout');
+    end
+    
+    % interpolate/extrapolate to full image resolution (skip for final pass)
+    if pp < np-1
+        uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_grid(roi), rr_grid(roi), uu(roi), t);
+        vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_grid(roi), rr_grid(roi), vv(roi), t);
+        uu_full = reshape(uu_full, size(ini));
+        vv_full = reshape(vv_full, size(ini));
+    end
     
 end
 % end multipass loop
