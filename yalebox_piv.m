@@ -87,6 +87,10 @@ vv = zeros(nr, nc);
 np = length(samplen);
 for pp = 1:np-1
     
+    
+    delta_uu = zeros(nr, nc);
+    delta_vv = zeros(nr, nc);
+    
     % deform images
     defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, ...
         'cubic', 'FillValues', 0);    
@@ -144,15 +148,16 @@ for pp = 1:np-1
             %   - account for padding in cross-correlation (-samplen(gg))
             %   - account for relative position of interogation and sample
             %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-            delta_uu = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
-            delta_vv = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
-            
-            uu(ii, jj) = uu(ii, jj)+delta_uu;
-            vv(ii, jj) = vv(ii, jj)+delta_vv;
+            delta_uu(ii, jj) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
+            delta_vv(ii, jj) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
              
         end % ii
     end % jj
     % end sample grid loops
+    
+    % update displacement predictor
+    uu = uu+delta_uu;
+    vv = vv+delta_vv;
    
     % find and drop invalid displacement vectors
     valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
@@ -171,14 +176,38 @@ for pp = 1:np-1
     uu = reshape(uu, size(cc_grid));    
     vv = reshape(vv, size(cc_grid));
     
-    % smooth displacements (skip for final pass)
-    if pp < np-1
-        kernel = fspecial('average', 3);
-        uu(~roi) = NaN;
-        vv(~roi) = NaN;
-        uu = nanconv(uu, kernel, 'edge', 'nanout');
-        vv = nanconv(vv, kernel, 'edge', 'nanout');
-    end
+    % smooth displacements 
+    
+    % 3x3 kernel filter 
+    
+    % points outside the boundary can be ignored by renormalizing the result, 
+    % however, the resulting values are not located on the regular grid, but
+    % rather at the centroid of the data included in the kernel
+    
+    % one solution is to put NaNs outside the data boundaries, which removes
+    % affected points from the smoothed solution.
+    
+    uu(~roi) = NaN;
+    vv(~roi) = NaN;
+    uu = padarray(uu, [1 1], NaN, 'both');
+    vv = padarray(vv, [1 1], NaN, 'both');
+    
+    kernel = fspecial('average', 3);    
+    uu = conv2(uu, kernel, 'same');
+    vv = conv2(vv, kernel, 'same');
+    
+    uu = uu(2:end-1, 2:end-1);
+    vv = vv(2:end-1, 2:end-1);
+    
+    % another solution would be to compute the irregular grid for the smoothed
+    % data, and interpolate back to the regular grid again.
+    
+    % interpolate/extrapolate smoothed displacements to sample grid
+    keep = ~isnan(uu);
+    uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), uu(keep), t);
+    vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), vv(keep), t);
+    uu = reshape(uu, size(cc_grid));    
+    vv = reshape(vv, size(cc_grid));
     
     % interpolate/extrapolate to full image resolution (skip for final pass)
     if pp < np-1

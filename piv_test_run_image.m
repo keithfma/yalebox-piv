@@ -114,3 +114,5 @@ vv_error = vv-vv_exact;
 piv_test_util_print_error(uu_error, vv_error);
 piv_test_util_plot_error(uu_error, vv_error);
 piv_test_util_plot(xx, yy, uu, vv, displ, Dd);
+
+keyboard
