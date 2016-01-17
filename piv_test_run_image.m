@@ -24,7 +24,7 @@ bnd_freq = 1;
 samplen = 30;
 sampspc = 15;
 intrlen = 100;
-npass = 2;
+npass = 3;
 valid_max = 2;
 valid_eps = 0.01;
 
@@ -114,5 +114,3 @@ vv_error = vv-vv_exact;
 piv_test_util_print_error(uu_error, vv_error);
 piv_test_util_plot_error(uu_error, vv_error);
 piv_test_util_plot(xx, yy, uu, vv, displ, Dd);
-
-keyboard

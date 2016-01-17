@@ -1,14 +1,14 @@
 function [xx, yy, uu, vv] = ...
-    yalebox_piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, ...
+    yalebox_piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
 %
-%   ini, fin = 2D matrix, double, range 0 to 1, normalized grayscale image from
+%   ini_ti, fin_tf = 2D matrix, double, range 0 to 1, normalized grayscale image from
 %       the start and end of the step to be analyzed.
 %
-%   ini_roi, fin_roi = 2D matrix, logical, mask indicating pixels where there is
+%   ini_roi_ti, fin_roi_tf = 2D matrix, logical, mask indicating pixels where there is
 %       sand (1) and where there is only background (0) that should be ignored.
 %
 %   xx = Vector, double, increasing, x-direction coordinate vector, length
@@ -58,179 +58,190 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
+% variable legend:
+%
+% uu_p_tm, vv_p_tm = displacement predictor matrices at midpoint time
+% uu_c_tm, vv_c_tm = displacement corrector matrices at midpoint time
+% cc_p_tm, rr_p_tm = column/row coordinate matrices for predictor at midpoint time
+% cc_c_tm, rr_c_tm = column/row coordinate matrices for corrector at midpoint time
+
+% cc_i, rr_i = column/row coordinate matrices for images 
+% uu_i_ti, vv_i_ti = displacement predictor matrix at image resolution for initial time
+% uu_i_tf, vv_i_tf = displacement predictor matrix at image resolution for final time
+% ini_tm, fin_tm = initial and final images deformed to midpoint time
+
 % local parameters
 min_frac_data = 0.5;
 min_frac_overlap = min_frac_data/2;
-
+tension = 0.95;
+roi_epsilon = 1e-2; % numerical precision for roi deformation
+        
 % parse inputs
-check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, sampspc, intrlen, ...
+check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, intrlen, ...
     npass, valid_max, valid_eps, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
-% init full-resolution grids
-cc_full = 1:size(ini, 2);
-rr_full = 1:size(ini, 1);
-[cc_full_grid, rr_full_grid] = meshgrid(cc_full, rr_full);
-uu_full = zeros(size(ini));
-vv_full = zeros(size(ini));
+% init coordinate grids
+[rvec, cvec] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
+[cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);
+[cc_i, rr_i] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
 
-% init sample grids 
-[rr, cc] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini));
-nr = length(rr);
-nc = length(cc);
-uu = zeros(nr, nc); 
-vv = zeros(nr, nc); 
+% init displacement matrices
+init_zero = zeros(size(cc_p_tm));
+uu_p_tm = init_zero; 
+vv_p_tm = init_zero; 
+uu_c_tm = init_zero; 
+vv_c_tm = init_zero; 
+
+init_zero = zeros(size(ini_ti));
+uu_i_ti = init_zero;
+vv_i_ti = init_zero;
+uu_i_tf = init_zero;
+vv_i_tf = init_zero;
+
+% init deformed images
+ini_tm = ini_ti;
+fin_tm = fin_tf;
 
 % multipass loop
-np = length(samplen);
-for pp = 1:np-1
+np = length(samplen)-1; 
+for pp = 1:np
     
+    % reset per-pass variables    
+    cc_c_tm = zeros(size(cc_p_tm));
+    rr_c_tm = zeros(size(cc_p_tm));    
+    roi_tm = true(size(uu_c_tm)); % all grid points start in the ROI
+    min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
     
-    delta_uu = zeros(nr, nc);
-    delta_vv = zeros(nr, nc);
-    
-    % deform images
-    defm_ini = imwarp(ini, -cat(3, uu_full, vv_full)/2, ...
-        'cubic', 'FillValues', 0);    
-    defm_fin = imwarp(fin,  cat(3, uu_full, vv_full)/2, ...
-        'cubic', 'FillValues', 0);
-   
-    % deform roi masks, and re-apply to clean up edge artefacts from warping
-    roi_epsilon = 1e-2; % numerical precision for roi deformation
-    tmp = imwarp(double(ini_roi), -cat(3, uu_full, vv_full)/2, ...
-        'cubic', 'FillValues', 0);
-    defm_ini_roi = abs(tmp-1) < roi_epsilon;
-    defm_ini(~defm_ini_roi) = 0;
-    
-    tmp = imwarp(double(fin_roi), cat(3, uu_full, vv_full)/2, ...
-        'cubic', 'FillValues', 0);
-    defm_fin_roi = abs(tmp-1) < roi_epsilon;
-    defm_fin(~defm_fin_roi) = 0;
-    
-    % all grid points start in the ROI
-    roi = true(nr, nc);
-    
-    % reset data centroid grids
-    rr_cntr = zeros(nr, nc);
-    cc_cntr = zeros(nr, nc);
-    
-    % determine the minimum number of overlapping pixels for valid xcr 
-    min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);
-    
-    % sample grid loops
-    for jj = 1:nc
-        for ii = 1:nr
+    % get corrector displacements on the predictor grid
+    for kk = 1:numel(uu_c_tm)
             
-            % get sample and (offset) interrogation windows
-            [samp, samp_pos, frac_data, rr_cntr(ii,jj), cc_cntr(ii,jj)] = ...
-                yalebox_piv_window(defm_ini, rr(ii), cc(jj), samplen(pp));
-            
-            [intr, intr_pos] = ...
-                yalebox_piv_window(defm_fin, rr(ii), cc(jj), intrlen(pp));
-            
-            % skip and remove from ROI if sample window is too empty
-            if frac_data < min_frac_data
-                roi(ii, jj) = false;
-                continue
-            end
-            
-            % compute normalized cross-correlation
-            % xcr = normxcorr2(samp, intr);            
-            [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-            xcr = xcr.*double(overlap>min_overlap);
-
-            % find correlation plane max, subpixel precision
-            [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr);
-            
-            % find displacement from position of the correlation max
-            %   - account for padding in cross-correlation (-samplen(gg))
-            %   - account for relative position of interogation and sample
-            %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-            delta_uu(ii, jj) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
-            delta_vv(ii, jj) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
-             
-        end % ii
-    end % jj
-    % end sample grid loops
+        % get sample window and its centroid location
+        [samp, samp_pos, frac_data, r_samp_cntr, c_samp_cntr] = ...
+            yalebox_piv_window(ini_tm, rr_p_tm(kk), cc_p_tm(kk), samplen(pp));
+        
+        % get interrogation window
+        [intr, intr_pos] = ...
+            yalebox_piv_window(fin_tm, rr_p_tm(kk), cc_p_tm(kk), intrlen(pp));
+        
+        % skip and remove from ROI if sample window is too empty
+        if frac_data < min_frac_data
+            roi_tm(kk) = false;
+            continue
+        end
+        
+        % compute masked normalized cross-correlation
+        [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
+        xcr = xcr.*double(overlap>min_overlap);
+        
+        % find correlation plane max, subpixel precision
+        [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr);
+        
+        % convert position of the correlation max to displacement
+        %   - account for padding in cross-correlation (-samplen(gg))
+        %   - account for relative position of interogation and sample
+        %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
+        uu_c_tm(kk) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
+        vv_c_tm(kk) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
+        
+        % compute location of this observation at midpoint time
+        cc_c_tm(kk) = c_samp_cntr + 0.5*uu_c_tm(kk);
+        rr_c_tm(kk) = r_samp_cntr + 0.5*vv_c_tm(kk);
+        
+    end 
     
-    % update displacement predictor
-    uu = uu+delta_uu;
-    vv = vv+delta_vv;
-   
-    % find and drop invalid displacement vectors
-    valid = yalebox_piv_valid_nmed(uu, vv, roi, valid_max, valid_eps);
-    keep = valid & roi;
+    % interpolate corrector roi to predictor grid
+    uu_c_tm(roi_tm) = spline2d(cc_p_tm(roi_tm), rr_p_tm(roi_tm), cc_c_tm(roi_tm), rr_c_tm(roi_tm), uu_c_tm(roi_tm), tension);
+    vv_c_tm(roi_tm) = spline2d(cc_p_tm(roi_tm), rr_p_tm(roi_tm), cc_c_tm(roi_tm), rr_c_tm(roi_tm), vv_c_tm(roi_tm), tension);
     
-    % get next sample grid (last loop repeats same)    
-    [rr, cc] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini));
-    nr = length(rr);
-    nc = length(cc);    
-    [cc_grid, rr_grid] = meshgrid(cc, rr);
+    % update predictor for this pass
+    uu_p_tm = uu_p_tm + uu_c_tm;
+    vv_p_tm = vv_p_tm + vv_c_tm;
     
-    % interpolate/extrapolate displacements to next sample grid
-    t = 0.95; % tension parameter    
-    uu = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), uu(keep), t);
-    vv = spline2d(cc_grid(:), rr_grid(:), cc_cntr(keep), rr_cntr(keep), vv(keep), t);
-    uu = reshape(uu, size(cc_grid));    
-    vv = reshape(vv, size(cc_grid));
+    % find and interpolate invalid displacement vectors
+    valid_p_tm = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, roi_tm, valid_max, valid_eps);    
+    from = roi_tm & valid_p_tm;
+    to = roi_tm & ~valid_p_tm;    
+    uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
+    vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
     
-    % smooth displacements 
-    
-    % 3x3 kernel filter 
-    
-    % points outside the boundary can be ignored by renormalizing the result, 
-    % however, the resulting values are not located on the regular grid, but
-    % rather at the centroid of the data included in the kernel
-    
-    % one solution is to put NaNs outside the data boundaries, which removes
-    % affected points from the smoothed solution.
-    
-    uu(~roi) = NaN;
-    vv(~roi) = NaN;
-    uu = padarray(uu, [1 1], NaN, 'both');
-    vv = padarray(vv, [1 1], NaN, 'both');
-    
+    % smooth predictors, 3x3 kernel smoother, with NaNs to delete points affected
+    % ...by the boundary.
+    uu_p_tm(~roi_tm) = NaN;    
+    vv_p_tm(~roi_tm) = NaN;        
+    uu_p_tm = padarray(uu_p_tm, [1 1], NaN, 'both');    
+    vv_p_tm = padarray(vv_p_tm, [1 1], NaN, 'both');        
     kernel = fspecial('average', 3);    
-    uu = conv2(uu, kernel, 'same');
-    vv = conv2(vv, kernel, 'same');
+    uu_p_tm = conv2(uu_p_tm, kernel, 'same');
+    vv_p_tm = conv2(vv_p_tm, kernel, 'same');    
+    uu_p_tm = uu_p_tm(2:end-1, 2:end-1);
+    vv_p_tm = vv_p_tm(2:end-1, 2:end-1);
     
-    uu = uu(2:end-1, 2:end-1);
-    vv = vv(2:end-1, 2:end-1);
-    
-    % another solution would be to compute the irregular grid for the smoothed
-    % data, and interpolate back to the regular grid again.
-    
-    % interpolate/extrapolate smoothed displacements to sample grid
-    keep = ~isnan(uu);
-    uu = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), uu(keep), t);
-    vv = spline2d(cc_grid(:), rr_grid(:), cc_grid(keep), rr_grid(keep), vv(keep), t);
-    uu = reshape(uu, size(cc_grid));    
-    vv = reshape(vv, size(cc_grid));
-    
-    % interpolate/extrapolate to full image resolution (skip for final pass)
-    if pp < np-1
-        uu_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_grid(roi), rr_grid(roi), uu(roi), t);
-        vv_full = spline2d(cc_full_grid(:), rr_full_grid(:), cc_grid(roi), rr_grid(roi), vv(roi), t);
-        uu_full = reshape(uu_full, size(ini));
-        vv_full = reshape(vv_full, size(ini));
+    % get new sample grid, if resolution changes for next pass
+    if (samplen(pp) ~= samplen(pp+1)) || (sampspc(pp) ~= sampspc(pp+1)) 
+        [rvec, cvec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
+        [cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);     
     end
     
-end
+    % interpolate/extrapolate to predictor grid roi, restores any values lost
+    % ...in smoothing , and updates the grid resolution if it has changed.
+    to = roi_tm;
+    from = ~isnan(uu_p_tm) & ~isnan(vv_p_tm);
+    uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
+    vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
+    
+    % interpolate/extrapolate displacement predictor to image resolution at
+    % initial and final time
+    if pp < np
+        
+        % propagate points to initial and final time, then re-grid to image resolution
+        to = true(size(ini_ti));
+        from = roi_tm;
+        
+        cc_p_ti = cc_p_tm-0.5*uu_p_tm;
+        rr_p_ti = rr_p_tm-0.5*vv_p_tm;
+        uu_i_ti(to) = spline2d(cc_i(to), rr_i(to), cc_p_ti(from), rr_p_ti(from), uu_p_tm(from), tension);
+        vv_i_ti(to) = spline2d(cc_i(to), rr_i(to), cc_p_ti(from), rr_p_ti(from), vv_p_tm(from), tension);
+        
+        cc_p_tf = cc_p_tm+0.5*uu_p_tm;
+        rr_p_tf = rr_p_tm+0.5*vv_p_tm;
+        uu_i_tf(to) = spline2d(cc_i(to), rr_i(to), cc_p_tf(from), rr_p_tf(from), uu_p_tm(from), tension);
+        vv_i_tf(to) = spline2d(cc_i(to), rr_i(to), cc_p_tf(from), rr_p_tf(from), vv_p_tm(from), tension);
+    
+        % deform images to midpoint time
+        ini_tm = imwarp(ini_ti, -0.5*cat(3, uu_i_ti, vv_i_ti), 'cubic', 'FillValues', 0);
+        fin_tm = imwarp(fin_tf,  0.5*cat(3, uu_i_tf, vv_i_tf), 'cubic', 'FillValues', 0);
+        
+        % deform roi masks to midpoint time, re-apply to clean up warping edge artefacts
+        tmp = imwarp(double(ini_roi_ti), -0.5*cat(3, uu_i_ti, vv_i_ti), 'cubic', 'FillValues', 0);
+        ini_roi_tm = abs(tmp-1) < roi_epsilon;
+        ini_tm(~ini_roi_tm) = 0;
+        
+        tmp = imwarp(double(fin_roi_tf), 0.5*cat(3, uu_i_tf, vv_i_tf), 'cubic', 'FillValues', 0);
+        fin_roi_tm = abs(tmp-1) < roi_epsilon;
+        fin_tm(~fin_roi_tm) = 0;
+        
+    end
+    
+end   
 % end multipass loop
 
-% delete points outside the ROI
-uu(~roi) = NaN;
-vv(~roi) = NaN;
+uu = uu_p_tm;
+vv = vv_p_tm;
 
-% convert displacements to world coordinates (assumes constant grid spacing)
-uu = uu.*(xx(2)-xx(1));
+% delete points outside the ROI
+uu(~roi_tm) = NaN; 
+vv(~roi_tm) = NaN;
+
+% convert displacements to world coordinates 
+uu = uu.*(xx(2)-xx(1)); 
 vv = vv.*(yy(2)-yy(1));
 
 % interpolate world coordinates for displacement vectors
-xx = interp1(1:size(ini,2), xx, cc, 'linear', 'extrap');
-yy = interp1(1:size(ini,1), yy, rr, 'linear', 'extrap');
+xx = interp1(1:size(ini_ti,2), xx, cc_p_tm(1,:), 'linear', 'extrap');
+yy = interp1(1:size(ini_ti,1), yy, rr_p_tm(:,1), 'linear', 'extrap');
 
 end
 
