@@ -103,6 +103,7 @@ for pp = 1:np
     rr_c_tm = zeros(sz);
     uu_c_tm = nan(sz);
     vv_c_tm = nan(sz);
+    roi = true(sz);
     min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
     
     % get corrector displacements on the predictor grid
@@ -118,6 +119,7 @@ for pp = 1:np
         
         % skip if sample window is too empty
         if frac_data < min_frac_data
+            roi(kk) = false;
             uu_c_tm(kk) = NaN;
             vv_c_tm(kk) = NaN;
             continue
@@ -145,20 +147,22 @@ for pp = 1:np
     
     % interpolate corrector points to predictor grid, update predictor 
     from = ~isnan(uu_c_tm); 
-    to = true(size(uu_c_tm));
+    to = roi;
     uu_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), uu_c_tm(from), tension);
     vv_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), vv_c_tm(from), tension);    
     
     % update predictor
-    uu_p_tm = uu_p_tm + uu_c_tm;
-    vv_p_tm = vv_p_tm + vv_c_tm;
+    uu_p_tm(~roi) = NaN;
+    vv_p_tm(~roi) = NaN;
+    uu_p_tm(roi) = uu_p_tm(roi) + uu_c_tm(roi);
+    vv_p_tm(roi) = vv_p_tm(roi) + vv_c_tm(roi);
     
     % validate predictor vectors (invalid -> NaN)
     [uu_p_tm, vv_p_tm] = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, 8, valid_max, valid_eps);    
     
     % interpolate/extrapolate invalid displacement vectors
     from = ~isnan(uu_p_tm);
-    to = ~from;
+    to = roi & isnan(uu_p_tm);
     uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
     vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
     
@@ -178,10 +182,12 @@ for pp = 1:np
         [cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);     
     end
     
+    % PROBLEM HERE FOR MULTIRES MULTIPASS
+    
     % interpolate/extrapolate to (new) predictor grid roi, restores any values lost
     % ...in smoothing , and updates the grid resolution if it has changed.
     from = ~isnan(uu_p_tm);
-    to = ~from;    
+    to = roi;    
     uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
     vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
     
@@ -192,13 +198,13 @@ for pp = 1:np
         % propagate points to initial and final time, then re-grid to image resolution
         cc_p_ti = cc_p_tm-0.5*uu_p_tm;
         rr_p_ti = rr_p_tm-0.5*vv_p_tm;
-        uu_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(:), rr_p_ti(:), uu_p_tm(:), tension);
-        vv_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(:), rr_p_ti(:), vv_p_tm(:), tension);
+        uu_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), uu_p_tm(roi), tension);
+        vv_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), vv_p_tm(roi), tension);
         
         cc_p_tf = cc_p_tm+0.5*uu_p_tm;
         rr_p_tf = rr_p_tm+0.5*vv_p_tm;
-        uu_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(:), rr_p_tf(:), uu_p_tm(:), tension);
-        vv_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(:), rr_p_tf(:), vv_p_tm(:), tension);
+        uu_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(roi), rr_p_tf(roi), uu_p_tm(roi), tension);
+        vv_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(roi), rr_p_tf(roi), vv_p_tm(roi), tension);
     
         % deform images to midpoint time
         ini_tm = imwarp(ini_ti, -0.5*cat(3, uu_i_ti, vv_i_ti), 'cubic', 'FillValues', 0);

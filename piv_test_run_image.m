@@ -14,10 +14,10 @@ function [] = piv_test_run_image(force)
 %% parameters
 
 % image parameters
-tform = [1, 0.05, 0;  
-         0,    1, 0];
-bnd_mean = 0.9;
-bnd_ampl = 0;
+tform = [1,       0, 0;  
+         0.05,    1, 0];
+bnd_mean = 0.7;
+bnd_ampl = 0.2;
 bnd_freq = 1;
 
 % piv parameters
