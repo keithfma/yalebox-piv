@@ -111,17 +111,19 @@ numberOfOverlapMaskedPixels = numberOfOverlapMaskedPixels(1:combinedSize(1),1:co
 %-----------------------------------------------------------------------------
 function [fixedImage, movingImage, fixedMask, movingMask] = ParseInputs(varargin)
 
-iptchecknargin(4,4,nargin,mfilename)
+narginchk(4,4);
 
 fixedImage = varargin{1};
 movingImage = varargin{2};
 fixedMask = varargin{3};
 movingMask = varargin{4};
 
-iptcheckinput(fixedImage,{'logical','numeric'},{'real','nonsparse','2d','finite'},mfilename,'fixedImage',1)
-iptcheckinput(movingImage,{'logical','numeric'},{'real','nonsparse','2d','finite'},mfilename,'movingImage',2)
-iptcheckinput(fixedMask,{'logical','numeric'},{'real','nonsparse','2d','finite'},mfilename,'fixedMask',3)
-iptcheckinput(movingMask,{'logical','numeric'},{'real','nonsparse','2d','finite'},mfilename,'movingMask',4)
+classes = {'logical','numeric'}; 
+attributes = {'real','nonsparse','2d','finite'};
+validateattributes(fixedImage, classes, attributes, mfilename, 'fixedImage');
+validateattributes(movingImage, classes, attributes, mfilename, 'movingImage');
+validateattributes(fixedMask, classes, attributes, mfilename, 'fixedMask');
+validateattributes(movingMask, classes, attributes, mfilename, 'movingMask');
 
 % If either fixedImage or movingImage has a minimum value which is negative, we
 % need to shift the array so all values are positive to ensure numerically
