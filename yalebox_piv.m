@@ -146,6 +146,36 @@ for pp = 1:np
         cc_c_tm(kk) = c_samp_cntr + 0.5*uu_c_tm(kk);
         rr_c_tm(kk) = r_samp_cntr + 0.5*vv_c_tm(kk);
         
+%         % debug: plot correlation plane {        
+%         subplot(2, 2, 1)
+%         hold off        
+%         imagesc(xcr); 
+%         colormap(gca, 'parula');
+%         hold on
+%         plot( get(gca, 'XLim'), [rpeak, rpeak], ':k');
+%         plot( [cpeak, cpeak], get(gca, 'YLim'), ':k');
+%         
+%         subplot(2, 2, 2)
+%         hold off        
+%         imagesc(xcr);
+%         colormap(gca, 'parula');
+%         hold on        
+%         contour(xcr, '-k')
+%         plot( get(gca, 'XLim'), [rpeak, rpeak], ':k');
+%         plot( [cpeak, cpeak], get(gca, 'YLim'), ':k');
+%         set(gca, 'Xlim', [cpeak-5, cpeak+5], 'YLim', [rpeak-5, rpeak+5]);
+%         
+%         subplot(2, 2, 3:4)
+%         hold off
+%         imagesc(ini_tm);
+%         colormap(gca, 'gray');
+%         hold on
+%         plot( get(gca, 'XLim'), [rr_p_tm(kk), rr_p_tm(kk)], '-r');
+%         plot( [cc_p_tm(kk), cc_p_tm(kk)], get(gca, 'YLim'), '-r');
+%         
+%         pause
+%         % } debug
+        
     end 
     
     try
