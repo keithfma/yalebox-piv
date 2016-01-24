@@ -93,15 +93,26 @@ clear F
 [xx, yy, uu, vv] = yalebox_piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
     sampspc, intrlen, npass, valid_max, valid_eps, 1);
 
-% compute exact solution at output grid points
+% compute exact solution at midpoint time...
+
+%... deform initial grid
 [xgrid, ygrid] = meshgrid(xx, yy);
 [xgrid_defm, ygrid_defm] = piv_test_util_transform(tform, xgrid(:), ygrid(:), 1);
 xgrid_defm = reshape(xgrid_defm, size(uu));
 ygrid_defm = reshape(ygrid_defm, size(uu));
 
-uu_exact = xgrid_defm-xgrid;
-vv_exact = ygrid_defm-ygrid;
+%... get displacements and thier location at midpoint time
+u_tm = xgrid_defm-xgrid;
+v_tm = ygrid_defm-ygrid;
+x_tm = 0.5*(xgrid_defm+xgrid);
+y_tm = 0.5*(ygrid_defm+ygrid);
 
+% ... interpolate/extrapolate to image grid at midpoint time
+uu_exact = nan(size(xgrid));
+uu_exact(:) = spline2d(x_tm(:), y_tm(:), xgrid(:), ygrid(:), u_tm(:), 0.95);
+vv_exact = nan(size(xgrid));
+vv_exact(:) = spline2d(x_tm(:), y_tm(:), xgrid(:), ygrid(:), v_tm(:), 0.95);
+    
 % compute errors
 uu_error = uu-uu_exact;
 vv_error = vv-vv_exact;
