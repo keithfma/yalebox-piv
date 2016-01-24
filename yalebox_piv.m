@@ -94,8 +94,11 @@ ini_tm = ini_ti;
 fin_tm = fin_tf;
 
 % % multipass loop
-np = length(samplen)-1; 
+np = length(samplen); 
+counter = 0;
 for pp = 1:np
+    
+    counter = counter+1;
     
     % reset per-pass variables
     sz = size(cc_p_tm);
@@ -242,6 +245,8 @@ for pp = 1:np
         keyboard
     end
     
+    
+    fprintf('THIS WAS PASS #%i\n', counter);
 end   
 % end multipass loop
 
@@ -279,11 +284,6 @@ for ii = 1:length(np)
    ilen_ex = [ilen_ex, repmat(ilen(ii), 1, np(ii))]; %#ok!
    sspc_ex = [sspc_ex, repmat(sspc(ii), 1, np(ii))]; %#ok!
 end
-
-% repeat the last element to simplify interpolation code for the final pass
-slen_ex(end+1) = slen_ex(end);
-ilen_ex(end+1) = ilen_ex(end);
-sspc_ex(end+1) = sspc_ex(end);
 
 end
 
