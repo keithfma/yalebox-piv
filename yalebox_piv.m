@@ -145,29 +145,34 @@ for pp = 1:np
         
     end 
     
-    % interpolate corrector points to predictor grid, update predictor 
+    try
+    
+    % interpolate corrector points to predictor grid, points outside roi remain NaN
+    fprintf('A\n');
     from = ~isnan(uu_c_tm); 
     to = roi;
     uu_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), uu_c_tm(from), tension);
     vv_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), vv_c_tm(from), tension);    
     
-    % update predictor
-    uu_p_tm(~roi) = NaN;
-    vv_p_tm(~roi) = NaN;
-    uu_p_tm(roi) = uu_p_tm(roi) + uu_c_tm(roi);
-    vv_p_tm(roi) = vv_p_tm(roi) + vv_c_tm(roi);
+    % update predictor, points outside roi become NaN
+    uu_p_tm = uu_p_tm + uu_c_tm;
+    vv_p_tm = vv_p_tm + vv_c_tm;
     
-    % validate predictor vectors (invalid -> NaN)
+    % validate predictor vectors, invalid vectors are set to NaN
     [uu_p_tm, vv_p_tm] = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, 8, valid_max, valid_eps);    
     
-    % interpolate/extrapolate invalid displacement vectors
+    % interpolate/extrapolate invalid predictor vectors
+    fprintf('B\n');
     from = ~isnan(uu_p_tm);
     to = roi & isnan(uu_p_tm);
-    uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
-    vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
+    if any(to(:))
+        uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
+        vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
+    end
     
-    % smooth predictors, 3x3 kernel smoother, with NaNs to delete points affected
-    % ...by the boundary.
+    % smooth predictors, 3x3 kernel smoother...
+    % % NaNs at all roi boundaries propagate inward to all points affected by
+    % % the bounday
     uu_p_tm = padarray(uu_p_tm, [1 1], NaN, 'both');    
     vv_p_tm = padarray(vv_p_tm, [1 1], NaN, 'both');        
     kernel = fspecial('average', 3);    
@@ -176,31 +181,27 @@ for pp = 1:np
     uu_p_tm = uu_p_tm(2:end-1, 2:end-1);
     vv_p_tm = vv_p_tm(2:end-1, 2:end-1);
     
-    % get new sample grid, if resolution changes for next pass
-    if (samplen(pp) ~= samplen(pp+1)) || (sampspc(pp) ~= sampspc(pp+1)) 
-        [rvec, cvec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
-        [cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);     
-    end
-    
-    % PROBLEM HERE FOR MULTIRES MULTIPASS
-    
-    % interpolate/extrapolate to (new) predictor grid roi, restores any values lost
-    % ...in smoothing , and updates the grid resolution if it has changed.
+    % interpolate/extrapolate points lost in smoothing
+    fprintf('C\n');
     from = ~isnan(uu_p_tm);
     to = roi;    
     uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
     vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
     
-    % interpolate/extrapolate displacement predictor to image resolution at
-    % initial and final time
+    
+    % prepare for next pass
     if pp < np
         
+        % part 1: interpolate predictor to image res at initial and final time
+            
         % propagate points to initial and final time, then re-grid to image resolution
+        fprintf('D\n');
         cc_p_ti = cc_p_tm-0.5*uu_p_tm;
         rr_p_ti = rr_p_tm-0.5*vv_p_tm;
         uu_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), uu_p_tm(roi), tension);
         vv_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), vv_p_tm(roi), tension);
         
+        fprintf('E\n');
         cc_p_tf = cc_p_tm+0.5*uu_p_tm;
         rr_p_tf = rr_p_tm+0.5*vv_p_tm;
         uu_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(roi), rr_p_tf(roi), uu_p_tm(roi), tension);
@@ -219,6 +220,26 @@ for pp = 1:np
         fin_roi_tm = abs(tmp-1) < roi_epsilon;
         fin_tm(~fin_roi_tm) = 0;
         
+        % part 2: get new coordinate and predictor grids if resolution changes
+        % in next pass
+        
+        if (samplen(pp) ~= samplen(pp+1)) || (sampspc(pp) ~= sampspc(pp+1))
+            
+            [rvec, cvec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
+            [cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);
+            
+            fprintf('F\n');
+            from = ~isnan(uu_p_tm);
+            uu_p_tm = spline2d(cc_p_tm(:), rr_p_tm(:), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
+            vv_p_tm = spline2d(cc_p_tm(:), rr_p_tm(:), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
+            uu_p_tm = reshape(uu_p_tm, size(cc_p_tm));
+            vv_p_tm = reshape(vv_p_tm, size(cc_p_tm));           
+        end        
+    end
+    
+    catch err
+        fprintf(getReport(err));
+        keyboard
     end
     
 end   
