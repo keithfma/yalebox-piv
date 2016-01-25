@@ -1,17 +1,18 @@
-function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
-% function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
+function [uu, vv] = yalebox_piv_valid_nmed(uu, vv, num_nbr, max_norm_res, epsilon)
+% function [uu, vv] = yalebox_piv_valid_nmed(uu, vv, max_norm_res, epsilon)
 %
 % Validate the displacement vector field using a normalized median test with a
-% nnbr-point neighborhood. Neighborhood includes nearest nnbr non-NaN points to
-% account for domain edges. See reference [1] for details.
+% num_nbr-point neighborhood. Neighborhood includes nearest num_nbr non-NaN
+% points to account for domain edges. Invalidated points are set to NaN. See
+% reference [1] for details.
 %
 % Arguments:
 %
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
 %
-%   roi = 2D matrix, true/false flag indicating if the grid point is inside the
-%       ROI or not.
+%   num_nbr = Scalar integer, number of nearest non-NaN neighbors to include in
+%       test, default value is 8
 %
 %   max_norm_res = Scalar, double, maximum value for the normalized residual,
 %       above which a vector is flagged as invalid. Reference [1] reccomends a
@@ -20,26 +21,29 @@ function valid = yalebox_piv_valid_nmed(uu, vv, roi, max_norm_res, epsilon)
 %   epsilon = Scalar, double, minumum value of the normalization factor.
 %       Reference [1] recommends a value of 0.1.
 %
-%   valid = 2D matrix, logical, flags identifying all valid vectors as 1
-%
-%
 % References: 
 %
 % [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 % data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
 % define parameters
-nnbr = 24; % number of nearest non-NaN neighbors to include in test
+default_num_nbr = 8;
 default_max_norm_res = 2;
 default_epsilon = 0.1; 
 
 % set defaults
-if nargin < 4; max_norm_res = default_max_norm_res; end
-if nargin < 5; epsilon = default_epsilon; end 
+if nargin < 3
+    num_nbr = default_num_nbr;
+end
+if nargin < 4; 
+    max_norm_res = default_max_norm_res; 
+end
+if nargin < 5; 
+    epsilon = default_epsilon; 
+end 
 
 % init
 [nr, nc] = size(uu);
-valid = true(nr, nc);
 
 % get offsets to neighbors sorted by distance to the central point
 %... 7x7 neighborhood without central point
@@ -59,8 +63,8 @@ coffset = coffset(sort_ind);
 for ii = 1:nr
     for jj = 1:nc
         
-        % skip if center point is outside the roi
-        if ~roi(ii,jj)
+        % skip if center point is already invalidated
+        if isnan(uu(ii,jj)) || isnan(vv(ii,jj))
             continue
         end
         
@@ -76,17 +80,17 @@ for ii = 1:nr
         cnbr = cnbr(keep_ind);        
         knbr = rnbr+(cnbr-1)*nr;
         
-        % extract neighbors, keep only the nnbr nearest non-NaN values        
+        % extract neighbors, keep only the num_nbr nearest non-NaN values        
         unbr = uu(knbr);
         vnbr = vv(knbr);
         %... drop NaNs
         keep_ind = ~isnan(unbr) & ~isnan(vnbr);
         unbr = unbr(keep_ind);
         vnbr = vnbr(keep_ind);
-        %... keep nearest nnbr points 
-        if nnbr < length(unbr)
-            unbr = unbr(1:nnbr);
-            vnbr = vnbr(1:nnbr);
+        %... keep nearest num_nbr points 
+        if num_nbr < length(unbr)
+            unbr = unbr(1:num_nbr);
+            vnbr = vnbr(1:num_nbr);
         end
         
         % compute neighbor median, residual, and median residual 
@@ -105,10 +109,11 @@ for ii = 1:nr
         % combine vector components (max or sum)
         norm_res = max(norm_res_u0, norm_res_v0);
         
-        % classify as valid or invalid
-        valid(ii, jj) = norm_res <= max_norm_res;
+        % set invalid points to NaN
+        if norm_res > max_norm_res
+            uu(ii,jj) = NaN;
+            vv(ii,jj) = NaN;
+        end
         
     end
-end
-
 end

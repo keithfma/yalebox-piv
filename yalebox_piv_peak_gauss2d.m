@@ -1,5 +1,5 @@
-function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
-% function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
+function [rpk, cpk, val] = yalebox_piv_peak_gauss2d(zz)
+% function [rpk, cpk, val] = yalebox_piv_peak_gauss2d(zz)
 %
 % Find the position of the peak in matrix zz with subpixel accuracy. Peak
 % location is determined from an explicit solution of two-dimensional
@@ -19,9 +19,6 @@ function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
 %
 %   val = Scalar, double, peak value from the best-fit gaussian
 %
-%   stat = Logical, scalar, return status flag, true if successful, false if
-%       unsuccessful
-%
 % References:
 %
 % [1] Nobach, H., & Honkanen, M. (2005). Two-dimensional Gaussian regression for
@@ -31,29 +28,28 @@ function [rpk, cpk, val, stat] = yalebox_piv_peak_gauss2d(zz)
 
 [rpk, cpk] = find(zz == max(zz(:)));
 
-% check failure conditions
-%   1-2) no unique maximum
-%   3-6) peak at the edge of the matrix
-stat = true;
-if numel(rpk) ~= 1 || numel(cpk) ~= 1 ...
-        || rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)        
-    rpk = [];
-    cpk = [];
-    val = [];
-    stat = false;
+% fail if no unique maximum
+if numel(rpk) ~= 1 || numel(cpk) ~= 1 
+    [rpk, cpk, val] = fail();
     return
 end
-    
+
+% fail if peak is at the edge of the matrix
+if rpk == 1 || rpk == size(zz, 1) || cpk == 1 || cpk == size(zz,2)
+    [rpk, cpk, val] = fail();
+    return
+end
+
 % offset to eliminate non-positive (gaussian is always positive)
-offset = min(zz(:)); 
+offset = min(zz(:));
 zz = zz-offset+eps;
 
-% compute coefficients 
-c10 = 0; 
-c01 = 0; 
-c11 = 0; 
-c20 = 0; 
-c02 = 0; 
+% compute coefficients
+c10 = 0;
+c01 = 0;
+c11 = 0;
+c20 = 0;
+c02 = 0;
 c00 = 0;
 for ii = -1:1
     for jj = -1:1
@@ -66,7 +62,7 @@ for ii = -1:1
         c00 = c00 + (5-3*ii^2-3*jj^2)*logterm/9;
     end
 end
-                     
+
 % compute sub-pixel displacement
 dr = ( c11*c10-2*c01*c20 )/( 4*c20*c02 - c11^2 );
 dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
@@ -74,16 +70,24 @@ dc = ( c11*c01-2*c10*c02 )/( 4*c20*c02 - c11^2 );
 % compute peak value
 val = exp( c00-c20*dc^2-c11*dc*dr-c02*dr^2 )+offset;
 
+% fail if subpixel fit erroneously large
+if abs(dr) >= 1 || abs(dc) >= 1
+    [rpk, cpk, val] = fail();
+end
+
 % apply subpixel displacement
-if abs(dr) < 1 && abs(dc) < 1
-    % subpixel estimation worked, there is a nice peak
-    rpk = rpk+dr;
-    cpk = cpk+dc;
+rpk = rpk+dr;
+cpk = cpk+dc;
     
-else
-    % subpixel estimation failed, the peak is ugly and the displacement derived from it will stink
-    rpk = [];
-    cpk = [];
-    val = [];
-    stat = false;
+end
+
+function [rr, cc, vv, ss] = fail()
+% Set output values and throw a warning if the main function fails to find the
+% subpixel peak.
+
+    warning('Failed to find subpixel peak');
+    rr = NaN;
+    cc = NaN;
+    vv = NaN;
+    
 end
