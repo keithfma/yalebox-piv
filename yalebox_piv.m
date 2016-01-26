@@ -180,12 +180,22 @@ for pp = 1:np
     
     try
     
+    % Problem: corrector grid is noisy at this point
+    figure(1)
+    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
+    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
+        
     % interpolate corrector points to predictor grid, points outside roi remain NaN
     fprintf('A\n');
     from = ~isnan(uu_c_tm); 
     to = roi;
     uu_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), uu_c_tm(from), tension);
     vv_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), vv_c_tm(from), tension);    
+    
+    % Problem: interpolation from noisy points looks terrible 
+    figure(2)
+    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
+    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
     
     % update predictor, points outside roi become NaN
     uu_p_tm = uu_p_tm + uu_c_tm;

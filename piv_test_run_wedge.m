@@ -13,11 +13,11 @@ function [] = piv_test_run_wedge(force)
 
 % piv parameters
 samplen = 30;
-sampspc = 30;
+sampspc = 15;
 intrlen = 120;
 npass = 1;
 valid_max = 2;
-valid_eps = 0.01;
+valid_eps = 0.1;
 
 % image parameters
 dir_name = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/image/crop_sidef/';
