@@ -184,7 +184,14 @@ for pp = 1:np
     figure(1)
     subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
     subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
-        
+    
+    % Solution: validate corrector before interpolating to predictor grid
+    [uu_c_tm, vv_c_tm] = yalebox_piv_valid_nmed(uu_c_tm, vv_c_tm, 8, valid_max, valid_eps);    
+    
+    figure(2)
+    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
+    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
+    
     % interpolate corrector points to predictor grid, points outside roi remain NaN
     fprintf('A\n');
     from = ~isnan(uu_c_tm); 
@@ -193,7 +200,7 @@ for pp = 1:np
     vv_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), vv_c_tm(from), tension);    
     
     % Problem: interpolation from noisy points looks terrible 
-    figure(2)
+    figure(3)
     subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
     subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
     
@@ -201,17 +208,17 @@ for pp = 1:np
     uu_p_tm = uu_p_tm + uu_c_tm;
     vv_p_tm = vv_p_tm + vv_c_tm;
     
-    % validate predictor vectors, invalid vectors are set to NaN
-    [uu_p_tm, vv_p_tm] = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, 8, valid_max, valid_eps);    
-    
-    % interpolate/extrapolate invalid predictor vectors
-    fprintf('B\n');
-    from = ~isnan(uu_p_tm);
-    to = roi & isnan(uu_p_tm);
-    if any(to(:))
-        uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
-        vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
-    end
+%     % validate predictor vectors, invalid vectors are set to NaN
+%     [uu_p_tm, vv_p_tm] = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, 8, valid_max, valid_eps);    
+%     
+%     % interpolate/extrapolate invalid predictor vectors
+%     fprintf('B\n');
+%     from = ~isnan(uu_p_tm);
+%     to = roi & isnan(uu_p_tm);
+%     if any(to(:))
+%         uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
+%         vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
+%     end
     
     % smooth predictors, 3x3 kernel smoother...
     % % NaNs at all roi boundaries propagate inward to all points affected by
@@ -224,6 +231,11 @@ for pp = 1:np
     uu_p_tm = uu_p_tm(2:end-1, 2:end-1);
     vv_p_tm = vv_p_tm(2:end-1, 2:end-1);
     
+    % Problem: interpolation from noisy points looks terrible
+    figure(4)
+    subplot(1,2,1); imagesc(uu_p_tm); caxis([-40, -5])
+    subplot(1,2,2); imagesc(vv_p_tm); caxis([-3, 3])
+    
     % interpolate/extrapolate points lost in smoothing
     fprintf('C\n');
     from = ~isnan(uu_p_tm);
@@ -231,7 +243,11 @@ for pp = 1:np
     uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
     vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
     
-    
+    % Problem: interpolation from noisy points looks terrible
+    figure(5)
+    subplot(1,2,1); imagesc(uu_p_tm); caxis([-40, -5])
+    subplot(1,2,2); imagesc(vv_p_tm); caxis([-3, 3])
+
     % prepare for next pass
     if pp < np
         
