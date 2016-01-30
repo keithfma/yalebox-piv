@@ -15,7 +15,7 @@ function [] = piv_test_run_wedge(force)
 samplen = 30;
 sampspc = 15;
 intrlen = 120;
-npass = 1;
+npass = 3;
 valid_max = 2;
 valid_eps = 0.1;
 

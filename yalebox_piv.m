@@ -58,6 +58,16 @@ function [xx, yy, uu, vv] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
+% variable naming scheme key
+%
+% ti = time of the initial image
+% tm = midpoint between initial and final images
+% tf = time of the final image
+%
+% grd = regular sample grid
+% pts = irregularly spaced points
+% img = regular grid at image resolution
+
 % local parameters
 min_frac_data = 0.5;
 min_frac_overlap = min_frac_data/2;
@@ -72,22 +82,22 @@ check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, in
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init coordinate grids
-[rvec, cvec] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
-[cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);
-[cc_i, rr_i] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
+[r_vec, c_vec] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
+[c_grd, r_grd] = meshgrid(c_vec, r_vec);
+[c_img, r_img] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
 
 % init displacement matrices
-sz = size(cc_p_tm);
-uu_p_tm = zeros(sz); 
-vv_p_tm = zeros(sz); 
-uu_c_tm = zeros(sz); 
-vv_c_tm = zeros(sz); 
+sz = size(c_grd);
+u_grd_tm = zeros(sz); 
+v_grd_tm = zeros(sz); 
+du_pts_tm = zeros(sz); 
+dv_pts_tm = zeros(sz); 
 
 sz = size(ini_ti);
-uu_i_ti = zeros(sz);
-vv_i_ti = zeros(sz);
-uu_i_tf = zeros(sz);
-vv_i_tf = zeros(sz);
+u_img_ti = zeros(sz);
+v_img_ti = zeros(sz);
+u_img_tf = zeros(sz);
+v_img_tf = zeros(sz);
 
 % init deformed images
 ini_tm = ini_ti;
@@ -101,30 +111,32 @@ for pp = 1:np
     counter = counter+1;
     
     % reset per-pass variables
-    sz = size(cc_p_tm);
-    cc_c_tm = zeros(sz);
-    rr_c_tm = zeros(sz);
-    uu_c_tm = nan(sz);
-    vv_c_tm = nan(sz);
+    sz = size(c_grd);
+    c_pts = zeros(sz);
+    r_pts = zeros(sz);    
+    du_pts_tm = nan(sz);
+    dv_pts_tm = nan(sz);
+    du_grd_tm = nan(sz);
+    dv_grd_tm = nan(sz);    
     roi = true(sz);
     min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
     
     % get corrector displacements on the predictor grid
-    for kk = 1:numel(uu_c_tm)
+    for kk = 1:numel(du_pts_tm)
             
         % get sample window and its centroid location
         [samp, samp_pos, frac_data, r_samp_cntr, c_samp_cntr] = ...
-            yalebox_piv_window(ini_tm, rr_p_tm(kk), cc_p_tm(kk), samplen(pp));
+            yalebox_piv_window(ini_tm, r_grd(kk), c_grd(kk), samplen(pp));
         
         % get interrogation window
         [intr, intr_pos] = ...
-            yalebox_piv_window(fin_tm, rr_p_tm(kk), cc_p_tm(kk), intrlen(pp));
+            yalebox_piv_window(fin_tm, r_grd(kk), c_grd(kk), intrlen(pp));
         
         % skip if sample window is too empty
         if frac_data < min_frac_data
             roi(kk) = false;
-            uu_c_tm(kk) = NaN;
-            vv_c_tm(kk) = NaN;
+            du_pts_tm(kk) = NaN;
+            dv_pts_tm(kk) = NaN;
             continue
         end
         
@@ -139,143 +151,77 @@ for pp = 1:np
         %   - account for padding in cross-correlation (-samplen(gg))
         %   - account for relative position of interogation and sample
         %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-        uu_c_tm(kk) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
-        vv_c_tm(kk) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
+        du_pts_tm(kk) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
+        dv_pts_tm(kk) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
         
         % compute location of this observation at midpoint time
-        cc_c_tm(kk) = c_samp_cntr + 0.5*uu_c_tm(kk);
-        rr_c_tm(kk) = r_samp_cntr + 0.5*vv_c_tm(kk);
-        
-%         % debug: plot correlation plane {        
-%         subplot(2, 2, 1)
-%         hold off        
-%         imagesc(xcr); 
-%         colormap(gca, 'parula');
-%         hold on
-%         plot( get(gca, 'XLim'), [rpeak, rpeak], ':k');
-%         plot( [cpeak, cpeak], get(gca, 'YLim'), ':k');
-%         
-%         subplot(2, 2, 2)
-%         hold off        
-%         imagesc(xcr);
-%         colormap(gca, 'parula');
-%         hold on        
-%         contour(xcr, '-k')
-%         plot( get(gca, 'XLim'), [rpeak, rpeak], ':k');
-%         plot( [cpeak, cpeak], get(gca, 'YLim'), ':k');
-%         set(gca, 'Xlim', [cpeak-5, cpeak+5], 'YLim', [rpeak-5, rpeak+5]);
-%         
-%         subplot(2, 2, 3:4)
-%         hold off
-%         imagesc(ini_tm);
-%         colormap(gca, 'gray');
-%         hold on
-%         plot( get(gca, 'XLim'), [rr_p_tm(kk), rr_p_tm(kk)], '-r');
-%         plot( [cc_p_tm(kk), cc_p_tm(kk)], get(gca, 'YLim'), '-r');
-%         
-%         pause
-%         % } debug
-        
+        c_pts(kk) = c_samp_cntr + 0.5*du_pts_tm(kk);
+        r_pts(kk) = r_samp_cntr + 0.5*dv_pts_tm(kk);
+                
     end 
     
     try
+        
+    % NOTE: VALIDATION FALSELY ASSUMES A GRID...
+    % NOTE: WOULD BE NICE TO SMOOTH PRIOR TO GRIDDING...
     
-    % Problem: corrector grid is noisy at this point
-    figure(1)
-    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
-    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
+    % validate dislacement updates 
+    [du_pts_tm, dv_pts_tm] = yalebox_piv_valid_nmed(du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps);    
     
-    % Solution: validate corrector before interpolating to predictor grid
-    [uu_c_tm, vv_c_tm] = yalebox_piv_valid_nmed(uu_c_tm, vv_c_tm, 8, valid_max, valid_eps);    
-    
-    figure(2)
-    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
-    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
-    
-    % interpolate corrector points to predictor grid, points outside roi remain NaN
-    fprintf('A\n');
-    from = ~isnan(uu_c_tm); 
+    % interpolate displacement update to sample grid, points outside roi remain NaN
+    from = ~isnan(du_pts_tm); 
     to = roi;
-    uu_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), uu_c_tm(from), tension);
-    vv_c_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_c_tm(from), rr_c_tm(from), vv_c_tm(from), tension);    
+    du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
+    dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
+        
+    % update displacement, points outside roi become NaN
+    u_grd_tm = u_grd_tm + du_grd_tm;
+    v_grd_tm = v_grd_tm + dv_grd_tm;
     
-    % Problem: interpolation from noisy points looks terrible 
-    figure(3)
-    subplot(1,2,1); imagesc(uu_c_tm); caxis([-40, -5])
-    subplot(1,2,2); imagesc(vv_c_tm); caxis([-3, 3])
-    
-    % update predictor, points outside roi become NaN
-    uu_p_tm = uu_p_tm + uu_c_tm;
-    vv_p_tm = vv_p_tm + vv_c_tm;
-    
-%     % validate predictor vectors, invalid vectors are set to NaN
-%     [uu_p_tm, vv_p_tm] = yalebox_piv_valid_nmed(uu_p_tm, vv_p_tm, 8, valid_max, valid_eps);    
-%     
-%     % interpolate/extrapolate invalid predictor vectors
-%     fprintf('B\n');
-%     from = ~isnan(uu_p_tm);
-%     to = roi & isnan(uu_p_tm);
-%     if any(to(:))
-%         uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
-%         vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
-%     end
+    % NOTE: could make better use of the edge data by accounting for
+    % displacement by the smoothing kernel.
     
     % smooth predictors, 3x3 kernel smoother...
     % % NaNs at all roi boundaries propagate inward to all points affected by
     % % the bounday
-    uu_p_tm = padarray(uu_p_tm, [1 1], NaN, 'both');    
-    vv_p_tm = padarray(vv_p_tm, [1 1], NaN, 'both');        
+    u_grd_tm = padarray(u_grd_tm, [1 1], NaN, 'both');    
+    v_grd_tm = padarray(v_grd_tm, [1 1], NaN, 'both');        
     kernel = fspecial('average', 3);    
-    uu_p_tm = conv2(uu_p_tm, kernel, 'same');
-    vv_p_tm = conv2(vv_p_tm, kernel, 'same');    
-    uu_p_tm = uu_p_tm(2:end-1, 2:end-1);
-    vv_p_tm = vv_p_tm(2:end-1, 2:end-1);
-    
-    % Problem: interpolation from noisy points looks terrible
-    figure(4)
-    subplot(1,2,1); imagesc(uu_p_tm); caxis([-40, -5])
-    subplot(1,2,2); imagesc(vv_p_tm); caxis([-3, 3])
+    u_grd_tm = conv2(u_grd_tm, kernel, 'same');
+    v_grd_tm = conv2(v_grd_tm, kernel, 'same');    
+    u_grd_tm = u_grd_tm(2:end-1, 2:end-1);
+    v_grd_tm = v_grd_tm(2:end-1, 2:end-1);
     
     % interpolate/extrapolate points lost in smoothing
-    fprintf('C\n');
-    from = ~isnan(uu_p_tm);
+    from = ~isnan(u_grd_tm);
     to = roi;    
-    uu_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
-    vv_p_tm(to) = spline2d(cc_p_tm(to), rr_p_tm(to), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
-    
-    % Problem: interpolation from noisy points looks terrible
-    figure(5)
-    subplot(1,2,1); imagesc(uu_p_tm); caxis([-40, -5])
-    subplot(1,2,2); imagesc(vv_p_tm); caxis([-3, 3])
+    u_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), u_grd_tm(from), tension);
+    v_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), v_grd_tm(from), tension);
 
     % prepare for next pass
     if pp < np
+           
+        % propagate grid to initial and final time, then re-grid to image resolution
+        c_pts = c_grd - 0.5*u_grd_tm;
+        r_pts = r_grd - 0.5*v_grd_tm;        
+        u_img_ti(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), u_grd_tm(roi), tension);
+        v_img_ti(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), v_grd_tm(roi), tension);
         
-        % part 1: interpolate predictor to image res at initial and final time
-            
-        % propagate points to initial and final time, then re-grid to image resolution
-        fprintf('D\n');
-        cc_p_ti = cc_p_tm-0.5*uu_p_tm;
-        rr_p_ti = rr_p_tm-0.5*vv_p_tm;
-        uu_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), uu_p_tm(roi), tension);
-        vv_i_ti(:) = spline2d(cc_i(:), rr_i(:), cc_p_ti(roi), rr_p_ti(roi), vv_p_tm(roi), tension);
+        c_pts = c_grd + 0.5*u_grd_tm;
+        r_pts = r_grd + 0.5*v_grd_tm;        
+        u_img_tf(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), u_grd_tm(roi), tension);
+        v_img_tf(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), v_grd_tm(roi), tension);
         
-        fprintf('E\n');
-        cc_p_tf = cc_p_tm+0.5*uu_p_tm;
-        rr_p_tf = rr_p_tm+0.5*vv_p_tm;
-        uu_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(roi), rr_p_tf(roi), uu_p_tm(roi), tension);
-        vv_i_tf(:) = spline2d(cc_i(:), rr_i(:), cc_p_tf(roi), rr_p_tf(roi), vv_p_tm(roi), tension);
-    
         % deform images to midpoint time
-        ini_tm = imwarp(ini_ti, -0.5*cat(3, uu_i_ti, vv_i_ti), 'cubic', 'FillValues', 0);
-        fin_tm = imwarp(fin_tf,  0.5*cat(3, uu_i_tf, vv_i_tf), 'cubic', 'FillValues', 0);
+        ini_tm = imwarp(ini_ti, -0.5*cat(3, u_img_ti, v_img_ti), 'cubic', 'FillValues', 0);
+        fin_tm = imwarp(fin_tf,  0.5*cat(3, u_img_tf, v_img_tf), 'cubic', 'FillValues', 0);
         
         % deform roi masks to midpoint time, re-apply to clean up warping edge artefacts
-        tmp = imwarp(double(ini_roi_ti), -0.5*cat(3, uu_i_ti, vv_i_ti), 'cubic', 'FillValues', 0);
+        tmp = imwarp(double(ini_roi_ti), -0.5*cat(3, u_img_ti, v_img_ti), 'cubic', 'FillValues', 0);
         ini_roi_tm = abs(tmp-1) < roi_epsilon;
         ini_tm(~ini_roi_tm) = 0;
         
-        tmp = imwarp(double(fin_roi_tf), 0.5*cat(3, uu_i_tf, vv_i_tf), 'cubic', 'FillValues', 0);
+        tmp = imwarp(double(fin_roi_tf), 0.5*cat(3, u_img_tf, v_img_tf), 'cubic', 'FillValues', 0);
         fin_roi_tm = abs(tmp-1) < roi_epsilon;
         fin_tm(~fin_roi_tm) = 0;
         
@@ -284,15 +230,16 @@ for pp = 1:np
         
         if (samplen(pp) ~= samplen(pp+1)) || (sampspc(pp) ~= sampspc(pp+1))
             
-            [rvec, cvec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
-            [cc_p_tm, rr_p_tm] = meshgrid(cvec, rvec);
+            [r_vec, c_vec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
+            [c_grd, r_grd] = meshgrid(c_vec, r_vec);
             
             fprintf('F\n');
-            from = ~isnan(uu_p_tm);
-            uu_p_tm = spline2d(cc_p_tm(:), rr_p_tm(:), cc_p_tm(from), rr_p_tm(from), uu_p_tm(from), tension);
-            vv_p_tm = spline2d(cc_p_tm(:), rr_p_tm(:), cc_p_tm(from), rr_p_tm(from), vv_p_tm(from), tension);
-            uu_p_tm = reshape(uu_p_tm, size(cc_p_tm));
-            vv_p_tm = reshape(vv_p_tm, size(cc_p_tm));           
+            from = ~isnan(u_grd_tm);
+            u_grd_tm = spline2d(c_grd(:), r_grd(:), c_grd(from), r_grd(from), u_grd_tm(from), tension);
+            v_grd_tm = spline2d(c_grd(:), r_grd(:), c_grd(from), r_grd(from), v_grd_tm(from), tension);
+            
+            u_grd_tm = reshape(u_grd_tm, size(c_grd));
+            v_grd_tm = reshape(v_grd_tm, size(c_grd));           
         end        
     end
     
@@ -301,21 +248,22 @@ for pp = 1:np
         keyboard
     end
     
-    
     fprintf('THIS WAS PASS #%i\n', counter);
+    keyboard
 end   
 % end multipass loop
 
-uu = uu_p_tm;
-vv = vv_p_tm;
+% rename displacements
+uu = u_grd_tm;
+vv = v_grd_tm;
 
 % convert displacements to world coordinates 
 uu = uu.*(xx(2)-xx(1)); 
 vv = vv.*(yy(2)-yy(1));
 
 % interpolate world coordinates for displacement vectors
-xx = interp1(1:size(ini_ti,2), xx, cc_p_tm(1,:), 'linear', 'extrap');
-yy = interp1(1:size(ini_ti,1), yy, rr_p_tm(:,1), 'linear', 'extrap');
+xx = interp1(1:size(ini_ti,2), xx, c_grd(1,:), 'linear', 'extrap');
+yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
 
 end
 
