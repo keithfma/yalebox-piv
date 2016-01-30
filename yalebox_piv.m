@@ -200,17 +200,36 @@ for pp = 1:np
 
     % prepare for next pass
     if pp < np
-           
-        % propagate grid to initial and final time, then re-grid to image resolution
-        c_pts = c_grd - 0.5*u_grd_tm;
-        r_pts = r_grd - 0.5*v_grd_tm;        
-        u_img_ti(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), u_grd_tm(roi), tension);
-        v_img_ti(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), v_grd_tm(roi), tension);
         
-        c_pts = c_grd + 0.5*u_grd_tm;
-        r_pts = r_grd + 0.5*v_grd_tm;        
-        u_img_tf(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), u_grd_tm(roi), tension);
-        v_img_tf(:) = spline2d(c_img(:), r_img(:), c_pts(roi), r_pts(roi), v_grd_tm(roi), tension);
+        % extend sample grid to cover full image footprint, no need to be regular
+        c_vec_ext = [1; c_vec(:); c_img(1,end)];
+        r_vec_ext = [1; r_vec(:); r_img(end,1)];
+        [c_ext, r_ext] = meshgrid(c_vec_ext, r_vec_ext);
+        
+        % populate extended sample grid using tension splines        
+        from = ~isnan(u_grd_tm);
+        u_ext_tm = zeros(size(c_ext));
+        v_ext_tm = zeros(size(c_ext));
+        u_ext_tm(:) = spline2d(c_ext(:), r_ext(:), c_grd(from), r_grd(from), u_grd_tm(from), tension);
+        v_ext_tm(:) = spline2d(c_ext(:), r_ext(:), c_grd(from), r_grd(from), v_grd_tm(from), tension);
+
+        % re-grid to image resolution at initial time using cheaper interpolant
+        c_pts = c_ext - 0.5*u_ext_tm;
+        r_pts = r_ext - 0.5*v_ext_tm;        
+        
+        interpolant = scatteredInterpolant(c_pts(:), r_pts(:), u_ext_tm(:), 'natural', 'linear');
+        u_img_ti = interpolant(c_img, r_img);
+        interpolant.Values = v_ext_tm(:);
+        v_img_ti = interpolant(c_img, r_img);
+        
+        % re-grid to image resolution at initial time using cheaper interpolant
+        c_pts = c_ext + 0.5*u_ext_tm;
+        r_pts = r_ext + 0.5*v_ext_tm;        
+        
+        interpolant = scatteredInterpolant(c_pts(:), r_pts(:), u_ext_tm(:), 'natural', 'linear');
+        u_img_tf = interpolant(c_img, r_img);
+        interpolant.Values = v_ext_tm(:);
+        v_img_tf = interpolant(c_img, r_img);
         
         % deform images to midpoint time
         ini_tm = imwarp(ini_ti, -0.5*cat(3, u_img_ti, v_img_ti), 'cubic', 'FillValues', 0);
