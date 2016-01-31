@@ -103,12 +103,9 @@ v_img_tf = zeros(sz);
 ini_tm = ini_ti;
 fin_tm = fin_tf;
 
-% % multipass loop
+% multipass loop
 np = length(samplen); 
-counter = 0;
 for pp = 1:np
-    
-    counter = counter+1;
     
     % reset per-pass variables
     sz = size(c_grd);
@@ -159,10 +156,6 @@ for pp = 1:np
         r_pts(kk) = r_samp_cntr + 0.5*dv_pts_tm(kk);
                 
     end 
-    
-    try
-        
-    % NOTE: WOULD BE NICE TO SMOOTH PRIOR TO GRIDDING...
     
     % validate dislacement updates 
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, sampspc(pp)*2, valid_max, valid_eps);    
@@ -261,13 +254,6 @@ for pp = 1:np
         end        
     end
     
-    catch err
-        fprintf(getReport(err));
-        keyboard
-    end
-    
-    fprintf('THIS WAS PASS #%i\n', counter);
-    keyboard
 end   
 % end multipass loop
 
