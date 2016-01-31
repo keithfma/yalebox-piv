@@ -29,7 +29,7 @@ function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, radius, max_norm_res, 
 % data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
 % Debug parameters
-min_nbrs = 8;
+min_nbrs = 3;
 
 % % set defaults
 % if nargin < 3
@@ -46,13 +46,6 @@ min_nbrs = 8;
 outer_box_dist = radius;
 inner_box_dist = radius*sqrt(2)/2;
 radius_squared = radius^2;
-
-% % drop all NaNs
-% keep = ~isnan(uu) & ~isnan(vv);
-% uu = uu(keep);
-% vv = vv(keep);
-% cc = cc(keep);
-% rr = rr(keep);
 
 % loop over all points
 for kk = 1:numel(uu)
@@ -74,19 +67,8 @@ for kk = 1:numel(uu)
     unbr = uu(is_nbr);
     vnbr = vv(is_nbr);
  
-    % invalidate if point has too few neighbors (should not happen for smooth fields)
-    fprintf('num_nbrs = %i\n', numel(unbr));
-    
-%     figure(1); 
-%     hold off; 
-%     plot(cc, rr, '.k');  
-%     hold on; 
-%     plot(cc(is_nbr), rr(is_nbr), '.b');    
-%     plot(cc(kk), rr(kk), 'xr');    
-    
-    % NOTE: the count is incorrect since it includes NaNs
-    
-    if numel(unbr) < min_nbrs
+    % invalidate if point has too few neighbors (should not happen for smooth fields)    
+    if sum(~isnan(unbr)) < min_nbrs
         uu(kk) = NaN;
         vv(kk) = NaN;
         continue
