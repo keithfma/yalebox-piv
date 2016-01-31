@@ -45,7 +45,7 @@ function [z, l] = spline2d (x_out, y_out, arg_3, arg_4, arg_5, arg_6, arg_7, arg
 % spline2d_grad.c and spline2d_green.c into mex files and add in those underscores below in the calls.
 
 % Pick a reasonable(?) lengthscale
-verbose = 1;
+verbose = 0;
 
 IM = sqrt (-1);
 length_scale = abs (max(x_out(:)) - min(x_out(:)) + IM * (max(y_out(:)) - min(y_out(:)))) / 50;

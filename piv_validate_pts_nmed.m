@@ -1,14 +1,13 @@
-function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, radius, max_norm_res, epsilon)
+function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, radius, max_norm_res, epsilon, verbose)
 %
 % Validate the displacement vector field using a normalized median test
-% including all neighbors within a radius nbr_radius.  Invalidated points are
+% including all neighbors within a fixed radius.  Invalidated points are
 % set to NaN. See reference [1] for details.
 %
 % Arguments:
 %
-%   cc = 
-%
-%   rr = 
+%   cc, rr = 2D matrix, double, location of scattered points for displacement
+%       vectors.
 % 
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
@@ -23,24 +22,12 @@ function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, radius, max_norm_res, 
 %   epsilon = Scalar, double, minumum value of the normalization factor.
 %       Reference [1] recommends a value of 0.1.
 %
+%   verbose = Enable (1) or disable (2) verbose output
+%
 % References: 
 %
 % [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 % data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
-
-% local parameters
-verbose = true;
-
-% % set defaults
-% if nargin < 3
-%     nbr_radius = sqrt(2);
-% end
-% if nargin < 4; 
-%     max_norm_res = 2; 
-% end
-% if nargin < 5; 
-%     epsilon = 0.1; 
-% end 
 
 % precompute constants
 outer_box_dist = radius;
