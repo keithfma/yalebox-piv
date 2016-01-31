@@ -67,8 +67,9 @@ for kk = 1:numel(uu)
     unbr = uu(is_nbr);
     vnbr = vv(is_nbr);
  
-    % invalidate if point has too few neighbors (should not happen for smooth fields)    
-    if sum(~isnan(unbr)) < min_nbrs
+    % invalidate if point has too few neighbors 
+    % % need at least 3 degrees of freedom (median, residual median, +1)
+    if sum(~isnan(unbr)) < 3
         uu(kk) = NaN;
         vv(kk) = NaN;
         continue
