@@ -166,14 +166,17 @@ for pp = 1:np
     % NOTE: WOULD BE NICE TO SMOOTH PRIOR TO GRIDDING...
     
     % validate dislacement updates 
-    [du_pts_tm, dv_pts_tm] = yalebox_piv_valid_nmed(du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps);    
+    figure(1); imagesc(du_pts_tm); caxis([-40, -5])
+    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, sampspc(pp)*2.5, valid_max, 0.01); %valid_eps);    
+%     [du_pts_tm, dv_pts_tm] = yalebox_piv_valid_nmed(du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps);    
     
     % interpolate displacement update to sample grid, points outside roi remain NaN
     from = ~isnan(du_pts_tm); 
     to = roi;
     du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
     dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
-        
+    figure(2); imagesc(du_grd_tm); caxis([-40, -5])
+    
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
     v_grd_tm = v_grd_tm + dv_grd_tm;
