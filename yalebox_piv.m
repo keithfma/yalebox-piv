@@ -158,7 +158,7 @@ for pp = 1:np
     end 
     
     % validate dislacement updates 
-    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, sampspc(pp)*2, valid_max, valid_eps, true);    
+    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed_b(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);    
     
     % interpolate displacement update to sample grid, points outside roi remain NaN
     from = ~isnan(du_pts_tm); 
