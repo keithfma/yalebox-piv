@@ -16,7 +16,7 @@ samplen = 30;
 sampspc = 15;
 intrlen = 120;
 npass = 3;
-valid_max = 3;
+valid_max = 2;
 valid_eps = 0.1;
 
 % image parameters
