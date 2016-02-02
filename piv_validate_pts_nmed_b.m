@@ -31,8 +31,9 @@ function [uu, vv] = piv_validate_pts_nmed_b(cc, rr, uu, vv, num_nbr, max_norm_re
 
 % init iteration
 iter = 0;
+valid = ~isnan(uu);
 num_valid_prev = -1;
-num_valid_init = sum(~isnan(uu(:)));
+num_valid_init = sum(valid(:));
 num_valid_curr = num_valid_init;
 
 while num_valid_curr ~= num_valid_prev
@@ -74,8 +75,7 @@ while num_valid_curr ~= num_valid_prev
         
         % set invalid points to NaN
         if norm_res > max_norm_res
-            uu(kk) = NaN;
-            vv(kk) = NaN;
+            valid(kk) = false;
         end
         
         % % debug: plot and print results {
@@ -91,6 +91,8 @@ while num_valid_curr ~= num_valid_prev
     end
     
     iter = iter+1;
+    uu(~valid) = NaN;
+    vv(~valid) = NaN;
     num_valid_prev = num_valid_curr;
     num_valid_curr = sum(~isnan(uu(:)));
     
