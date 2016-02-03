@@ -163,8 +163,15 @@ for pp = 1:np
     % interpolate displacement update to sample grid, points outside roi remain NaN
     from = ~isnan(du_pts_tm); 
     to = roi;
-    du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
-    dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
+    % du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
+    % dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
+    
+    du_grd_tm(:) = NaN;
+    du_grd_tm(to) = loess2(c_pts(from), r_pts(from), du_pts_tm(from), c_grd(to), r_grd(to), 0.05, 1);
+    dv_grd_tm(:) = NaN;
+    dv_grd_tm(to) = loess2(c_pts(from), r_pts(from), dv_pts_tm(from), c_grd(to), r_grd(to), 0.05, 1);
+    
+    keyboard
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
