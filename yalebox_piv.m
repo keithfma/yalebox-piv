@@ -159,37 +159,19 @@ for pp = 1:np
     
     % validate dislacement updates 
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);    
+
+    % debug: local parameters {    
+    span_pts = 16;
+    % } debug
     
-    % interpolate displacement update to sample grid, points outside roi remain NaN
-    from = ~isnan(du_pts_tm); 
-    to = roi;
-    du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
-    dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
+    % interpolate/smooth valid vectors to sample grid, outside roi is NaN
+    [du_grd_tm, dv_grd_tm] = smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, ...
+                                c_grd, r_grd, roi, span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
     v_grd_tm = v_grd_tm + dv_grd_tm;
     
-    % NOTE: could make better use of the edge data by accounting for
-    % displacement by the smoothing kernel.
-    
-    % smooth predictors, 3x3 kernel smoother...
-    % % NaNs at all roi boundaries propagate inward to all points affected by
-    % % the bounday
-    u_grd_tm = padarray(u_grd_tm, [1 1], NaN, 'both');    
-    v_grd_tm = padarray(v_grd_tm, [1 1], NaN, 'both');        
-    kernel = fspecial('average', 3);    
-    u_grd_tm = conv2(u_grd_tm, kernel, 'same');
-    v_grd_tm = conv2(v_grd_tm, kernel, 'same');    
-    u_grd_tm = u_grd_tm(2:end-1, 2:end-1);
-    v_grd_tm = v_grd_tm(2:end-1, 2:end-1);
-    
-    % interpolate/extrapolate points lost in smoothing
-    from = ~isnan(u_grd_tm);
-    to = roi;    
-    u_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), u_grd_tm(from), tension);
-    v_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), v_grd_tm(from), tension);
-
     % prepare for next pass
     if pp < np
         
@@ -272,6 +254,37 @@ yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
 end
 
 %% subroutines
+
+function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
+% function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
+%
+% Smooth and interpolate scattered vectors to a regular grid using robust
+% LOWESS. NaNs in input vector grids are ignored. Output vector grids are
+% populated in the region-of-interest (roi) and NaN elsewhere.
+%
+% Arguments:
+%   xp, yp = 2D matrices, location of scattered input points
+%   up, vp = 2D matrices, components of displacement vectors at scattered input 
+%       points, NaN values are ignored
+%   xg, yg = 2D matrices, regular grid for output vectors
+%   roi = 2D matrix, region-of-interest mask, 1 vectors should be output
+%   npts = Scalar, number of points to include in local fit
+%   ug, vg = 2D matrices, interpolated output vectors where roi==1, NaNs elsewhere
+% 
+% %
+
+from = ~isnan(up) & ~isnan(vp);
+span = npts/sum(from(:));
+
+ug = nan(size(roi));
+u_model = fit([xp(from), yp(from)], up(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
+ug(roi) = u_model(xg(roi), yg(roi));
+
+vg = nan(size(roi));
+v_model = fit([xp(from), yp(from)], vp(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
+vg(roi) = v_model(xg(roi), yg(roi));
+
+end
 
 function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
 %

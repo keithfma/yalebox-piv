@@ -93,6 +93,8 @@ while num_valid_curr ~= num_valid_prev
             mfilename, iter, num_valid_prev, num_valid_curr);
     end
     
+    break
+    
 end
 
 if verbose
