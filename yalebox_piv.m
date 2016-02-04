@@ -165,14 +165,8 @@ for pp = 1:np
     % } debug
     
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
-    from = ~isnan(du_pts_tm);     
-    span_frac = span_pts/sum(from(:));
-    du_model = fit([c_pts(from), r_pts(from)], du_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');    
-    dv_model = fit([c_pts(from), r_pts(from)], dv_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');        
-    du_grd_tm(roi) = du_model(c_grd(roi), r_grd(roi));
-    dv_grd_tm(roi) = dv_model(c_grd(roi), r_grd(roi));    
-    du_grd_tm(~roi) = NaN;
-    dv_grd_tm(~roi) = NaN;
+    [du_grd_tm, dv_grd_tm] = smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, ...
+                                c_grd, r_grd, roi, span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -260,6 +254,37 @@ yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
 end
 
 %% subroutines
+
+function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
+% function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
+%
+% Smooth and interpolate scattered vectors to a regular grid using robust
+% LOWESS. NaNs in input vector grids are ignored. Output vector grids are
+% populated in the region-of-interest (roi) and NaN elsewhere.
+%
+% Arguments:
+%   xp, yp = 2D matrices, location of scattered input points
+%   up, vp = 2D matrices, components of displacement vectors at scattered input 
+%       points, NaN values are ignored
+%   xg, yg = 2D matrices, regular grid for output vectors
+%   roi = 2D matrix, region-of-interest mask, 1 vectors should be output
+%   npts = Scalar, number of points to include in local fit
+%   ug, vg = 2D matrices, interpolated output vectors where roi==1, NaNs elsewhere
+% 
+% %
+
+from = ~isnan(up) & ~isnan(vp);
+span = npts/sum(from(:));
+
+ug = nan(size(roi));
+u_model = fit([xp(from), yp(from)], up(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
+ug(roi) = u_model(xg(roi), yg(roi));
+
+vg = nan(size(roi));
+v_model = fit([xp(from), yp(from)], vp(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
+vg(roi) = v_model(xg(roi), yg(roi));
+
+end
 
 function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
 %
