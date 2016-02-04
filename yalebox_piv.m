@@ -113,8 +113,6 @@ for pp = 1:np
     r_pts = zeros(sz);    
     du_pts_tm = nan(sz);
     dv_pts_tm = nan(sz);
-    du_grd_tm = nan(sz);
-    dv_grd_tm = nan(sz);    
     roi = true(sz);
     min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
     
