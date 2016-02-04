@@ -159,56 +159,25 @@ for pp = 1:np
     
     % validate dislacement updates 
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);    
-    
-    % interpolate displacement update to sample grid, points outside roi remain NaN
-    from = ~isnan(du_pts_tm); 
-    to = roi;
-    % du_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), du_pts_tm(from), tension);
-    % dv_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_pts(from), r_pts(from), dv_pts_tm(from), tension);
-    
-    span_pts = 9;
-    span_frac = span_pts/sum(from(:));
-    
-    % % dataviz version: many matrix scaling warnings, suggests a poor implementation
-    % du_grd_tm(:) = NaN;
-    % du_grd_tm(to) = loess2(c_pts(from), r_pts(from), du_pts_tm(from), c_grd(to), r_grd(to), span_frac, 1, true);
-    % dv_grd_tm(:) = NaN;
-    % dv_grd_tm(to) = loess2(c_pts(from), r_pts(from), dv_pts_tm(from), c_grd(to), r_grd(to), span_frac, 1, true);
-    
-    % matlab version
-    model = fit([c_pts(from), r_pts(from)], du_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');    
-    du_grd_tm(:) = NaN;
-    du_grd_tm(to) = model(c_grd(to), r_grd(to));
-    model = fit([c_pts(from), r_pts(from)], dv_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');    
-    dv_grd_tm(:) = NaN;
-    dv_grd_tm(to) = model(c_grd(to), r_grd(to));
 
-    keyboard
+    % debug: local parameters {    
+    span_pts = 16;
+    % } debug
+    
+    % interpolate/smooth valid vectors to sample grid, outside roi is NaN
+    from = ~isnan(du_pts_tm);     
+    span_frac = span_pts/sum(from(:));
+    du_model = fit([c_pts(from), r_pts(from)], du_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');    
+    dv_model = fit([c_pts(from), r_pts(from)], dv_pts_tm(from), 'lowess', 'Span', span_frac, 'Robust', 'bisquare');        
+    du_grd_tm(roi) = du_model(c_grd(roi), r_grd(roi));
+    dv_grd_tm(roi) = dv_model(c_grd(roi), r_grd(roi));    
+    du_grd_tm(~roi) = NaN;
+    dv_grd_tm(~roi) = NaN;
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
     v_grd_tm = v_grd_tm + dv_grd_tm;
     
-    % NOTE: could make better use of the edge data by accounting for
-    % displacement by the smoothing kernel.
-    
-%     % smooth predictors, 3x3 kernel smoother...
-%     % % NaNs at all roi boundaries propagate inward to all points affected by
-%     % % the bounday
-%     u_grd_tm = padarray(u_grd_tm, [1 1], NaN, 'both');    
-%     v_grd_tm = padarray(v_grd_tm, [1 1], NaN, 'both');        
-%     kernel = fspecial('average', 3);    
-%     u_grd_tm = conv2(u_grd_tm, kernel, 'same');
-%     v_grd_tm = conv2(v_grd_tm, kernel, 'same');    
-%     u_grd_tm = u_grd_tm(2:end-1, 2:end-1);
-%     v_grd_tm = v_grd_tm(2:end-1, 2:end-1);
-    
-    % interpolate/extrapolate points lost in smoothing
-    from = ~isnan(u_grd_tm);
-    to = roi;    
-    u_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), u_grd_tm(from), tension);
-    v_grd_tm(to) = spline2d(c_grd(to), r_grd(to), c_grd(from), r_grd(from), v_grd_tm(from), tension);
-
     % prepare for next pass
     if pp < np
         
