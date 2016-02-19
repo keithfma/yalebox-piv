@@ -109,11 +109,11 @@ for i = 1:nimage
     % read in original image
     this_file = [image_path filesep image_names{i}];
     fprintf('%s\n', this_file);
-    hsv = rgb2hsv(imread(this_file));    
+    rgb = imread(this_file);
+    hsv = rgb2hsv(rgb);    
     
     % compute automatic mask
-    mask_auto = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, ...
-                    entr_win, morph_open_rad, morph_erode_rad, false);
+    mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, false);
     
     % convert to normalized intensity
     intensity = yalebox_prep_intensity(hsv, mask, nwin, false);
