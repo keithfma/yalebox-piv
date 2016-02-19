@@ -1,6 +1,5 @@
-function [] = prep(output_file, image_path, image_names, x, y, scale, ...
-                  offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-                  morph_open_rad, morph_erode_rad, nwin)
+function [] = prep(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
+% function [] = prep(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -33,7 +32,24 @@ function [] = prep(output_file, image_path, image_names, x, y, scale, ...
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 % narginchk(14, 14); % UNCOMMENT LATER
-check_args(output_file, image_path, image_names, x, y);
+validateattributes(output_file, {'char'}, {'vector'});
+validateattributes(image_path, {'char'}, {'vector'});
+validateattributes(image_names, {'cell'}, {'vector'});
+
+% check that all images exist and have the expected size and type
+nimage = numel(image_names);
+for i = 1:nimage
+    try
+        this_file = [image_path filesep image_names{i}];
+        info = imfinfo(this_file);
+        assert(info.Width == numel(x) && info.Height == numel(y), ...
+            sprintf('incorrect dimensions in image %s', this_file));
+        assert(info.BitDepth == 24, ...
+            sprintf('incorrect bit depth in image %s', this_file));
+    catch
+        error('unable to read image %i: %s', i, this_file);
+    end
+end
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -43,13 +59,13 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord x scale', sc
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord y scale', scale(2));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord x offset', offset(1));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord y offset', offset(2));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto hue_lim', hue_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto val_lim', val_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto entr_lim', entr_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto entr_win', entr_win);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto morph_open_rad', morph_open_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto morph_erode_rad', morph_erode_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_intensity num_tiles', num_tiles);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto val_lim', val_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entr_lim', entr_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entr_win', entr_win);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity nwin', nwin);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git hash', get_git_hash());
     
 % create dimensions
@@ -116,7 +132,7 @@ for i = 1:nimage
     mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, false);
 
     % convert to normalized intensity
-    intensity = prep_intensity(hsv, mask_manual & mask_auto, eql_nwin, 0);
+    intensity = prep_intensity(hsv(:,:,3), mask_manual & mask_auto, nwin, 0);
     
     % save results
     ncid = netcdf.open(output_file, 'WRITE');
@@ -144,38 +160,3 @@ git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
 assert(stat == 0, 'Failed to find git revision number');
 
 end 
-
-function [] = check_args(output_file, image_path, image_names, x, y, sz)
-% function [] = check_args(output_file, image_path, image_names, x, y, sz)
-%
-% Check for sane arguments (pass-through arguments are checked in subroutines).
-%
-% Arguments:
-%
-%   output_file, image_path, image_names, x, y = (see main function help)
-%
-%   sz = 2-element vector, expected [row, column] size of images 
-% %
-
-validateattributes(output_file, {'char'}, {'vector'});
-validateattributes(image_path, {'char'}, {'vector'});
-validateattributes(image_names, {'cell'}, {'vector'});
-assert(numel(x)==sz(2) && numel(y)==sz(1), ...
-    'coordinate vectors and image are not the same size');
-
-% check that all images exist and have the expected size and type
-nimage = numel(image_names);
-for i = 1:nimage
-    try
-        this_file = [image_path filesep image_names{i}];
-        info = imfinfo(this_file);
-        assert(info.Width == image_w && info.Height == image_h, ...
-            sprintf('incorrect dimensions in image %s', this_file));
-        assert(info.BitDepth == 24, ...
-            sprintf('incorrect bit depth in image %s', this_file));
-    catch
-        error('unable to read image %i: %s', i, this_file);
-    end
-end
-
-end

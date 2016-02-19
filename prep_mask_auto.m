@@ -1,5 +1,5 @@
-function mask = prep_mask_auto.mhsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
-% function mask = prep_mask_auto.m(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
+function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
+% function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
