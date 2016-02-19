@@ -36,7 +36,7 @@ function [x, y, scale, offset] = prep_world_coord(woco_image, npts, show)
 %   offset = Scalar double, offset to be added to properly set
 %       the origin for [x, y] axes, units are meters
 %
-% Keith Ma, July 2015
+% Keith Ma
 
 % set defaults
 if nargin == 2; 

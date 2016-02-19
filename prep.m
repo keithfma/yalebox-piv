@@ -17,7 +17,7 @@ function [] = prep(output_file, image_path, image_names, x, y, scale, ...
 %
 % x, y, scale, offset = Output arguments from prep_world_coord().
 %
-% mask_manual = Output argument from yalebox_prep_mask_manual()
+% mask_manual = Output argument from prep_mask_manual()
 %
 % hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
 %   arguments for yalebox_prep_mask_auto()

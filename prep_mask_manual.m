@@ -1,5 +1,5 @@
-function mask_manual = yalebox_prep_mask_manual(img)
-% function mask_manual = yalebox_prep_mask_manual(img)
+function mask_manual = prep_mask_manual(img)
+% function mask_manual = prep_mask_manual(img)
 %
 % Interactively create a mask to black out region(s) of an image.
 %
@@ -10,11 +10,10 @@ function mask_manual = yalebox_prep_mask_manual(img)
 %   mask_manual = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
 %
-% Keith Ma, July 2015
+% Keith Ma
 
 % check for sane arguments
-validateattributes(img, {'numeric'}, {'real'}, ...
-    'yalebox_prep_mask_manual', 'img');
+validateattributes(img, {'numeric'}, {'real'});
 
 % init image and mask
 imgm = img;
