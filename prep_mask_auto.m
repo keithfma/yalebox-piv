@@ -1,5 +1,5 @@
-function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
-% function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_rad, show)
+function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
+% function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -34,34 +34,21 @@ function mask = yalebox_prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
 %
-% Keith Ma, July 2015
+% Keith Ma
+
+% set default values
+if nargin == 6; show = false; end
 
 % check for sane arguments, set default values
 narginchk(7,8);
-
 validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1});
-
-validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}, ...
-    'yalebox_prep_mask_auto', 'hue_lim');
-
-validateattributes(val_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}, ...
-    'yalebox_prep_mask_auto', 'val_lim');
-
-validateattributes(entr_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}, ...
-    'yalebox_prep_mask_auto', 'entr_lim');
-
-validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'}, ...
-    'yalebox_prep_mask_auto', 'entr_win');
-
-validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'}, ...
-    'yalebox_prep_mask_auto', 'morph_open_rad');
-
-validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'}, ...
-    'yalebox_prep_mask_auto', 'morph_erode_rad');
-
-if nargin == 6; show = false; end
-validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
-    'yalebox_prep_world_coord', 'show');
+validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
+validateattributes(val_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
+validateattributes(entr_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
+validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'});
+validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'});
+validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'});
+validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 
 % get hue, value, and entropy, normalized to the range [0, 1]
 hue = hsv(:,:,1);
