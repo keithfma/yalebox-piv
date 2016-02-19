@@ -1,5 +1,5 @@
-function [x, y, scale, offset] = yalebox_prep_world_coord(woco_image, npts, show)
-% function [x, y, scale, offset] = yalebox_prep_world_coord(woco_image, npts, show)
+function [x, y, scale, offset] = prep_world_coord(woco_image, npts, show)
+% function [x, y, scale, offset] = prep_world_coord(woco_image, npts, show)
 %
 %
 % Compute the best-fit cartesian coordinate system for the coordinate grid
@@ -38,18 +38,16 @@ function [x, y, scale, offset] = yalebox_prep_world_coord(woco_image, npts, show
 %
 % Keith Ma, July 2015
 
+% set defaults
+if nargin == 2; 
+    show = false; 
+end
+
 % check for sane arguments
 narginchk(2, 3);
-
-validateattributes(woco_image, {'char'}, {'vector'}, ...
-    'yalebox_prep_world_coord', 'woco_image');
-
-validateattributes(npts, {'numeric'}, {'scalar', 'integer', '>=', 4}, ...
-    'yalebox_prep_world_coord', 'npts');
-
-if nargin == 2; show = false; end
-validateattributes(show, {'numeric', 'logical'}, {'scalar'}, ...
-    'yalebox_prep_world_coord', 'show');
+validateattributes(woco_image, {'char'}, {'vector'});
+validateattributes(npts, {'numeric'}, {'scalar', 'integer', '>=', 4});
+validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 
 % display coordinate grid image
 im = imread(woco_image);

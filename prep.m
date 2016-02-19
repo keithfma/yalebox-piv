@@ -1,9 +1,6 @@
-function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
+function [] = prep(output_file, image_path, image_names, x, y, scale, ...
                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
                   morph_open_rad, morph_erode_rad, nwin)
-% function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
-%                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-%                   morph_open_rad, morph_erode_rad, nwin)              
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -11,14 +8,14 @@ function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
 %
 % Arguments:
 % 
-% input_file = String, filename of the netCDF input file to be created. 
+% output_file = String, filename of the netCDF input file to be created. 
 %
 % image_path = String, path to folder containing the images.
 %
 % image_names = Cell array of strings, cells must contain filenames for
 %   successive images in the experiment image series. 
 %
-% x, y, scale, offset = Output arguments from yalebox_prep_world_coord().
+% x, y, scale, offset = Output arguments from prep_world_coord().
 %
 % mask_manual = Output argument from yalebox_prep_mask_manual()
 %
@@ -36,37 +33,24 @@ function [] = yalebox_prep(input_file, image_path, image_names, x, y, scale, ...
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 % narginchk(14, 14); % UNCOMMENT LATER
-check_args(input_file, image_path, image_names, x, y);
+check_args(output_file, image_path, image_names, x, y);
 
 % create netcdf file
-ncid = netcdf.create(input_file, 'NETCDF4');
+ncid = netcdf.create(output_file, 'NETCDF4');
 
 % add global attributes 
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x scale', scale(1));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y scale', scale(2));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord x offset', offset(1));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_world_coord y offset', offset(2));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto hue_lim', hue_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto val_lim', val_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entr_lim', entr_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto entr_win', entr_win);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto morph_open_rad', morph_open_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_mask_auto morph_erode_rad', morph_erode_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'yalebox_prep_intensity num_tiles', num_tiles);
-hash = get_git_hash();
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'),...
-    'git hash', hash);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord x scale', scale(1));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord y scale', scale(2));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord x offset', offset(1));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_world_coord y offset', offset(2));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto val_lim', val_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto entr_lim', entr_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto entr_win', entr_win);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto morph_open_rad', morph_open_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_mask_auto morph_erode_rad', morph_erode_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox_prep_intensity num_tiles', num_tiles);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git hash', get_git_hash());
     
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
@@ -112,7 +96,7 @@ netcdf.endDef(ncid);
 netcdf.close(ncid);
 
 % populate constant variables
-ncid = netcdf.open(input_file, 'WRITE');
+ncid = netcdf.open(output_file, 'WRITE');
 netcdf.putVar(ncid, x_varid, x);
 netcdf.putVar(ncid, y_varid, y);
 netcdf.putVar(ncid, s_varid, 0:nimage-1);
@@ -135,7 +119,7 @@ for i = 1:nimage
     intensity = yalebox_prep_intensity(hsv, mask, nwin, false);
     
     % save results
-    ncid = netcdf.open(input_file, 'WRITE');
+    ncid = netcdf.open(output_file, 'WRITE');
     netcdf.putVar(ncid, ma_varid, [0, 0, i-1], [numel(x), numel(y), 1], ...
         uint8(mask_auto'));
     netcdf.putVar(ncid, i_varid, [0, 0, i-1], [numel(x), numel(y), 1], ...
@@ -161,20 +145,20 @@ assert(stat == 0, 'Failed to find git revision number');
 
 end 
 
-function [] = check_args(input_file, image_path, image_names, x, y, sz)
-% function [] = check_args(input_file, image_path, image_names, x, y, sz)
+function [] = check_args(output_file, image_path, image_names, x, y, sz)
+% function [] = check_args(output_file, image_path, image_names, x, y, sz)
 %
 % Check for sane arguments (pass-through arguments are checked in subroutines).
 %
 % Arguments:
 %
-%   input_file, image_path, image_names, x, y = (see main function help)
+%   output_file, image_path, image_names, x, y = (see main function help)
 %
 %   sz = 2-element vector, expected [row, column] size of images 
 % %
 
-validateattributes(input_file, {'char'}, {'vector'}, ...
-    'yalebox_prep', 'input_file');
+validateattributes(output_file, {'char'}, {'vector'}, ...
+    'yalebox_prep', 'output_file');
 validateattributes(image_path, {'char'}, {'vector'}, ...
     'yalebox_prep', 'image_path');
 validateattributes(image_names, {'cell'}, {'vector'}, ...
