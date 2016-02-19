@@ -20,9 +20,9 @@ function [] = prep(output_file, image_path, image_names, x, y, scale, ...
 % mask_manual = Output argument from prep_mask_manual()
 %
 % hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
-%   arguments for yalebox_prep_mask_auto()
+%   arguments for prep_mask_auto()
 %
-% nwin = Input argument from yalebox_prep_intensity()
+% nwin = Input argument from prep_intensity()
 %
 % PIV input netCDF format:
 %   dimensions: x, y, step
@@ -114,9 +114,9 @@ for i = 1:nimage
     
     % compute automatic mask
     mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, false);
-    
+
     % convert to normalized intensity
-    intensity = yalebox_prep_intensity(hsv, mask, nwin, false);
+    intensity = prep_intensity(hsv, mask_manual & mask_auto, eql_nwin, 0);
     
     % save results
     ncid = netcdf.open(output_file, 'WRITE');
@@ -157,13 +157,9 @@ function [] = check_args(output_file, image_path, image_names, x, y, sz)
 %   sz = 2-element vector, expected [row, column] size of images 
 % %
 
-validateattributes(output_file, {'char'}, {'vector'}, ...
-    'yalebox_prep', 'output_file');
-validateattributes(image_path, {'char'}, {'vector'}, ...
-    'yalebox_prep', 'image_path');
-validateattributes(image_names, {'cell'}, {'vector'}, ...
-    'yalebox_prep', 'image_names');
-
+validateattributes(output_file, {'char'}, {'vector'});
+validateattributes(image_path, {'char'}, {'vector'});
+validateattributes(image_names, {'cell'}, {'vector'});
 assert(numel(x)==sz(2) && numel(y)==sz(1), ...
     'coordinate vectors and image are not the same size');
 
