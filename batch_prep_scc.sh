@@ -7,7 +7,7 @@
 #$ -j y
 
 # define parameters
-yalebox_path=/projectnb/glaciermod/sandbox-piv/
+yalebox_path=/projectnb/glaciermod/yalebox-piv/
 param_file=/projectnb/glaciermod/sandbox-tmp/prep/fault_ss_01_siden_param.mat
 input_file_work=$TMPDIR/tmp.nc
 input_file_dest=/projectnb/glaciermod/sandbox-tmp/prep/fault_ss_01_siden_in.nc
@@ -22,7 +22,7 @@ export MATLABPATH=$yalebox_path:$MATLABPATH
 matlab -singleCompThread -nodisplay << EOF
 load $param_file
 d = dir('$image_wild'); image_names = {d.name};
-yalebox_prep('$input_file_work', '$image_path', image_names, ...
+prep('$input_file_work', '$image_path', image_names, ...
   x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
   morph_rad, num_tiles);
 movefile('$input_file_work', '$input_file_dest');
