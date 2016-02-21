@@ -105,7 +105,7 @@ clear F
 %% run PIV and analyze results
 
 % run piv
-[xx, yy, uu, vv] = yalebox_piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
+[xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
     sampspc, intrlen, npass, valid_max, valid_eps, 1);
 
 % compute strain values

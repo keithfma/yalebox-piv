@@ -5,7 +5,7 @@ function [] = yalebox_piv_series(input_file, output_file, npass, win, spc, ...
 %
 % Run yalebox-piv analysis on all frames in the input netcdf file, saving
 % results to the output netcdf file. This function acts as a wrapper for
-% yalebox_piv(), which estimates displacement vectors from image pairs.
+% piv(), which estimates displacement vectors from image pairs.
 %
 % Arguments:
 %
