@@ -55,7 +55,7 @@ ini = ini_hsv(:,:,3);
 fin = fin_hsv(:,:,3);
 
 % create masks   
-mask_manual = yalebox_prep_mask_manual(ini_rgb);
+mask_manual = prep_mask_manual(ini_rgb);
 
 ini_mask_auto = yalebox_prep_mask_auto(ini_hsv, ...
     hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, 0);
