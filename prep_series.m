@@ -1,5 +1,5 @@
-function [] = prep(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
-% function [] = prep(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
+function [] = prep_series(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
+% function [] = prep_series(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
