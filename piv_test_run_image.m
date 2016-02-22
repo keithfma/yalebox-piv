@@ -24,7 +24,7 @@ bnd_freq = 1;
 samplen = 30;
 sampspc = 15;
 intrlen = 100;
-npass = 4;
+npass = 1;
 valid_max = 2;
 valid_eps = 0.01;
 
