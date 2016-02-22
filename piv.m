@@ -106,7 +106,21 @@ for pp = 1:np
     du_pts_tm = nan(sz);
     dv_pts_tm = nan(sz);
     roi = true(sz);
-    min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
+    
+    keyboard
+    
+    % get correlation matrices for all sample points
+    [xcr, r0, c0, u0, v0] = ...
+        piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
+            intrlen(pp), min_frac_data, min_frac_overlap);
+    
+    % apply correlation-based-correction (CBC)
+    % IN: cell array of correlation matrices
+    % OUT: cell array of corrected correlation matrices
+   
+    % extract displacements from corrected correlation matrices
+    % IN: correlations, centroids, roi
+    % OUT: du_pts_tm, dv_pts_tm
     
     % get corrector displacements on the predictor grid
     for kk = 1:numel(du_pts_tm)
