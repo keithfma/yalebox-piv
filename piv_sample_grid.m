@@ -1,5 +1,5 @@
-function [rvec, cvec] = yalebox_piv_sample_grid(len, spc, sz)
-% function [rvec, cvec] = yalebox_piv_sample_grid(len, spc, sz)
+function [rvec, cvec] = piv_sample_grid(len, spc, sz)
+% function [rvec, cvec] = piv_sample_grid(len, spc, sz)
 %
 % Create sample grid with the following characteristics:
 % - sample window edges fall at integer positions

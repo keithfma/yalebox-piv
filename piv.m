@@ -82,7 +82,7 @@ check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, in
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init coordinate grids
-[r_vec, c_vec] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
+[r_vec, c_vec] = piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
 [c_grd, r_grd] = meshgrid(c_vec, r_vec);
 [c_img, r_img] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
 
@@ -99,18 +99,8 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
-    % reset per-pass variables
-    sz = size(c_grd);
-    c_pts = zeros(sz);
-    r_pts = zeros(sz);    
-    du_pts_tm = nan(sz);
-    dv_pts_tm = nan(sz);
-    roi = true(sz);
-    
-    keyboard
-    
     % get correlation matrices for all sample points
-    [xcr, r0, c0, u0, v0] = ...
+    [xcr, r_centroid, c_centroid, u_offset, v_offset] = ...
         piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
             intrlen(pp), min_frac_data, min_frac_overlap);
     
@@ -119,8 +109,10 @@ for pp = 1:np
     % OUT: cell array of corrected correlation matrices
    
     % extract displacements from corrected correlation matrices
-    % IN: correlations, centroids, roi
-    % OUT: du_pts_tm, dv_pts_tm
+    [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
+        piv_displacement(xcr, r_centroid, c_centroid, u_offset, v_offset);
+    
+    keyboard
     
     % get corrector displacements on the predictor grid
     for kk = 1:numel(du_pts_tm)
