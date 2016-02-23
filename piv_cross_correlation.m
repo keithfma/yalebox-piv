@@ -29,14 +29,14 @@ for ii = 1:nr
             piv_window(ini, rr(ii,jj), cc(ii,jj), samplen);
         
         if frac_data < min_frac_data; continue; end
-            
+        
         [intr, intr_rll, intr_cll] = ...
             piv_window(fin, rr(ii,jj), cc(ii,jj), intrlen);
         
         u0(ii,jj) = -samplen-(samp_cll-intr_cll);
         v0(ii,jj) = -samplen-(samp_rll-intr_rll);
         
-        [xcr{ii,jj}, overlap] = normxcorr2_masked(intr, samp, ~isnan(intr), ~isnan(samp~=0));
+        [xcr{ii,jj}, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);    
         xcr{ii,jj}(overlap<min_overlap) = 0;
         
     end

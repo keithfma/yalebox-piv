@@ -1,4 +1,4 @@
-function [win, r0, c0, r_centroid, c_centroid, frac_data] = piv_window(img, r_center, c_center, len)
+function [win, rll, cll, r_centroid, c_centroid, frac_data] = piv_window(img, r_center, c_center, len)
 % function [win, frac_data, r0, c0, r_centroid, c_centroid] = ...
 %     piv_window(img, r_center, c_center, len)
 %
@@ -30,7 +30,7 @@ function [win, r0, c0, r_centroid, c_centroid, frac_data] = piv_window(img, r_ce
 %
 %   win = 2D matrix, double, subset of img, possibly with zero padding
 %
-%   r0, c0 = Scalar, row and column indices of the bottom left corner of the
+%   rll, cll = Scalar, row and column indices of the lower left corner of the
 %       window, including any rounding
 % 
 %   r_centroid, c_centroid = Scalar, centroid of the data (i.e. sand) in the
@@ -46,6 +46,10 @@ r0 = floor(r_center-hlen);
 r1 =  ceil(r_center+hlen); 
 c0 = floor(c_center-hlen);
 c1 =  ceil(c_center+hlen);
+
+% copy position of lower left corner 
+rll = r0;
+cll = c0;
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
@@ -78,13 +82,12 @@ if nargout > 3
     c_centroid = sum(c_data)/n_data;    
     
     % convert centroid from local coordinates to full (parent) matrix coordinates
-    r_centroid = r_centroid+r0-1;
-    c_centroid = c_centroid+c0-1;
+    r_centroid = r_centroid+rll-1;
+    c_centroid = c_centroid+cll-1;
     
 end
 
 if nargout == 6
     % compute fraction of the window that has data
-
     frac_data = 1-sum(no_data(:))/numel(win);
 end
