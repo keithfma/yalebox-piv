@@ -105,10 +105,7 @@ for pp = 1:np
         piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
             intrlen(pp), min_frac_data, min_frac_overlap);
     
-    % apply correlation-based-correction (CBC)
-    xcr = piv_correlation_correction(xcr);
-    
-    % extract displacements from corrected correlation matrices
+    % extract displacements 
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(xcr, r_centroid, c_centroid, u_offset, v_offset);
     
