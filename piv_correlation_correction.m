@@ -26,18 +26,12 @@ for ii = 1:nr
             continue; 
         end
         
-        % apply corrections for 4 neighbors, if available
-        if ii>1 && ~isempty(xcr{ii-1,jj})
-            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii-1,jj};
-        end        
-        if ii<nr && ~isempty(xcr{ii+1,jj})
-            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii+1,jj};
-        end        
-        if jj>1 && ~isempty(xcr{ii,jj-1})
-            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii,jj-1};
-        end        
-        if jj<nc && ~isempty(xcr{ii,jj+1})
-            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii,jj+1};
+        % apply corrections for N-S and E-W neighbor pairs, if available
+        if ii>1 && ii<nr && ~isempty(xcr{ii-1,jj}) && ~isempty(xcr{ii+1,jj})
+            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii-1,jj}.*xcr{ii+1,jj};
+        end                
+        if jj>1 && jj<nc && ~isempty(xcr{ii,jj-1}) && ~isempty(xcr{ii,jj+1})
+            cbc{ii,jj} = cbc{ii,jj}.*xcr{ii,jj-1}.*xcr{ii,jj+1};
         end        
         
     end
