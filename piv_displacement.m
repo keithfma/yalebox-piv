@@ -21,7 +21,7 @@ for ii = 1:nr
         end
    
         % find correlation plane max, subpixel precision (failed pixels -> NaN)
-        [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr{ii,jj});
+        [rpeak, cpeak] = piv_peak_gauss2d(xcr{ii,jj});
         
         % convert position of the correlation max to displacement
         uu(ii,jj) = cpeak + u0(ii,jj);

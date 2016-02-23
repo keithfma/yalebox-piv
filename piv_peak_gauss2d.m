@@ -1,5 +1,5 @@
-function [rpk, cpk, val] = yalebox_piv_peak_gauss2d(zz)
-% function [rpk, cpk, val] = yalebox_piv_peak_gauss2d(zz)
+function [rpk, cpk, val] = piv_peak_gauss2d(zz)
+% function [rpk, cpk, val] = piv_peak_gauss2d(zz)
 %
 % Find the position of the peak in matrix zz with subpixel accuracy. Peak
 % location is determined from an explicit solution of two-dimensional
