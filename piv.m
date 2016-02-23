@@ -106,8 +106,21 @@ for pp = 1:np
             intrlen(pp), min_frac_data, min_frac_overlap);
     
     % apply correlation-based-correction (CBC)
-    % IN: cell array of correlation matrices
-    % OUT: cell array of corrected correlation matrices
+    cbc = piv_correlation_correction(xcr);
+    for kk = 1:numel(xcr)
+        if ~isempty(xcr{kk})
+            subplot(1,2,1)
+            imagesc(xcr{kk});
+            colorbar;
+            title('XCR');
+            subplot(1,2,2)
+            imagesc(cbc{kk});
+            colorbar;
+            title('CBC');
+            pause
+        end
+    end
+    xcr = cbc;
    
     % extract displacements from corrected correlation matrices
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
