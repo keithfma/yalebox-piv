@@ -1,13 +1,12 @@
-function [win, pos, frac_data, r_centroid, c_centroid] = ...
-                yalebox_piv_window(img, r_center, c_center, len)
-% function [win, pos, frac_data, r_centroid, c_centroid] = ...
-%                 yalebox_piv_window(img, r_center, c_center, len)            
+function [win, rll, cll, r_centroid, c_centroid, frac_data] = piv_window(img, r_center, c_center, len)
+% function [win, frac_data, r0, c0, r_centroid, c_centroid] = ...
+%     piv_window(img, r_center, c_center, len)
 %
 % Extract and return a sample or interrogation window from the input image,
 % padding as needed, the fraction of the window that contains data (~= 0), and
 % the centroid of the data. 
 % 
-% Regions without data are filled with zeros to facilitate masking during
+% Regions without data are filled with 0's to facilitate masking during
 % normalized cross correlation.
 %
 % For interrogation windows: Window edges are not guaranteed to be integer pixel
@@ -25,20 +24,20 @@ function [win, pos, frac_data, r_centroid, c_centroid] = ...
 %       window and the final image for the interrogation window.
 %
 %   r_center, c_center = Scalar, double, location of the window center (centroid
-%       of all the pixels)
+%       of all the pixels, including those outside the ROI)
 %
 %   len = Scalar, integer, length of the window
 %
 %   win = 2D matrix, double, subset of img, possibly with zero padding
 %
-%   pos = Vector, length == 4, position vector for 'win' in the format
-%       [left, bottom, width, height] in pixel coordinates
+%   rll, cll = Scalar, row and column indices of the lower left corner of the
+%       window, including any rounding
+% 
+%   r_centroid, c_centroid = Scalar, centroid of the data (i.e. sand) in the
+%       window
 %
 %   frac_data = Scalar, range [0, 1], fraction of the window that contains data
 %       (i.e. sand)
-%
-%   r_centroid, c_centroid = Scalar, centroid of the data (i.e. sand) in the
-%       window
 % %
 
 % get window limits, may lie outside the image domain
@@ -48,8 +47,9 @@ r1 =  ceil(r_center+hlen);
 c0 = floor(c_center-hlen);
 c1 =  ceil(c_center+hlen);
 
-% generate position vector for output
-pos = [c0, r0, c1-c0, r1-r0];
+% copy position of lower left corner 
+rll = r0;
+cll = c0;
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
@@ -70,22 +70,24 @@ r1 = min(nr, r1);
 sub = img(r0:r1, c0:c1);
 [snr, snc] = size(sub);
 win = [zeros(pb, pl+snc+pr);
-       zeros(snr, pl), sub, zeros(snr, pr);
-       zeros(pt, pl+snc+pr)]; 
-         
-% compute fraction of the window that has data
-no_data = win==0;
-frac_data = 1-sum(no_data(:))/numel(win);
+    zeros(snr, pl), sub, zeros(snr, pr);
+    zeros(pt, pl+snc+pr)];
 
-if nargout >= 4
+if nargout > 3
     % compute centroid of the data in the window
+    no_data = win==0;
     [r_data, c_data] = find(~no_data);
     n_data = length(r_data);
     r_centroid = sum(r_data)/n_data;
     c_centroid = sum(c_data)/n_data;    
     
     % convert centroid from local coordinates to full (parent) matrix coordinates
-    r_centroid = r_centroid+pos(2)-1;
-    c_centroid = c_centroid+pos(1)-1;
+    r_centroid = r_centroid+rll-1;
+    c_centroid = c_centroid+cll-1;
     
+end
+
+if nargout == 6
+    % compute fraction of the window that has data
+    frac_data = 1-sum(no_data(:))/numel(win);
 end

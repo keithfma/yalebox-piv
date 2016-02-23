@@ -73,6 +73,7 @@ min_frac_data = 0.5;
 min_frac_overlap = min_frac_data/2;
 tension = 0.95;
 roi_epsilon = 1e-2; % numerical precision for roi deformation
+span_pts = 16; % lowess span in points
         
 % parse inputs
 check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, intrlen, ...
@@ -82,7 +83,7 @@ check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, in
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init coordinate grids
-[r_vec, c_vec] = yalebox_piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
+[r_vec, c_vec] = piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
 [c_grd, r_grd] = meshgrid(c_vec, r_vec);
 [c_img, r_img] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
 
@@ -99,61 +100,20 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
-    % reset per-pass variables
-    sz = size(c_grd);
-    c_pts = zeros(sz);
-    r_pts = zeros(sz);    
-    du_pts_tm = nan(sz);
-    dv_pts_tm = nan(sz);
-    roi = true(sz);
-    min_overlap = min_frac_overlap*samplen(pp)*samplen(pp);    
+    % get correlation matrices for all sample points
+    [xcr, r_centroid, c_centroid, u_offset, v_offset] = ...
+        piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
+            intrlen(pp), min_frac_data, min_frac_overlap);
     
-    % get corrector displacements on the predictor grid
-    for kk = 1:numel(du_pts_tm)
-            
-        % get sample window and its centroid location
-        [samp, samp_pos, frac_data, r_samp_cntr, c_samp_cntr] = ...
-            yalebox_piv_window(ini_tm, r_grd(kk), c_grd(kk), samplen(pp));
-        
-        % get interrogation window
-        [intr, intr_pos] = ...
-            yalebox_piv_window(fin_tm, r_grd(kk), c_grd(kk), intrlen(pp));
-        
-        % skip if sample window is too empty
-        if frac_data < min_frac_data
-            roi(kk) = false;
-            du_pts_tm(kk) = NaN;
-            dv_pts_tm(kk) = NaN;
-            continue
-        end
-        
-        % compute masked normalized cross-correlation
-        [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-        xcr = xcr.*double(overlap>min_overlap);
-        
-        % find correlation plane max, subpixel precision (failed pixels -> NaN)
-        [rpeak, cpeak] = yalebox_piv_peak_gauss2d(xcr);
-        
-        % convert position of the correlation max to displacement
-        %   - account for padding in cross-correlation (-samplen(gg))
-        %   - account for relative position of interogation and sample
-        %     windows (e,g, for columns: -(samp_pos(1)-intr_pos(1))
-        du_pts_tm(kk) = cpeak-samplen(pp)-(samp_pos(1)-intr_pos(1));
-        dv_pts_tm(kk) = rpeak-samplen(pp)-(samp_pos(2)-intr_pos(2));
-        
-        % compute location of this observation at midpoint time
-        c_pts(kk) = c_samp_cntr + 0.5*du_pts_tm(kk);
-        r_pts(kk) = r_samp_cntr + 0.5*dv_pts_tm(kk);
-                
-    end 
+    % extract displacements 
+    [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
+        piv_displacement(xcr, r_centroid, c_centroid, u_offset, v_offset);
     
     % validate dislacement updates 
-    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);    
+    [du_pts_tm, dv_pts_tm] = ...
+        piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
+            valid_eps, true);    
 
-    % debug: local parameters {    
-    span_pts = 16;
-    % } debug
-    
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, ...
                                 c_grd, r_grd, roi, span_pts);
