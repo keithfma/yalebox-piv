@@ -123,8 +123,6 @@ for pp = 1:np
         r_vec_ext = [1; r_vec(:); r_img(end,1)];
         [c_ext, r_ext] = meshgrid(c_vec_ext, r_vec_ext);
         
-        keyboard
-        
         % populate extended sample grid using tension splines        
         from = ~isnan(u_grd_tm);
         u_ext_tm = zeros(size(c_ext));

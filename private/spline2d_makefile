@@ -3,16 +3,15 @@
 # Updated for R2015b
 MEXFLAGS = -largeArrayDims
 EXT = mexa64
+SRC = spline2d_green.c spline2d_grad.c
+OBJ = $(patsubst %.c,%.$(EXT),$(SRC))
+
 
 .PHONY: clean all
 
-all: spline2d_green.$(EXT) spline2d_grad.$(EXT)
+all: $(OBJ)
 
-spline2d_green.$(EXT): spline2d_green.c	
-	mex $(MEXFLAGS) $< 
-
-spline2d_grad.$(EXT): spline2d_grad.c	
-	mex $(MEXFLAGS) $< 
-
+%.$(EXT): %.c
+	mex $(MEXFLAGS) $<
 clean:
-	rm -f spline2d_green.$(EXT) spline2d_grad.$(EXT)
+	rm -f $(OBJ)
