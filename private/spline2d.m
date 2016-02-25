@@ -182,7 +182,7 @@ A = zeros (n, n);
 if (n_args == 5 | n_args == 10)	% z_data supplied; build data matrix rows
 	for i = 1:n0
 		r = (abs ((xp(i) - xp) + IM * (yp(i) - yp)));
-		A(i,:) = (spline2dgreen (r, p))'; %FRAM, was spline2d_green
+		A(i,:) = (spline2d_green (r, p))'; %FRAM, was spline2d_green
 	end
 end
 if (n_args == 7 | n_args == 10)	% z_slope supplied; build slope matrix rows

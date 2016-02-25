@@ -6,14 +6,14 @@
  */
  
 #include <math.h>
-#include "/usr/local/matlab4/extern/include/mex.h"
+#include "mex.h"
 
  /* Gateway routine */
    
-void mexFunction (int nlhs, Matrix *plhs[], int nrhs, Matrix *prhs[])
+void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 	double *x, *cc, *k0, c;
-	int n, m, np;
+	mwSize n, m, np;
 	void spline2d_green();
  
 	if (nrhs != 2 || nlhs > 1) {
@@ -33,7 +33,7 @@ void mexFunction (int nlhs, Matrix *plhs[], int nrhs, Matrix *prhs[])
 
 	/* Create a matrix for the return array */
 
-	plhs[0] = mxCreateFull (m, n, REAL);
+	plhs[0] = mxCreateDoubleMatrix (m, n, mxREAL);
     
 	k0 = mxGetPr (plhs[0]);
  
@@ -51,9 +51,9 @@ void mexFunction (int nlhs, Matrix *plhs[], int nrhs, Matrix *prhs[])
 
 void spline2d_green (x, c, G, n)
 double x[], c, G[];
-int n;
+mwSize n;
 {
-	int i;
+	mwSize i;
 	double y, z, ic, cx, g0, t;
 
 	if (c == 0.0) {	/* Just regular spline */
