@@ -190,7 +190,7 @@ if (n_args == 7 | n_args == 10)	% z_slope supplied; build slope matrix rows
 		j = i + n0;
 		dx = xp(j) - xp;
 		dy = yp(j) - yp;
-		A(j,:) = (spline2dgrad (dx, dy, i_slope(i), j_slope(i), p))'; %FRAM, was spline2d_grad 
+		A(j,:) = (spline2d_grad (dx, dy, i_slope(i), j_slope(i), p))'; %FRAM, was spline2d_grad 
 	end
 end
 if verbose    
@@ -215,7 +215,7 @@ end
 z = zeros (size(x_out));
 for i = 1:length(alpha)
 	r = abs ((x_out - xp(i)) + IM * (y_out - yp(i)));
-    z = z + alpha(i) * (spline2dgreen (r, p)); %FRAM, was spline2d_green
+    z = z + alpha(i) * (spline2d_green (r, p)); %FRAM, was spline2d_green
 end
 
 if verbose    
