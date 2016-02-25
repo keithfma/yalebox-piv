@@ -69,8 +69,6 @@ function [xx, yy, uu, vv] = ...
 % img = regular grid at image resolution
 
 % local parameters
-min_frac_data = 0.5;
-min_frac_overlap = min_frac_data/2;
 tension = 0.95;
 roi_epsilon = 1e-2; % numerical precision for roi deformation
 span_pts = 16; % lowess span in points
@@ -100,23 +98,18 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
-    % get correlation matrices for all sample points
-    [xcr, r_centroid, c_centroid, u_offset, v_offset] = ...
-        piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
-            intrlen(pp), min_frac_data, min_frac_overlap);
-    
-    % extract displacements 
+    % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-        piv_displacement(xcr, r_centroid, c_centroid, u_offset, v_offset);
+        piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp));
     
-    % validate dislacement updates 
+    % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
         piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
             valid_eps, true);    
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
-    [du_grd_tm, dv_grd_tm] = smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, ...
-                                c_grd, r_grd, roi, span_pts);
+    [du_grd_tm, dv_grd_tm] = ...
+        smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
