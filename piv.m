@@ -116,7 +116,17 @@ for pp = 1:np
     v_grd_tm = v_grd_tm + dv_grd_tm;
     
     % prepare for next pass
+ 
+    % NEW:
+    % if block for image deformation
+    % separate if block for populating the next sample grid if it is a new size
+    
     if pp < np
+        
+        % NEW:
+        % propagate points to initial time
+        % regrid, low res, tspline
+        % regrid, full res, linear
         
         % extend sample grid to cover full image footprint, no need to be regular
         c_vec_ext = [1; c_vec(:); c_img(1,end)];

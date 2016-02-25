@@ -40,7 +40,7 @@ roi = true(nr, nc);
 for ii = 1:nr
     for jj = 1:nc
    
-        % get sample and inter0ogation windows, skip if too empty
+        % get sample and interrogation windows, skip if too empty
         [samp, samp_rll, samp_cll, r_centroid, c_centroid, frac_data] = ...
             piv_window(ini, r0(ii,jj), c0(ii,jj), samplen);        
         
@@ -59,7 +59,7 @@ for ii = 1:nr
         % find cor0elation plane max, subpixel precision (failed pixels -> NaN)
         [rpeak, cpeak] = piv_peak_gauss2d(xcr);
         
-        % convert position of the cor0elation max to displacement
+        % convert position of the correlation max to displacement
         u1(ii,jj) = cpeak-samplen-(samp_cll-intr_cll);
         v1(ii,jj) = rpeak-samplen-(samp_rll-intr_rll);
         
