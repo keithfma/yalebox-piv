@@ -69,8 +69,6 @@ function [xx, yy, uu, vv] = ...
 % img = regular grid at image resolution
 
 % local parameters
-min_frac_data = 0.5;
-min_frac_overlap = min_frac_data/2;
 tension = 0.95;
 roi_epsilon = 1e-2; % numerical precision for roi deformation
 span_pts = 16; % lowess span in points
@@ -100,14 +98,9 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
-    % get correlation matrices for all sample points
-    [xcr, r_centroid, c_centroid, u_offset, v_offset] = ...
-        piv_cross_correlation(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), ...
-            intrlen(pp), min_frac_data, min_frac_overlap);
-    
-    % extract displacements 
+    % get displacements using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-        piv_displacement(xcr, r_centroid, c_centroid, u_offset, v_offset);
+        piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp));
     
     % validate dislacement updates 
     [du_pts_tm, dv_pts_tm] = ...
