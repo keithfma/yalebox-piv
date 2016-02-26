@@ -35,7 +35,7 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 % %
 
 % constant parameters
-spc = 5; % low-res grid spacing in pixels
+spc = 10; % low-res grid spacing in pixels
 tension = 0.95; % parameter for tension spline interpolation
 roi_epsilon = 1e-2; % numerical precision for roi deformation
 
