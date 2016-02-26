@@ -70,7 +70,6 @@ function [xx, yy, uu, vv] = ...
 
 % local parameters
 tension = 0.95;
-roi_epsilon = 1e-2; % numerical precision for roi deformation
 span_pts = 16; % lowess span in points
         
 % parse inputs
@@ -81,9 +80,7 @@ check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, in
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init coordinate grids
-[r_vec, c_vec] = piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
-[c_grd, r_grd] = meshgrid(c_vec, r_vec);
-[c_img, r_img] = meshgrid(1:size(ini_ti, 2), 1:size(ini_ti ,1));
+[r_grd, c_grd] = piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
 
 % preallocate as reccomended by Mlint
 sz = size(c_grd);
@@ -109,84 +106,33 @@ for pp = 1:np
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
-        smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
+        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
     v_grd_tm = v_grd_tm + dv_grd_tm;
     
-    % prepare for next pass
- 
-    % NEW:
-    % if block for image deformation
-    % separate if block for populating the next sample grid if it is a new size
-    
+    % deform images to midpoint time, if there is another pass
     if pp < np
+        ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
+            v_grd_tm, roi, 1);
+        fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
+            v_grd_tm, roi, 0);        
+    end
+    
+    % interpolate to new sample grid, if grid is changed in the next pass
+    % ...interpolation fills the whole sample grid, the new roi will be imposed 
+    % ...by adding NaNs to the current estimate 
+    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
         
-        % NEW:
-        % propagate points to initial time
-        % regrid, low res, tspline
-        % regrid, full res, linear
+        [r_grd_next, c_grd_next] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));        
+        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), tension);        
+        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), tension);
+        r_grd = r_grd_next;
+        c_grd = c_grd_next;        
+        u_grd_tm = reshape(u_grd_tm, size(r_grd));
+        v_grd_tm = reshape(v_grd_tm, size(r_grd));
         
-        % extend sample grid to cover full image footprint, no need to be regular
-        c_vec_ext = [1; c_vec(:); c_img(1,end)];
-        r_vec_ext = [1; r_vec(:); r_img(end,1)];
-        [c_ext, r_ext] = meshgrid(c_vec_ext, r_vec_ext);
-        
-        % populate extended sample grid using tension splines        
-        from = ~isnan(u_grd_tm);
-        u_ext_tm = zeros(size(c_ext));
-        v_ext_tm = zeros(size(c_ext));
-        u_ext_tm(:) = spline2d(c_ext(:), r_ext(:), c_grd(from), r_grd(from), u_grd_tm(from), tension);
-        v_ext_tm(:) = spline2d(c_ext(:), r_ext(:), c_grd(from), r_grd(from), v_grd_tm(from), tension);
-
-        % re-grid to image resolution at initial time using cheaper interpolant
-        c_pts = c_ext - 0.5*u_ext_tm;
-        r_pts = r_ext - 0.5*v_ext_tm;        
-        
-        interpolant = scatteredInterpolant(c_pts(:), r_pts(:), u_ext_tm(:), 'natural', 'linear');
-        u_img_ti = interpolant(c_img, r_img);
-        interpolant.Values = v_ext_tm(:);
-        v_img_ti = interpolant(c_img, r_img);
-        
-        % re-grid to image resolution at initial time using cheaper interpolant
-        c_pts = c_ext + 0.5*u_ext_tm;
-        r_pts = r_ext + 0.5*v_ext_tm;        
-        
-        interpolant = scatteredInterpolant(c_pts(:), r_pts(:), u_ext_tm(:), 'natural', 'linear');
-        u_img_tf = interpolant(c_img, r_img);
-        interpolant.Values = v_ext_tm(:);
-        v_img_tf = interpolant(c_img, r_img);
-        
-        % deform images to midpoint time
-        ini_tm = imwarp(ini_ti, -0.5*cat(3, u_img_ti, v_img_ti), 'cubic', 'FillValues', 0);
-        fin_tm = imwarp(fin_tf,  0.5*cat(3, u_img_tf, v_img_tf), 'cubic', 'FillValues', 0);
-        
-        % deform roi masks to midpoint time, re-apply to clean up warping edge artefacts
-        tmp = imwarp(double(ini_roi_ti), -0.5*cat(3, u_img_ti, v_img_ti), 'cubic', 'FillValues', 0);
-        ini_roi_tm = abs(tmp-1) < roi_epsilon;
-        ini_tm(~ini_roi_tm) = 0;
-        
-        tmp = imwarp(double(fin_roi_tf), 0.5*cat(3, u_img_tf, v_img_tf), 'cubic', 'FillValues', 0);
-        fin_roi_tm = abs(tmp-1) < roi_epsilon;
-        fin_tm(~fin_roi_tm) = 0;
-        
-        % part 2: get new coordinate and predictor grids if resolution changes
-        % in next pass
-        
-        if (samplen(pp) ~= samplen(pp+1)) || (sampspc(pp) ~= sampspc(pp+1))
-            
-            [r_vec, c_vec] = yalebox_piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));
-            [c_grd, r_grd] = meshgrid(c_vec, r_vec);
-            
-            fprintf('F\n');
-            from = ~isnan(u_grd_tm);
-            u_grd_tm = spline2d(c_grd(:), r_grd(:), c_grd(from), r_grd(from), u_grd_tm(from), tension);
-            v_grd_tm = spline2d(c_grd(:), r_grd(:), c_grd(from), r_grd(from), v_grd_tm(from), tension);
-            
-            u_grd_tm = reshape(u_grd_tm, size(c_grd));
-            v_grd_tm = reshape(v_grd_tm, size(c_grd));           
-        end        
     end
     
 end   

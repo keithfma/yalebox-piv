@@ -1,5 +1,5 @@
-function [rvec, cvec] = piv_sample_grid(len, spc, sz)
-% function [rvec, cvec] = piv_sample_grid(len, spc, sz)
+function [rr, cc] = piv_sample_grid(len, spc, sz)
+% function [rr, cc] = piv_sample_grid(len, spc, sz)
 %
 % Create sample grid with the following characteristics:
 % - sample window edges fall at integer positions
@@ -21,8 +21,9 @@ function [rvec, cvec] = piv_sample_grid(len, spc, sz)
 %   sz = Vector, length == 2, grid dimensions [rows, columns] for the
 %       original input data matrices (e.g. ini and fin).
 %
-%   rvec, cvec = Vector, integer, coordinate vectors for the sample grid in the
-%       y (a.k.a. row) and x (a.k.a. column) directions, in pixels
+%   rr, cc = 2D matrix, integer, coordinate matrices, as constructed by meshgrid, 
+%       for the sample grid in the y (a.k.a. row) and x (a.k.a. column) directions, 
+%       in pixels
 % %
 
 footprint = len+ceil((sz-len)/spc)*spc; 
@@ -34,6 +35,8 @@ stop = start+footprint-len;
 
 rvec = start(1):spc:stop(1);
 cvec = start(2):spc:stop(2);
+
+[cc, rr] = meshgrid(cvec, rvec);
 
 % % debug: check grid edges {
 % disp(rem(1))
