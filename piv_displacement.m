@@ -25,7 +25,7 @@ function [r1, c1, u1, v1, roi] = piv_displacement(ini, fin, r0, c0, samplen, int
 % %
 
 % constants
-min_frac_data = 0.5;
+min_frac_data = 0.8;
 min_frac_overlap = min_frac_data/2;
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 

@@ -21,10 +21,10 @@ bnd_ampl = 0;
 bnd_freq = 1;
 
 % piv parameters
-samplen = 30;
-sampspc = 15;
-intrlen = 100;
-npass = 2;
+samplen = [30, 15];
+sampspc = [15, 7];
+intrlen = [100, 20];
+npass = [2, 2];
 valid_max = 2;
 valid_eps = 0.01;
 
