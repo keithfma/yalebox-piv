@@ -95,6 +95,10 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
+    % get info about this pass
+    another_pass = np<pp;
+    update_res = np<pp && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1));
+    
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp));
@@ -106,35 +110,28 @@ for pp = 1:np
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
-        smooth_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
+        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
     v_grd_tm = v_grd_tm + dv_grd_tm;
     
-    % deform images to midpoint time, if there is another pass
-    if pp < np
+    
+    if another_pass        
+        % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, 1);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, 0);        
-    end
     
-    % interpolate to new sample grid, if grid is changed in the next pass
-    % ...interpolation fills the whole sample grid, the new roi will be imposed 
-    % ...by adding NaNs to the current estimate 
-    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
-        
-        [r_grd_next, c_grd_next] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));        
-        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), tension);        
-        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), tension);
-        r_grd = r_grd_next;
-        c_grd = c_grd_next;        
-        u_grd_tm = reshape(u_grd_tm, size(r_grd));
-        v_grd_tm = reshape(v_grd_tm, size(r_grd));
-        
+        if update_res
+            % interpolate to new sample grid         
+            [r_grd, c_grd, u_grd_tm, v_grd_tm] = ...
+                piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, c_grd_tm, roi, ...
+                    samplen(pp+1), sampspc(pp+1), size(ini_ti));
+        end        
     end
-    
+   
 end   
 % end multipass loop
 
@@ -153,37 +150,6 @@ yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
 end
 
 %% subroutines
-
-function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
-% function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
-%
-% Smooth and interpolate scattered vectors to a regular grid using robust
-% LOWESS. NaNs in input vector grids are ignored. Output vector grids are
-% populated in the region-of-interest (roi) and NaN elsewhere.
-%
-% Arguments:
-%   xp, yp = 2D matrices, location of scattered input points
-%   up, vp = 2D matrices, components of displacement vectors at scattered input 
-%       points, NaN values are ignored
-%   xg, yg = 2D matrices, regular grid for output vectors
-%   roi = 2D matrix, region-of-interest mask, 1 vectors should be output
-%   npts = Scalar, number of points to include in local fit
-%   ug, vg = 2D matrices, interpolated output vectors where roi==1, NaNs elsewhere
-% 
-% %
-
-from = ~isnan(up) & ~isnan(vp);
-span = npts/sum(from(:));
-
-ug = nan(size(roi));
-u_model = fit([xp(from), yp(from)], up(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
-ug(roi) = u_model(xg(roi), yg(roi));
-
-vg = nan(size(roi));
-v_model = fit([xp(from), yp(from)], vp(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
-vg(roi) = v_model(xg(roi), yg(roi));
-
-end
 
 function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
 %
