@@ -15,3 +15,42 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 %   file.
 %
 % %
+
+% check for sane arguments (pass-through arguments are checked in subroutines)
+% narginchk(8, 8); 
+validateattributes(output_file, {'char'}, {'vector'});
+validateattributes(input_file, {'char'}, {'vector'});
+
+% check for sane input file (only checks for names of dims and variables)
+info = ncinfo(input_file);
+
+% ...3 dimensions: x, y, step
+assert( length(info.Dimensions) == 3 );
+for ii = 1:3
+    assert( ismember(info.Dimensions(ii).Name, {'x', 'y', 'step'}) );
+end
+
+% ...6 variables: x, y, step, intensity, mask_manual, mask_auto
+assert( length(info.Variables) == 6 );
+for ii = 1:6
+    assert( ismember(info.Variables(ii).Name, {'x', 'y', 'step', 'intensity', ...
+        'mask_manual', 'mask_auto'}) );
+end
+
+% create netcdf file
+
+% add global attributes
+
+% create dimensions
+
+% define variables and thier attributes, compression, and chunking
+
+% finish netcdf creation
+
+% populate constant variables
+
+% loop over all timesteps
+
+    % perform piv analysis
+
+% done
