@@ -38,6 +38,7 @@ for ii = 1:6
 end
 
 % create netcdf file
+ncid = netcdf.create(output_file, 'NETCDF4');
 
 % add global attributes
 
@@ -46,6 +47,8 @@ end
 % define variables and thier attributes, compression, and chunking
 
 % finish netcdf creation
+netcdf.endDef(ncid);
+netcdf.close(ncid);
 
 % populate constant variables
 
