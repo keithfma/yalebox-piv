@@ -35,9 +35,9 @@ for ii = 1:6
 end
 
 % read input dimension values
-xx_in = ncread(input_file, 'x');
-yy_in = ncread(input_file, 'y');
-step_in = double(ncread(input_file, 'step'));
+xx_in =     double( ncread(input_file, 'x')     );
+yy_in =     double( ncread(input_file, 'y')     );
+step_in =   double( ncread(input_file, 'step')  );
 
 % compute output dimensions
 nr_img = length(yy_in);
@@ -112,20 +112,22 @@ netcdf.putVar(ncid, s_varid, step_out);
 netcdf.close(ncid);
 
 % analyse all steps
+img1 = double( ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])' );
 roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
-img1 = ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])';
+
 for ii = 1:length(step_out)-1
     
     % update image and roi pair
     img0 = img1;
     roi0 = roi1;
-    img1 = ncread(input_file, 'intensity', [1, 1, ii+1], [inf, inf, 1])';
+    
+    img1 = double( ncread(input_file, 'intensity', [1, 1, ii+1], [inf, inf, 1])' );
     roi1 = ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])' & roi_const;
     
     % perform piv analysis
     [x_piv, y_piv, u_piv, v_piv, roi_piv] = ...
-        piv(double(img0), double(img1), roi0, roi1, double(xx_in), double(yy_in), samplen, sampspc, intrlen, npass, ...
+        piv(img0, img1, roi0, roi1, xx_in, yy_in, samplen, sampspc, intrlen, npass, ...
             valid_max, valid_eps, 1); 
         
     keyboard    
