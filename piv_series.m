@@ -59,6 +59,38 @@ y_dimid = netcdf.defDim(ncid, 'y', length(yy));
 s_dimid = netcdf.defDim(ncid, 'step', length(step)-1);
 
 % define variables and thier attributes, compression, and chunking
+dim_3d = [x_dimid, y_dimid, s_dimid];
+chunk_3d = [length(xx), length(yy), 1];
+
+x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
+netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
+netcdf.putAtt(ncid, x_varid, 'units', 'meters');
+
+y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
+netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
+netcdf.putAtt(ncid, y_varid, 'units', 'meters');
+
+s_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', s_dimid);
+netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
+netcdf.putAtt(ncid, s_varid, 'units', '1');
+
+u_varid = netcdf.defVar(ncid, 'u', 'NC_FLOAT', dim_3d);
+netcdf.putAtt(ncid, u_varid, 'long_name', 'displacement vector, x-component');
+netcdf.putAtt(ncid, u_varid, 'units', 'meters/step');
+netcdf.defVarDeflate(ncid, u_varid, true, true, 1);
+netcdf.defVarChunking(ncid, u_varid, 'CHUNKED', chunk_3d);
+
+v_varid = netcdf.defVar(ncid, 'v', 'NC_FLOAT', dim_3d);
+netcdf.putAtt(ncid, v_varid, 'long_name', 'displacement vector, y-component');
+netcdf.putAtt(ncid, v_varid, 'units', 'meters/step');
+netcdf.defVarDeflate(ncid, v_varid, true, true, 1);
+netcdf.defVarChunking(ncid, v_varid, 'CHUNKED', chunk_3d);
+
+r_varid = netcdf.defVar(ncid, 'roi', 'NC_BYTE', dim_3d);
+netcdf.putAtt(ncid, r_varid, 'long_name', 'displacement vector mask');
+netcdf.putAtt(ncid, r_varid, 'units', 'boolean');
+netcdf.defVarDeflate(ncid, r_varid, true, true, 1);
+netcdf.defVarChunking(ncid, r_varid, 'CHUNKED', chunk_3d);
 
 % finish netcdf creation
 netcdf.endDef(ncid);
