@@ -38,6 +38,7 @@ end
 xx = ncread(input_file, 'x');
 yy = ncread(input_file, 'y');
 step = ncread(input_file, 'step');
+step = double(step);
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -70,7 +71,7 @@ y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
 netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
 netcdf.putAtt(ncid, y_varid, 'units', 'meters');
 
-s_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', s_dimid);
+s_varid = netcdf.defVar(ncid, 'step', 'NC_FLOAT', s_dimid);
 netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
 netcdf.putAtt(ncid, s_varid, 'units', '1');
 
@@ -96,7 +97,12 @@ netcdf.defVarChunking(ncid, r_varid, 'CHUNKED', chunk_3d);
 netcdf.endDef(ncid);
 netcdf.close(ncid);
 
-% populate constant variables
+% populate dimension values
+ncid = netcdf.open(output_file, 'WRITE');
+netcdf.putVar(ncid, x_varid, xx);
+netcdf.putVar(ncid, y_varid, yy);
+netcdf.putVar(ncid, s_varid, step(1:end-1)+0.5);
+netcdf.close(ncid);
 
 % loop over all timesteps
 
