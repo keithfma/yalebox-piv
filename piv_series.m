@@ -105,17 +105,16 @@ netcdf.putVar(ncid, s_varid, step(1:end-1)+0.5);
 netcdf.close(ncid);
 
 % analyse all steps
+roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
+roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 img1 = ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])';
 for ii = 1:length(step)-1
     
-    % fetch the input data
+    % update image and roi pair
     img0 = img1;
+    roi0 = roi1;
     img1 = ncread(input_file, 'intensity', [1, 1, ii+1], [inf, inf, 1])';
-    
-    % debug
-    subplot(2,1,1); imagesc(img0); title('img0');
-    subplot(2,1,2); imagesc(img1); title('img1');
-    pause(0.5);
+    roi1 = ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])' & roi_const;
     
     % perform piv analysis
     
