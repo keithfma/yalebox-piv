@@ -117,6 +117,15 @@ for ii = 1:length(step)-1
     roi1 = ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])' & roi_const;
     
     % perform piv analysis
+    [x_piv, y_piv, u_piv, v_piv, roi_piv] = ...
+        piv(double(img0), double(img1), roi0, roi1, double(xx), double(yy), samplen, sampspc, intrlen, npass, ...
+            valid_max, valid_eps, 1); 
+        
+    % debug
+    subplot(2,1,1); imagesc(u_piv);
+    subplot(2,1,2); imagesc(v_piv);
+    pause;
+    
     
     % write results to output file
 
