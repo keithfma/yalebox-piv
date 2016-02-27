@@ -1,5 +1,9 @@
-function [] = prep_series(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
-% function [] = prep_series(output_file, image_path, image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin)
+function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
+                  offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
+                  morph_open_rad, morph_erode_rad, nwin)
+% function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
+%                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
+%                   morph_open_rad, morph_erode_rad, nwin)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -31,7 +35,7 @@ function [] = prep_series(output_file, image_path, image_names, x, y, scale, off
 % Keith Ma
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-% narginchk(14, 14); % UNCOMMENT LATER
+narginchk(15, 15); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
@@ -66,7 +70,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entr_win', ent
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity nwin', nwin);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git hash', get_git_hash());
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git hash', util_get_git_hash());
     
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
@@ -143,20 +147,3 @@ for i = 1:nimage
     netcdf.close(ncid);
     
 end
-% end loop
-
-end
-
-%% Subroutines
-
-function hash = get_git_hash()
-% Fetch the revision number of the Git repository this file belongs to,
-% otherwise fail with error.
-% %
-
-git_dir = fileparts(mfilename('fullpath'));
-git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
-[stat, hash] = system(git_cmd);
-assert(stat == 0, 'Failed to find git revision number');
-
-end 
