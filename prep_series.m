@@ -70,7 +70,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entr_win', ent
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity nwin', nwin);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git hash', util_get_git_hash());
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_it_hash());
     
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
