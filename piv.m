@@ -1,4 +1,4 @@
-function [xx, yy, uu, vv] = ...
+function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
@@ -46,6 +46,10 @@ function [xx, yy, uu, vv] = ...
 %
 %   uu, vv = 2D matrix, double, computed displacement in the x- and y-directions
 %       in world coordinate units
+%
+%   roi = 2D matrix, logical, flag indicating whether the data point lies within
+%       PIV analysis (1) or not (0). Points inside the ROI may be measured or
+%       interpolated, points outside the ROI are all interpolated/extrapolated.
 %
 % References:
 %
@@ -153,37 +157,6 @@ yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
 end
 
 %% subroutines
-
-function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
-% function [ug, vg] = smooth_interp(xp, yp, up, vp, xg, yg, roi, npts)
-%
-% Smooth and interpolate scattered vectors to a regular grid using robust
-% LOWESS. NaNs in input vector grids are ignored. Output vector grids are
-% populated in the region-of-interest (roi) and NaN elsewhere.
-%
-% Arguments:
-%   xp, yp = 2D matrices, location of scattered input points
-%   up, vp = 2D matrices, components of displacement vectors at scattered input 
-%       points, NaN values are ignored
-%   xg, yg = 2D matrices, regular grid for output vectors
-%   roi = 2D matrix, region-of-interest mask, 1 vectors should be output
-%   npts = Scalar, number of points to include in local fit
-%   ug, vg = 2D matrices, interpolated output vectors where roi==1, NaNs elsewhere
-% 
-% %
-
-from = ~isnan(up) & ~isnan(vp);
-span = npts/sum(from(:));
-
-ug = nan(size(roi));
-u_model = fit([xp(from), yp(from)], up(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
-ug(roi) = u_model(xg(roi), yg(roi));
-
-vg = nan(size(roi));
-v_model = fit([xp(from), yp(from)], vp(from), 'lowess', 'Span', span, 'Robust', 'bisquare');
-vg(roi) = v_model(xg(roi), yg(roi));
-
-end
 
 function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
 %

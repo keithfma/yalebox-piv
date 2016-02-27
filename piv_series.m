@@ -104,8 +104,29 @@ netcdf.putVar(ncid, y_varid, yy);
 netcdf.putVar(ncid, s_varid, step(1:end-1)+0.5);
 netcdf.close(ncid);
 
-% loop over all timesteps
-
+% analyse all steps
+img1 = ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])';
+for ii = 1:length(step)-1
+    
+    % fetch the input data
+    img0 = img1;
+    img1 = ncread(input_file, 'intensity', [1, 1, ii+1], [inf, inf, 1])';
+    
+    % debug
+    subplot(2,1,1); imagesc(img0); title('img0');
+    subplot(2,1,2); imagesc(img1); title('img1');
+    pause(0.5);
+    
     % perform piv analysis
+    
+    % write results to output file
 
-% done
+end
+
+%% subroutines
+
+function img = fetch_img(file, index)
+%
+% Read image data from the input netCDF file for the specified time step
+
+
