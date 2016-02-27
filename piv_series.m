@@ -21,21 +21,23 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 
-% check for sane input file (only checks for names of dims and variables)
+% check for sane input file
 info = ncinfo(input_file);
-
-% ...3 dimensions: x, y, step
 assert( length(info.Dimensions) == 3 );
 for ii = 1:3
-    assert( ismember(info.Dimensions(ii).Name, {'x', 'y', 'step'}) );
+    assert( ismember(info.Dimensions(ii).Name, {'x', 'y', 'step'}), ...
+        sprintf('Invalid input file, failed to find dimension %s', info.Dimensions(ii).Name));
 end
-
-% ...6 variables: x, y, step, intensity, mask_manual, mask_auto
 assert( length(info.Variables) == 6 );
 for ii = 1:6
-    assert( ismember(info.Variables(ii).Name, {'x', 'y', 'step', 'intensity', ...
-        'mask_manual', 'mask_auto'}) );
+    assert( ismember(info.Variables(ii).Name, {'x', 'y', 'step', 'intensity', 'mask_manual', 'mask_auto'}), ...
+              sprintf('Invalid input file, failed to find variable %s', info.Variables(ii).Name));
 end
+
+% read dimension values
+xx = ncread(input_file, 'x');
+yy = ncread(input_file, 'y');
+step = ncread(input_file, 'step');
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -52,6 +54,9 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 
 % create dimensions
+x_dimid = netcdf.defDim(ncid, 'x', length(xx));
+y_dimid = netcdf.defDim(ncid, 'y', length(yy));
+s_dimid = netcdf.defDim(ncid, 'step', length(step)-1);
 
 % define variables and thier attributes, compression, and chunking
 
