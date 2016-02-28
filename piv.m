@@ -112,10 +112,24 @@ validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1})
 validateattributes( low_res_spc,      {'numeric'}, {'scalar', 'integer', '>', 0});
 validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
 
-% % verbose output
-% if verbose
-%     
-% end
+% verbose output
+if verbose
+    fprintf('piv: ini: size = [%d, %d], roi frac = %.2f\n', nr, nc, sum(ini_roi_ti(:))/numel(ini_roi_ti));
+    fprintf('piv: fin: size = [%d, %d], roi frac = %.2f\n', nr, nc, sum(fin_roi_tf(:))/numel(fin_roi_tf));
+    fprintf('piv: xw: min = %.3f, max = %.3f\n', min(xw), max(xw));
+    fprintf('piv: yw: min = %.3f, max = %.3f\n', min(yw), max(yw));
+    fprintf('piv: samplen = '); fprintf('%d ', samplen); fprintf('\n');
+    fprintf('piv: sampspc = '); fprintf('%d ', sampspc); fprintf('\n');
+    fprintf('piv: intrlen = '); fprintf('%d ', intrlen); fprintf('\n');
+    fprintf('piv: npass = '); fprintf('%d ', npass); fprintf('\n');
+    fprintf('piv: valid_max = %.2f\n', valid_max);
+    fprintf('piv: valid_eps = %.2e\n', valid_eps);
+    fprintf('piv: lowess_span_pts = %d\n', lowess_span_pts);
+    fprintf('piv: spline_tension = %.3f\n', spline_tension);
+    fprintf('piv: min_frac_data = %.3f\n', min_frac_data);
+    fprintf('piv: min_frac_overlap = %.3f\n', min_frac_overlap);
+    fprintf('piv: low_res_spc = %d\n', low_res_spc);
+end
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -135,6 +149,11 @@ fin_tm = fin_tf;
 % multipass loop
 np = length(samplen); 
 for pp = 1:np
+    
+    if verbose
+        fprintf('piv: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
+            pp, np, samplen(pp), sampspc(pp), intrlen(pp));
+    end
     
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
