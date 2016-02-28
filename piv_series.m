@@ -56,11 +56,13 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv intrlen', intrlen);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv npass', npass);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_max', valid_max);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv lowess_span_pts', lowess_span_pts);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
@@ -118,7 +120,7 @@ roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
 % analyse all steps
-for ii = 1:ns
+for ii = 1:2%ns
     
     % update image and roi pair
     img0 = img1;

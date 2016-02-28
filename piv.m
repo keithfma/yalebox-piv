@@ -1,7 +1,7 @@
 function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-        verbose)                 
+        min_frac_data, min_frac_overlap, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -39,6 +39,14 @@ function [xx, yy, uu, vv, roi] = ...
 %
 %   spline_tension = Scalar, tension parameter for the spline interpolation
 %       routine in ref [4]
+%
+%   min_frac_data = Scalar, minimum fraction of the sample window that must
+%       contain data (e.g. sand) for the point to be included in the ROI for PIV
+%       analysis
+%
+%   min_frac_overlap = Scalar, minimum fraction of the sample window data that
+%       must overlap the interrogation window data for a point in the
+%       cross-correlation to be valid
 %
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
@@ -81,7 +89,8 @@ function [xx, yy, uu, vv, roi] = ...
     
 % parse inputs
 check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
-    npass, valid_max, valid_eps, lowess_span_pts, spline_tension, verbose);
+    npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+    min_frac_data, min_frac_overlap, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -104,7 +113,8 @@ for pp = 1:np
     
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-        piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp));
+        piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
+        min_frac_data, min_frac_overlap);
     
     % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
@@ -113,7 +123,8 @@ for pp = 1:np
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
-        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, lowess_span_pts);
+        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+            lowess_span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -177,7 +188,7 @@ end
 
 function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
     sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, verbose)
+    spline_tension, min_frac_data, min_frac_overlap, verbose)
 %
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
@@ -187,24 +198,22 @@ function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
 ng = numel(samplen); % number of grid refinement steps
 
 validateattributes(ini, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
-validateattributes(fin, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, ...
-    'size', [nr, nc]});
+validateattributes(fin, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
 validateattributes(ini_roi, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(fin_roi, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(xx, {'double'}, {'vector', 'real', 'nonnan', 'numel', nc});
 validateattributes(yy, {'double'}, {'vector', 'real', 'nonnan', 'numel', nr});
-validateattributes(samplen, {'numeric'}, {'vector', 'integer', 'positive', ...
-    'nonnan'});
-validateattributes(sampspc, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
-    'positive', 'nonnan'});
-validateattributes(intrlen, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
-    'positive', 'nonnan'});
-validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
-    'positive'});
+validateattributes(samplen, {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
+validateattributes(sampspc, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes(intrlen, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
 validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
 validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
+validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+% validateattributes( , {}, {});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end
