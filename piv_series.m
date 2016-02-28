@@ -23,7 +23,7 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-% narginchk(8, 8); 
+narginchk(14, 14); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 
@@ -130,7 +130,7 @@ roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 for ii = 1:2%ns
     
     if verbose
-        fprintf('%s: begin step = %.1f\n', mfilename, step_piv(ii));
+        fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
     end
     
     % update image and roi pair
@@ -154,7 +154,7 @@ for ii = 1:2%ns
     netcdf.close(ncid);
     
     if verbose
-        fprintf('%s: end step = %.1f\n', step_piv(ii), mfilename);
+        fprintf('%s: end step = %.1f\n', mfilename,  step_piv(ii));
     end
     
 end
