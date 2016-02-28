@@ -78,6 +78,6 @@ vv(~valid) = NaN;
 if verbose
     num_invalidated = num_valid_init-sum(valid(:));
     pct_invalidated = 100*num_invalidated/num_valid_init;
-    fprintf('%s: %d invalidated (%.1f%%)\n', mfilename, num_invalidated, pct_invalidated);
+    fprintf('%s: invalidated %d (%.1f%%)\n', ...
+        mfilename, num_invalidated, pct_invalidated);
 end
-   

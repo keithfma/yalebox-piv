@@ -130,7 +130,7 @@ roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 for ii = 1:2%ns
     
     if verbose
-        fprintf('piv_series: begin step = %.1f\n', step_piv(ii));
+        fprintf('%s: begin step = %.1f\n', mfilename, step_piv(ii));
     end
     
     % update image and roi pair
@@ -154,7 +154,7 @@ for ii = 1:2%ns
     netcdf.close(ncid);
     
     if verbose
-        fprintf('piv_series: end step = %.1f\n', step_piv(ii));
+        fprintf('%s: end step = %.1f\n', step_piv(ii), mfilename);
     end
     
 end
