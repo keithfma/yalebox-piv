@@ -1,5 +1,5 @@
 function [xx, yy, uu, vv, roi] = ...
-    piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, ...
+    piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
@@ -11,10 +11,10 @@ function [xx, yy, uu, vv, roi] = ...
 %   ini_roi_ti, fin_roi_tf = 2D matrix, logical, mask indicating pixels where there is
 %       sand (1) and where there is only background (0) that should be ignored.
 %
-%   xx = Vector, double, increasing, x-direction coordinate vector, length
+%   xw = Vector, double, increasing, x-direction coordinate vector, length
 %       must match the columns in ini and fin.
 %
-%   yy = Vector, double, increasing, y-direction coordinate vector, length
+%   yw = Vector, double, increasing, y-direction coordinate vector, length
 %       must match the rows in ini and fin.
 %
 %   samplen = Vector, length == number of grid resolutions, integer, side
@@ -77,14 +77,14 @@ tension = 0.95;
 span_pts = 16; % lowess span in points
         
 % parse inputs
-check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xx, yy, samplen, sampspc, intrlen, ...
+check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
     npass, valid_max, valid_eps, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
 % init coordinate grids
-[r_grd, c_grd] = piv_sample_grid(samplen(1), sampspc(1), size(ini_ti));
+[r_grd, c_grd, xx, yy] = piv_sample_grid(samplen(1), sampspc(1), xw, yw);
 
 % preallocate as reccomended by Mlint
 sz = size(c_grd);
@@ -129,7 +129,7 @@ for pp = 1:np
     % ...by adding NaNs to the current estimate 
     if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
         
-        [r_grd_next, c_grd_next] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), size(ini_ti));        
+        [r_grd_next, c_grd_next] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
         u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), tension);        
         v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), tension);
         r_grd = r_grd_next;
@@ -142,17 +142,9 @@ for pp = 1:np
 end   
 % end multipass loop
 
-% rename displacements
-uu = u_grd_tm;
-vv = v_grd_tm;
-
-% convert displacements to world coordinates 
-uu = uu.*(xx(2)-xx(1)); 
-vv = vv.*(yy(2)-yy(1));
-
-% interpolate world coordinates for displacement vectors
-xx = interp1(1:size(ini_ti,2), xx, c_grd(1,:), 'linear', 'extrap');
-yy = interp1(1:size(ini_ti,1), yy, r_grd(:,1), 'linear', 'extrap');
+% convert displacements to world coordinates (assumes equal grid spacing)
+uu = u_grd_tm.*(xw(2)-xw(1)); 
+vv = v_grd_tm.*(yw(2)-yw(1));
 
 end
 

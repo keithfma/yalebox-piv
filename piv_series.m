@@ -35,17 +35,13 @@ for ii = 1:6
 end
 
 % read input dimension values
-xx_in =     double( ncread(input_file, 'x')     );
-yy_in =     double( ncread(input_file, 'y')     );
-step_in =   double( ncread(input_file, 'step')  );
+x_img =      double( ncread(input_file, 'x')     );
+y_img =      double( ncread(input_file, 'y')     );
+step_img =   double( ncread(input_file, 'step')  );
 
 % compute output dimensions
-nr_img = length(yy_in);
-nc_img = length(xx_in);
-[r_grd, c_grd] = piv_sample_grid(samplen(end), sampspc(end), [nr_img, nc_img]);        
-xx_out = interp1(1:nc_img, xx_in, c_grd(1,:), 'linear', 'extrap');
-yy_out = interp1(1:nr_img, yy_in, r_grd(:,1), 'linear', 'extrap');
-step_out = step_in(1:end-1)+0.5;
+[~, ~, x_piv, y_piv] = piv_sample_grid(samplen(end), sampspc(end), x_img, y_img);        
+step_piv = step_img(1:end-1)+0.5;
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -62,13 +58,13 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 
 % create dimensions
-x_dimid = netcdf.defDim(ncid, 'x', length(xx_out));
-y_dimid = netcdf.defDim(ncid, 'y', length(yy_out));
-s_dimid = netcdf.defDim(ncid, 'step', length(step_out));
+x_dimid = netcdf.defDim(ncid, 'x', length(x_piv));
+y_dimid = netcdf.defDim(ncid, 'y', length(y_piv));
+s_dimid = netcdf.defDim(ncid, 'step', length(step_piv));
 
 % define variables and thier attributes, compression, and chunking
 dim_3d = [x_dimid, y_dimid, s_dimid];
-chunk_3d = [length(xx_out), length(yy_out), 1];
+chunk_3d = [length(x_piv), length(y_piv), 1];
 
 x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
 netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
@@ -106,9 +102,9 @@ netcdf.close(ncid);
 
 % populate dimension values
 ncid = netcdf.open(output_file, 'WRITE');
-netcdf.putVar(ncid, x_varid, xx_out);
-netcdf.putVar(ncid, y_varid, yy_out);
-netcdf.putVar(ncid, s_varid, step_out);
+netcdf.putVar(ncid, x_varid, x_piv);
+netcdf.putVar(ncid, y_varid, y_piv);
+netcdf.putVar(ncid, s_varid, step_piv);
 netcdf.close(ncid);
 
 % analyse all steps
@@ -116,7 +112,7 @@ img1 = double( ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])' );
 roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
-for ii = 1:length(step_out)-1
+for ii = 1:3 %length(step_piv)
     
     % update image and roi pair
     img0 = img1;
@@ -126,20 +122,15 @@ for ii = 1:length(step_out)-1
     roi1 = ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])' & roi_const;
     
     % perform piv analysis
-    [x_piv, y_piv, u_piv, v_piv, roi_piv] = ...
-        piv(img0, img1, roi0, roi1, xx_in, yy_in, samplen, sampspc, intrlen, npass, ...
+    [~, ~, u_piv, v_piv, roi_piv] = ...
+        piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
             valid_max, valid_eps, 1); 
         
-    keyboard    
-        
-    % debug
-    subplot(2,1,1); imagesc(u_piv);
-    subplot(2,1,2); imagesc(v_piv);
-    pause;
-    
-    
     % write results to output file
-
+    ncwrite(output_file, 'u', u_piv', [1, 1, ii]);
+    ncwrite(output_file, 'v', v_piv', [1, 1, ii]);
+%     ncwrite(output_file, 'roi', roi_piv', [1, 1, ii]);
+    
 end
 
 %% subroutines

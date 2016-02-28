@@ -1,5 +1,5 @@
-function [rr, cc] = piv_sample_grid(len, spc, sz)
-% function [rr, cc] = piv_sample_grid(len, spc, sz)
+function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
+% function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
 %
 % Create sample grid with the following characteristics:
 % - sample window edges fall at integer positions
@@ -18,14 +18,20 @@ function [rr, cc] = piv_sample_grid(len, spc, sz)
 %
 %   spc = Scalar, integer, grid spacing in pixels
 %
-%   sz = Vector, length == 2, grid dimensions [rows, columns] for the
-%       original input data matrices (e.g. ini and fin).
+%   xw, yw = Vectors, double, world coordinates for the input images. Vector
+%       sizes match the input images, such that size(image, 1) == length(yw) and
+%       size(image, 2) == length(xw)
 %
 %   rr, cc = 2D matrix, integer, coordinate matrices, as constructed by meshgrid, 
 %       for the sample grid in the y (a.k.a. row) and x (a.k.a. column) directions, 
 %       in pixels
+%
+%   xx, yy = Vectors, double, world coordinate vectors corresponding to the
+%       locations in rr, cc
 % %
 
+% get sample grid in pixel coordinates
+sz = [length(yw), length(xw)];
 footprint = len+ceil((sz-len)/spc)*spc; 
 rem = footprint-sz;
 hlen = (len-1)/2; 
@@ -37,6 +43,10 @@ rvec = start(1):spc:stop(1);
 cvec = start(2):spc:stop(2);
 
 [cc, rr] = meshgrid(cvec, rvec);
+
+% interpolate pixel coordinates to world coordinates
+xx = interp1(1:sz(2), xw, cvec, 'linear', 'extrap');
+yy = interp1(1:sz(1), yw, rvec, 'linear', 'extrap');
 
 % % debug: check grid edges {
 % disp(rem(1))
