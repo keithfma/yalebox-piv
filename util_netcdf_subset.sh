@@ -6,18 +6,23 @@
 # automate the syntax.
 # #
 
+# display help message
 usage () {
 echo "Usage:"
-echo "$(basename $0) [input file] [num steps] [variables]"
+echo "$(basename $0) [input file] [num steps] [variables] [output file]"
 echo ""
-echo "	input file = path to input netcdf"
+echo "	input file = path to input netCDF"
 echo "	num steps = number of timesteps to extract, these will be equally"
 echo "		spaced and span the input dataset as nearly as possible"
 echo "	variables = names of variables to extract, as a comma-separated list"
+echo "	output file = path to output netCDF"
 echo ""
 }
 
-if [ $# -ne 3 ]; then
+# check for sane inputs
+if [ $# -ne 4 ]; then
 	echo "Incorrect number of arguments"
 	usage
 fi
+
+# subset
