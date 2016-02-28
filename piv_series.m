@@ -1,6 +1,9 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
                   min_frac_data, min_frac_overlap, low_res_spc)
+% function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
+%                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+%                   min_frac_data, min_frac_overlap, low_res_spc)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -123,6 +126,8 @@ roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 % analyse all steps
 for ii = 1:2%ns
     
+    fprintf('piv_series: begin step = %.1f\n', step_piv(ii));
+    
     % update image and roi pair
     img0 = img1;
     roi0 = roi1;
@@ -142,5 +147,7 @@ for ii = 1:2%ns
     netcdf.putVar(ncid, v_varid, [0, 0, ii-1], [nx, ny, 1], v_piv'); 
     netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [nx, ny, 1], int8(roi_piv)');  
     netcdf.close(ncid);
+    
+    fprintf('piv_series: end step = %.1f\n', step_piv(ii));
     
 end
