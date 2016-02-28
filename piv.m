@@ -137,7 +137,7 @@ end
 % init coordinate grids
 [r_grd, c_grd, xx, yy] = piv_sample_grid(samplen(1), sampspc(1), xw, yw);
 
-% preallocate as reccomended by Mlint
+% preallocate (only as reccomended by Mlint)
 sz = size(c_grd);
 u_grd_tm = zeros(sz); 
 v_grd_tm = zeros(sz);  
@@ -159,7 +159,7 @@ for pp = 1:np
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
             min_frac_data, min_frac_overlap, verbose);
-    
+        
     % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
         piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
