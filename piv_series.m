@@ -42,6 +42,9 @@ step_img =   double( ncread(input_file, 'step')  );
 % compute output dimensions
 [~, ~, x_piv, y_piv] = piv_sample_grid(samplen(end), sampspc(end), x_img, y_img);        
 step_piv = step_img(1:end-1)+0.5;
+nx = length(x_piv);
+ny = length(y_piv);
+ns = length(step_piv);
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -58,9 +61,9 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 
 % create dimensions
-x_dimid = netcdf.defDim(ncid, 'x', length(x_piv));
-y_dimid = netcdf.defDim(ncid, 'y', length(y_piv));
-s_dimid = netcdf.defDim(ncid, 'step', length(step_piv));
+x_dimid = netcdf.defDim(ncid, 'x', nx);
+y_dimid = netcdf.defDim(ncid, 'y', ny);
+s_dimid = netcdf.defDim(ncid, 'step', ns);
 
 % define variables and thier attributes, compression, and chunking
 dim_3d = [x_dimid, y_dimid, s_dimid];
@@ -112,7 +115,7 @@ img1 = double( ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])' );
 roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
-for ii = 1:3 %length(step_piv)
+for ii = 1:3 %ns
     
     % update image and roi pair
     img0 = img1;
@@ -127,16 +130,10 @@ for ii = 1:3 %length(step_piv)
             valid_max, valid_eps, 1); 
         
     % write results to output file
-    ncwrite(output_file, 'u', u_piv', [1, 1, ii]);
-    ncwrite(output_file, 'v', v_piv', [1, 1, ii]);
-%     ncwrite(output_file, 'roi', roi_piv', [1, 1, ii]);
+    ncid = netcdf.open(output_file, 'WRITE');    
+    netcdf.putVar(ncid, u_varid, [0, 0, ii-1], [nx, ny, 1], u_piv');
+    netcdf.putVar(ncid, v_varid, [0, 0, ii-1], [nx, ny, 1], v_piv'); 
+    netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [nx, ny, 1], int8(roi_piv)');  
+    netcdf.close(ncid);
     
 end
-
-%% subroutines
-
-function img = fetch_img(file, index)
-%
-% Read image data from the input netCDF file for the specified time step
-
-
