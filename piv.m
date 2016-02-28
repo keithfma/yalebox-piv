@@ -90,10 +90,32 @@ function [xx, yy, uu, vv, roi] = ...
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
     
-% parse inputs
-check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
-    npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-    min_frac_data, min_frac_overlap, low_res_spc, verbose);
+% check for sane inputs
+[nr, nc] = size(ini_ti); % image size
+ng = numel(samplen); % number of grid refinement steps
+validateattributes( ini_ti,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
+validateattributes( fin_tf,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
+validateattributes( ini_roi_ti,       {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes( fin_roi_tf,       {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes( xw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
+validateattributes( yw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
+validateattributes( samplen,          {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
+validateattributes( sampspc,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes( intrlen,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes( npass,            {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
+validateattributes( valid_max,        {'double'},  {'scalar', 'positive'});
+validateattributes( valid_eps,        {'double'},  {'scalar', 'positive'});
+validateattributes( lowess_span_pts,  {'numeric'}, {'scalar', 'integer'});
+validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
+validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes( low_res_spc,      {'numeric'}, {'scalar', 'integer', '>', 0});
+validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
+
+% % verbose output
+% if verbose
+%     
+% end
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -186,37 +208,5 @@ for ii = 1:length(np)
    ilen_ex = [ilen_ex, repmat(ilen(ii), 1, np(ii))]; %#ok!
    sspc_ex = [sspc_ex, repmat(sspc(ii), 1, np(ii))]; %#ok!
 end
-
-end
-
-function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, min_frac_data, min_frac_overlap, low_res_spc, verbose)
-%
-% Check for sane input argument properties, exit with error if they do not
-% match expectations.
-% %
-
-[nr, nc] = size(ini); % image size
-ng = numel(samplen); % number of grid refinement steps
-
-validateattributes(ini, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
-validateattributes(fin, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
-validateattributes(ini_roi, {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes(fin_roi, {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes(xx, {'double'}, {'vector', 'real', 'nonnan', 'numel', nc});
-validateattributes(yy, {'double'}, {'vector', 'real', 'nonnan', 'numel', nr});
-validateattributes(samplen, {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
-validateattributes(sampspc, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
-validateattributes(intrlen, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
-validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
-validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
-validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
-validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
-validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
-validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(low_res_spc, {'numeric'}, {'scalar', 'integer', '>', 0});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end
