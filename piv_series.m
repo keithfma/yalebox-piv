@@ -1,6 +1,6 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-                  min_frac_data, min_frac_overlap, low_res_spc)
+                  min_frac_data, min_frac_overlap, low_res_spc, verbose)
 % function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 %                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
 %                   min_frac_data, min_frac_overlap, low_res_spc)
@@ -17,6 +17,9 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % samplen, sampspc, intrlen, npass, valid_max, valid_eps = Select input
 %   variables for PIV routine piv(), other inputs are contained in the input
 %   file.
+%
+% verbose = Scalar, logical, display verbose messages for this function and its
+%   children (1) or don't (0) 
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
@@ -126,7 +129,9 @@ roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 % analyse all steps
 for ii = 1:2%ns
     
-    fprintf('piv_series: begin step = %.1f\n', step_piv(ii));
+    if verbose
+        fprintf('piv_series: begin step = %.1f\n', step_piv(ii));
+    end
     
     % update image and roi pair
     img0 = img1;
@@ -139,7 +144,7 @@ for ii = 1:2%ns
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
             valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-            min_frac_data, min_frac_overlap, low_res_spc, 1); 
+            min_frac_data, min_frac_overlap, low_res_spc, verbose); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    
@@ -148,6 +153,8 @@ for ii = 1:2%ns
     netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [nx, ny, 1], int8(roi_piv)');  
     netcdf.close(ncid);
     
-    fprintf('piv_series: end step = %.1f\n', step_piv(ii));
+    if verbose
+        fprintf('piv_series: end step = %.1f\n', step_piv(ii));
+    end
     
 end
