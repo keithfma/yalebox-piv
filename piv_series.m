@@ -1,5 +1,5 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
-                  npass, valid_max, valid_eps, lowess_span_pts)
+                  npass, valid_max, valid_eps, lowess_span_pts, spline_tension)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -60,6 +60,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_ha
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv lowess_span_pts', lowess_span_pts);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
@@ -129,7 +130,7 @@ for ii = 1:ns
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
-            valid_max, valid_eps, lowess_span_pts, 1); 
+            valid_max, valid_eps, lowess_span_pts, spline_tension, 1); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    

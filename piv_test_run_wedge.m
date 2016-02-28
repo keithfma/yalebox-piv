@@ -19,6 +19,7 @@ npass = [1, 1];
 valid_max = 2;
 valid_eps = 0.1;
 lowess_span_pts = 16;
+spline_tension = 0.95;
 
 % image parameters
 dir_name = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/image/crop_sidef/';
@@ -107,7 +108,8 @@ clear F
 
 % run piv
 [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, 1);
+    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
+    spline_tension, 1);
 
 % compute strain values
 [xgrid, ygrid] = meshgrid(xx, yy);

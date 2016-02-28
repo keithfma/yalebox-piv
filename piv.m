@@ -1,6 +1,7 @@
 function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-        intrlen, npass, valid_max, valid_eps, lowess_span_pts, verbose)                 
+        intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+        verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -36,6 +37,9 @@ function [xx, yy, uu, vv, roi] = ...
 %   lowess_span_pts = Scalar, number of points to include in local fit for 
 %       lowess smoothing/interpolation step.
 %
+%   spline_tension = Scalar, tension parameter for the spline interpolation
+%       routine in ref [4]
+%
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
 %
@@ -61,6 +65,10 @@ function [xx, yy, uu, vv, roi] = ...
 %
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
+%
+% [4] Wessel, P., & Bercovici, D. (1998). Interpolation with splines in tension:
+%   A Green’s function approach. Mathematical Geology, 30(1), 77–93. Retrieved
+%   from http://link.springer.com/article/10.1023/A:1021713421882
 
 % Note: variable suffixes are used to describe the time and space grids that
 % each variable represents. These are:
@@ -70,13 +78,10 @@ function [xx, yy, uu, vv, roi] = ...
 %   grd -> regular sample grid
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
-
-% local parameters
-tension = 0.95;
-        
+    
 % parse inputs
 check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
-    npass, valid_max, valid_eps, lowess_span_pts, verbose);
+    npass, valid_max, valid_eps, lowess_span_pts, spline_tension, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -117,9 +122,9 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, 1);
+            v_grd_tm, roi, spline_tension, 1);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, 0);        
+            v_grd_tm, roi, spline_tension, 0);        
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
@@ -128,8 +133,8 @@ for pp = 1:np
     if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
         
         [r_grd_next, c_grd_next, xx, yy] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
-        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), tension);        
-        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), tension);
+        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), spline_tension);        
+        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), spline_tension);
         r_grd = r_grd_next;
         c_grd = c_grd_next;        
         u_grd_tm = reshape(u_grd_tm, size(r_grd));
@@ -171,7 +176,8 @@ end
 end
 
 function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, verbose)
+    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
+    spline_tension, verbose)
 %
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
@@ -198,6 +204,7 @@ validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
 validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
+validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end

@@ -1,7 +1,7 @@
 function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-                      u_grd_tm, v_grd_tm, roi, is_fwd)
+                      u_grd_tm, v_grd_tm, roi, tension, is_fwd)
 % function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-%                       u_grd_tm, v_grd_tm, roi, is_fwd)
+%                       u_grd_tm, v_grd_tm, roi, tension, is_fwd)
 %
 % Deform initial or final image to midpoint time based on current estimates for
 % displacement. Initial displacement estimates are on a regular grid at midpoint
@@ -22,9 +22,11 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %       estimate displacements for this point (1) or not (0)
 %   is_fwd = Logical flag, deform the image a half-step forward in time (1), 
 %       or a half step back in time (0).
-% 
-% A few meaningful suffixes are used to help clarify the variable grids and
-% times, specifically:
+%   tension = Scalar, tension parameter for the spline interpolation routine
+% %
+
+% Note: A few meaningful suffixes are used to help clarify the variable grids
+% and times, specifically:
 % 
 %   tm -> midpoint time
 %   tx -> image time, which is either initial or final time depending on is_fwd
@@ -32,11 +34,9 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %   img -> regular image coordinate grid
 %   pts -> scattered coordinate points
 %   lr -> regular "low-res" coordinate grid used in interpolation
-% %
 
 % constant parameters
 spc = 10; % low-res grid spacing in pixels
-tension = 0.95; % parameter for tension spline interpolation
 roi_epsilon = 1e-2; % numerical precision for roi deformation
 
 % get full-res grid of images coordinates

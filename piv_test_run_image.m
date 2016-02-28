@@ -28,6 +28,7 @@ npass = [1, 2];
 valid_max = 2;
 valid_eps = 0.01;
 lowess_span_pts = 16;
+spline_tension = 0.95;
 
 % local parameters
 data_file = 'test/image.mat';
@@ -92,7 +93,8 @@ clear F
 
 % run piv
 [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, 1);
+    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
+    spline_tension, 1);
 
 % compute exact solution at midpoint time...
 
