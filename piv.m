@@ -183,18 +183,10 @@ for pp = 1:np
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
-    % ...interpolation fills the whole sample grid, the new roi will be imposed 
-    % ...by adding NaNs to the current estimate 
-    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
-        
-        [r_grd_next, c_grd_next, xx, yy] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
-        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), spline_tension);        
-        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), spline_tension);
-        r_grd = r_grd_next;
-        c_grd = c_grd_next;        
-        u_grd_tm = reshape(u_grd_tm, size(r_grd));
-        v_grd_tm = reshape(v_grd_tm, size(r_grd));
-        
+    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))        
+        [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
+            piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
+                samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);                
     end
     
 end   

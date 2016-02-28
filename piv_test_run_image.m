@@ -22,7 +22,7 @@ bnd_freq = 1;
 
 % piv parameters
 samplen = [30, 30];
-sampspc = [15, 15];
+sampspc = [15z, 15];
 intrlen = [100, 50];
 npass = [1, 2];
 valid_max = 2;
