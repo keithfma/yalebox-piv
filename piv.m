@@ -1,6 +1,6 @@
 function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-        intrlen, npass, valid_max, valid_eps, verbose)                 
+        intrlen, npass, valid_max, valid_eps, lowess_span_pts, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -11,11 +11,8 @@ function [xx, yy, uu, vv, roi] = ...
 %   ini_roi_ti, fin_roi_tf = 2D matrix, logical, mask indicating pixels where there is
 %       sand (1) and where there is only background (0) that should be ignored.
 %
-%   xw = Vector, double, increasing, x-direction coordinate vector, length
-%       must match the columns in ini and fin.
-%
-%   yw = Vector, double, increasing, y-direction coordinate vector, length
-%       must match the rows in ini and fin.
+%   xw, yw = Vector, double, increasing, x- and y-direction coordinate vectors,
+%       length must match the cols and rows, respectively, in both ini and fin.
 %
 %   samplen = Vector, length == number of grid resolutions, integer, side
 %       length of the square sample window
@@ -36,6 +33,9 @@ function [xx, yy, uu, vv, roi] = ...
 %   epsilon = Scalar, double, minumum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
 %
+%   lowess_span_pts = Scalar, number of points to include in local fit for 
+%       lowess smoothing/interpolation step.
+%
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
 %
@@ -50,7 +50,7 @@ function [xx, yy, uu, vv, roi] = ...
 %   roi = 2D matrix, logical, flag indicating whether the data point lies within
 %       PIV analysis (1) or not (0). Points inside the ROI may be measured or
 %       interpolated, points outside the ROI are all interpolated/extrapolated.
-%
+%   
 % References:
 %
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
@@ -62,23 +62,21 @@ function [xx, yy, uu, vv, roi] = ...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 
-% variable naming scheme key
-%
-% ti = time of the initial image
-% tm = midpoint between initial and final images
-% tf = time of the final image
-%
-% grd = regular sample grid
-% pts = irregularly spaced points
-% img = regular grid at image resolution
+% Note: variable suffixes are used to describe the time and space grids that
+% each variable represents. These are:
+%   ti -> time of the initial image
+%   tm -> midpoint between initial and final images
+%   tf -> time of the final image
+%   grd -> regular sample grid
+%   pts -> irregularly spaced points
+%   img -> regular grid at image resolution
 
 % local parameters
 tension = 0.95;
-span_pts = 16; % lowess span in points
         
 % parse inputs
 check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
-    npass, valid_max, valid_eps, verbose);
+    npass, valid_max, valid_eps, lowess_span_pts, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -110,7 +108,7 @@ for pp = 1:np
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
-        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, span_pts);
+        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, lowess_span_pts);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -129,7 +127,7 @@ for pp = 1:np
     % ...by adding NaNs to the current estimate 
     if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
         
-        [r_grd_next, c_grd_next] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
+        [r_grd_next, c_grd_next, xx, yy] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
         u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), tension);        
         v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), tension);
         r_grd = r_grd_next;
@@ -173,7 +171,7 @@ end
 end
 
 function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, verbose)
+    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, verbose)
 %
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
@@ -199,6 +197,7 @@ validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', ...
     'positive'});
 validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
+validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end

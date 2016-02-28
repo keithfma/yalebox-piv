@@ -16,17 +16,18 @@ function [] = piv_test_run_image(force)
 % image parameters
 tform = [1, 0.05, 0;  
          0,    1, 0];
-bnd_mean = 0.9;
-bnd_ampl = 0;
+bnd_mean = 0.7;
+bnd_ampl = 0.1;
 bnd_freq = 1;
 
 % piv parameters
-samplen = [30, 15];
-sampspc = [15, 7];
-intrlen = [100, 20];
-npass = [2, 2];
+samplen = [30, 30];
+sampspc = [15, 15];
+intrlen = [100, 50];
+npass = [1, 2];
 valid_max = 2;
 valid_eps = 0.01;
+lowess_span_pts = 16;
 
 % local parameters
 data_file = 'test/image.mat';
@@ -91,7 +92,7 @@ clear F
 
 % run piv
 [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, 1);
+    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, 1);
 
 % compute exact solution at midpoint time...
 
