@@ -1,7 +1,7 @@
 function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-                      u_grd_tm, v_grd_tm, roi, is_fwd)
+                      u_grd_tm, v_grd_tm, roi, tension, low_res_spc, is_fwd)
 % function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-%                       u_grd_tm, v_grd_tm, roi, is_fwd)
+%                       u_grd_tm, v_grd_tm, roi, tension, is_fwd)
 %
 % Deform initial or final image to midpoint time based on current estimates for
 % displacement. Initial displacement estimates are on a regular grid at midpoint
@@ -12,19 +12,30 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 % Arguments:
 %
 %   img_tx = 2D matrix, original image
+%
 %   img_roi_tx = 2D matrix, logical, indicates whether pixels have sand (1) or 
 %       not (0)
+%
 %   r_grd_tm, c_grd_tm = 2D matrix, sample coordinate grid for displacement 
 %       estimates at midpoint time
+%
 %   u_grd_tm, v_grd_tm = 2D matrix, estimated displacements on the regular 
 %       sample grid at midpoint time
+%
 %   roi = 2D matrix, logical, indicates whether the PIV had enough data to 
 %       estimate displacements for this point (1) or not (0)
+%
+%   tension = Scalar, tension parameter for the spline interpolation routine
+%
+%   low_res_spc = Scalar, regular grid spacing for low-resolution (high-quality, 
+%       slow) interpolation step
+%
 %   is_fwd = Logical flag, deform the image a half-step forward in time (1), 
 %       or a half step back in time (0).
-% 
-% A few meaningful suffixes are used to help clarify the variable grids and
-% times, specifically:
+% %
+
+% Note: A few meaningful suffixes are used to help clarify the variable grids
+% and times, specifically:
 % 
 %   tm -> midpoint time
 %   tx -> image time, which is either initial or final time depending on is_fwd
@@ -32,20 +43,17 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %   img -> regular image coordinate grid
 %   pts -> scattered coordinate points
 %   lr -> regular "low-res" coordinate grid used in interpolation
-% %
 
-% constant parameters
-spc = 10; % low-res grid spacing in pixels
-tension = 0.95; % parameter for tension spline interpolation
-roi_epsilon = 1e-2; % numerical precision for roi deformation
+% constants
+roi_epsilon = 1e-2; % numerical threshold for roi deformation
 
 % get full-res grid of images coordinates
 [nr_img, nc_img] = size(img_tx);
 [c_img, r_img] = meshgrid(1:nc_img, 1:nr_img); % full-res
 
 % get low-res grid that spans the image coordinates
-cc = 1:spc:(ceil(nc_img/spc)*spc+1);
-rr = 1:spc:(ceil(nr_img/spc)*spc+1);
+cc = 1:low_res_spc:(ceil(nc_img/low_res_spc)*low_res_spc+1);
+rr = 1:low_res_spc:(ceil(nr_img/low_res_spc)*low_res_spc+1);
 [c_lr, r_lr] = meshgrid(cc, rr); 
 [nr_lr, nc_lr] = size(c_lr);
 

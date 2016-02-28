@@ -1,5 +1,6 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
-                  npass, valid_max, valid_eps)
+                  npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+                  min_frac_data, min_frac_overlap, low_res_spc)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -13,7 +14,6 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % samplen, sampspc, intrlen, npass, valid_max, valid_eps = Select input
 %   variables for PIV routine piv(), other inputs are contained in the input
 %   file.
-%
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
@@ -56,9 +56,14 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv intrlen', intrlen);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv npass', npass);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_max', valid_max);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv lowess_span_pts', lowess_span_pts);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv low_res_spc', low_res_spc);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
@@ -116,7 +121,7 @@ roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
 % analyse all steps
-for ii = 1:ns
+for ii = 1:2%ns
     
     % update image and roi pair
     img0 = img1;
@@ -128,7 +133,8 @@ for ii = 1:ns
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
-            valid_max, valid_eps, 1); 
+            valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+            min_frac_data, min_frac_overlap, low_res_spc, 1); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    

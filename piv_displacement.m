@@ -1,5 +1,7 @@
-function [r1, c1, u1, v1, roi] = piv_displacement(ini, fin, r0, c0, samplen, intrlen)
-% function [r1, c1, u1, v1, roi] = piv_displacement(ini, fin, r0, c0, samplen, intrlen)
+function [r1, c1, u1, v1, roi] = ...
+    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
+% function [r1, c1, u1, v1, roi] = ...
+%     piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated
@@ -15,6 +17,14 @@ function [r1, c1, u1, v1, roi] = piv_displacement(ini, fin, r0, c0, samplen, int
 %
 % samplen, intrlen = Scalar, size of the sample and interrogation windows in pixels
 %
+% min_frac_data = Scalar, minimum fraction of the sample window that must
+%   contain data (e.g. sand) for the point to be included in the ROI for PIV
+%   analysis
+%
+% min_frac_overlap = Scalar, minimum fraction of the sample window data that
+%   must overlap the interrogation window data for a point in the
+%   cross-correlation to be valid
+%
 % r1, c1 = 2D matrix, row- and column-coordinates for the estimated displacements 
 %   at midpoint time
 %
@@ -25,8 +35,6 @@ function [r1, c1, u1, v1, roi] = piv_displacement(ini, fin, r0, c0, samplen, int
 % %
 
 % constants
-min_frac_data = 0.8;
-min_frac_overlap = min_frac_data/2;
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
 % allocate outputs, skipped points remain NaN, false
