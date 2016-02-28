@@ -1,7 +1,9 @@
 function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-                      u_grd_tm, v_grd_tm, roi, tension, low_res_spc, is_fwd)
+                      u_grd_tm, v_grd_tm, roi, tension, low_res_spc, is_fwd, ...
+                      verbose)
 % function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
-%                       u_grd_tm, v_grd_tm, roi, tension, is_fwd)
+%                       u_grd_tm, v_grd_tm, roi, tension, low_res_spc, is_fwd, ...
+%                       verbose)
 %
 % Deform initial or final image to midpoint time based on current estimates for
 % displacement. Initial displacement estimates are on a regular grid at midpoint
@@ -32,6 +34,8 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %
 %   is_fwd = Logical flag, deform the image a half-step forward in time (1), 
 %       or a half step back in time (0).
+%
+%   verbose = Logical flag, display verbose messages (1) or don't
 % %
 
 % Note: A few meaningful suffixes are used to help clarify the variable grids
@@ -46,6 +50,10 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 
 % constants
 roi_epsilon = 1e-2; % numerical threshold for roi deformation
+
+if verbose
+    fprintf('%s: tension = %.2f, low-res spacing = %d\n', mfilename, tension, low_res_spc);
+end
 
 % get full-res grid of images coordinates
 [nr_img, nc_img] = size(img_tx);

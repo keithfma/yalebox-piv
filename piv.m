@@ -177,9 +177,9 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 1);
+            v_grd_tm, roi, spline_tension, low_res_spc, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 0);        
+            v_grd_tm, roi, spline_tension, low_res_spc, 0, verbose);        
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
