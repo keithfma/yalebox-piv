@@ -13,7 +13,6 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % samplen, sampspc, intrlen, npass, valid_max, valid_eps = Select input
 %   variables for PIV routine piv(), other inputs are contained in the input
 %   file.
-%
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
@@ -61,6 +60,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv lowess_span_pts', lowess_
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv low_res_spc', low_res_spc);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 
@@ -132,7 +132,7 @@ for ii = 1:2%ns
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
-            valid_max, valid_eps, lowess_span_pts, spline_tension, 1); 
+            valid_max, valid_eps, lowess_span_pts, spline_tension, low_res_spc, 1); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    

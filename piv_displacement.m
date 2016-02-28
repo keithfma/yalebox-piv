@@ -1,6 +1,7 @@
 function [r1, c1, u1, v1, roi] = ...
-    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, ...
-        min_frac_overlap)
+    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
+% function [r1, c1, u1, v1, roi] = ...
+%     piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated

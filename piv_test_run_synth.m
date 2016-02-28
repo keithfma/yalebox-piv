@@ -38,6 +38,7 @@ lowess_span_pts = 16;
 spline_tension = 0.95;
 min_frac_data = 0.8;
 min_frac_overlap = min_frac_data/2;
+low_res_spc = 10;
 
 % local parameters
 data_file = 'test/synth.mat';
@@ -117,7 +118,7 @@ clear F
 % run piv
 [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
     sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, min_frac_data, min_frac_overlap, 1);
+    spline_tension, min_frac_data, min_frac_overlap, low_res_spc, 1);
 
 % compute exact solution at output grid points
 [xgrid, ygrid] = meshgrid(xx, yy);

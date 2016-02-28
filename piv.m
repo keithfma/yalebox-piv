@@ -1,7 +1,7 @@
 function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-        min_frac_data, min_frac_overlap, verbose)                 
+        min_frac_data, min_frac_overlap, low_res_spc, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -48,6 +48,9 @@ function [xx, yy, uu, vv, roi] = ...
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
 %
+%   low_res_spc = Scalar, regular grid spacing for low-resolution (high-quality, 
+%       slow) interpolation step
+%
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
 %
@@ -90,7 +93,7 @@ function [xx, yy, uu, vv, roi] = ...
 % parse inputs
 check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
     npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-    min_frac_data, min_frac_overlap, verbose);
+    min_frac_data, min_frac_overlap, low_res_spc, verbose);
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -133,9 +136,9 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, 1);
+            v_grd_tm, roi, spline_tension, low_res_spc, 1);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, 0);        
+            v_grd_tm, roi, spline_tension, low_res_spc, 0);        
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
@@ -188,7 +191,7 @@ end
 
 function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
     sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, min_frac_data, min_frac_overlap, verbose)
+    spline_tension, min_frac_data, min_frac_overlap, low_res_spc, verbose)
 %
 % Check for sane input argument properties, exit with error if they do not
 % match expectations.
@@ -213,7 +216,7 @@ validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
 validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-% validateattributes( , {}, {});
+validateattributes(low_res_spc, {'numeric'}, {'scalar', 'integer', '>', 0});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end
