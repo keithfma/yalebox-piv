@@ -110,12 +110,13 @@ netcdf.putVar(ncid, y_varid, y_piv);
 netcdf.putVar(ncid, s_varid, step_piv);
 netcdf.close(ncid);
 
-% analyse all steps
+% initialize loop by reading first image
 img1 = double( ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])' );
 roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
-for ii = 1:3 %ns
+% analyse all steps
+for ii = 1:ns
     
     % update image and roi pair
     img0 = img1;
