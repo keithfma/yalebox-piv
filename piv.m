@@ -114,21 +114,21 @@ validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
 
 % verbose output
 if verbose
-    fprintf('%s ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(ini_roi_ti(:))/numel(ini_roi_ti));
-    fprintf('%s fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(fin_roi_tf(:))/numel(fin_roi_tf));
-    fprintf('%s xw: min = %.3f, max = %.3f\n', mfilename, min(xw), max(xw));
-    fprintf('%s yw: min = %.3f, max = %.3f\n', mfilename, min(yw), max(yw));
-    fprintf('%s samplen = ', mfilename); fprintf('%d ', samplen); fprintf('\n');
-    fprintf('%s sampspc = ', mfilename); fprintf('%d ', sampspc); fprintf('\n');
-    fprintf('%s intrlen = ', mfilename); fprintf('%d ', intrlen); fprintf('\n');
-    fprintf('%s npass = ', mfilename); fprintf('%d ', npass); fprintf('\n');
-    fprintf('%s valid_max = %.2f\n', mfilename, valid_max);
-    fprintf('%s valid_eps = %.2e\n', mfilename, valid_eps);
-    fprintf('%s lowess_span_pts = %d\n', mfilename, lowess_span_pts);
-    fprintf('%s spline_tension = %.3f\n', mfilename, spline_tension);
-    fprintf('%s min_frac_data = %.3f\n', mfilename, min_frac_data);
-    fprintf('%s min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
-    fprintf('%s low_res_spc = %d\n', mfilename, low_res_spc);
+    fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(ini_roi_ti(:))/numel(ini_roi_ti));
+    fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(fin_roi_tf(:))/numel(fin_roi_tf));
+    fprintf('%s: xw: min = %.3f, max = %.3f\n', mfilename, min(xw), max(xw));
+    fprintf('%s: yw: min = %.3f, max = %.3f\n', mfilename, min(yw), max(yw));
+    fprintf('%s: samplen = ', mfilename); fprintf('%d ', samplen); fprintf('\n');
+    fprintf('%s: sampspc = ', mfilename); fprintf('%d ', sampspc); fprintf('\n');
+    fprintf('%s: intrlen = ', mfilename); fprintf('%d ', intrlen); fprintf('\n');
+    fprintf('%s: npass = ', mfilename); fprintf('%d ', npass); fprintf('\n');
+    fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
+    fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
+    fprintf('%s: lowess_span_pts = %d\n', mfilename, lowess_span_pts);
+    fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
+    fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
+    fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
+    fprintf('%s: low_res_spc = %d\n', mfilename, low_res_spc);
 end
 
 % expand grid definition vectors to reflect the number of passes
@@ -151,7 +151,7 @@ np = length(samplen);
 for pp = 1:np
     
     if verbose
-        fprintf('%s pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
+        fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
     
@@ -168,7 +168,7 @@ for pp = 1:np
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
         piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-            lowess_span_pts);
+            lowess_span_pts, verbose);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
