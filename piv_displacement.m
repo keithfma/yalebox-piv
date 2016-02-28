@@ -1,7 +1,10 @@
+
 function [r1, c1, u1, v1, roi] = ...
-    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
+    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, ...
+        min_frac_overlap, verbose)
 % function [r1, c1, u1, v1, roi] = ...
-%     piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, min_frac_overlap)
+%     piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, ...
+%         min_frac_overlap, verbose)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated
@@ -24,6 +27,8 @@ function [r1, c1, u1, v1, roi] = ...
 % min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %   must overlap the interrogation window data for a point in the
 %   cross-correlation to be valid
+%
+% verbose = Scalar, display verbose messages (1) or don't (0)
 %
 % r1, c1 = 2D matrix, row- and column-coordinates for the estimated displacements 
 %   at midpoint time
@@ -60,7 +65,7 @@ for ii = 1:nr
         [intr, intr_rll, intr_cll] = ...
             piv_window(fin, r0(ii,jj), c0(ii,jj), intrlen);
         
-        % compute masked, normalized cross cor0elation
+        % compute masked, normalized cross correlation
         [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);    
         xcr(overlap<min_overlap) = 0;
         
@@ -76,4 +81,14 @@ for ii = 1:nr
         r1(ii,jj) = r_centroid + 0.5*v1(ii,jj);        
                 
     end
+end
+
+if verbose
+    num_total = numel(roi);
+    num_found = sum(~isnan(u1(:)));
+    num_skipped = sum(~roi(:));
+    num_dropped = sum(roi(:) & isnan(u1(:)));
+    fprintf('%s: found %d (%.1f%%), skipped %d (%.1f%%), dropped %d (%.1f%%)\n', ...
+        mfilename, num_found, num_found/num_total*100, num_skipped, ...
+        num_skipped/num_total*100, num_dropped, num_dropped/num_total*100);
 end

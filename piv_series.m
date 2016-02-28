@@ -1,6 +1,9 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-                  min_frac_data, min_frac_overlap, low_res_spc)
+                  min_frac_data, min_frac_overlap, low_res_spc, verbose)
+% function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
+%                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+%                   min_frac_data, min_frac_overlap, low_res_spc)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -14,10 +17,13 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % samplen, sampspc, intrlen, npass, valid_max, valid_eps = Select input
 %   variables for PIV routine piv(), other inputs are contained in the input
 %   file.
+%
+% verbose = Scalar, logical, display verbose messages for this function and its
+%   children (1) or don't (0) 
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-% narginchk(8, 8); 
+narginchk(14, 14); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 
@@ -123,6 +129,10 @@ roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 % analyse all steps
 for ii = 1:2%ns
     
+    if verbose
+        fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
+    end
+    
     % update image and roi pair
     img0 = img1;
     roi0 = roi1;
@@ -134,7 +144,7 @@ for ii = 1:2%ns
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
             valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-            min_frac_data, min_frac_overlap, low_res_spc, 1); 
+            min_frac_data, min_frac_overlap, low_res_spc, verbose); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    
@@ -142,5 +152,9 @@ for ii = 1:2%ns
     netcdf.putVar(ncid, v_varid, [0, 0, ii-1], [nx, ny, 1], v_piv'); 
     netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [nx, ny, 1], int8(roi_piv)');  
     netcdf.close(ncid);
+    
+    if verbose
+        fprintf('%s: end step = %.1f\n', mfilename,  step_piv(ii));
+    end
     
 end

@@ -90,10 +90,46 @@ function [xx, yy, uu, vv, roi] = ...
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
     
-% parse inputs
-check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, intrlen, ...
-    npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-    min_frac_data, min_frac_overlap, low_res_spc, verbose);
+% check for sane inputs
+[nr, nc] = size(ini_ti); % image size
+ng = numel(samplen); % number of grid refinement steps
+validateattributes( ini_ti,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
+validateattributes( fin_tf,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
+validateattributes( ini_roi_ti,       {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes( fin_roi_tf,       {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes( xw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
+validateattributes( yw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
+validateattributes( samplen,          {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
+validateattributes( sampspc,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes( intrlen,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes( npass,            {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
+validateattributes( valid_max,        {'double'},  {'scalar', 'positive'});
+validateattributes( valid_eps,        {'double'},  {'scalar', 'positive'});
+validateattributes( lowess_span_pts,  {'numeric'}, {'scalar', 'integer'});
+validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
+validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes( low_res_spc,      {'numeric'}, {'scalar', 'integer', '>', 0});
+validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
+
+% verbose output
+if verbose
+    fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(ini_roi_ti(:))/numel(ini_roi_ti));
+    fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(fin_roi_tf(:))/numel(fin_roi_tf));
+    fprintf('%s: xw: min = %.3f, max = %.3f\n', mfilename, min(xw), max(xw));
+    fprintf('%s: yw: min = %.3f, max = %.3f\n', mfilename, min(yw), max(yw));
+    fprintf('%s: samplen = ', mfilename); fprintf('%d ', samplen); fprintf('\n');
+    fprintf('%s: sampspc = ', mfilename); fprintf('%d ', sampspc); fprintf('\n');
+    fprintf('%s: intrlen = ', mfilename); fprintf('%d ', intrlen); fprintf('\n');
+    fprintf('%s: npass = ', mfilename); fprintf('%d ', npass); fprintf('\n');
+    fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
+    fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
+    fprintf('%s: lowess_span_pts = %d\n', mfilename, lowess_span_pts);
+    fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
+    fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
+    fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
+    fprintf('%s: low_res_spc = %d\n', mfilename, low_res_spc);
+end
 
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
@@ -101,7 +137,7 @@ check_input(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, in
 % init coordinate grids
 [r_grd, c_grd, xx, yy] = piv_sample_grid(samplen(1), sampspc(1), xw, yw);
 
-% preallocate as reccomended by Mlint
+% preallocate (only as reccomended by Mlint)
 sz = size(c_grd);
 u_grd_tm = zeros(sz); 
 v_grd_tm = zeros(sz);  
@@ -114,11 +150,16 @@ fin_tm = fin_tf;
 np = length(samplen); 
 for pp = 1:np
     
+    if verbose
+        fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
+            mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
+    end
+    
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
-        min_frac_data, min_frac_overlap);
-    
+            min_frac_data, min_frac_overlap, verbose);
+        
     % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
         piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
@@ -127,7 +168,7 @@ for pp = 1:np
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
         piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-            lowess_span_pts);
+            lowess_span_pts, verbose);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -136,24 +177,16 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 1);
+            v_grd_tm, roi, spline_tension, low_res_spc, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 0);        
+            v_grd_tm, roi, spline_tension, low_res_spc, 0, verbose);        
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
-    % ...interpolation fills the whole sample grid, the new roi will be imposed 
-    % ...by adding NaNs to the current estimate 
-    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))
-        
-        [r_grd_next, c_grd_next, xx, yy] = piv_sample_grid(samplen(pp+1), sampspc(pp+1), xw, yw);        
-        u_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), u_grd_tm(roi), spline_tension);        
-        v_grd_tm = spline2d(c_grd_next(:), r_grd_next(:), c_grd(roi), r_grd(roi), v_grd_tm(roi), spline_tension);
-        r_grd = r_grd_next;
-        c_grd = c_grd_next;        
-        u_grd_tm = reshape(u_grd_tm, size(r_grd));
-        v_grd_tm = reshape(v_grd_tm, size(r_grd));
-        
+    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))        
+        [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
+            piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
+                samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);                
     end
     
 end   
@@ -186,37 +219,5 @@ for ii = 1:length(np)
    ilen_ex = [ilen_ex, repmat(ilen(ii), 1, np(ii))]; %#ok!
    sspc_ex = [sspc_ex, repmat(sspc(ii), 1, np(ii))]; %#ok!
 end
-
-end
-
-function [] = check_input(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, min_frac_data, min_frac_overlap, low_res_spc, verbose)
-%
-% Check for sane input argument properties, exit with error if they do not
-% match expectations.
-% %
-
-[nr, nc] = size(ini); % image size
-ng = numel(samplen); % number of grid refinement steps
-
-validateattributes(ini, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
-validateattributes(fin, {'double'}, {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
-validateattributes(ini_roi, {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes(fin_roi, {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes(xx, {'double'}, {'vector', 'real', 'nonnan', 'numel', nc});
-validateattributes(yy, {'double'}, {'vector', 'real', 'nonnan', 'numel', nr});
-validateattributes(samplen, {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
-validateattributes(sampspc, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
-validateattributes(intrlen, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
-validateattributes(npass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
-validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
-validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
-validateattributes(lowess_span_pts, {'numeric'}, {'scalar', 'integer'});
-validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
-validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(low_res_spc, {'numeric'}, {'scalar', 'integer', '>', 0});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 end
