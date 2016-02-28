@@ -24,5 +24,10 @@ if [ $# -ne 4 ]; then
 	echo "Incorrect number of arguments"
 	usage
 fi
+input_file=$1
+variable_list=$3
+output_file=$4
 
-# subset
+
+# subset using NCO tool NCKS
+ncks -v $variable_list $input_file $output_file 
