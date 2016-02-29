@@ -1,9 +1,9 @@
 function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-                  morph_open_rad, morph_erode_rad, nwin)
+                  morph_open_rad, morph_erode_rad, nwin. verbose)
 % function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
 %                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-%                   morph_open_rad, morph_erode_rad, nwin)
+%                   morph_open_rad, morph_erode_rad, nwin, verbose)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % performs masking and color correction, and saves the results and metadata
@@ -11,31 +11,33 @@ function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
 %
 % Arguments:
 % 
-% output_file = String, filename of the netCDF input file to be created. 
+%   output_file = String, filename of the netCDF input file to be created. 
 %
-% image_path = String, path to folder containing the images.
+%   image_path = String, path to folder containing the images.
 %
-% image_names = Cell array of strings, cells must contain filenames for
-%   successive images in the experiment image series. 
+%   image_names = Cell array of strings, cells must contain filenames for
+%       successive images in the experiment image series. 
 %
-% x, y, scale, offset = Output arguments from prep_world_coord().
+%   x, y, scale, offset = Output arguments from prep_world_coord().
 %
-% mask_manual = Output argument from prep_mask_manual()
+%   mask_manual = Output argument from prep_mask_manual()
 %
-% hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
-%   arguments for prep_mask_auto()
+%   hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
+%       arguments for prep_mask_auto()
 %
-% nwin = Input argument from prep_intensity()
+%   nwin = Input argument from prep_intensity()
 %
-% PIV input netCDF format:
-%   dimensions: x, y, step
-%   variables: mask_auto, mask_manual, x, y, step, intensity
-%   attributes: all preprocessing parameters
+%   verbose = Logical flag, display verbose messages (1) or don't (0)
 %
-% Keith Ma
+%   PIV input netCDF format:
+%       dimensions: x, y, step
+%       variables: mask_auto, mask_manual, x, y, step, intensity
+%       attributes: all preprocessing parameters
+%
+% %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(15, 15); 
+narginchk(16, 16); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
@@ -128,12 +130,16 @@ for i = 1:nimage
     
     % read in original image
     this_file = [image_path filesep image_names{i}];
-    fprintf('%s\n', this_file);
     rgb = imread(this_file);
     hsv = rgb2hsv(rgb);    
     
+    if verbose
+        fprintf('%s: processing %s\n', mfilename, this_file);
+    end
+    
     % compute automatic mask
-    mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, false);
+    mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
+        morph_open_rad, morph_erode_rad, false);
 
     % convert to normalized intensity
     intensity = prep_intensity(hsv(:,:,3), mask_manual & mask_auto, nwin, 0);
