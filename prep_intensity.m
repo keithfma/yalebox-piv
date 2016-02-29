@@ -1,5 +1,5 @@
-function eql = prep_intensity(img, mask, nwin, show)
-% function eql = prep_intensity(img, mask, nwin, show)
+function eql = prep_intensity(img, mask, nwin, show, verbose)
+% function eql = prep_intensity(img, mask, nwin, show, verbose)
 %
 % Convert masked color image to "equalized" grayscale image. 
 %
@@ -23,20 +23,24 @@ function eql = prep_intensity(img, mask, nwin, show)
 %       equalized intensity images and some simple comparison statistics,
 %       default = false
 %
+%   verbose = Optional, logical flag, display verbose messages (1) or don't (0)
+%
 %   eql = 2D matrix, size(mask), double, normalized intensity image with uniform
 %       distribution in the range [0, 1].
 %
 % %
 
 % set defaults
-narginchk(3, 4)
-if nargin == 3; show = false; end
+narginchk(3, 5)
+if nargin < 4; show = false; end
+if nargin < 5; verbose = false; end
 
 % check for sane inputs
 validateattributes(img, {'double'}, {'2d', '>=', 0, '<=', 1});
 validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
 validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
+validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
 % get constants, preallocate variables
 [nr, nc] = size(img);
@@ -45,6 +49,13 @@ nhalfwin = floor(nwin/2);
 
 % apply mask
 img(~mask) = 0;
+
+
+% (optional) report basic stats on intial image
+if verbose
+    fprintf('%s: input image: min = %.2e, mean = %.2e, max = %.2e. std = %.2e\n', ...
+        min(img(mask)), mean(img(mask)), max(img(mask)), std(img(mask)));
+end
 
 % local histogram equalization 
 for i = 1:nr 
@@ -112,5 +123,11 @@ if show
     
 end
 
+
+% (optional) report basic stats on final image
+if verbose
+    fprintf('%s: output image: min = %.2e, mean = %.2e, max = %.2e. std = %.2e\n', ...
+        min(eql(mask)), mean(eql(mask)), max(eql(mask)), std(eql(mask)));
+end
 
 
