@@ -127,7 +127,7 @@ roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
 roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
 
 % analyse all steps
-for ii = 1:2%ns
+for ii = 1:ns
     
     if verbose
         fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
