@@ -1,18 +1,20 @@
 #!/bin/bash
 #
-#  Template submission script for the BU SCC cluster scheduler
+#  Example submission script for image series pre-processing
 #
-#$ -N yalebox_prep
+#$ -N fault_ss_01_sidef.prep
 #$ -P glaciermod
 #$ -j y
+#$ -l h_rt=24:00:00
 
 # define parameters
-yalebox_path=/projectnb/glaciermod/yalebox-piv/
-param_file=/projectnb/glaciermod/yalebox-exp-fault/data/fault_ss_01/piv/test/prep_fault_ss_01_sidef.mat
-output_file_work=/projectnb/glaciermod/yalebox-exp-fault/data/fault_ss_01/piv/test/tmp.nc
-output_file_dest=/projectnb/glaciermod/yalebox-exp-fault/data/fault_ss_01/piv/test/out.nc
-image_path=/projectnb/glaciermod/yalebox-exp-fault/data/fault_ss_01/piv/test/
-image_wild=$image_path'fault_ss_01_sidef_*.png'
+yalebox_path=/projectnb/glaciermod/yalebox-piv
+data_top_dir=/projectnb/glaciermod/yalebox-exp-fault/data/fault_ss_01
+data_run_name=fault_ss_01_sidef
+param_file=$data_top_dir/piv/$data_run_name.prep_param.mat
+output_file=$data_top_dir/piv/$data_run_name.input.nc
+image_path=$data_top_dir/image/crop_sidef
+image_wild=${image_path}'/fault_ss_01_sidef_*.png'
 
 # setup runtime environment
 module load matlab/2015b
@@ -22,8 +24,6 @@ export MATLABPATH=$yalebox_path:$MATLABPATH
 matlab -singlecompthread -nodisplay << EOF
 load $param_file
 d = dir('$image_wild'); image_names = {d.name};
-prep('$output_file_work', '$image_path', image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin);
-movefile('$output_file_work', '$output_file_dest');
+prep('$output_file', '$image_path', image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin);
 exit
 EOF
-

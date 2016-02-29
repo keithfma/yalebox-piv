@@ -9,11 +9,11 @@
 
 # define parameters
 yalebox_path=/projectnb/glaciermod/yalebox-piv
-data_top_dir=/projectnb/glaciermod/yalebox-exp-fault/data
+data_top_dir=/projectnb/glaciermod/yalebox-exp-fault/data/fault_01_ss
 data_run_name=fault_ss_01_sidef
-param_file=$data_top_dir/$data_run_name.piv_param.mat
-input_file=$data_top_dir/$data_run_name.input.nc
-output_file=$data_top_dir/$data_run_name.displ.nc
+param_file=$data_top_dir/piv/$data_run_name.piv_param.mat
+input_file=$data_top_dir/piv/$data_run_name.input.nc
+output_file=$data_top_dir/piv/$data_run_name.displ.nc
 
 # setup runtime environment
 module load matlab/2015b
