@@ -1,6 +1,6 @@
 function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-                  morph_open_rad, morph_erode_rad, nwin. verbose)
+                  morph_open_rad, morph_erode_rad, nwin, verbose)
 % function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
 %                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
 %                   morph_open_rad, morph_erode_rad, nwin, verbose)
@@ -72,7 +72,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entr_win', ent
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity nwin', nwin);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_it_hash());
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
     
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', numel(x));
@@ -134,7 +134,7 @@ for i = 1:nimage
     hsv = rgb2hsv(rgb);    
     
     if verbose
-        fprintf('%s: processing %s\n', mfilename, this_file);
+        fprintf('%s: %s\n', mfilename, this_file);
     end
     
     % compute automatic mask

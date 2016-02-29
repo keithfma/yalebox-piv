@@ -21,9 +21,9 @@ module load matlab/2015b
 export MATLABPATH=$yalebox_path:$MATLABPATH
 
 # run
-matlab -singlecompthread -nodisplay << EOF
+matlab -singleCompThread -nodisplay << EOF
 load $param_file
 d = dir('$image_wild'); image_names = {d.name};
-prep('$output_file', '$image_path', image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin);
+prep_series('$output_file', '$image_path', image_names, x, y, scale, offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, nwin, 1);
 exit
 EOF

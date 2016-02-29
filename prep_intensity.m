@@ -50,11 +50,10 @@ nhalfwin = floor(nwin/2);
 % apply mask
 img(~mask) = 0;
 
-
 % (optional) report basic stats on intial image
 if verbose
-    fprintf('%s: input image: min = %.2e, mean = %.2e, max = %.2e. std = %.2e\n', ...
-        min(img(mask)), mean(img(mask)), max(img(mask)), std(img(mask)));
+    fprintf('%s: input image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
+        mfilename, min(img(mask)), mean(img(mask)), max(img(mask)), std(img(mask)));
 end
 
 % local histogram equalization 
@@ -126,8 +125,8 @@ end
 
 % (optional) report basic stats on final image
 if verbose
-    fprintf('%s: output image: min = %.2e, mean = %.2e, max = %.2e. std = %.2e\n', ...
-        min(eql(mask)), mean(eql(mask)), max(eql(mask)), std(eql(mask)));
+    fprintf('%s: output image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
+        mfilename, min(eql(mask)), mean(eql(mask)), max(eql(mask)), std(eql(mask)));
 end
 
 
