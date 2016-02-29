@@ -139,10 +139,11 @@ for i = 1:nimage
     
     % compute automatic mask
     mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
-        morph_open_rad, morph_erode_rad, false);
+        morph_open_rad, morph_erode_rad, false, verbose);
 
     % convert to normalized intensity
-    intensity = prep_intensity(hsv(:,:,3), mask_manual & mask_auto, nwin, 0);
+    intensity = prep_intensity(hsv(:,:,3), mask_manual & mask_auto, nwin, ...
+        0, verbose);
     
     % save results
     ncid = netcdf.open(output_file, 'WRITE');
