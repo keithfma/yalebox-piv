@@ -1,5 +1,7 @@
-function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
-% function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad, show)
+function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
+                    morph_open_rad, morph_erode_rad, show, verbose)
+% function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
+%                     morph_open_rad, morph_erode_rad, show, verbose)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -30,6 +32,8 @@ function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
+% 
+%   verbose = Logical flag, display verbose messages (1) or don't (0)
 %
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
@@ -37,10 +41,11 @@ function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, morph_
 % Keith Ma
 
 % set default values
-if nargin == 6; show = false; end
+if nargin < 7; show = false; end
+if nargin < 8; verbose = false; end
 
 % check for sane arguments, set default values
-narginchk(7,8);
+narginchk(7,9);
 validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1});
 validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(val_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
@@ -49,6 +54,7 @@ validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'});
 validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
+validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
 % get hue, value, and entropy, normalized to the range [0, 1]
 hue = hsv(:,:,1);
@@ -99,4 +105,10 @@ if show
     colormap(gray);
     subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
     subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
+end
+
+% (optional) report percentage masked
+if verbose
+    pct_sand = 100*sum(mask(:))/numel(mask);
+    fprintf('%s: %.1f%% sand, %.1f%% background\n', mfilename, pct_sand, 100-pct_sand);
 end
