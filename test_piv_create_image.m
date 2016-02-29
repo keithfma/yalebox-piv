@@ -1,5 +1,5 @@
 function [ini, fin, ini_roi, fin_roi, xx, yy] = ...
-    piv_test_create_image(tform, bnd_mean, bnd_ampl, bnd_freq)
+    test_piv_create_image(tform, bnd_mean, bnd_ampl, bnd_freq)
 %
 % Create a synthetic image pair by deforming a template image with a homogenous
 % deformation + constant offset, and imposing a sinusoidal boundary on the
@@ -46,7 +46,7 @@ yy = 0:size(im,1)-1;
 [xgrid, ygrid] = meshgrid(xx, yy);
 
 % get forward transform displacements and image
-[xgrid_fwd, ygrid_fwd] = piv_test_util_transform(tform, xgrid(:), ygrid(:), 1);
+[xgrid_fwd, ygrid_fwd] = test_piv_util_transform(tform, xgrid(:), ygrid(:), 1);
 xgrid_fwd = reshape(xgrid_fwd, size(xgrid));
 ygrid_fwd = reshape(ygrid_fwd, size(ygrid));
 uu = xgrid_fwd-xgrid;
@@ -91,7 +91,7 @@ bnd_x = bnd_x_norm*range(xx)+min(xx);
 bnd_y = bnd_y_norm*range(yy)+min(yy);
 
 % get forward transform
-[bnd_x_fwd, bnd_y_fwd] = piv_test_util_transform(tform, bnd_x, bnd_y, 1);
+[bnd_x_fwd, bnd_y_fwd] = test_piv_util_transform(tform, bnd_x, bnd_y, 1);
 
 % interpolate to image coordinates and remove pixels above the boundary
 bnd_y_ini = floor( interp1(bnd_x, bnd_y, xx) );

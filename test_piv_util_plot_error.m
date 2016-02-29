@@ -1,4 +1,4 @@
-function [] = piv_test_util_plot_error(uerr, verr)
+function [] = test_piv_util_plot_error(uerr, verr)
 %
 % Display a quick plot of the error matrices
  

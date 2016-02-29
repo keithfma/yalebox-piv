@@ -1,4 +1,4 @@
-function [] = piv_test_util_print_error(uerr, verr)
+function [] = test_piv_util_print_error(uerr, verr)
 %
 % Print a table of absolute error quantiles 
 %

@@ -1,5 +1,5 @@
 function [ini, fin, ini_roi, fin_roi, xx, yy] = ...
-    piv_test_create_synth(img_size, tform, min_spc, prob_white, ampl_white, ...
+    test_piv_create_synth(img_size, tform, min_spc, prob_white, ampl_white, ...
         ampl_black, sigma, max_attempts, bnd_mean, bnd_ampl, bnd_freq)
 %
 % Create a synthetic image pair that consists of a random field of gaussian dots
@@ -109,7 +109,7 @@ validateattributes(bnd_freq, {'numeric'}, {'scalar'});
 % compute the reverse affine transformation of the image bounding box
 x_bbox = [1, img_size(2), img_size(2),           1, 1];            
 y_bbox = [1,           1, img_size(1), img_size(1), 1];              
-[x_bbox_rev, y_bbox_rev] = piv_test_util_transform(tform, x_bbox, y_bbox, 0);
+[x_bbox_rev, y_bbox_rev] = test_piv_util_transform(tform, x_bbox, y_bbox, 0);
 
 % get limits and footprint needed to fully populate ini and fin
 xlim = [ min([x_bbox(:); x_bbox_rev(:)]); max([x_bbox(:); y_bbox_rev(:)]) ];
@@ -129,7 +129,7 @@ while num_attempts <= max_attempts
     xpt = rand()*range(xlim)+xlim(1);
     ypt = rand()*range(ylim)+ylim(1);    
     if ~in_bnd(xpt, ypt); continue; end    
-    [xpt_fwd, ypt_fwd] = piv_test_util_transform(tform, xpt, ypt, 1);
+    [xpt_fwd, ypt_fwd] = test_piv_util_transform(tform, xpt, ypt, 1);
     
     % append to triangulations
     tri.Points(end+1, :) = [xpt, ypt];
@@ -186,7 +186,7 @@ for ii = 1:length(yy)
             ini(ii,jj) = NaN;
         end
       
-        [xx_rev, yy_rev] = piv_test_util_transform(tform, xx(jj), yy(ii), 0);
+        [xx_rev, yy_rev] = test_piv_util_transform(tform, xx(jj), yy(ii), 0);
         if in_bnd(xx_rev, yy_rev)        
             vals = aa.*exp( -((x_pts_fwd-xx(jj)).^2+(y_pts_fwd-yy(ii)).^2)/sigma2 );
             fin(ii, jj) = sum(vals);

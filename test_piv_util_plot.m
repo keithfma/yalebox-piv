@@ -1,4 +1,4 @@
-function [] = piv_test_util_plot(xx, yy, uu, vv, displ, Dd)
+function [] = test_piv_util_plot(xx, yy, uu, vv, displ, Dd)
 %
 % Simple plots of select PIV outputs
 %

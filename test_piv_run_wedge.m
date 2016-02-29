@@ -1,4 +1,4 @@
-function [] = piv_test_run_wedge(force)
+function [] = test_piv_run_wedge(force)
 %
 % Run a hard-coded test case using a images from a wedge experiment.
 %
@@ -38,7 +38,7 @@ eql_nwin = 31;
 
 % local parameters
 data_file = 'test/wedge.mat';
-func_name = 'piv_test_run_wedge';
+func_name = 'test_piv_run_wedge';
 
 %% parse arguments and set defaults
 
@@ -97,7 +97,7 @@ if same && ~force
 else
     fprintf('%s: Generating new input variables\n', func_name);
     [ini, fin, ini_roi, fin_roi, xx, yy] = ...
-        piv_test_create_wedge(dir_name, ini_file, fin_file, hue_lim, val_lim, ...
+        test_piv_create_wedge(dir_name, ini_file, fin_file, hue_lim, val_lim, ...
             entr_lim, entr_win, morph_open_rad, morph_erode_rad, eql_nwin);
     save(data_file, 'dir_name', 'ini_file', 'fin_file', 'hue_lim', ...
         'val_lim', 'entr_lim', 'entr_win', 'morph_open_rad', ...
@@ -120,4 +120,4 @@ clear F
     yalebox_decompose_step(xgrid, ygrid, uu, vv, ~isnan(uu));
 
 % print and plot standard results
-piv_test_util_plot(xx, yy, uu, vv, displ, Dd);
+test_piv_util_plot(xx, yy, uu, vv, displ, Dd);

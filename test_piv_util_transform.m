@@ -1,5 +1,5 @@
-function [x_out, y_out] = piv_test_util_transform(tform, x_in, y_in, fwd)
-% function [x_out, y_out] = piv_test_util_transform(tform, x_in, y_in, fwd)
+function [x_out, y_out] = test_piv_util_transform(tform, x_in, y_in, fwd)
+% function [x_out, y_out] = test_piv_util_transform(tform, x_in, y_in, fwd)
 % 
 % tform = 2x3 affine transformation matrix
 %
