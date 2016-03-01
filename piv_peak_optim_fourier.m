@@ -1,4 +1,4 @@
-function [rpk, cpk, val, ok] = yalebox_piv_peak_optim_fourier(f)
+function [rpk, cpk, val, ok] = piv_peak_optim_fourier(f)
 %
 % Non-linear optimization to find interpolated peak in the xcor plane. See
 % [1] for discussion of this approach. Implementation of the sampling
