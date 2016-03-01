@@ -1,5 +1,5 @@
-function img_a = yalebox_movie_aux_spoint(img, x, y, tip, len, clr, opac)
-% function img_a = yalebox_movie_aux_spoint(img, x, y, tip, len, clr, opac)
+function img_a = movie_aux_spoint(img, x, y, tip, len, clr, opac)
+% function img_a = movie_aux_spoint(img, x, y, tip, len, clr, opac)
 %
 % Superimpose s-point triangles on the input image. Wrapper function for
 % the MATLAB function insertShape from the Computer Vision System Toolbox.

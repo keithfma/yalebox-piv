@@ -1,4 +1,4 @@
-function [] = yalebox_movie_single(input_file, output_file, p, show_frame)
+function [] = movie_single(input_file, output_file, p, show_frame)
 %
 % input_file = String, path to input netCDF file as produced by
 %   yalebox_prep().
@@ -58,22 +58,22 @@ for i = 1:numel(step)
     intens_prev = intens; % prep for next frame
     
     % resize and reshape image as needed
-    [frame, xf, yf] = yalebox_movie_aux_resize(intens, x, y, p.max_dim);
-    [frame, yf] = yalebox_movie_aux_flip(frame, yf);
+    [frame, xf, yf] = movie_aux_resize(intens, x, y, p.max_dim);
+    [frame, yf] = movie_aux_flip(frame, yf);
     
     % add annotations (triangles, scale, title, counter)
-    frame = yalebox_movie_aux_spoint(frame, xf, yf, p.tri_tip, p.tri_len, ...
+    frame = movie_aux_spoint(frame, xf, yf, p.tri_tip, p.tri_len, ...
         p.tri_color, p.tri_opacity);
     
     title_ind = find(step(i) >= p.title_str_start , 1, 'last');    
-    frame = yalebox_movie_aux_title(frame, p.title_str{title_ind}, ...
+    frame = movie_aux_title(frame, p.title_str{title_ind}, ...
         p.title_size, p.title_color, p.title_box_color, p.title_box_opacity);
     
-    frame = yalebox_movie_aux_scalebar(frame, xf, yf, p.scale_label, ...
+    frame = movie_aux_scalebar(frame, xf, yf, p.scale_label, ...
         p.scale_pos, p.scale_color, p.scale_opacity, p.scale_text_size, ...
         p.scale_text_color, p.scale_box_color, p.scale_box_opacity);
     
-    frame = yalebox_movie_aux_counter(frame, xf, yf, step(i), p.count_pos, ...
+    frame = movie_aux_counter(frame, xf, yf, step(i), p.count_pos, ...
         p.count_size, p.count_color, p.count_box_color, p.count_box_opac);
 
     % add frame to movie

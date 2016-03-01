@@ -1,4 +1,4 @@
-function [fimg, fy] = yalebox_movie_aux_flip(img, y)
+function [fimg, fy] = movie_aux_flip(img, y)
 %
 % Flip the veritical axis of the image so that the image top (i.e. maximum
 % y value) is garunteed to lie at row == 1.
