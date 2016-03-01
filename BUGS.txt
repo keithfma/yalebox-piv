@@ -1,2 +1,0 @@
-test_piv_run_image: questionable exact solution for dual shear terms (and
-  perhaps other cases too)
