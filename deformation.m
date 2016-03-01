@@ -1,4 +1,4 @@
-function [displacement,spin,Dv,Dd,D2x,D2y,WkStar,AkStar] = yalebox_decompose_step(x,y,uX,uY,iUXY)
+function [displacement,spin,Dv,Dd,D2x,D2y,WkStar,AkStar] = deformation(x,y,uX,uY,iUXY)
 %
 % Compute derived quantities (deformation parameters) from PIV data.
 % Required that the S-point is at x,y = 0, that base of wedge is located in
