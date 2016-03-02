@@ -61,10 +61,18 @@ ylimits(2) = min(ylimits(2), max(yy));
 
 % convert units
 if ~normalize
-    uu = uu*1000; % m -> mm
-    vv = vv*1000; % m -> mm
-    mm = mm*1000; % m -> mm
+    x_units = '[cm]';    
+    xx = xx*100; % m -> cm
+    xlimits = xlimits*100;
+    
+    y_units = '[cm]';
+    yy = yy*100; % m -> cm    
+    ylimits = ylimits*100; 
+    
     color_units = '[mm/step]';
+    uu = uu*1000; % m -> mm
+    vv = vv*1000; 
+    mm = mm*1000; 
 end
 
 % create figures and axes
@@ -73,17 +81,20 @@ end
 % plot displacement magnitude and direction
 axes(ax_top)
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
-format_axes(gca, xlimits, ylimits, color_units);
+format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 0, 1, ...
+    'displacement vector magnitude');
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
-format_axes(gca, xlimits, ylimits, color_units);
+format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 0, 1, ...
+    'x-direction displacement component');
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
-format_axes(gca, xlimits, ylimits, color_units);
+format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 1, 1, ...
+    'y-direction displacement component');
 
 keyboard
 
@@ -115,18 +126,35 @@ top = axes('Position', top_position);
 
 end
 
-function [] = format_axes(ax, xlimits, ylimits, color_units)
+function [] = format_axes(ax, xlimits, ylimits, x_units, y_units, color_units, ...
+                show_xtick, show_ytick, title_str)
 
 % constant parameters
 axes_color = 0.9*[1, 1, 1];
 
 % format
 axis equal
-h = colorbar;
-ylabel(h, color_units);
+grid on
 set(ax, 'XLim', xlimits, ...
         'YLim', ylimits, ...
         'YDir', 'normal', ...
         'Color', axes_color);
+
+if ~show_xtick
+    set(ax, 'XTickLabel', '');
+else
+    xlabel(['x ', x_units]);
+end
+if ~show_ytick
+    set(ax, 'YTickLabel', '');
+else
+    ylabel(['y ', y_units]);
+end
+
+title(title_str);
+
+h = colorbar;
+ylabel(h, color_units);
+
     
 end
