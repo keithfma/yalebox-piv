@@ -40,7 +40,7 @@ validateattributes(mlimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 % read data from netCDF
 xx = ncread(piv_file, 'x'); nx = numel(xx);
 yy = ncread(piv_file, 'y'); ny = numel(yy);
-% step = ncread(piv_file, 'step', index, 1); % unused
+step = ncread(piv_file, 'step', index, 1); % unused
 uu = squeeze(ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1]))';
 vv = squeeze(ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1]))';
 mm = sqrt(uu.*uu+vv.*vv);
@@ -76,19 +76,19 @@ mlimits = mlimits*1000;
 axes(ax_top)
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
 format_axes(gca, xlimits, xunits, 0, ylimits, yunits, 1, mlimits, cunits, ...
-    'displacement vector magnitude');
+    sprintf('displacement vector magnitude, step = %.1f', step));
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
 format_axes(gca, xlimits, xunits, 0, ylimits, yunits, 1, ulimits, cunits, ...
-    'x-direction displacement component');
+    sprintf('x-direction displacement component, step = %.1f', step));
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
 format_axes(gca, xlimits, xunits, 1, ylimits, yunits, 1, vlimits, cunits, ...
-    'y-direction displacement component');
+    sprintf('y-direction displacement component, step = %.1f', step));
 
 keyboard
 
@@ -137,9 +137,9 @@ else
     set(ax, 'XTickLabel', '');
 end
 if yshow
-    ylabel(['x ', yunits]); 
+    ylabel(['y ', yunits]); 
 else
-    set(ax, 'XTickLabel', '');
+    set(ax, 'YTickLabel', '');
 end   
 
 title(title_str);
@@ -147,6 +147,5 @@ title(title_str);
 caxis(climits);
 h = colorbar;
 ylabel(h, cunits);
-
     
 end
