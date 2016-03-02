@@ -25,22 +25,6 @@ piv_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/faul
 index = 100;
 bbox = [];
 
-% local parameters 
-font_size = 14;
-figure_position = [0, 0, 1, 1]; % normalized, [L, B, W, H]
-spc_left = 0.1;
-spc_right = 0.1;
-spc_top = 0.1;
-spc_mid = 0.1; 
-spc_bot = 0.1;
-
-% local derived parameters
-height_ax = (1-spc_top-2*spc_mid-spc_bot)/3;  
-width_ax = 1-spc_left-spc_right;
-ax_bot_position = [spc_left, spc_bot,                       width_ax, height_ax];
-ax_mid_position = [spc_left, spc_bot+height_ax+spc_mid,     width_ax, height_ax];
-ax_top_position = [spc_left, spc_bot+2*height_ax+2*spc_mid, width_ax, height_ax];
-
 % normalize?
 normalize = true;
 if isempty(bbox)
@@ -62,26 +46,74 @@ uu = squeeze(ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1]))';
 vv = squeeze(ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1]))';
 mm = sqrt(uu.*uu+vv.*vv);
 
-% setup figure with 3 x 1 subplots with tight spacing
-figure
-set(gcf, 'Units', 'Normalized', 'Position', figure_position);
-ax_bot = axes('Position', ax_bot_position);
-ax_mid = axes('Position', ax_mid_position);
-ax_top = axes('Position', ax_top_position);
+% convert units
+if ~normalize
+    uu = uu*1000; % m -> mm
+    vv = vv*1000; % m -> mm
+    mm = mm*1000; % m -> mm
+    color_units = '[mm/step]';
+end
+
+% create figures and axes
+[ax_top, ax_mid, ax_bot] = create_figure();
 
 % plot displacement magnitude and direction
 axes(ax_top)
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
-set(gca, 'YDir', 'normal');
+format_axes(gca, xx, yy, color_units);
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
-set(gca, 'YDir', 'normal');
+format_axes(gca, xx, yy, color_units);
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
-set(gca, 'YDir', 'normal');
+format_axes(gca, xx, yy, color_units);
 
 keyboard
+
+end
+
+function [top, mid, bot] = create_figure()
+% setup figure with 3 x 1 subplots with tight spacing
+
+% constant parameters
+figure_position = [0, 0, 1, 1]; 
+spc_left = 0.1;
+spc_right = 0.1;
+spc_top = 0.1;
+spc_mid = 0.1; 
+spc_bot = 0.1;
+
+% derived parameters
+height_ax = (1-spc_top-2*spc_mid-spc_bot)/3;  
+width_ax = 1-spc_left-spc_right;
+bot_position = [spc_left, spc_bot,                       width_ax, height_ax];
+mid_position = [spc_left, spc_bot+height_ax+spc_mid,     width_ax, height_ax];
+top_position = [spc_left, spc_bot+2*height_ax+2*spc_mid, width_ax, height_ax];
+
+figure
+set(gcf, 'Units', 'Normalized', 'Position', figure_position);
+bot = axes('Position', bot_position);
+mid = axes('Position', mid_position);
+top = axes('Position', top_position);
+
+end
+
+function [] = format_axes(ax, xx, yy, color_units)
+
+% constant parameters
+axes_color = 0.9*[1, 1, 1];
+
+% format
+axis equal
+h = colorbar;
+ylabel(h, color_units);
+set(ax, 'XLim', [min(xx), max(xx)], ...
+        'YLim', [min(yy), max(yy)], ...
+        'YDir', 'normal', ...
+        'Color', axes_color);
+    
+end
