@@ -1,9 +1,10 @@
-function [] = plot_displacement(piv_file, index, xlimits, ylimits, bbox)
+function [] = plot_displacement(piv_file, index, xlimits, ylimits, ulimits, vlimits, mlimits)
 %
-% Plot normalized displacement magnitude and direction. Function generates 3 separate plots:
-% - x-direction displacement 
-% - y-direction displacement 
-% - total displacement magnitude and direction
+% Plot displacement magnitude and direction. Function generates 3 separate plots:
+%   - x-direction displacement 
+%   - y-direction displacement 
+%   - total displacement magnitude and direction
+% Converts units to [cm] for axes and to [mm/step] for displacements
 % 
 % Arguments:
 %
@@ -13,14 +14,9 @@ function [] = plot_displacement(piv_file, index, xlimits, ylimits, bbox)
 % index = Scalar, index of timestep in piv_file to plot, uses MATLAB-style
 %   1-based indices.
 %
-% xlimits, ylimits = Vector, length==2, [minimum, maximum] values for the x- and
-%   y-axes, values larger than the range of the input data will be truncated.
-%   Thus, to span the data, one could use [-inf, inf].
-%
-% bbox = (optional) Vector, length==4, bounding box for the data region to be
-%   used to compute displacement normalization. Provided in world coordinates,
-%   formatted as [left, bottom, width, height]. *If empty, data are not
-%   normalized*
+% xlimits, ylimits, ulimits, vlimits, mlimits = Vector, length==2, [minimum, maximum] values for the x-axis, y-axis, u-displacement, v-displacement, and
+%   displacement magnitude. Values beyond the range of the data will be
+%   truncated to the data limits. Thus, to span the data, one could use [-inf, inf].
 % %
 
 % debug: hard-code input arguments
@@ -28,52 +24,50 @@ piv_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/faul
 index = 100;
 xlimits = [-inf, inf];
 ylimits = [-inf, 0.1];
-bbox = [];
-
-% normalize?
-normalize = true;
-if isempty(bbox)
-    normalize = false;
-end
+ulimits = [-inf, inf];
+vlimits = [0, inf];
+mlimits = [-inf, inf];
 
 % check for sane inputs
 validateattributes(piv_file, {'char'}, {'vector'});
 validateattributes(index, {'numeric'}, {'scalar', 'positive', 'integer'});
 validateattributes(xlimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 validateattributes(ylimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
-if normalize
-    validateattributes(bbox, {'numeric'}, {'vector', 'real', 'numel', 4});
-end
+validateattributes(ulimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
+validateattributes(vlimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
+validateattributes(mlimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 
 % read data from netCDF
 xx = ncread(piv_file, 'x'); nx = numel(xx);
 yy = ncread(piv_file, 'y'); ny = numel(yy);
-step = ncread(piv_file, 'step', index, 1);
+% step = ncread(piv_file, 'step', index, 1); % unused
 uu = squeeze(ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1]))';
 vv = squeeze(ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1]))';
 mm = sqrt(uu.*uu+vv.*vv);
 
 % truncate axis limits
-xlimits(1) = max(xlimits(1), min(xx));
-xlimits(2) = min(xlimits(2), max(xx));
-ylimits(1) = max(ylimits(1), min(yy));
-ylimits(2) = min(ylimits(2), max(yy));
+xlimits(1) = max(xlimits(1), min(xx)); xlimits(2) = min(xlimits(2), max(xx));
+ylimits(1) = max(ylimits(1), min(yy)); ylimits(2) = min(ylimits(2), max(yy));
+ulimits(1) = max(ulimits(1), min(uu(:))); ulimits(2) = min(ulimits(2), max(uu(:)));
+vlimits(1) = max(vlimits(1), min(vv(:))); vlimits(2) = min(vlimits(2), max(vv(:)));
+mlimits(1) = max(mlimits(1), min(mm(:))); mlimits(2) = min(mlimits(2), max(mm(:)));
 
 % convert units
-if ~normalize
-    x_units = '[cm]';    
-    xx = xx*100; % m -> cm
-    xlimits = xlimits*100;
-    
-    y_units = '[cm]';
-    yy = yy*100; % m -> cm    
-    ylimits = ylimits*100; 
-    
-    color_units = '[mm/step]';
-    uu = uu*1000; % m -> mm
-    vv = vv*1000; 
-    mm = mm*1000; 
-end
+xunits = '[cm]';
+xx = xx*100; % m -> cm
+xlimits = xlimits*100;
+
+yunits = '[cm]';
+yy = yy*100; % m -> cm
+ylimits = ylimits*100;
+
+cunits = '[mm/step]';
+uu = uu*1000; % m -> mm
+vv = vv*1000;
+mm = mm*1000;
+ulimits = ulimits*1000;
+vlimits = vlimits*1000;
+mlimits = mlimits*1000;
 
 % create figures and axes
 [ax_top, ax_mid, ax_bot] = create_figure();
@@ -81,19 +75,19 @@ end
 % plot displacement magnitude and direction
 axes(ax_top)
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
-format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 0, 1, ...
+format_axes(gca, xlimits, xunits, 0, ylimits, yunits, 1, mlimits, cunits, ...
     'displacement vector magnitude');
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
-format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 0, 1, ...
+format_axes(gca, xlimits, xunits, 0, ylimits, yunits, 1, ulimits, cunits, ...
     'x-direction displacement component');
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
-format_axes(gca, xlimits, ylimits, x_units, y_units, color_units, 1, 1, ...
+format_axes(gca, xlimits, xunits, 1, ylimits, yunits, 1, vlimits, cunits, ...
     'y-direction displacement component');
 
 keyboard
@@ -126,35 +120,33 @@ top = axes('Position', top_position);
 
 end
 
-function [] = format_axes(ax, xlimits, ylimits, x_units, y_units, color_units, ...
-                show_xtick, show_ytick, title_str)
+function [] = format_axes(ax, xlimits, xunits, xshow, ylimits, yunits, yshow, ...
+                climits, cunits, title_str)
 
-% constant parameters
-axes_color = 0.9*[1, 1, 1];
-
-% format
 axis equal
 grid on
+
 set(ax, 'XLim', xlimits, ...
         'YLim', ylimits, ...
         'YDir', 'normal', ...
-        'Color', axes_color);
+        'Color', 0.9*[1, 1, 1]);
 
-if ~show_xtick
+if xshow
+    xlabel(['x ', xunits]); 
+else
     set(ax, 'XTickLabel', '');
-else
-    xlabel(['x ', x_units]);
 end
-if ~show_ytick
-    set(ax, 'YTickLabel', '');
+if yshow
+    ylabel(['x ', yunits]); 
 else
-    ylabel(['y ', y_units]);
-end
+    set(ax, 'XTickLabel', '');
+end   
 
 title(title_str);
 
+caxis(climits);
 h = colorbar;
-ylabel(h, color_units);
+ylabel(h, cunits);
 
     
 end
