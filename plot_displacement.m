@@ -1,5 +1,4 @@
-function [] = plot_displacement(piv_file, index, bbox)
-% function [] = plot_displacement(xx, yy, uu, vv, bbox)
+function [] = plot_displacement(piv_file, index, xlimits, ylimits, bbox)
 %
 % Plot normalized displacement magnitude and direction. Function generates 3 separate plots:
 % - x-direction displacement 
@@ -14,6 +13,10 @@ function [] = plot_displacement(piv_file, index, bbox)
 % index = Scalar, index of timestep in piv_file to plot, uses MATLAB-style
 %   1-based indices.
 %
+% xlimits, ylimits = Vector, length==2, [minimum, maximum] values for the x- and
+%   y-axes, values larger than the range of the input data will be truncated.
+%   Thus, to span the data, one could use [-inf, inf].
+%
 % bbox = (optional) Vector, length==4, bounding box for the data region to be
 %   used to compute displacement normalization. Provided in world coordinates,
 %   formatted as [left, bottom, width, height]. *If empty, data are not
@@ -23,6 +26,8 @@ function [] = plot_displacement(piv_file, index, bbox)
 % debug: hard-code input arguments
 piv_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/fault_ss_01_sidef.displ.nc';
 index = 100;
+xlimits = [-inf, inf];
+ylimits = [-inf, 0.1];
 bbox = [];
 
 % normalize?
@@ -34,6 +39,8 @@ end
 % check for sane inputs
 validateattributes(piv_file, {'char'}, {'vector'});
 validateattributes(index, {'numeric'}, {'scalar', 'positive', 'integer'});
+validateattributes(xlimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
+validateattributes(ylimits, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 if normalize
     validateattributes(bbox, {'numeric'}, {'vector', 'real', 'numel', 4});
 end
@@ -45,6 +52,12 @@ step = ncread(piv_file, 'step', index, 1);
 uu = squeeze(ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1]))';
 vv = squeeze(ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1]))';
 mm = sqrt(uu.*uu+vv.*vv);
+
+% truncate axis limits
+xlimits(1) = max(xlimits(1), min(xx));
+xlimits(2) = min(xlimits(2), max(xx));
+ylimits(1) = max(ylimits(1), min(yy));
+ylimits(2) = min(ylimits(2), max(yy));
 
 % convert units
 if ~normalize
@@ -60,17 +73,17 @@ end
 % plot displacement magnitude and direction
 axes(ax_top)
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
-format_axes(gca, xx, yy, color_units);
+format_axes(gca, xlimits, ylimits, color_units);
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
-format_axes(gca, xx, yy, color_units);
+format_axes(gca, xlimits, ylimits, color_units);
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
-format_axes(gca, xx, yy, color_units);
+format_axes(gca, xlimits, ylimits, color_units);
 
 keyboard
 
@@ -102,7 +115,7 @@ top = axes('Position', top_position);
 
 end
 
-function [] = format_axes(ax, xx, yy, color_units)
+function [] = format_axes(ax, xlimits, ylimits, color_units)
 
 % constant parameters
 axes_color = 0.9*[1, 1, 1];
@@ -111,8 +124,8 @@ axes_color = 0.9*[1, 1, 1];
 axis equal
 h = colorbar;
 ylabel(h, color_units);
-set(ax, 'XLim', [min(xx), max(xx)], ...
-        'YLim', [min(yy), max(yy)], ...
+set(ax, 'XLim', xlimits, ...
+        'YLim', ylimits, ...
         'YDir', 'normal', ...
         'Color', axes_color);
     
