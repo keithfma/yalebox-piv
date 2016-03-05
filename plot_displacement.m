@@ -26,11 +26,14 @@ if nargin < 5 || isempty(ulim); ulim = [-inf, inf]; end
 if nargin < 6 || isempty(vlim); vlim = [-inf, inf]; end
 if nargin < 7 || isempty(mlim); mlim = [-inf, inf]; end
 
+% local parameters
+tension = 0.9;
+
 % debug: hard-code input arguments
 piv_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/fault_ss_01_sidef.displ.nc';
-index = 100;
+index = 250;
 xlim = [-inf, inf];
-ylim = [-inf, 0.1];
+ylim = [-inf, 0.12];
 ulim = [-inf, inf];
 vlim = [-inf, inf];
 mlim = [-inf, inf];
@@ -46,11 +49,23 @@ validateattributes(vlim, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 validateattributes(mlim, {'numeric'}, {'vector', 'numel', 2, 'increasing'});
 
 % read data from netCDF
-xx = ncread(piv_file, 'x'); nx = numel(xx);
-yy = ncread(piv_file, 'y'); ny = numel(yy);
-step = ncread(piv_file, 'step', index, 1); % unused
-uu = squeeze(ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1]))';
-vv = squeeze(ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1]))';
+xx = ncread(piv_file, 'x'); 
+xx = double(xx);
+nx = numel(xx);
+
+yy = ncread(piv_file, 'y'); 
+yy = double(yy);
+ny = numel(yy);
+
+step = ncread(piv_file, 'step', index, 1);
+step = double(step);
+
+uu = ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1])';
+uu = double(squeeze(uu));
+
+vv = ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1])';
+vv = double(squeeze(vv));
+
 mm = sqrt(uu.*uu+vv.*vv);
 
 % truncate axis limits
@@ -98,7 +113,50 @@ imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv));
 format_axes(gca, xlim, xunits, 1, ylim, yunits, 1, vlim, cunits, ...
     sprintf('y-direction displacement component, step = %.1f', step));
 
+% debug: add quiver plot to top
+axes(ax_top)
+
+
 keyboard
+
+% generate quiver grid: staggered regular grid within the roi
+q_bnd_frac = 0.05;
+nxq = 10; 
+nyq = 5; 
+xq = linspace(xlim(1)+range(xlim)*q_bnd_frac, xlim(2)-range(xlim)*q_bnd_frac, nxq);
+yq = linspace(ylim(1)+range(ylim)*q_bnd_frac, ylim(2)-range(ylim)*q_bnd_frac, nyq);
+[xq, yq] = meshgrid(xq, yq);
+[xgrid, ygrid] = meshgrid(xx, yy);
+roi = ~isnan(uu);
+roiq = interp2(xgrid, ygrid, roi, xq, yq, 'nearest');
+xq = xq(roiq);
+yq = yq(roiq);
+
+% interpolate vectors and plot
+uq = spline2d(xq, yq, xgrid(roi), ygrid(roi), uu(roi), tension);
+vq = spline2d(xq, yq, xgrid(roi), ygrid(roi), vv(roi), tension);
+
+hold on
+quiver(xq, yq, uq, vq);
+
+
+
+% % generate quiver plot
+
+% 
+% 
+% [qc, qr] = meshgrid(1:q_spc_x:nx, 1:q_spc_y:ny);
+% qr(:,2:2:end) = qr(:,2:2:end)+q_spc_y/2; % stagger
+% qk = sub2ind(size(uu), qr, qc);
+% 
+% roi = ~isnan(uu);
+% qk = qk(roi(qk)); 
+% 
+% figure
+% plot(qc(:), qr(:), '.k');
+
+keyboard
+
 
 end
 
