@@ -1,11 +1,15 @@
 function [] = plot_displacement(piv_file, index, xlim, ylim, ulim, vlim, mlim, ...
                   qsize, qbnd, qscale)
 %
-% Plot displacement magnitude and direction. Function generates 3 separate plots:
+% Plot displacement magnitude and direction with location in [cm] and
+% displacements in [mm/step]. Function generates 3 separate plots:
+%
 %   - x-direction displacement 
 %   - y-direction displacement 
 %   - total displacement magnitude and direction
-% Converts units to [cm] for axes and to [mm/step] for displacements
+%
+% Basic options to customize the plot are included as optional arguments, others
+% are hard-coded.
 % 
 % Arguments:
 %
@@ -39,19 +43,6 @@ if nargin < 7  || isempty(mlim);   mlim = [-inf, inf]; end
 if nargin < 8  || isempty(qsize);  qsize = [20, 10];   end
 if nargin < 9  || isempty(qbnd);   qbnd = 0.05;        end
 if nargin < 10 || isempty(qscale); qscale = 0.1;       end
-
-% debug: hard-code input arguments
-piv_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_01/piv/fault_ss_01_sidef.displ.nc';
-index = 250;
-xlim = [-inf, inf];
-ylim = [-inf, 0.12];
-ulim = [-inf, inf];
-vlim = [-inf, inf];
-mlim = [-inf, inf];
-qsize = [10, 20];
-qbnd = 0.05;
-qscale = 0.15;
-% end debug
 
 % check for sane inputs
 validateattributes(piv_file, {'char'}, {'vector'});
@@ -197,22 +188,24 @@ top = axes('Position', top_position);
 end
 
 function [] = plot_direction(qx, qy, qu, qv, qscale)
-    hold on
-    quiver(qx, qy, qu, qv, qscale, 'Color', 'w');
-    hold off
+% overlay a simple vector plot
+
+hold on
+quiver(qx, qy, qu, qv, qscale, 'Color', 'w');
+hold off
+
 end
 
 function [] = format_axes(ax, xlim, xunits, xshow, ylim, yunits, yshow, ...
                 climits, cunits, title_str)
+% apply consistent formatting to axes
 
 axis equal
 grid on
-
 set(ax, 'XLim', xlim, ...
         'YLim', ylim, ...
         'YDir', 'normal', ...
         'Color', 0.9*[1, 1, 1]);
-
 if xshow
     xlabel(['x ', xunits]); 
 else
@@ -223,11 +216,9 @@ if yshow
 else
     set(ax, 'YTickLabel', '');
 end   
-
-title(title_str);
-
 caxis(climits);
 h = colorbar;
 ylabel(h, cunits);
+title(title_str);
     
 end
