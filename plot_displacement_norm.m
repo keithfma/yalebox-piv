@@ -1,8 +1,14 @@
-function [] = plot_displacement(piv_file, index, xlim, ylim, ulim, vlim, mlim, ...
+function [bbox] = plot_displacement_norm(piv_file, index, bbox, xlim, ylim, ulim, vlim, mlim, ...
                   qsize, qbnd, qscale)
 %
-% Plot displacement magnitude and direction with location in [cm] and
-% displacements in [mm/step]. Function generates 3 separate plots:
+% Plot displacement magnitude and direction. Magnitudes are normalised to
+% facilitate comparison between steps of unequal size. This inconsistency is a
+% shortcoming of the experimental apparatus. The normalization factor is a
+% user-selected characteristic velocity, computed as the absolute value of the
+% median of the velocity mangitude in a user-defined window. For most sandbox
+% experiments, the logical choice is the incoming section.
+% 
+% Function generates 3 separate plots:
 %
 %   - x-direction displacement 
 %   - y-direction displacement 
@@ -18,6 +24,13 @@ function [] = plot_displacement(piv_file, index, xlim, ylim, ulim, vlim, mlim, .
 %
 % index = Scalar, index of timestep in piv_file to plot, uses MATLAB-style
 %   1-based indices.
+%
+% bbox = (Optional) Vector, length==4, bounding box for the data region used to
+%   normalize velocity mangitudes. The expected format is [x0, y0, xwidth,
+%   yheight] in world coordinates, where x0, y0 define the lower left corner of
+%   the box, and xwidth, yheight define its size. If the argument is left empty,
+%   the box must be selected interactively. Due to this interactive option, the
+%   value of bbox is returned for reuse.
 %
 % xlim, ylim, ulim, vlim, mlim = (Optional) Vector, length==2, [minimum,
 %   maximum] values for the x-axis, y-axis, u-displacement, v-displacement, and
@@ -35,19 +48,22 @@ function [] = plot_displacement(piv_file, index, xlim, ylim, ulim, vlim, mlim, .
 % %
 
 % set defaults
-if nargin < 3  || isempty(xlim);   xlim = [-inf, inf]; end
-if nargin < 4  || isempty(ylim);   ylim = [-inf, inf]; end
-if nargin < 5  || isempty(ulim);   ulim = [-inf, inf]; end
-if nargin < 6  || isempty(vlim);   vlim = [-inf, inf]; end
-if nargin < 7  || isempty(mlim);   mlim = [-inf, inf]; end
-if nargin < 8  || isempty(qsize);  qsize = [20, 10];   end
-if nargin < 9  || isempty(qbnd);   qbnd = 0.05;        end
-if nargin < 10 || isempty(qscale); qscale = 0.1;       end
+if nargin < 4  || isempty(xlim);   xlim = [-inf, inf]; end
+if nargin < 5  || isempty(ylim);   ylim = [-inf, inf]; end
+if nargin < 6  || isempty(ulim);   ulim = [-inf, inf]; end
+if nargin < 7  || isempty(vlim);   vlim = [-inf, inf]; end
+if nargin < 8  || isempty(mlim);   mlim = [-inf, inf]; end
+if nargin < 9  || isempty(qsize);  qsize = [20, 10];   end
+if nargin < 10 || isempty(qbnd);   qbnd = 0.05;        end
+if nargin < 11 || isempty(qscale); qscale = 0.1;       end
 
 % check for sane inputs
 validateattributes(piv_file, {'char'}, {'vector'});
 assert(exist(piv_file, 'file') == 2);
 validateattributes(index, {'numeric'}, {'scalar', 'integer'});
+if ~isempty(bbox)
+    validateattributes(bbox, {'numeric'}, {'vector', 'numel', 4});
+end
 validateattributes(xlim, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(ylim, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(ulim, {'numeric'}, {'vector', 'numel', 2});
@@ -79,6 +95,16 @@ vv = ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1])';
 vv = double(squeeze(vv));
 
 mm = sqrt(uu.*uu+vv.*vv);
+
+% interactively select bounding box for normalization, if needed
+if isempty(bbox);    
+    figure;
+    imagesc(mm, 'AlphaData', ~isnan(mm));
+    title('Select bounding box for normalization using mouse');
+    bbox = getrect();
+    close(gcf);
+    keyboard
+end
 
 % truncate axis limits
 xlim(1) = max(xlim(1), min(xx)); xlim(2) = min(xlim(2), max(xx));
