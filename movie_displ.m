@@ -1,6 +1,5 @@
-function [] = movie_displacement(piv_file, movie_file, clim, xlim, ylim, qsize, qbnd, qscale, cleanup, show_frame)
-% Generate movie from PIV displacement results. Calls plot_displacement_norm()
-% to create frames for each time step. 
+function [] = movie_displ(piv_file, movie_file, param, show_frame)
+% Generate movie from PIV displacement results. 
 %
 % Arguments:
 %
@@ -8,13 +7,12 @@ function [] = movie_displacement(piv_file, movie_file, clim, xlim, ylim, qsize, 
 %
 %   movie_file = String path to output video file, without file extension
 %
-%   clim =  Vector, length ==2, color axis limits as quantiles of the whole data
-%       set. Sets ulim, vlim, mlim parameters to plot_displacement
-%   
-%   xlim, ylim = 
+%   caxis_quantile =  Vector, length==2, color axis limits as quantiles of the
+%       whole data set. Sets ulim, vlim, mlim parameters to plot_displacement
 %
-%   qsize, qbnd, qscale = quiver plot parameters, see plot_displacement help for
-%       details
+%   plot_param = Struct. Formatting parameters for the plot_displ() function.
+%       Note that the .ulim, .vlim, .mlim members are ignored. These values are
+%       set adaptively based on the caxis_quantile argument.
 %
 %   cleanup = OPTIONAL, delete temporary image files (1) or don't (0)
 %
@@ -22,40 +20,33 @@ function [] = movie_displacement(piv_file, movie_file, clim, xlim, ylim, qsize, 
 %       process other frames or make a movie, used for testing parameter values.
 % %
 
-% local constants
-tmp_dir = './tmp_movie_displacement';
-tmp_file = fullfile(tmp_dir, 'tmp_%04i.png');
+% 
 
-% parse inputs
-% make_movie = nargin < 9 || isempty(show_frame);
-
-% read all data to memory 
+% get color axis limits from global quantiles of normalized data
+%...read all data to memory 
 uu = ncread(piv_file, 'u');
 vv = ncread(piv_file, 'v');
 mm = sqrt(uu.^2 + vv.^2);
-
-% normalize each step 
+%...normalize each step
 num_steps = size(uu, 3);
 for ii = 1:num_steps
-    [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii)] = ...
-        plot_normalize_displacement(bbox, xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii));     
+    [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), param.bbox] = ...
+        util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), param.bbox);     
 end
-    
-% get color axes limits from normalized displacements 
-ulim = quantile(uu(:), clim);
-vlim = quantile(vv(:), clim);
-mlim = quantile(mm(:), clim);
-
-% init loop
+%...compute limits from quantiles
+plot_param.ulim = quantile(uu(:), param.clim);
+plot_param.vlim = quantile(vv(:), param.clim);
+plot_param.mlim = quantile(mm(:), param.clim);
 clear uu vv mm
-bbox = [];
-mkdir(tmp_dir);
+
+% movie param -> plot param
 
 % loop over all timesteps
+mkdir(tmp_dir);
 for ii = 1:num_steps
     
     % plot frame
-    bbox = plot_displacement_norm(piv_file, ii, bbox, xlim, ylim, ulim, vlim, mlim, ...
+    plot_displ(piv_file, ii, bbox, xlim, ylim, ulim, vlim, mlim, ...
         qsize, qbnd, qscale);
     
     % first time: get parameters needed to convert figure to FHD image (1920x1080)
