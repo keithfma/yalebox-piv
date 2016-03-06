@@ -99,13 +99,19 @@ mm = sqrt(uu.*uu+vv.*vv);
 % interactively select bounding box for normalization, if needed
 if isempty(bbox);    
     figure;
-    imagesc(mm, 'AlphaData', ~isnan(mm));
+    imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm));
+    set(gca, 'YDir', 'Normal');
     title('Select bounding box for normalization using mouse');
     bbox = getrect();
     close(gcf);
-    keyboard
 end
 
+% get normalization factor: median displacement magnitude within bounding box
+x_in_bbox = (xx >= bbox(1)) & (xx <= (bbox(1)+bbox(3)));
+y_in_bbox = (yy >= bbox(2)) & (yy <= (bbox(2)+bbox(4)));
+in_bbox = logical(bsxfun(@times, x_in_bbox(:)', y_in_bbox(:)));
+norm = median(mm(in_bbox));
+            
 % truncate axis limits
 xlim(1) = max(xlim(1), min(xx)); xlim(2) = min(xlim(2), max(xx));
 ylim(1) = max(ylim(1), min(yy)); ylim(2) = min(ylim(2), max(yy));
@@ -122,13 +128,13 @@ yunits = '[cm]';
 yy = yy*100; % m -> cm
 ylim = ylim*100;
 
-cunits = '[mm/step]';
-uu = uu*1000; % m -> mm
-vv = vv*1000;
-mm = mm*1000;
-ulim = ulim*1000;
-vlim = vlim*1000;
-mlim = mlim*1000;
+cunits = '[1]';
+uu = uu/norm; % m -> mm
+vv = vv/norm;
+mm = mm/norm;
+ulim = ulim/norm;
+vlim = vlim/norm;
+mlim = mlim/norm;
 
 % interpolate vectors to low-res checkerboard grid, normalize length for quiver plots
 %...generate staggered regular grid
