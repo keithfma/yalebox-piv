@@ -24,27 +24,35 @@ function [] = movie_displacement(piv_file, movie_file, clim, xlim, ylim, qsize, 
 
 % local constants
 tmp_dir = './tmp_movie_displacement';
+tmp_file = fullfile(tmp_dir, 'tmp_%04i.png');
 
 % parse inputs
 % make_movie = nargin < 9 || isempty(show_frame);
 
-% get color axis limits from vector quantiles
+% read all data to memory 
 uu = ncread(piv_file, 'u');
 vv = ncread(piv_file, 'v');
 mm = sqrt(uu.^2 + vv.^2);
+
+% normalize each step 
+num_steps = size(uu, 3);
+for ii = 1:num_steps
+    [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii)] = ...
+        plot_normalize_displacement(bbox, xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii));     
+end
+    
+% get color axes limits from normalized displacements 
 ulim = quantile(uu(:), clim);
 vlim = quantile(vv(:), clim);
 mlim = quantile(mm(:), clim);
-num_steps = size(uu, 3);
 
 % init loop
 clear uu vv mm
 bbox = [];
 mkdir(tmp_dir);
 
-
 % loop over all timesteps
-for ii = 1:100; %num_steps
+for ii = 1:num_steps
     
     % plot frame
     bbox = plot_displacement_norm(piv_file, ii, bbox, xlim, ylim, ulim, vlim, mlim, ...
@@ -68,7 +76,13 @@ for ii = 1:100; %num_steps
     img = export_fig('-dpng', magnify);
     img = padarray(img, [vpad(1), hpad(1), 0], 1, 'pre');
     img = padarray(img, [vpad(2), hpad(2), 0], 1, 'post');
-    imwrite(img, sprintf('tmp_%04i.png', ii));
+    imwrite(img, sprintf(tmp_file, ii));
 
     close(gcf);
 end
+
+if cleanup
+    rmdir(tmp_dir, 's');
+end
+
+if 
