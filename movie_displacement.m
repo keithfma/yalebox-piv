@@ -1,8 +1,8 @@
-function [] = movie_displacement(input_file, output_file, param, show_frame)
+function [] = movie_displacement(piv_file, movie_file, param, show_frame)
 %
-% input_file = String, path to netCDF containing PIV results produced by piv.m
+% piv_file = String, path to netCDF containing PIV results produced by piv.m
 %
-% output_file = String path to output video file, without file extension
+% movie_file = String path to output video file, without file extension
 %
 % param = Struct, movie parameters, as produced by movie_displacement_default.m
 %   .xlim   -|
@@ -23,3 +23,17 @@ function [] = movie_displacement(input_file, output_file, param, show_frame)
 
 % parse inputs
 make_movie = nargin < 4 || isempty(show_frame);
+
+% initialize loopsave
+step_info = ncinfo(piv_file, 'step');
+num_step = step_info.Size;
+
+for ii = 1:num_step
+    
+    % plot frame
+    plot_displacement_norm(piv_file, ii, param.bbox, param.xlim, param.ylim, ...
+        param.ulim, param.vlim, param.mlim, param.qsize, param.qbnd, param.qscale);
+    
+    pause
+
+end

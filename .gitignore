@@ -2,3 +2,4 @@
 .*.swp
 *.mexa64
 temp/*
+*.mat
