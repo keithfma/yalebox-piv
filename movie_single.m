@@ -12,14 +12,7 @@ function [] = movie_single(input_file, output_file, p, show_frame)
 % Keith Ma, August 2015
 
 % parse inputs
-if nargin < 4;
-    show_frame = [];
-end
-if isempty(show_frame)
-    make_movie = true;
-else
-    make_movie = false;
-end
+make_movie = nargin < 4 || isempty(show_frame);
 
 % get netcdf ids
 ncid = netcdf.open(input_file, 'NOWRITE');

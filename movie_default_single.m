@@ -1,10 +1,9 @@
 function prm = movie_single_default()
 %
-% Creates a struct containing all the parameters needed by
-% movie_single(), populated with default values. Typical usage
-% would be to call this function to get a properly formated parameter
-% struct, edit the parameters as needed, then pass the edited struct to
-% movie_single() to make the movie.
+% Creates a struct containing all the parameters needed by movie_single(),
+% populated with default values. Typical usage would be to call this function to
+% get a properly formated parameter struct, edit the parameters as needed, then
+% pass the edited struct to movie_single() to make the movie.
 % 
 % Arguments:
 %   
