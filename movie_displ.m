@@ -38,6 +38,10 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %   'qscale' = Scalar, range [0,1], length of vector lines in vector direction
 %       overlay 
 %
+%   'font_size_title', 'font_size_tick', 'font_size_axis' = Scalar,
+%       integer, font size for titles, tick labels, and axis labels,
+%       repectively. Defaults are 14, 12, 12.
+%
 %   'tmp_dir' = String, directory where frame images should be saved. Default =
 %       './tmp_movie_displacement'
 %
@@ -75,6 +79,12 @@ ip.addParameter('qbnd', 0.05, ...
     @(x) validateattribute(x, {'numeric'}, {'scalar', '>=', 0, '<=', 0.5}));
 ip.addParameter('qscale', 0.2, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
+ip.addParameter('font_size_title', 14, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
+ip.addParameter('font_size_tick', 12, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
+ip.addParameter('font_size_axis', 12, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 ip.addParameter('tmp_dir', './tmp_movie_displacement', ...
     @(x) validateattributes(x, {'char'}, {'vector'}));
 ip.addParameter('tmp_file', 'tmp_%04i.png', ...
@@ -146,7 +156,10 @@ for ii = 1:num_steps
         'mlim', mlim, ...
         'qsize', opt.qsize, ...
         'qbnd', opt.qbnd, ...
-        'qscale', opt.qscale);
+        'qscale', opt.qscale, ...
+        'font_size_title', opt.font_size_title, ...
+        'font_size_tick', opt.font_size_tick, ...
+        'font_size_axis', opt.font_size_axis);
     
     % first time: get parameters needed to convert figure to FHD image (1920x1080)
     if have_size == 0
@@ -166,8 +179,6 @@ for ii = 1:num_steps
         
         have_size = 1;
     end
-    
-    keyboard
     
     % resize to FHD (1920x1080), and write to image file
     img = export_fig('-dpng', magnify);

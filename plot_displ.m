@@ -46,6 +46,10 @@ function opt = plot_displ(piv_file, index, varargin)
 %
 %   'qscale' = Scalar, range [0,1], length of vector lines in vector direction
 %       overlay 
+%
+%   'font_size_title', 'font_size_tick', 'font_size_axis' = Scalar,
+%       integer, font size for titles, tick labels, and axis labels,
+%       repectively. Defaults are 14, 12, 12.
 % %
 
 %% parse input arguments
@@ -83,6 +87,12 @@ ip.addParameter('qbnd', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 0.5}));
 ip.addParameter('qscale', 0.2, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
+ip.addParameter('font_size_title', 14, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
+ip.addParameter('font_size_tick', 12, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
+ip.addParameter('font_size_axis', 12, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 
 ip.parse(varargin{:});
 opt = ip.Results;
@@ -159,21 +169,21 @@ qv = qv./mq;
 axes(ax_top);
 imagesc(xx, yy, mm, 'AlphaData', ~isnan(mm)); 
 plot_direction(qx, qy, qu, qv, opt.qscale);
-format_axes(gca, opt.xlim, 0, opt.ylim, 1, opt.mlim, opt.coord_units, opt.displ_units,...
+format_axes(gca, opt, 0, 1, opt.mlim, ...
     sprintf('displacement vector magnitude, step = %.1f', step));
 
 % plot x-direction displacement magnitude
 axes(ax_mid);
 imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu)); 
 plot_direction(qx, qy, qu, qv, opt.qscale);
-format_axes(gca, opt.xlim, 0, opt.ylim, 1, opt.ulim, opt.coord_units, opt.displ_units,...
+format_axes(gca, opt, 0, 1, opt.ulim, ...
     sprintf('x-direction displacement component, step = %.1f', step));
 
 % plot y-direction displacement magnitude
 axes(ax_bot);
 imagesc(xx, yy, vv, 'AlphaData', ~isnan(vv)); 
 plot_direction(qx, qy, qu, qv, opt.qscale);
-format_axes(gca, opt.xlim, 1, opt.ylim, 1, opt.vlim, opt.coord_units, opt.displ_units,...
+format_axes(gca, opt, 1, 1, opt.vlim, ...
     sprintf('y-direction displacement component, step = %.1f', step));
 
 function [top, mid, bot] = create_figure()
@@ -208,26 +218,26 @@ quiver(qx, qy, qu, qv, qscale, 'Color', 'w');
 hold off
 
 
-function [] = format_axes(ax, xlim, xshow, ylim, yshow, climits, xyunits, cunits, title_str)
+function [] = format_axes(ax, opt, xshow, yshow, clim, title_str)
 % apply consistent formatting to axes
 
 axis equal
 grid on
-set(ax, 'XLim', xlim, ...
-        'YLim', ylim, ...
+set(ax, 'XLim', opt.xlim, ...
+        'YLim', opt.ylim, ...
         'YDir', 'normal', ...
         'Color', 0.9*[1, 1, 1]);
 if xshow
-    xlabel(sprintf('x [%s]', xyunits));
+    xlabel(sprintf('x [%s]', opt.coord_units));
 else
     set(ax, 'XTickLabel', '');
 end
 if yshow
-    ylabel(sprintf('y [%s]', xyunits));
+    ylabel(sprintf('y [%s]', opt.coord_units));
 else
     set(ax, 'YTickLabel', '');
 end   
-caxis(climits);
+caxis(clim);
 h = colorbar;
-ylabel(h, sprintf('displacement [%s]', cunits));
+ylabel(h, sprintf('displacement [%s]', opt.displ_units));
 title(title_str);
