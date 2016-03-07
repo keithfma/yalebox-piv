@@ -155,13 +155,8 @@ for ii = 1:num_steps
         img_size = size(export_fig('-dpng'));
         img_size = img_size(1:2); % rows, cols
         fact = min([1080, 1920]./img_size);
-        magnify = sprintf('-m%.20f', fact);  
-        
-        % repeat to deal with rounding errors
-        img_size = size(export_fig('-dpng', magnify));
-        img_size = img_size(1:2);
-        fact = min([1080, 1920]./img_size)*fact;
-        magnify = sprintf('-m%.20f', fact);  
+        fact = 0.99*fact; % avoid overshooting size by reducing then and pading
+        magnify = sprintf('-m%.10f', fact);  
         
         % get padding from magnified test image
         img_size = size(export_fig('-dpng', magnify));
@@ -171,6 +166,8 @@ for ii = 1:num_steps
         
         have_size = 1;
     end
+    
+    keyboard
     
     % resize to FHD (1920x1080), and write to image file
     img = export_fig('-dpng', magnify);
