@@ -37,6 +37,13 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %
 %   'qscale' = Scalar, range [0,1], length of vector lines in vector direction
 %       overlay 
+%
+%   'tmp_dir' = String, directory where frame images should be saved. Default =
+%       './tmp_movie_displacement'
+%
+%   'tmp_file' = String, fprintf-style formatting string defining format of
+%       frame image files, must contain one and only one integer varible.
+%       Default = 'tmp_%04i.png'
 % %
 
 %% parse input arguments
@@ -68,6 +75,10 @@ ip.addParameter('qbnd', 0.05, ...
     @(x) validateattribute(x, {'numeric'}, {'scalar', '>=', 0, '<=', 0.5}));
 ip.addParameter('qscale', 0.2, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
+ip.addParameter('tmp_dir', './tmp_movie_displacement', ...
+    @(x) validateattributes(x, {'char'}, {'vector'}));
+ip.addParameter('tmp_file', 'tmp_%04i.png', ...
+    @(x) validateattributes(x, {'char'}, {'vector'}));
 
 ip.parse(varargin{:});
 opt = ip.Results;
@@ -80,9 +91,16 @@ yy = ncread(piv_file, 'y');
 uu = permute( ncread(piv_file, 'u'), [2, 1, 3] );
 vv = permute( ncread(piv_file, 'v'), [2, 1, 3] );
 mm = sqrt(uu.^2 + vv.^2);
-
-% normalize each step
 num_steps = size(uu, 3);
+
+% select normalization box, if not selected
+if isempty(opt.norm_bbox)
+    ii = round(num_steps/2);
+    [~, ~, ~, opt.norm_bbox] = ...
+        util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox);
+end
+    
+% normalize each step
 for ii = 1:num_steps
     [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox] = ...
         util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox);     
@@ -104,11 +122,20 @@ end
 % clean up section
 clear uu vv mm
 
-%% test: single-frame only
+%% generate frame(s)
 
-if opt.show_frame ~= 0
+mkdir(opt.tmp_dir);
+have_size = 0;
+
+for ii = 1:num_steps
     
-    plot_displ(piv_file, opt.show_frame, ...
+    % test case: skip all but specified frame
+    if opt.show_frame ~= 0 && opt.show_frame ~= ii
+        continue
+    end
+    
+    % create plot
+    plot_displ(piv_file, ii, ...
         'coord_units', opt.coord_units, ...
         'displ_units', '1', ...
         'norm_bbox', opt.norm_bbox, ...
@@ -121,8 +148,44 @@ if opt.show_frame ~= 0
         'qbnd', opt.qbnd, ...
         'qscale', opt.qscale);
     
+    % first time: get parameters needed to convert figure to FHD image (1920x1080)
+    if have_size == 0
+        
+        % get magnification factor from simple test image
+        img_size = size(export_fig('-dpng'));
+        img_size = img_size(1:2); % rows, cols
+        fact = min([1080, 1920]./img_size);
+        magnify = sprintf('-m%.20f', fact);  
+        
+        % repeat to deal with rounding errors
+        img_size = size(export_fig('-dpng', magnify));
+        img_size = img_size(1:2);
+        fact = min([1080, 1920]./img_size)*fact;
+        magnify = sprintf('-m%.20f', fact);  
+        
+        % get padding from magnified test image
+        img_size = size(export_fig('-dpng', magnify));
+        img_size = img_size(1:2);
+        vpad = [floor((1080-img_size(1))/2), ceil((1080-img_size(1))/2)]; 
+        hpad = [floor((1920-img_size(2))/2), ceil((1920-img_size(2))/2)]; 
+        
+        have_size = 1;
+    end
+    
+    % resize to FHD (1920x1080), and write to image file
+    img = export_fig('-dpng', magnify);
+    img = padarray(img, [vpad(1), hpad(1), 0], 1, 'pre');
+    img = padarray(img, [vpad(2), hpad(2), 0], 1, 'post');
+    imwrite(img, fullfile(opt.tmp_dir, sprintf(opt.tmp_file, ii)));
+
+    % test case: leave figure open
+    if opt.show_frame == 0
+        close(gcf);
+    end
+    
 end
 
+%% create movie from frame images
 
-keyboard
+% TBD
     
