@@ -10,8 +10,10 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %
 % Parameters:
 %
-%   'show_frame' = show a single frame at index == show_frame, do not
-%       process other frames or make a movie. Used for testing parameter values.
+%   'start_index', 'stop_index' = Scalar, integer, only process a subset of
+%       the input data from start_index to stop_index. Values beyond the
+%       range of the data (e.g. stop_index > num_steps) will be truncated,
+%       default = [-inf, inf], the whole series .
 %
 %   'coord_units' = String, name of units for coordinate axes, coordinate values
 %       will be rescaled accordingly, and labels will reflect these units. Valid
@@ -50,7 +52,7 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %       frame image files, must contain one and only one integer variable.
 %       Also used by ffmpeg to identify input images. Default = 'tmp_%04d.png'
 %
-%   'fps' = 
+%   'fps' = Scalar, frames-per-second in output movie, default = 10.
 % %
 
 %% parse input arguments
@@ -64,8 +66,10 @@ assert(exist(movie_file, 'file') ~= 2); % do not overwrite
 % parameter name-value pairs
 ip = inputParser();
 
-ip.addParameter('show_frame', 0, ...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}));
+ip.addParameter('start_index', -inf, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+ip.addParameter('stop_index', inf, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
 ip.addParameter('coord_units', 'cm', ...
     @(x) ismember(x, {'m', 'cm'})); 
 ip.addParameter('norm_bbox', [], ...
@@ -108,8 +112,15 @@ vv = permute( ncread(piv_file, 'v'), [2, 1, 3] );
 mm = sqrt(uu.^2 + vv.^2);
 num_steps = size(uu, 3);
 
+% truncate if requested
+opt.start_index = max(1,         opt.start_index);
+opt.stop_index =  min(num_steps, opt.stop_index );
+uu = uu(:,:,opt.start_index:opt.stop_index);
+vv = vv(:,:,opt.start_index:opt.stop_index);
+mm = mm(:,:,opt.start_index:opt.stop_index);
+
 % normalize each step
-for ii = 1:num_steps    
+for ii = 1:size(uu,3)    
     [~, ~, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox] = ...
         util_convert_displ_units(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), ...
             opt.coord_units, '1', opt.norm_bbox);
@@ -128,12 +139,7 @@ clear xx yy uu vv mm
 mkdir(opt.tmp_dir);
 have_size = 0;
 
-for ii = 333:num_steps
-    
-    % test case: skip all but specified frame
-    if opt.show_frame ~= 0 && opt.show_frame ~= ii
-        continue
-    end
+for ii = opt.start_index:opt.stop_index
     
     % create plot
     plot_displ(piv_file, ii, ...
@@ -177,11 +183,6 @@ for ii = 333:num_steps
     img = padarray(img, [vpad(2), hpad(2), 0], 1, 'post');
     imwrite(img, fullfile(opt.tmp_dir, sprintf(opt.tmp_file, ii)));
 
-    % test case: leave figure open
-    if opt.show_frame == 0
-        close(gcf);
-    end
-    
 end
 
 %% create movie from frame images
@@ -191,6 +192,4 @@ end
 
 cmd = sprintf('ffmpeg -framerate %d -i %s -c:v libx264 -pix_fmt yuv420p %s.mp4', ...
     opt.fps, fullfile(opt.tmp_dir, opt.tmp_file), movie_file);
-system(cmd);
-
-    
+system(cmd);    
