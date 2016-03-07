@@ -47,4 +47,36 @@ ip.addParameter('qscale', 0.2, ...
 ip.parse(varargin{:});
 options = ip.Results;
 
+%% prepare data
+
+[step, xx, yy, uu, vv, mm] = util_read_piv_step(piv_file, index);
+
+% convert coordinate units
+switch options.coord_units
+    case 'm'
+        % default, do nothing
+    case 'cm'
+        xx = xx*100;
+        yy = yy*100;
+end
+
+% convert displacement units
+switch options.displ_units
+    case 'm/step'
+        % default, do nothing
+    case 'mm/step'
+        uu = uu*1000;
+        vv = vv*1000;
+        mm = mm*1000;
+    case '1'
+        [uu, vv, mm, options.norm_bbox] = ...
+            util_normalize_displ(xx, yy, uu, vv, mm, options.norm_bbox);
+end
+
+%% plot
+
+
+
+%% subroutines
+
 keyboard
