@@ -226,18 +226,19 @@ grid on
 set(ax, 'XLim', opt.xlim, ...
         'YLim', opt.ylim, ...
         'YDir', 'normal', ...
-        'Color', 0.9*[1, 1, 1]);
+        'Color', 0.9*[1, 1, 1], ...
+        'FontSize', opt.font_size_tick);
 if xshow
-    xlabel(sprintf('x [%s]', opt.coord_units));
+    xlabel(sprintf('x [%s]', opt.coord_units), 'FontSize', opt.font_size_axis);
 else
     set(ax, 'XTickLabel', '');
 end
 if yshow
-    ylabel(sprintf('y [%s]', opt.coord_units));
+    ylabel(sprintf('y [%s]', opt.coord_units), 'FontSize', opt.font_size_axis);
 else
     set(ax, 'YTickLabel', '');
 end   
 caxis(clim);
 h = colorbar;
 ylabel(h, sprintf('displacement [%s]', opt.displ_units));
-title(title_str);
+title(title_str, 'FontSize', opt.font_size_title);
