@@ -5,7 +5,8 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %
 %   piv_file = String, path to netCDF containing PIV results produced by piv.m
 %
-%   movie_file = String path to output video file, without file extension
+%   movie_file = String path to output video file, without file extension.
+%       Movies are always created in the mp4 format with h264 encoding.
 %
 % Parameters:
 %
@@ -46,8 +47,10 @@ function opt = movie_displ(piv_file, movie_file, varargin)
 %       './tmp_movie_displacement'
 %
 %   'tmp_file' = String, fprintf-style formatting string defining format of
-%       frame image files, must contain one and only one integer varible.
-%       Default = 'tmp_%04i.png'
+%       frame image files, must contain one and only one integer variable.
+%       Also used by ffmpeg to identify input images. Default = 'tmp_%04d.png'
+%
+%   'fps' = 
 % %
 
 %% parse input arguments
@@ -87,8 +90,10 @@ ip.addParameter('font_size_axis', 12, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 ip.addParameter('tmp_dir', './tmp_movie_displacement', ...
     @(x) validateattributes(x, {'char'}, {'vector'}));
-ip.addParameter('tmp_file', 'tmp_%04i.png', ...
+ip.addParameter('tmp_file', 'tmp_%04d.png', ...
     @(x) validateattributes(x, {'char'}, {'vector'}));
+ip.addParameter('fps', 10, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 
 ip.parse(varargin{:});
 opt = ip.Results;
@@ -123,7 +128,7 @@ clear xx yy uu vv mm
 mkdir(opt.tmp_dir);
 have_size = 0;
 
-for ii = 1:num_steps
+for ii = 333:num_steps
     
     % test case: skip all but specified frame
     if opt.show_frame ~= 0 && opt.show_frame ~= ii
@@ -181,5 +186,11 @@ end
 
 %% create movie from frame images
 
-% TBD
+% external call to ffmpeg, command follows the guide at:
+%   https://trac.ffmpeg.org/wiki/Create%20a%20video%20slideshow%20from%20images
+
+cmd = sprintf('ffmpeg -framerate %d -i %s -c:v libx264 -pix_fmt yuv420p %s.mp4', ...
+    opt.fps, fullfile(opt.tmp_dir, opt.tmp_file), movie_file);
+system(cmd);
+
     
