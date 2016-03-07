@@ -1,4 +1,4 @@
-function [] = movie_displ(piv_file, movie_file, param, show_frame)
+function opt = movie_displ(piv_file, movie_file, show_frame, varargin)
 % Generate movie from PIV displacement results. 
 %
 % Arguments:
@@ -7,73 +7,72 @@ function [] = movie_displ(piv_file, movie_file, param, show_frame)
 %
 %   movie_file = String path to output video file, without file extension
 %
-%   caxis_quantile =  Vector, length==2, color axis limits as quantiles of the
-%       whole data set. Sets ulim, vlim, mlim parameters to plot_displacement
+%   show_frame = OPTIONAL, show a single frame at index == show_frame, do not
+%       process other frames or make a movie. Used for testing parameter values.
 %
-%   plot_param = Struct. Formatting parameters for the plot_displ() function.
-%       Note that the .ulim, .vlim, .mlim members are ignored. These values are
-%       set adaptively based on the caxis_quantile argument.
+% Parameters:
+%   'coord_units' = String, name of units for coordinate axes, coordinate values
+%       will be rescaled accordingly, and labels will reflect these units. Valid
+%       options are: 'm', 'cm'. Default = 'cm'
 %
-%   cleanup = OPTIONAL, delete temporary image files (1) or don't (0)
+%   'displ_units' = String, name of units for displacement vector components and
+%       magnitude, values will be rescaled accordingly, and labels will reflect
+%       these units. Valid options are: 'm', 'mm', '1'. Default is 'mm'.
 %
-%   show_frame = OPTIONAL, show a single frame at step == show_frame, do not
-%       process other frames or make a movie, used for testing parameter values.
+%   'norm_bbox' = Vector, length==4, bounding box for the data region used in
+%       computing the displacement unit normalization factor. This is only used
+%       if displ_units == '1'. If empty, the normalization function will prompt
+%       the user to select a box interactively the first time. Default = [].
+%
+%   'xlim', 'ylim' = Vector, length==2, [minimum, maximum] values for the x-axis
+%       and y-axis. Values beyond the range of the data will be truncated to the
+%       data limits. Thus, to span the data, one could use [-inf, inf]. Default
+%       = [-inf, inf].
+%
+%   'clim' =  Vector, length==2, color axis limits as quantiles of the whole
+%       data set. Sets ulim, vlim, mlim parameters to plot_displ()
+%
+%   'qsize' = Vector, length==2, size of the grid for vector direction overlay
+%       (quiver) in [rows, cols]
+%
+%   'qbnd' = Scalar, boundary margin for vector direction overlay, as fraction
+%       of the axis ranges.
+%
+%   'qscale' = Scalar, range [0,1], length of vector lines in vector direction
+%       overlay 
 % %
 
-% 
+%% parse input arguments
 
-% get color axis limits from global quantiles of normalized data
-%...read all data to memory 
-uu = ncread(piv_file, 'u');
-vv = ncread(piv_file, 'v');
-mm = sqrt(uu.^2 + vv.^2);
-%...normalize each step
-num_steps = size(uu, 3);
-for ii = 1:num_steps
-    [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), param.bbox] = ...
-        util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), param.bbox);     
-end
-%...compute limits from quantiles
-plot_param.ulim = quantile(uu(:), param.clim);
-plot_param.vlim = quantile(vv(:), param.clim);
-plot_param.mlim = quantile(mm(:), param.clim);
-clear uu vv mm
+% positional arguments
+validateattributes(piv_file, {'char'}, {'vector'});
+assert(exist(piv_file, 'file') == 2);
+validateattributes(movie_file, {'char'}, {'vector'});
+assert(exist(movie_file, 'file') ~= 2); % do not overwrite
 
-% movie param -> plot param
+% parameter name-value pairs
+ip = inputParser();
 
-% loop over all timesteps
-mkdir(tmp_dir);
-for ii = 1:num_steps
-    
-    % plot frame
-    plot_displ(piv_file, ii, bbox, xlim, ylim, ulim, vlim, mlim, ...
-        qsize, qbnd, qscale);
-    
-    % first time: get parameters needed to convert figure to FHD image (1920x1080)
-    if ii == 1
-        % get magnification factor from simple test image
-        img_size = size(export_fig('-dpng'));
-        img_size = img_size(1:2); % rows, cols
-        magnify = sprintf('-m%.10f', min([1080, 1920]./img_size));       
-        
-        % get padding from magnified test image
-        img_size = size(export_fig('-dpng', magnify));
-        img_size = img_size(1:2);
-        vpad = [floor((1080-img_size(1))/2), ceil((1080-img_size(1))/2)]; 
-        hpad = [floor((1920-img_size(2))/2), ceil((1920-img_size(2))/2)];         
-    end
-    
-    % convert figure to FHD image (1920x1080)
-    img = export_fig('-dpng', magnify);
-    img = padarray(img, [vpad(1), hpad(1), 0], 1, 'pre');
-    img = padarray(img, [vpad(2), hpad(2), 0], 1, 'post');
-    imwrite(img, sprintf(tmp_file, ii));
+ip.addParameter('coord_units', 'cm', ...
+    @(x) ismember(x, {'m', 'cm'})); 
+ip.addParameter('displ_units', 'mm/step', ...
+    @(x) ismember(x, {'m/step', 'mm/step', '1'}));
+ip.addParameter('norm_bbox', [], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
+ip.addParameter('xlim', [-inf, inf], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
+ip.addParameter('ylim', [-inf, inf], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
+ip.addParameter('clim', [0.05, 0.95], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2, '>=', 0, '<=' 1}));
+ip.addParameter('qsize', [20, 10], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2, 'integer'}));
+ip.addParameter('qbnd', 0.05, ...
+    @(x) validateattribute(x, {'numeric'}, {'scalar', '>=', 0, '<=', 0.5}));
+ip.addParameter('qscale', 0.2, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
 
-    close(gcf);
-end
+ip.parse(varargin{:});
+opt = ip.Results;
 
-if cleanup
-    rmdir(tmp_dir, 's');
-end
-
-if 
+keyboard
