@@ -64,11 +64,11 @@ switch displ
         x_in_bbox = (xx >= bbox(1)) & (xx <= (bbox(1)+bbox(3)));
         y_in_bbox = (yy >= bbox(2)) & (yy <= (bbox(2)+bbox(4)));
         in_bbox = logical(bsxfun(@times, x_in_bbox(:)', y_in_bbox(:)));
-        norm = median(mm(in_bbox));
+        norm = nanmedian(mm(in_bbox));
         
         % apply normalization
         uu = uu./norm;
         vv = vv./norm;
         mm = mm./norm;
-        
+               
 end
