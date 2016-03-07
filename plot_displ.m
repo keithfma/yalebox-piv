@@ -101,27 +101,9 @@ opt = ip.Results;
 
 [step, xx, yy, uu, vv, mm] = util_read_piv_step(piv_file, index);
 
-% convert coordinate units
-switch opt.coord_units
-    case 'm'
-        % default, do nothing
-    case 'cm'
-        xx = xx*100;
-        yy = yy*100;
-end
-
-% convert displacement units
-switch opt.displ_units
-    case 'm/step'
-        % default, do nothing
-    case 'mm/step'
-        uu = uu*1000;
-        vv = vv*1000;
-        mm = mm*1000;
-    case '1'
-        [uu, vv, mm, opt.norm_bbox] = ...
-            util_normalize_displ(xx, yy, uu, vv, mm, opt.norm_bbox);
-end
+[xx, yy, uu, vv, mm, opt.norm_bbox] = ...
+    util_convert_displ_units(xx, yy, uu, vv, mm, opt.coord_units, ...
+        opt.displ_units, opt.norm_bbox);
 
 % truncate axis limits to data range
 opt.xlim(1) = max(opt.xlim(1), min(xx)); 
@@ -240,5 +222,6 @@ else
 end   
 caxis(clim);
 h = colorbar;
-ylabel(h, sprintf('displacement [%s]', opt.displ_units));
+ylabel(h, sprintf('displacement [%s]', opt.displ_units), ...
+    'FontSize', opt.font_size_axis);
 title(title_str, 'FontSize', opt.font_size_title);

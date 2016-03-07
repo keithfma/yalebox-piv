@@ -103,17 +103,11 @@ vv = permute( ncread(piv_file, 'v'), [2, 1, 3] );
 mm = sqrt(uu.^2 + vv.^2);
 num_steps = size(uu, 3);
 
-% select normalization box, if not selected
-if isempty(opt.norm_bbox)
-    ii = round(num_steps/2);
-    [~, ~, ~, opt.norm_bbox] = ...
-        util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox);
-end
-    
 % normalize each step
-for ii = 1:num_steps
-    [uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox] = ...
-        util_normalize_displ(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox);     
+for ii = 1:num_steps    
+    [~, ~, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), opt.norm_bbox] = ...
+        util_convert_displ_units(xx, yy, uu(:,:,ii), vv(:,:,ii), mm(:,:,ii), ...
+            opt.coord_units, '1', opt.norm_bbox);
 end
 
 % compute limits from quantiles
@@ -121,16 +115,8 @@ ulim = quantile(uu(:), opt.clim);
 vlim = quantile(vv(:), opt.clim);
 mlim = quantile(mm(:), opt.clim);
 
-% convert coordinate units
-switch opt.coord_units
-    case 'm'
-        % do nothing
-    case 'cm'
-        opt.norm_bbox = opt.norm_bbox*100;
-end
-
 % clean up section
-clear uu vv mm
+clear xx yy uu vv mm
 
 %% generate frame(s)
 
