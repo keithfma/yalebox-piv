@@ -8,7 +8,44 @@ function opt = plot_displ(piv_file, index, varargin)
 %   - total displacement magnitude and direction
 % 
 % Arguments:
+%
+%   piv_file = String, name of PIV results netCDF file, as produced by
+%       piv_series()
+%
+%   index = Scalar, integer, index of time-step in piv_file to plot
+% 
+%   opt = Struct, options used for this plotting run. Primarily useful for
+%       plotting series.
+%   
 % Parameters (Name-Value pairs):
+%
+%   'coord_units' = String, name of units for coordinate axes, coordinate values
+%       will be rescaled accordingly, and labels will reflect these units. Valid
+%       options are: 'm', 'cm'. Default = 'cm'
+%
+%   'displ_units' = String, name of units for displacement vector components and
+%       magnitude, values will be rescaled accordingly, and labels will reflect
+%       these units. Valid options are: 'm', 'mm', '1'. Default is 'mm'.
+%
+%   'norm_bbox' = Vector, length==4, bounding box for the data region used in
+%       computing the displacement unit normalization factor. This is only used
+%       if displ_units == '1'. If empty, the normalization function will prompt
+%       the user to select a box interactively. Default = [].
+%
+%   'xlim', 'ylim', 'ulim', 'vlim', 'mlim' = Vector, length==2, [minimum,
+%       maximum] values for the x-axis, y-axis, u-displacement, v-displacement,
+%       and displacement magnitude. Values beyond the range of the data will be
+%       truncated to the data limits. Thus, to span the data, one could use
+%       [-inf, inf].
+%
+%   'qsize' = Vector, length==2, size of the grid for vector direction overlay
+%       (quiver) in [rows, cols]
+%
+%   'qbnd' = Scalar, boundary margin for vector direction overlay, as fraction
+%       of the axis ranges.
+%
+%   'qscale' = Scalar, range [0,1], length of vector lines in vector direction
+%       overlay 
 % %
 
 %% parse input arguments
@@ -24,9 +61,9 @@ validateattributes(index, {'numeric'}, {'scalar', 'integer'});
 % parameter name-value pairs
 ip = inputParser();
 
-ip.addParameter('coord_units', 'm', ...
+ip.addParameter('coord_units', 'cm', ...
     @(x) ismember(x, {'m', 'cm'})); 
-ip.addParameter('displ_units', 'm/step', ...
+ip.addParameter('displ_units', 'mm/step', ...
     @(x) ismember(x, {'m/step', 'mm/step', '1'}));
 ip.addParameter('norm_bbox', [], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
