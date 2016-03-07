@@ -160,6 +160,7 @@ imagesc(xx, yy, uu, 'AlphaData', ~isnan(uu));
 plot_direction(qx, qy, qu, qv, opt.qscale);
 format_axes(gca, opt, 0, 1, opt.ulim, ...
     sprintf('x-direction displacement component, step = %.1f', step));
+colormap(ax_mid, flipud(colormap)); % flow is in negative x direction
 
 % plot y-direction displacement magnitude
 axes(ax_bot);

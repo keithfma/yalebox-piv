@@ -157,6 +157,7 @@ for ii = opt.start_index:opt.stop_index
         'font_size_title', opt.font_size_title, ...
         'font_size_tick', opt.font_size_tick, ...
         'font_size_axis', opt.font_size_axis);
+    pause(1); % wait for graphics to finish drawing
     
     % first time: get parameters needed to convert figure to FHD image (1920x1080)
     if have_size == 0
@@ -182,7 +183,8 @@ for ii = opt.start_index:opt.stop_index
     img = padarray(img, [vpad(1), hpad(1), 0], 1, 'pre');
     img = padarray(img, [vpad(2), hpad(2), 0], 1, 'post');
     imwrite(img, fullfile(opt.tmp_dir, sprintf(opt.tmp_file, ii)));
-
+    
+    close(gcf);
 end
 
 %% create movie from frame images
