@@ -105,17 +105,18 @@ opt = ip.Results;
     util_convert_displ_units(xx, yy, uu, vv, mm, opt.coord_units, ...
         opt.displ_units, opt.norm_bbox);
 
-% truncate axis limits to data range
-opt.xlim(1) = max(opt.xlim(1), min(xx)); 
-opt.ylim(1) = max(opt.ylim(1), min(yy));
-opt.ulim(1) = max(opt.ulim(1), min(uu(:)));
-opt.vlim(1) = max(opt.vlim(1), min(vv(:))); 
-opt.mlim(1) = max(opt.mlim(1), min(mm(:))); 
-opt.xlim(2) = min(opt.xlim(2), max(xx));
-opt.ylim(2) = min(opt.ylim(2), max(yy)); 
-opt.ulim(2) = min(opt.ulim(2), max(uu(:)));
-opt.vlim(2) = min(opt.vlim(2), max(vv(:)));
-opt.mlim(2) = min(opt.mlim(2), max(mm(:)));
+% truncate infinte axis limits to data range
+if isinf(opt.xlim(1)); opt.xlim(1) = min(xx);    end
+if isinf(opt.ylim(1)); opt.ylim(1) = min(yy);    end
+if isinf(opt.ulim(1)); opt.ulim(1) = min(uu(:)); end 
+if isinf(opt.vlim(1)); opt.vlim(1) = min(vv(:)); end  
+if isinf(opt.mlim(1)); opt.mlim(1) = min(mm(:)); end  
+
+if isinf(opt.xlim(2)); opt.xlim(2) = max(xx);   end
+if isinf(opt.ylim(2)); opt.ylim(2) = max(yy);   end
+if isinf(opt.ulim(2)); opt.ulim(2) = max(uu(:)); end 
+if isinf(opt.vlim(2)); opt.vlim(2) = max(vv(:)); end 
+if isinf(opt.mlim(2)); opt.mlim(2) = max(mm(:)); end 
 
 % quiver plot data: interpolate to low-res checkerboard grid, normalize length
 %...generate staggered regular grid
