@@ -10,11 +10,12 @@ function [step, xx, yy, uu, vv, mm] = util_read_piv_step(piv_file, index)
 % index = Scalar, index of timestep in piv_file to plot, uses MATLAB-style
 %   1-based indices.
 %
-% step = 
+% step = Scalar, time step  
 %
-% xx, yy = 
+% xx, yy = Vector, world coordinate vectors 
 %
-% uu, vv, mm = 
+% uu, vv, mm = 2D matrix, x-direction and y-direction displacement
+%   components, and displacement magnitude
 % %
 
 % read data from netCDF
