@@ -21,10 +21,10 @@ bnd_ampl = 0.1;
 bnd_freq = 1;
 
 % piv parameters
-samplen = [30, 30];
-sampspc = [15z, 15];
-intrlen = [100, 50];
-npass = [1, 2];
+samplen = [30];%, 30];
+sampspc = [15];%, 15];
+intrlen = [100];%, 50];
+npass = [1];%, 1];
 valid_max = 2;
 valid_eps = 0.01;
 lowess_span_pts = 16;
@@ -125,7 +125,7 @@ vv_error = vv-vv_exact;
 
 % compute strain values
 [displ, ~, ~, Dd, ~, ~, ~, ~] = ...
-    yalebox_decompose_step(xgrid, ygrid, uu, vv, ~isnan(uu));
+    deformation(xgrid, ygrid, uu, vv, ~isnan(uu));
 
 % print and plot standard results
 test_piv_util_print_error(uu_error, vv_error);
