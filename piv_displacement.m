@@ -70,7 +70,8 @@ for ii = 1:nr
         xcr(overlap<min_overlap) = 0;
         
         % find cor0elation plane max, subpixel precision (failed pixels -> NaN)
-        [rpeak, cpeak] = piv_peak_gauss2d(xcr);
+%         [rpeak, cpeak] = piv_peak_gauss2d(xcr);
+        [rpeak, cpeak] = piv_peak_interp(xcr, 0.01);
         
         % convert position of the correlation max to displacement
         u1(ii,jj) = cpeak-samplen-(samp_cll-intr_cll);
