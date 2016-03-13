@@ -1,7 +1,7 @@
 function [xx, yy, uu, vv, roi] = ...
     piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-        min_frac_data, min_frac_overlap, low_res_spc, verbose)                 
+        min_frac_data, min_frac_overlap, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -47,9 +47,6 @@ function [xx, yy, uu, vv, roi] = ...
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
-%
-%   low_res_spc = Scalar, regular grid spacing for low-resolution (high-quality, 
-%       slow) interpolation step
 %
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
@@ -109,7 +106,6 @@ validateattributes( lowess_span_pts,  {'numeric'}, {'scalar', 'integer'});
 validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes( low_res_spc,      {'numeric'}, {'scalar', 'integer', '>', 0});
 validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
 
 % verbose output
@@ -128,7 +124,6 @@ if verbose
     fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
     fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
-    fprintf('%s: low_res_spc = %d\n', mfilename, low_res_spc);
 end
 
 % expand grid definition vectors to reflect the number of passes
@@ -182,9 +177,9 @@ for pp = 1:np
         
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 1, verbose);
+            v_grd_tm, roi, spline_tension, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 0, verbose);
+            v_grd_tm, roi, spline_tension, 0, verbose);
         
         % interpolate to full sample grid (new if changed)
         % ...needed b/c the roi can change even if the grid is constant
