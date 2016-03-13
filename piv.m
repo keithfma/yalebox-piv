@@ -153,10 +153,6 @@ roi = true(sz);
 np = length(samplen); 
 for pp = 1:np
     
-    % debug
-    nan_in_roi(u_grd_tm, roi);
-    nan_in_roi(v_grd_tm, roi);
-    
     if verbose
         fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
@@ -167,9 +163,6 @@ for pp = 1:np
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
             min_frac_data, min_frac_overlap, verbose);
         
-    nan_in_roi(u_grd_tm, roi);
-    nan_in_roi(v_grd_tm, roi);
-        
     % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
         piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
@@ -179,12 +172,6 @@ for pp = 1:np
     [du_grd_tm, dv_grd_tm] = ...
         piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
             lowess_span_pts, verbose);
-        
-    % debug
-    nan_in_roi(u_grd_tm, roi);
-    nan_in_roi(v_grd_tm, roi);
-    nan_in_roi(du_grd_tm, roi);
-    nan_in_roi(dv_grd_tm, roi);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;

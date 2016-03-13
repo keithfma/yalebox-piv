@@ -48,11 +48,6 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %   pts -> scattered coordinate points
 %   lr -> regular "low-res" coordinate grid used in interpolation
 
-% debug check for nans in the roi
-nan_in_roi(u_grd_tm, roi);
-nan_in_roi(v_grd_tm, roi);
-% end debug
-
 % constants
 roi_epsilon = 1e-2; % numerical threshold for roi deformation
 
