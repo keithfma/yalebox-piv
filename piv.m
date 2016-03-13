@@ -192,29 +192,19 @@ for pp = 1:np
     
     % deform images to midpoint time, if there is another pass
     if pp < np
+        
+        % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, low_res_spc, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, low_res_spc, 0, verbose);        
-    end
-    
-    % interpolate to new sample grid, if grid is changed in the next pass
-    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))   
+            v_grd_tm, roi, spline_tension, low_res_spc, 0, verbose);
         
-        nan_in_roi(u_grd_tm, roi);
-        nan_in_roi(v_grd_tm, roi);
-        
+        % interpolate to full sample grid (new if changed)
+        % ...needed b/c the roi can change even if the grid is constant
         [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
             piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
-                samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);                
-        
-        nan_in_roi(u_grd_tm, roi);
-        nan_in_roi(v_grd_tm, roi);
+                samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);        
     end
-    
-    % debug
-    nan_in_roi(u_grd_tm, roi);
-    nan_in_roi(v_grd_tm, roi);
     
 end   
 % end multipass loop
