@@ -15,7 +15,7 @@ function [] = test_piv_run_wedge(force)
 samplen = [30, 30];
 sampspc = [15, 15];
 intrlen = [120, 60];
-npass = [1, 1];
+npass = [1, 4];
 valid_max = 2;
 valid_eps = 0.1;
 lowess_span_pts = 16;
@@ -117,7 +117,7 @@ clear F
 % compute strain values
 [xgrid, ygrid] = meshgrid(xx, yy);
 [displ, ~, ~, Dd, ~, ~, ~, ~] = ...
-    yalebox_decompose_step(xgrid, ygrid, uu, vv, ~isnan(uu));
+    deformation(xgrid, ygrid, uu, vv, ~isnan(uu));
 
 % print and plot standard results
 test_piv_util_plot(xx, yy, uu, vv, displ, Dd);

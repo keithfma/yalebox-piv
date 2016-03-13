@@ -146,9 +146,16 @@ v_grd_tm = zeros(sz);
 ini_tm = ini_ti;
 fin_tm = fin_tf;
 
+% debug
+roi = true(sz);
+
 % multipass loop
 np = length(samplen); 
 for pp = 1:np
+    
+    % debug
+    nan_in_roi(u_grd_tm, roi);
+    nan_in_roi(v_grd_tm, roi);
     
     if verbose
         fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
@@ -160,6 +167,9 @@ for pp = 1:np
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
             min_frac_data, min_frac_overlap, verbose);
         
+    nan_in_roi(u_grd_tm, roi);
+    nan_in_roi(v_grd_tm, roi);
+        
     % validate displacement update 
     [du_pts_tm, dv_pts_tm] = ...
         piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
@@ -169,6 +179,12 @@ for pp = 1:np
     [du_grd_tm, dv_grd_tm] = ...
         piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
             lowess_span_pts, verbose);
+        
+    % debug
+    nan_in_roi(u_grd_tm, roi);
+    nan_in_roi(v_grd_tm, roi);
+    nan_in_roi(du_grd_tm, roi);
+    nan_in_roi(dv_grd_tm, roi);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -183,11 +199,22 @@ for pp = 1:np
     end
     
     % interpolate to new sample grid, if grid is changed in the next pass
-    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))        
+    if pp<np && (samplen(pp)~=samplen(pp+1) || sampspc(pp)~=sampspc(pp+1))   
+        
+        nan_in_roi(u_grd_tm, roi);
+        nan_in_roi(v_grd_tm, roi);
+        
         [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
             piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
                 samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);                
+        
+        nan_in_roi(u_grd_tm, roi);
+        nan_in_roi(v_grd_tm, roi);
     end
+    
+    % debug
+    nan_in_roi(u_grd_tm, roi);
+    nan_in_roi(v_grd_tm, roi);
     
 end   
 % end multipass loop

@@ -23,8 +23,8 @@ bnd_freq = 1;
 % piv parameters
 samplen = [30, 30];
 sampspc = [15, 15];
-intrlen = [100, 50];
-npass = [1, 1];
+intrlen = [100, 40];
+npass = [1, 10];
 valid_max = 2;
 valid_eps = 0.01;
 lowess_span_pts = 16;
