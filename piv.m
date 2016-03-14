@@ -175,6 +175,11 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         
+        % smooth displacement grids
+        [u_grd_tm, v_grd_tm] = ...
+            piv_lowess_interp(c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd, r_grd, roi, ...
+                lowess_span_pts, verbose);
+        
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 1, verbose);
