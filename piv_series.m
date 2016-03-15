@@ -1,9 +1,9 @@
 function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-                  min_frac_data, min_frac_overlap, low_res_spc, verbose)
+                  min_frac_data, min_frac_overlap, verbose)
 % function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 %                   npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-%                   min_frac_data, min_frac_overlap, low_res_spc)
+%                   min_frac_data, min_frac_overlap, verbose)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -23,7 +23,7 @@ function [] = piv_series(output_file, input_file, samplen, sampspc, intrlen, ...
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(14, 14); 
+narginchk(13, 13); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 
@@ -67,7 +67,6 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv lowess_span_pts', lowess_
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv low_res_spc', low_res_spc);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 
@@ -144,7 +143,7 @@ for ii = 1:ns
     [~, ~, u_piv, v_piv, roi_piv] = ...
         piv(img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, intrlen, npass, ...
             valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-            min_frac_data, min_frac_overlap, low_res_spc, verbose); 
+            min_frac_data, min_frac_overlap, verbose); 
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    
