@@ -165,8 +165,8 @@ for pp = 1:np
 
     % interpolate/smooth valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = ...
-        piv_spline_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-            spline_tension, verbose);
+        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+            lowess_span_pts, verbose);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -174,11 +174,6 @@ for pp = 1:np
     
     % deform images to midpoint time, if there is another pass
     if pp < np
-        
-        % smooth displacement grids
-        [u_grd_tm, v_grd_tm] = ...
-            piv_lowess_interp(c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd, r_grd, roi, ...
-                lowess_span_pts, verbose);
         
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
