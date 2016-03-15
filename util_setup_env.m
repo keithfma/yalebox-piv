@@ -1,4 +1,6 @@
-% Script to add dependencies for the Yalebox PIV project.
+% MATLAB script to add dependencies for the Yalebox PIV project.
+
 
 top_dir = fileparts(which(mfilename));
-addpath([top_dir filesep 'export_fig']);
+dep_dir = fullfile(top_dir, 'depend');
+addpath(genpath(dep_dir));
