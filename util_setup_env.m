@@ -1,5 +1,5 @@
-% MATLAB script to add dependencies for the Yalebox PIV project.
-
+function [] = util_setup_env()
+% Add dependencies for the Yalebox PIV project.
 
 top_dir = fileparts(which(mfilename));
 addpath(top_dir);
