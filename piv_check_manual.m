@@ -71,6 +71,8 @@ plot_horiz_spc = 0.05;
 ax_width = plot_panel_width-2*plot_horiz_spc;
 ax_height = (1-4*plot_vert_spc)/3;
 color_nodata = 0.9*[1 1 1];
+button_width = 0.1;
+button_height = 0.05; 
 
 % create full-screen figure
 f = figure;
@@ -103,12 +105,46 @@ ax_fin.Color = color_nodata;
 axis equal tight
 title('Final Image');
 
-linkaxes([ax_mag, ax_ini, ax_fin], 'xy'); 
+linkaxes([ax_mag, ax_ini, ax_fin], 'xy');
 
-%% Interactive point selection
+% Button: recompute color limits
+button_reset_clim = uicontrol('Style', 'pushbutton');
+button_reset_clim.Units = 'Normalized';
+button_reset_clim.Position = [control_panel_left, 0.9, button_width, button_height];
+button_reset_clim.String = 'Reset Colors';
+button_reset_clim.Callback = {@callback_button_reset_clim, ax_mag, displ_x, displ_y, displ_mag};
+
+keyboard
+
+end
+
+% GUI Functions ----------------------------------------------------------------
+
+function callback_button_reset_clim(hObject, callbackdata, ax, cc, rr, zz)
+%
+% Resets the colors of axes "ax" to the [min, max] of the displayed area
+%
+% Arguments:
+%   hObject, callbackdata = MATLAB GUI required arguments
+%   ax = Axes object for plot to be rescaled
+%   cc, rr = Coordinate vectors (columns and rows) for plot to be rescaled
+%   zz = Gridded data for plot to be rescaled
+% %
+
+visible_col_min = find(cc > ax.XLim(1), 1, 'first'); 
+visible_col_max = find(cc < ax.XLim(2), 1, 'last'); 
+visible_row_min = find(rr > ax.YLim(1), 1, 'first'); 
+visible_row_max = find(rr < ax.YLim(2), 1, 'last'); 
+visible_zz = zz(visible_row_min:visible_row_max, visible_col_min:visible_col_max);
+ax.CLim = [min(visible_zz(:)), max(visible_zz(:))];
+
+end
+
+
+
+
+
 
 %% Compute and write results
 
 %% Restart from results file
-
-keyboard
