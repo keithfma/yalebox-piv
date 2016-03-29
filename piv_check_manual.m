@@ -29,10 +29,86 @@ function [] = piv_check_manual(image_file, displ_file, step, result_file)
 
 %% check for sane inputs
 
+validateattributes(image_file,  {'char'}, {'vector'}, mfilename, 'image_file');
+validateattributes(displ_file,  {'char'}, {'vector'}, mfilename, 'displ_file');
+validateattributes(result_file, {'char'}, {'vector'}, mfilename, 'result_file');
+validateattributes(step, {'numeric'}, {'scalar'}, mfilename, 'step');
+
+%% extract the input data
+
+% find the index of the displacements and images
+displ_step = ncread(displ_file, 'step');
+image_step = ncread(image_file, 'step');
+
+displ_index_tm = find(displ_step == step);
+assert(numel(displ_index_tm) == 1);
+
+image_index_ti = displ_index_tm;
+image_index_tf = displ_index_tm+1;
+assert(image_step(image_index_ti) == floor(step));
+assert(image_step(image_index_tf) == ceil(step));
+
+% extract image, displacement, and coordinate data, transposing as needed
+image_ini = ncread(image_file, 'intensity', [1, 1, image_index_ti], [inf, inf, 1])';
+image_fin = ncread(image_file, 'intensity', [1, 1, image_index_tf], [inf, inf, 1])';
+image_x = ncread(image_file, 'x');
+image_y = ncread(image_file, 'y');
+
+displ_u = ncread(displ_file, 'u', [1, 1, displ_index_tm], [inf, inf, 1])';
+displ_v = ncread(displ_file, 'v', [1, 1, displ_index_tm], [inf, inf, 1])';
+displ_mag = sqrt(displ_u.^2+displ_v.^2);
+displ_x = ncread(displ_file, 'x');
+displ_y = ncread(displ_file, 'y');
+
 %% create the GUI
+
+% parameters
+plot_panel_width = 0.8;
+control_panel_width = 1-plot_panel_width;
+control_panel_left = plot_panel_width;
+plot_vert_spc = 0.1;
+plot_horiz_spc = 0.05;
+ax_width = plot_panel_width-2*plot_horiz_spc;
+ax_height = (1-4*plot_vert_spc)/3;
+color_nodata = 0.9*[1 1 1];
+
+% create full-screen figure
+f = figure;
+f.Units = 'Normalized';
+f.Position = [0, 0, 1, 1];
+
+% plot velocity magnitude, ini, and fin
+ax_fin = axes('Position', [plot_horiz_spc, plot_vert_spc              , ax_width, ax_height]);
+ax_ini = axes('Position', [plot_horiz_spc, 2*plot_vert_spc+ax_height  , ax_width, ax_height]);
+ax_mag = axes('Position', [plot_horiz_spc, 3*plot_vert_spc+2*ax_height, ax_width, ax_height]);
+
+axes(ax_mag);
+imagesc(displ_x, displ_y, displ_mag, 'AlphaData', ~isnan(displ_mag));
+ax_mag.YDir = 'Normal';
+ax_mag.Color = color_nodata;
+axis equal tight
+title('Displacement Magnitude')
+
+axes(ax_ini)
+imagesc(image_x, image_y, image_ini, 'AlphaData', image_ini ~= 0)
+ax_ini.YDir = 'Normal';
+ax_ini.Color = color_nodata;
+axis equal tight
+title('Initial Image');
+
+axes(ax_fin)
+imagesc(image_x, image_y, image_fin, 'AlphaData', image_fin ~= 0)
+ax_fin.YDir = 'Normal';
+ax_fin.Color = color_nodata;
+axis equal tight
+title('Final Image');
+
+linkaxes([ax_mag, ax_ini, ax_fin], 'xy'); 
 
 %% Interactive point selection
 
 %% Compute and write results
 
 %% Restart from results file
+
+keyboard
