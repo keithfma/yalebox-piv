@@ -49,22 +49,21 @@ assert(image_step(image_index_ti) == floor(step));
 assert(image_step(image_index_tf) == ceil(step));
 
 % extract image, displacement, and coordinate data, transposing as needed
-image_ini = ncread(image_file, 'intensity', [1, 1, image_index_ti], [inf, inf, 1])';
-image_fin = ncread(image_file, 'intensity', [1, 1, image_index_tf], [inf, inf, 1])';
-image_x = ncread(image_file, 'x');
-image_y = ncread(image_file, 'y');
+image_ini = double(ncread(image_file, 'intensity', [1, 1, image_index_ti], [inf, inf, 1]))';
+image_fin = double(ncread(image_file, 'intensity', [1, 1, image_index_tf], [inf, inf, 1]))';
+image_x = double(ncread(image_file, 'x'));
+image_y = double(ncread(image_file, 'y'));
 
-displ_u = ncread(displ_file, 'u', [1, 1, displ_index_tm], [inf, inf, 1])';
-displ_v = ncread(displ_file, 'v', [1, 1, displ_index_tm], [inf, inf, 1])';
+displ_u = double(ncread(displ_file, 'u', [1, 1, displ_index_tm], [inf, inf, 1]))';
+displ_v = double(ncread(displ_file, 'v', [1, 1, displ_index_tm], [inf, inf, 1]))';
 displ_mag = sqrt(displ_u.^2+displ_v.^2);
-displ_x = ncread(displ_file, 'x');
-displ_y = ncread(displ_file, 'y');
+displ_x = double(ncread(displ_file, 'x'));
+displ_y = double(ncread(displ_file, 'y'));
 
 %% create the GUI
 
 % parameters
 plot_panel_width = 0.8;
-control_panel_width = 1-plot_panel_width;
 control_panel_left = plot_panel_width;
 plot_vert_spc = 0.1;
 plot_horiz_spc = 0.05;
@@ -114,18 +113,26 @@ button_reset_clim.Position = [control_panel_left, 0.9, button_width, button_heig
 button_reset_clim.String = 'Reset Colors';
 button_reset_clim.Callback = {@callback_button_reset_clim, ax_mag, displ_x, displ_y, displ_mag};
 
-keyboard
+% Button: add point
+button_add_point = uicontrol('Style', 'pushbutton');
+button_add_point.Units = 'Normalized';
+button_add_point.Position = [control_panel_left, 0.8, button_width, button_height];
+button_add_point.String = 'Add Point';
+button_add_point.Callback = {@callback_button_add_point, ax_mag, ax_ini, ax_fin, displ_x, displ_y, displ_u, displ_v};
+button_add_point.UserData = 0;
+
+% Button: delete point
 
 end
 
 % GUI Functions ----------------------------------------------------------------
 
-function callback_button_reset_clim(hObject, callbackdata, ax, cc, rr, zz)
+function callback_button_reset_clim(~, ~, ax, cc, rr, zz)
 %
 % Resets the colors of axes "ax" to the [min, max] of the displayed area
 %
 % Arguments:
-%   hObject, callbackdata = MATLAB GUI required arguments
+%   ~, ~ = unused, MATLAB GUI required arguments
 %   ax = Axes object for plot to be rescaled
 %   cc, rr = Coordinate vectors (columns and rows) for plot to be rescaled
 %   zz = Gridded data for plot to be rescaled
@@ -139,6 +146,62 @@ visible_zz = zz(visible_row_min:visible_row_max, visible_col_min:visible_col_max
 ax.CLim = [min(visible_zz(:)), max(visible_zz(:))];
 
 end
+
+function callback_button_add_point(hObject, ~, ax_mag, ax_ini, ax_fin, displ_x, displ_y, displ_u, displ_v, label)
+%
+% Add a new point to the analysis. This callback waits for the user to click a
+% point on the displacement magnitude axes, then creates interactive, editable,
+% impoint objects in the initial and final image axes. Clicking outside the
+% displacement magnitude axes generates a warning dialog box and does not add
+% any points.
+%
+% Arguments:
+%   hObject = Handle to self
+%   ~ = unused, MATLAB GUI required arguments
+%   ax_mag, ax_ini, ax_fin = Axes objects for displacement magnitude and initial
+%       and final images.
+%   displ_x, displ_y = Coordinate vectors for displacement grids
+%   displ_u, displ_v = Displacement grids
+% %
+
+% select point from displacement magnitude axes
+axes(ax_mag)
+[x_tm, y_tm] = ginput(1);
+
+% exit with warning if user selected a point outside the visible area
+if x_tm < ax_mag.XLim(1) || x_tm > ax_mag.XLim(2) || y_tm < ax_mag.YLim(1) || y_tm > ax_mag.YLim(2)
+    warndlg('Selected point is outside the displacement magnitude axes, skipping');
+    return
+end
+
+% interpolate displacements at the selected point
+[displ_x_grid, displ_y_grid] = meshgrid(displ_x, displ_y);
+data = ~isnan(displ_u) & ~isnan(displ_v);
+interpolant = scatteredInterpolant(displ_x_grid(data), displ_y_grid(data), displ_u(data), 'linear');
+u_tm = interpolant(x_tm, y_tm);
+interpolant.Values = displ_v(data);
+v_tm = interpolant(x_tm, y_tm);
+
+% get label and update counter
+label_str = num2str(hObject.UserData);
+
+% plot point as label
+text(x_tm, y_tm, label_str);
+hObject.UserData = hObject.UserData+1; 
+
+% create impoint objects 
+h_pt_ini = impoint(ax_ini, x_tm-0.5*u_tm, y_tm-0.5*v_tm);
+h_pt_ini.setColor('k');
+h_pt_ini.setString(label_str);
+
+h_pt_fin = impoint(ax_fin, x_tm+0.5*u_tm, y_tm+0.5*v_tm);
+h_pt_fin.setColor('k');
+h_pt_fin.setString(label_str);
+
+end
+
+
+
 
 
 
