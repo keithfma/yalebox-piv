@@ -90,13 +90,13 @@ text_clim_min = uicontrol('Style', 'text');
 text_clim_min.Units = 'Normalized';
 text_clim_min.Position = [0.85, 0.9, 0.05, 0.05];
 text_clim_min.BackgroundColor = [1 1 1];
-text_clim_min.String = 'Color Min';
+text_clim_min.String = 'Min [mm/step]';
 
 edit_clim_min = uicontrol('Style', 'edit');
 edit_clim_min.Units = 'Normalized';
 edit_clim_min.Position = [0.85, 0.85, 0.05, 0.05];
 edit_clim_min.BackgroundColor = [1 1 1];
-edit_clim_min.String = num2str(clim(1));
+edit_clim_min.String = num2str(clim(1)*1000);
 edit_clim_min.Tag = 'edit_clim_min';
 edit_clim_min.Callback = {@update_displ_clim, ax_displ};
 
@@ -104,17 +104,90 @@ text_clim_max = uicontrol('Style', 'text');
 text_clim_max.Units = 'Normalized';
 text_clim_max.Position = [0.92, 0.9, 0.05, 0.05];
 text_clim_max.BackgroundColor = [1 1 1];
-text_clim_max.String = 'Color Max';
+text_clim_max.String = 'Max [mm/step]';
 
 edit_clim_max = uicontrol('Style', 'edit');
 edit_clim_max.Units = 'Normalized';
 edit_clim_max.Position = [0.92, 0.85, 0.05, 0.05];
 edit_clim_max.BackgroundColor = [1 1 1];
-edit_clim_max.String = num2str(clim(2));
+edit_clim_max.String = num2str(clim(2)*1000);
 edit_clim_max.Tag = 'edit_clim_max';
 edit_clim_max.Callback = {@update_displ_clim, ax_displ};
 
+text_num_pts = uicontrol('Style', 'text');
+text_num_pts.Units = 'Normalized';
+text_num_pts.Position = [0.85, 0.75, 0.1, 0.05];
+text_num_pts.BackgroundColor = [1 1 1];
+text_num_pts.String = 'Number of random test points';
+
+edit_num_pts = uicontrol('Style', 'edit');
+edit_num_pts.Units = 'Normalized';
+edit_num_pts.Position = [0.87, 0.69, 0.05, 0.05];
+edit_num_pts.BackgroundColor = [1 1 1];
+edit_num_pts.String = '20';
+edit_num_pts.Tag = 'edit_num_pts';
+edit_num_pts.Callback = {@update_test_pts, displ_x, displ_y, ~isnan(displ_u), ax_displ};
+
 % GUI Functions ----------------------------------------------------------------
+
+function update_test_pts(hObject, ~, roi_x, roi_y, roi, ax)
+%
+% Generates a new batch of random test points, plots them on the displ axis, and
+% returns their location in the .UserData handle property. All new points must
+% lie with the ROI.
+% 
+% Arguments:
+%   hObject = uicontrol object handle
+%   ~ = unused, MATLAB GUI required arguments
+%   x_roi, y_roi = Vector, coordinate vectors for the ROI
+%   roi = 2D, logical flags indicating points in the ROI (1) and not (0)
+%   ax = Axes handle for plot to be modified
+% % 
+
+% get number of test points
+h_num_pts = findobj('Tag', 'edit_num_pts');
+num_pts = str2double(h_num_pts.String);
+
+if isempty(num_pts) || isnan(num_pts) || num_pts <= 0
+    warndlg('invalid value for number of test points');
+    return
+end
+
+% create interpolant to check if test points lie in the ROI, use increasing normalized coordinates
+[ynorm, xnorm] = ndgrid(linspace(0, 1, size(roi,1)), linspace(0, 1, size(roi,2)));
+roi = double(flipud(roi));
+interpolant = griddedInterpolant(ynorm, xnorm, roi, 'nearest');
+
+% generate test points, use normalized coordinates, keep only if in ROI
+x_pts = nan(num_pts, 1);
+y_pts = nan(num_pts, 1);
+for ii = 1:num_pts
+    while isnan(x_pts(ii))
+       x_candidate = rand(1);
+       y_candidate = rand(1);
+       if interpolant(y_candidate, x_candidate) == 1
+           x_pts(ii) = x_candidate;
+           y_pts(ii) = y_candidate;
+           break
+       end
+    end
+end
+
+% convert normalized coordinates to world coordinates
+x_pts = x_pts*range(roi_x)+min(roi_x);
+y_pts = y_pts*range(roi_y)+min(roi_y);
+
+% return results using UserData 
+hObject.UserData = [x_pts, y_pts];
+
+% clear previous points from axes, then plot new points
+axes(ax);
+h_prev = findobj(gca, 'Type', 'Line');
+delete(h_prev);
+
+hold on
+plot(x_pts, y_pts, 'xk');
+
 
 function update_displ_clim(~, ~, ax)
 % function update_displ_clim(~, ~, ax)
@@ -133,12 +206,12 @@ clim_min = str2double(hmin.String);
 clim_max = str2double(hmax.String);
 
 % sanity check
-if isempty(clim_min)
-    warndlg('missing value for minimum color in displacement plot');
+if isempty(clim_min) || isnan(clim_min)
+    warndlg('invalid value for minimum color in displacement plot');
     return
 end
-if isempty(clim_max)
-    warndlg('missing value for minimum color in displacement plot');
+if isempty(clim_max) || isnan(clim_max)
+    warndlg('invalid value for minimum color in displacement plot');
     return
 end
 if clim_min >= clim_max
@@ -147,7 +220,7 @@ if clim_min >= clim_max
 end
 
 % update colors
-caxis(ax, [clim_min, clim_max]);
+caxis(ax, [clim_min, clim_max]/1000);
 
 
 
