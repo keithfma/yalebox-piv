@@ -99,6 +99,7 @@ edit_clim_min.BackgroundColor = [1 1 1];
 edit_clim_min.String = num2str(clim(1)*1000);
 edit_clim_min.Tag = 'edit_clim_min';
 edit_clim_min.Callback = {@update_displ_clim, ax_displ};
+edit_clim_min.Enable = 'on';
 
 text_clim_max = uicontrol('Style', 'text');
 text_clim_max.Units = 'Normalized';
@@ -113,6 +114,7 @@ edit_clim_max.BackgroundColor = [1 1 1];
 edit_clim_max.String = num2str(clim(2)*1000);
 edit_clim_max.Tag = 'edit_clim_max';
 edit_clim_max.Callback = {@update_displ_clim, ax_displ};
+edit_clim_max.Enable = 'on';
 
 text_num_pts = uicontrol('Style', 'text');
 text_num_pts.Units = 'Normalized';
@@ -127,8 +129,50 @@ edit_num_pts.BackgroundColor = [1 1 1];
 edit_num_pts.String = '20';
 edit_num_pts.Tag = 'edit_num_pts';
 edit_num_pts.Callback = {@update_test_pts, displ_x, displ_y, ~isnan(displ_u), ax_displ};
+edit_num_pts.Enable = 'on';
 
-% GUI Functions ----------------------------------------------------------------
+button_start_analysis = uicontrol('Style', 'pushbutton');
+button_start_analysis.Units = 'Normalized';
+button_start_analysis.Position = [0.85, 0.6, 0.1, 0.05];
+button_start_analysis.String = 'Start Analysis';
+button_start_analysis.Tag = 'button_start_analysis';
+button_start_analysis.Callback = @start_analysis;
+button_start_analysis.Enable = 'on';
+
+text_analysis_pt = uicontrol('Style', 'text');
+text_analysis_pt.Units = 'Normalized';
+text_analysis_pt.Position = [0.85, 0.5, 0.1, 0.05];
+text_analysis_pt.BackgroundColor = [1 1 1];
+text_analysis_pt.String = sprintf('Point 0 of %s', edit_num_pts.String);
+text_analysis_pt.Tag = 'text_analysis_pt';
+
+button_next_pt = uicontrol('Style', 'pushbutton');
+button_next_pt.Units = 'Normalized';
+button_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
+button_next_pt.String = 'Analyze Next Point';
+button_next_pt.Tag = 'button_next_pt';
+button_next_pt.Callback = @next_pt;
+button_next_pt.Enable = 'off';
+
+
+
+function start_analysis(~, ~)
+% function start_analysis(~, ~)
+%
+% Disables controls for initialization, enables controls for analysis
+%
+% Arguments:
+%   ~ = unused, MATLAB GUI required arguments
+% %
+
+% disable initialization controls
+h = findobj('Tag', 'edit_clim_min');         h.Enable = 'off';
+h = findobj('Tag', 'edit_clim_max');         h.Enable = 'off';
+h = findobj('Tag', 'edit_num_pts');          h.Enable = 'off';
+h = findobj('Tag', 'button_start_analysis'); h.Enable = 'off';
+
+% enable analysis controls
+h = findobj('Tag', 'button_next_pt'); h.Enable = 'on';
 
 function update_test_pts(hObject, ~, roi_x, roi_y, roi, ax)
 %
