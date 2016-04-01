@@ -22,9 +22,6 @@ function [] = piv_check_manual(image_file, displ_file, step, result_file)
 
 %% init
 
-% define constants
-default_num_pts = 20;
-
 % sanity check
 validateattributes(image_file,  {'char'}, {'vector'}, mfilename, 'image_file');
 validateattributes(displ_file,  {'char'}, {'vector'}, mfilename, 'displ_file');
@@ -42,14 +39,15 @@ share = struct(...
     'piv_u', [], ...
     'piv_v', [], ...
     'piv_m', [], ...
-    'num_pts', [], ...
+    'num_pts', 20, ...
     'ctrl_x', [], ...
     'ctrl_y', [], ...
     'ctrl_u_piv', [], ...
     'ctrl_v_piv', [], ...
     'ctrl_u_man', [], ...
     'ctrl_v_man', [], ...
-    'ctrl_d', []);
+    'ctrl_d', [], ...
+    'ii', 0);
 
 % find the index of the displacements and images
 displ_step = ncread(displ_file, 'step');
@@ -106,7 +104,7 @@ edit_num_pts = uicontrol('Style', 'edit');
 edit_num_pts.Units = 'Normalized';
 edit_num_pts.Position = [0.87, 0.79, 0.05, 0.05];
 edit_num_pts.BackgroundColor = [1 1 1];
-edit_num_pts.String = num2str(default_num_pts);
+edit_num_pts.String = share.num_pts;
 edit_num_pts.Tag = 'edit_num_pts';
 edit_num_pts.Callback = @set_num_pts;
 edit_num_pts.Enable = 'on';
@@ -127,25 +125,28 @@ button_start_analysis.Tag = 'button_start_analysis';
 button_start_analysis.Callback = @start_analysis;
 button_start_analysis.Enable = 'on';
 
-% % UserData contains the index of the current point
-% text_analysis_pt = uicontrol('Style', 'text');
-% text_analysis_pt.Units = 'Normalized';
-% text_analysis_pt.Position = [0.85, 0.5, 0.1, 0.05];
-% text_analysis_pt.BackgroundColor = [1 1 1];
-% text_analysis_pt.String = sprintf('Point 0 of %s', edit_num_pts.String);
-% text_analysis_pt.Tag = 'text_analysis_pt';
-% text_analysis_pt.UserData = 0;
-% 
-% % UserData contains the location of each control point as a num_pts*2 array:
-% % ...with a row [x, y] for each point
-% button_next_pt = uicontrol('Style', 'pushbutton');
-% button_next_pt.Units = 'Normalized';
-% button_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
-% button_next_pt.String = 'Analyze Next Point';
-% button_next_pt.Tag = 'button_next_pt';
-% button_next_pt.Callback = {@next_pt, ax_ini, ax_fin, image_x, image_y, ...
-%                             image_ini, image_fin};
-% button_next_pt.Enable = 'off';
+text_curr_pt = uicontrol('Style', 'text');
+text_curr_pt.Units = 'Normalized';
+text_curr_pt.Position = [0.85, 0.5, 0.1, 0.05];
+text_curr_pt.BackgroundColor = [1 1 1];
+text_curr_pt.String = '';
+text_curr_pt.Tag = 'text_curr_pt';
+
+but_next_pt = uicontrol('Style', 'pushbutton');
+but_next_pt.Units = 'Normalized';
+but_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
+but_next_pt.String = 'Next Point';
+but_next_pt.Tag = 'but_next_pt';
+but_next_pt.Callback = {@next_pt, 1};
+but_next_pt.Enable = 'off';
+
+but_prev_pt = uicontrol('Style', 'pushbutton');
+but_prev_pt.Units = 'Normalized';
+but_prev_pt.Position = [0.85, 0.35, 0.1, 0.05];
+but_prev_pt.String = 'Previous Point';
+but_prev_pt.Tag = 'but_prev_pt';
+but_prev_pt.Callback = {@next_pt, -1};
+but_prev_pt.Enable = 'off';
 
 % initialize the gui
 axes(findobj('Tag', 'ax_displ'));
@@ -155,19 +156,56 @@ set(gca, 'Color', 0.9*[1 1 1]);
 axis equal tight
 colorbar
 
-set_num_pts(edit_num_pts);
 get_ctrl_pts();
 
 hf.Visible = 'on';
 
 end
 
-function start_analysis(~, ~)
-% Disable controls for initialization, enable controls for analysis
+% function record_pt()
+% Record analysis results from current axes (u_man, v_man, new ctrl_x, ctrl_y)
+
+function next_pt(~, ~, step)
+% Record results from the last point, and analyze the next (step == 1) or
+% previous (step == -1) control point
 % %
 
+% get shared data
+hfig = gcf();
+share = get(gcf, 'UserData');
+
+% record results from last point
+if share.ii ~= 0 % skip first time
+    % call a "record_results" function...
+end
+
+% change to next/prev control point, wrapping around as needed
+share.ii = share.ii+step;
+if share.ii > share.num_pts; share.ii = 1; end
+if share.ii < 1; share.ii = share.num_pts; end
+
+% update ini plot (image and impoint object)
+
+% update fin plot (image and impoint object)
+
+% set shared data
+set(hfig, 'UserData', share);
+
+end
+
+function start_analysis(hui, ~)
+% Switch from initialization to analysis mode
+% %
+
+% disable / enable controls
+hui.Enable = 'off';
 h = findobj('Tag', 'edit_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
+h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
+h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
+
+% start analysis for first point
+% next_point();
 
 end
 
