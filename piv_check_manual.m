@@ -152,6 +152,14 @@ but_prev_pt.Tag = 'but_prev_pt';
 but_prev_pt.Callback = {@next_pt, -1};
 but_prev_pt.Enable = 'off';
 
+but_done = uicontrol('Style', 'pushbutton');
+but_done.Units = 'Normalized';
+but_done.Position = [0.85, 0.25, 0.1, 0.05];
+but_done.String = 'Done';
+but_done.Tag = 'but_done';
+% but_done.Callback = @finalize;
+but_done.Enable = 'off';
+
 % initialize the gui
 axes(findobj('Tag', 'ax_displ'));
 imagesc(share.piv_x, share.piv_y, share.piv_m, 'AlphaData', share.piv_roi);
@@ -163,6 +171,18 @@ colorbar
 get_ctrl_pts();
 
 hf.Visible = 'on';
+
+end
+
+function finalize()
+% Finalize analysis and write results to file
+% %
+
+% interpolate PIV displacements at final control points
+
+% construct file name
+
+% write output CSV and MAT
 
 end
 
@@ -244,6 +264,7 @@ h = findobj('Tag', 'edit_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
 h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
+h = findobj('Tag', 'but_done'); h.Enable = 'on';
 
 % start analysis for first point
 next_pt([], [], 1);
