@@ -122,13 +122,16 @@ text_num_pts.Position = [0.85, 0.75, 0.1, 0.05];
 text_num_pts.BackgroundColor = [1 1 1];
 text_num_pts.String = 'Number of random test points';
 
+% UserData contains input data for all control points as a num_pts*4 array:
+% ... with a row [x, y, u, v] for each point
 edit_num_pts = uicontrol('Style', 'edit');
 edit_num_pts.Units = 'Normalized';
 edit_num_pts.Position = [0.87, 0.69, 0.05, 0.05];
 edit_num_pts.BackgroundColor = [1 1 1];
 edit_num_pts.String = '20';
 edit_num_pts.Tag = 'edit_num_pts';
-edit_num_pts.Callback = {@update_test_pts, displ_x, displ_y, ~isnan(displ_u), ax_displ};
+edit_num_pts.Callback = {@update_test_pts, ax_displ, displ_x, displ_y, ...
+                         ~isnan(displ_u), displ_u, displ_v};
 edit_num_pts.Enable = 'on';
 
 button_start_analysis = uicontrol('Style', 'pushbutton');
@@ -139,21 +142,114 @@ button_start_analysis.Tag = 'button_start_analysis';
 button_start_analysis.Callback = @start_analysis;
 button_start_analysis.Enable = 'on';
 
+% UserData contains the index of the current point
 text_analysis_pt = uicontrol('Style', 'text');
 text_analysis_pt.Units = 'Normalized';
 text_analysis_pt.Position = [0.85, 0.5, 0.1, 0.05];
 text_analysis_pt.BackgroundColor = [1 1 1];
 text_analysis_pt.String = sprintf('Point 0 of %s', edit_num_pts.String);
 text_analysis_pt.Tag = 'text_analysis_pt';
+text_analysis_pt.UserData = 0;
 
+% UserData contains the location of each control point as a num_pts*2 array:
+% ...with a row [x, y] for each point
 button_next_pt = uicontrol('Style', 'pushbutton');
 button_next_pt.Units = 'Normalized';
 button_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
 button_next_pt.String = 'Analyze Next Point';
 button_next_pt.Tag = 'button_next_pt';
-button_next_pt.Callback = @next_pt;
+button_next_pt.Callback = {@next_pt, ax_ini, ax_fin, image_x, image_y, ...
+                            image_ini, image_fin};
 button_next_pt.Enable = 'off';
 
+function next_pt(hObject, ~, ax_ini, ax_fin, xx, yy, ini, fin)
+%
+% Perform manual check for next point
+%
+% Arguments:
+%
+%   ~, ~ = unused, MATLAB GUI required arguments
+%
+%   xx, yy = Vector, coordinate vectors for ini and fin
+%
+%   ax_ini, ax_fin = Axes objects for initial and final image plots
+%
+%   ini, fin = 2D matrix, initial and final images
+% %
+
+% NOTE: estimated points are troublingly bad
+
+% define parameters
+image_x_dim = 0.02; % dimensions of image plots in world coordinates
+image_y_dim = 0.02;
+
+% get point index, update GUI
+h = findobj('Tag', 'text_analysis_pt');
+prev_pt_index = h.UserData;
+pt_index = prev_pt_index+1;
+h.UserData = pt_index;
+h.String = num2str(pt_index);
+
+% get control point location and PIV displacement
+h = findobj('Tag', 'edit_num_pts');
+pts = h.UserData;
+num_pts = size(pts, 1);
+
+if num_pts == 0;
+    h_gui = gcf;
+    errordlg('No test points are available - did you forget to generate them?');
+    close(h_gui);
+    return
+end
+
+x_pt = pts(pt_index, 1);
+y_pt = pts(pt_index, 2);
+u_pt_piv = pts(pt_index, 3);
+v_pt_piv = pts(pt_index, 4);
+
+% initialize output data the first time
+if isempty(hObject.UserData)
+    hObject.UserData = nan(num_pts, 2);
+end
+
+% get the estimated location of the control point at initial and final times
+if isnan(hObject.UserData(pt_index, 1))
+    x_pt_ini = x_pt-0.5*u_pt_piv;
+    y_pt_ini = y_pt-0.5*v_pt_piv;
+    x_pt_fin = x_pt+0.5*u_pt_piv;
+    y_pt_fin = y_pt+0.5*v_pt_piv;
+    
+else
+    x_pt_ini = x_pt-0.5*hObject.UserData(pt_index, 1);
+    y_pt_ini = y_pt-0.5*hObject.UserData(pt_index, 2);
+    x_pt_fin = x_pt+0.5*hObject.UserData(pt_index, 1);
+    y_pt_fin = y_pt+0.5*hObject.UserData(pt_index, 2);
+
+end
+    
+% plot estimated location of control points
+axes(ax_ini);
+imagesc(xx, yy, ini);
+hold on
+pt_ini = impoint(gca, x_pt_ini, y_pt_ini);
+pt_ini.setColor('k');
+xlim(x_pt_ini+image_x_dim*[-0.5, 0.5]);
+ylim(y_pt_ini+image_y_dim*[-0.5, 0.5]);
+hold off
+
+axes(ax_fin);
+imagesc(xx, yy, fin);
+hold on
+pt_fin = impoint(gca, x_pt_fin, y_pt_fin);
+pt_fin.setColor('k');
+xlim(x_pt_fin+image_x_dim*[-0.5, 0.5]);
+ylim(y_pt_fin+image_y_dim*[-0.5, 0.5]);
+hold off
+
+% record control point location in UserData
+hObject.UserData(pt_index, :) = pt_fin.getPosition()-pt_ini.getPosition();
+
+disp(hObject.UserData);
 
 
 function start_analysis(~, ~)
@@ -174,18 +270,27 @@ h = findobj('Tag', 'button_start_analysis'); h.Enable = 'off';
 % enable analysis controls
 h = findobj('Tag', 'button_next_pt'); h.Enable = 'on';
 
-function update_test_pts(hObject, ~, roi_x, roi_y, roi, ax)
+function update_test_pts(hObject, ~, ax, xx, yy, roi, uu, vv)
 %
 % Generates a new batch of random test points, plots them on the displ axis, and
 % returns their location in the .UserData handle property. All new points must
 % lie with the ROI.
 % 
 % Arguments:
+%
 %   hObject = uicontrol object handle
+%
 %   ~ = unused, MATLAB GUI required arguments
-%   x_roi, y_roi = Vector, coordinate vectors for the ROI
-%   roi = 2D, logical flags indicating points in the ROI (1) and not (0)
+%
 %   ax = Axes handle for plot to be modified
+%
+%   xx, yy = Vector, coordinate vectors
+%
+%   roi = 2D, logical flags indicating points in the ROI (1) and not (0)
+%
+%   uu, vv = 2D, estimated displacement components at midpoint time
+%
+% Results are save in hObject.UserData as [x_pt, y_pt, u_pt, v_pt]
 % % 
 
 % get number of test points
@@ -217,12 +322,22 @@ for ii = 1:num_pts
     end
 end
 
+% create interpolant to estimate displacement at test points for midpoint time
+[ynorm, xnorm] = ndgrid(linspace(0, 1, size(uu,1)), linspace(0, 1, size(uu,2)));
+uu = flipud(uu);
+vv = flipud(vv);
+roi = logical(roi);
+interpolant = scatteredInterpolant(ynorm(roi), xnorm(roi), uu(roi), 'linear');
+u_pts = interpolant(x_pts, y_pts);
+interpolant.Values = vv(roi);
+v_pts = interpolant(x_pts, y_pts);
+
 % convert normalized coordinates to world coordinates
-x_pts = x_pts*range(roi_x)+min(roi_x);
-y_pts = y_pts*range(roi_y)+min(roi_y);
+x_pts = x_pts*range(xx)+min(xx);
+y_pts = y_pts*range(yy)+min(yy);
 
 % return results using UserData 
-hObject.UserData = [x_pts, y_pts];
+hObject.UserData = [x_pts, y_pts, u_pts, v_pts];
 
 % clear previous points from axes, then plot new points
 axes(ax);
@@ -267,143 +382,3 @@ end
 caxis(ax, [clim_min, clim_max]/1000);
 
 
-
-
-
-
-
-% % 
-% % % % Edit: number of test points
-% % % text_num_pts = uicontrol('Style', 'text');
-% % % text_num_pts.Units = 'Normalized';
-% % % text_num_pts.Position = [control_panel_left, 0.9, control_width, control_height];
-% % % text_num_pts.String = 'Number of control points:';
-% % % text_num_pts.BackgroundColor = [1 1 1];
-% % % 
-% % % edit_num_pts = uicontrol('Style', 'edit');
-% % % edit_num_pts.Units = 'Normalized';
-% % % edit_num_pts.Position = [control_panel_left, control_panel_top-1.1*control_height, control_width, control_height];
-% % % edit_num_pts.String = '?';
-% % % edit_num_pts.Tag = 'edit_num_pts';
-% % % edit_num_pts.Callback = @generate_pts;
-% % 
-% % % % Button: recompute color limits
-% % % button_reset_clim = uicontrol('Style', 'pushbutton');
-% % % button_reset_clim.Units = 'Normalized';
-% % % button_reset_clim.Position = [control_panel_left, 0.9, button_width, button_height];
-% % % button_reset_clim.String = 'Reset Colors';
-% % % button_reset_clim.Callback = {@callback_button_reset_clim, ax_mag, displ_x, displ_y, displ_mag};
-% % % 
-% % % % Button: add point
-% % % button_add_point = uicontrol('Style', 'pushbutton');
-% % % button_add_point.Units = 'Normalized';
-% % % button_add_point.Position = [control_panel_left, 0.8, button_width, button_height];
-% % % button_add_point.String = 'Add Point';
-% % % button_add_point.Callback = {@callback_button_add_point, ax_mag, ax_ini, ax_fin, displ_x, displ_y, displ_u, displ_v};
-% % % button_add_point.UserData = 0;
-% % 
-% % % Button: delete point
-% % 
-% % end
-% % 
-% % % GUI Functions ----------------------------------------------------------------
-% % 
-% % function generate_pts(~, ~)
-% % % function edit_num_pts_callback(hObject, ~)
-% % %
-% % % Updates the number of random points, then regenerates the points.
-% % %
-% % % Arguments:
-% % %   hObject = Handle to self
-% % %   ~ = unused, MATLAB GUI required arguments
-% % % %
-% % 
-% % % get number of points 
-% % h = findobj('Tag', 'edit_num_pts');
-% % num_pts = str2double(h.String);
-% % disp(num_pts)
-% % if isempty(num_pts) || round(num_pts) ~= num_pts
-% %     warndlg(sprintf('Expected an integer number of points, received "%s".', h.String));
-% %     return
-% % end
-% % 
-% % % generate random points
-% % 
-% % end
-% % 
-% % % function callback_button_reset_clim(~, ~, ax, cc, rr, zz)
-% % % %
-% % % % Resets the colors of axes "ax" to the [min, max] of the displayed area
-% % % %
-% % % % Arguments:
-% % % %   ~, ~ = unused, MATLAB GUI required arguments
-% % % %   ax = Axes object for plot to be rescaled
-% % % %   cc, rr = Coordinate vectors (columns and rows) for plot to be rescaled
-% % % %   zz = Gridded data for plot to be rescaled
-% % % % %
-% % % 
-% % % visible_col_min = find(cc > ax.XLim(1), 1, 'first'); 
-% % % visible_col_max = find(cc < ax.XLim(2), 1, 'last'); 
-% % % visible_row_min = find(rr > ax.YLim(1), 1, 'first'); 
-% % % visible_row_max = find(rr < ax.YLim(2), 1, 'last'); 
-% % % visible_zz = zz(visible_row_min:visible_row_max, visible_col_min:visible_col_max);
-% % % ax.CLim = [min(visible_zz(:)), max(visible_zz(:))];
-% % % 
-% % % end
-% % % 
-% % % function callback_button_add_point(hObject, ~, ax_mag, ax_ini, ax_fin, displ_x, displ_y, displ_u, displ_v, label)
-% % % %
-% % % % Add a new point to the analysis. This callback waits for the user to click a
-% % % % point on the displacement magnitude axes, then creates interactive, editable,
-% % % % impoint objects in the initial and final image axes. Clicking outside the
-% % % % displacement magnitude axes generates a warning dialog box and does not add
-% % % % any points.
-% % % %
-% % % % Arguments:
-% % % %   hObject = Handle to self
-% % % %   ~ = unused, MATLAB GUI required arguments
-% % % %   ax_mag, ax_ini, ax_fin = Axes objects for displacement magnitude and initial
-% % % %       and final images.
-% % % %   displ_x, displ_y = Coordinate vectors for displacement grids
-% % % %   displ_u, displ_v = Displacement grids
-% % % % %
-% % % 
-% % % % select point from displacement magnitude axes
-% % % axes(ax_mag)
-% % % [x_tm, y_tm] = ginput(1);
-% % % 
-% % % % exit with warning if user selected a point outside the visible area
-% % % if x_tm < ax_mag.XLim(1) || x_tm > ax_mag.XLim(2) || y_tm < ax_mag.YLim(1) || y_tm > ax_mag.YLim(2)
-% % %     warndlg('Selected point is outside the displacement magnitude axes, skipping');
-% % %     return
-% % % end
-% % % 
-% % % % interpolate displacements at the selected point
-% % % [displ_x_grid, displ_y_grid] = meshgrid(displ_x, displ_y);
-% % % data = ~isnan(displ_u) & ~isnan(displ_v);
-% % % interpolant = scatteredInterpolant(displ_x_grid(data), displ_y_grid(data), displ_u(data), 'linear');
-% % % u_tm = interpolant(x_tm, y_tm);
-% % % interpolant.Values = displ_v(data);
-% % % v_tm = interpolant(x_tm, y_tm);
-% % % 
-% % % % get label and update counter
-% % % label_str = num2str(hObject.UserData);
-% % % 
-% % % % plot point as label
-% % % text(x_tm, y_tm, label_str);
-% % % hObject.UserData = hObject.UserData+1; 
-% % % 
-% % % % create impoint objects 
-% % % h_pt_ini = impoint(ax_ini, x_tm-0.5*u_tm, y_tm-0.5*v_tm);
-% % % h_pt_ini.setColor('k');
-% % % h_pt_ini.setString(label_str);
-% % % 
-% % % h_pt_fin = impoint(ax_fin, x_tm+0.5*u_tm, y_tm+0.5*v_tm);
-% % % h_pt_fin.setColor('k');
-% % % h_pt_fin.setString(label_str);
-% % % 
-% % % end
-% % 
-% % %% Compute and write results
-% % 
-% % %% Restart from results file
