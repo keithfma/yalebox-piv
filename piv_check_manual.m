@@ -115,17 +115,18 @@ but_get_pts = uicontrol('Style', 'pushbutton');
 but_get_pts.Units = 'Normalized';
 but_get_pts.Position = [0.85, 0.7, 0.1, 0.05];
 but_get_pts.String = 'Get Control Points';
+but_get_pts.Tag = 'but_get_pts';
 but_get_pts.Callback = @get_ctrl_pts;
 but_get_pts.Enable = 'on';
 
-% button_start_analysis = uicontrol('Style', 'pushbutton');
-% button_start_analysis.Units = 'Normalized';
-% button_start_analysis.Position = [0.85, 0.6, 0.1, 0.05];
-% button_start_analysis.String = 'Start Analysis';
-% button_start_analysis.Tag = 'button_start_analysis';
-% button_start_analysis.Callback = @start_analysis;
-% button_start_analysis.Enable = 'on';
-% 
+button_start_analysis = uicontrol('Style', 'pushbutton');
+button_start_analysis.Units = 'Normalized';
+button_start_analysis.Position = [0.85, 0.6, 0.1, 0.05];
+button_start_analysis.String = 'Start Analysis';
+button_start_analysis.Tag = 'button_start_analysis';
+button_start_analysis.Callback = @start_analysis;
+button_start_analysis.Enable = 'on';
+
 % % UserData contains the index of the current point
 % text_analysis_pt = uicontrol('Style', 'text');
 % text_analysis_pt.Units = 'Normalized';
@@ -154,20 +155,28 @@ set(gca, 'Color', 0.9*[1 1 1]);
 axis equal tight
 colorbar
 
-set_num_pts(edit_num_pts, []);
-get_ctrl_pts(but_get_pts, []);
+set_num_pts(edit_num_pts);
+get_ctrl_pts();
 
 hf.Visible = 'on';
 
 end
 
+function start_analysis(~, ~)
+% Disable controls for initialization, enable controls for analysis
+% %
 
-function get_ctrl_pts(hui, ~)
+h = findobj('Tag', 'edit_num_pts'); h.Enable = 'off';
+h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
+
+end
+
+function get_ctrl_pts(~, ~)
 % Get randomly distributed control points
 % %
 
 % get shared data
-share = hui.Parent.UserData;
+share = get(gcf, 'UserData');
 
 % (re)allocate control point vectors 
 share.ctrl_x     = nan(share.num_pts, 1);
@@ -201,7 +210,7 @@ share.ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, 
 % TO DO: compute distance to the boundary at the control points
 
 % set shared data
-hui.Parent.UserData = share;
+set(gcf, 'UserData', share);
 
 % update displacement plot
 update_ax_displ;
