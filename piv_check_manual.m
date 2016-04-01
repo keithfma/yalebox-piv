@@ -86,11 +86,15 @@ set(gca, 'Tag', 'ax_displ', 'NextPlot','add'); % NextPlot protects the Tag value
 title('Displacement Magnitude')
 
 axes('Position', [0.05, 0.05, 0.35, 0.5]);
-set(gca, 'Tag', 'ax_ini', 'NextPlot','add');
+imagesc(share.piv_x, share.piv_y, share.ini);
+hpt = impoint(gca, [0, 0]);
+set(gca, 'Tag', 'ax_ini', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Initial Image');
 
 axes('Position', [0.45, 0.05, 0.35, 0.5]);
-set(gca, 'Tag', 'ax_fin', 'NextPlot','add');
+imagesc(share.piv_x, share.piv_y, share.fin);
+hpt = impoint(gca, [0, 0]);
+set(gca, 'Tag', 'ax_fin', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Final Image');
 
 % create num_pts control
@@ -184,9 +188,22 @@ share.ii = share.ii+step;
 if share.ii > share.num_pts; share.ii = 1; end
 if share.ii < 1; share.ii = share.num_pts; end
 
-% update ini plot (image and impoint object)
+% update ini and fin plots
+axes(findobj('Tag', 'ax_ini'));
+hpt = get(gca, 'UserData');
+guess_x = share.ctrl_x(share.ii) - 0.5*share.ctrl_u_piv(share.ii);
+guess_y = share.ctrl_y(share.ii) - 0.5*share.ctrl_v_piv(share.ii);
+hpt.setPosition([guess_x, guess_y]);
+xlim(guess_x+[-0.005, 0.005]);
+ylim(guess_y+[-0.005, 0.005]);
 
-% update fin plot (image and impoint object)
+axes(findobj('Tag', 'ax_fin'));
+hpt = get(gca, 'UserData');
+guess_x = share.ctrl_x(share.ii) + 0.5*share.ctrl_u_piv(share.ii);
+guess_y = share.ctrl_y(share.ii) + 0.5*share.ctrl_v_piv(share.ii);
+hpt.setPosition([guess_x, guess_y]);
+xlim(guess_x+[-0.005, 0.005]);
+ylim(guess_y+[-0.005, 0.005]);
 
 % set shared data
 set(hfig, 'UserData', share);
@@ -205,7 +222,7 @@ h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
 
 % start analysis for first point
-% next_point();
+next_pt([], [], 1);
 
 end
 
