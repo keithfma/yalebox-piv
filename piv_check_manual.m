@@ -162,7 +162,7 @@ but_done.Units = 'Normalized';
 but_done.Position = [0.85, 0.25, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
-but_done.Callback = @finalize;
+but_done.Callback = {@finalize, image_file, displ_file, result_file, step};
 but_done.Enable = 'off';
 
 % initialize the gui
@@ -179,7 +179,7 @@ hf.Visible = 'on';
 
 end
 
-function finalize(hui, ~)
+function finalize(hui, ~, image_file, displ_file, result_file, step)
 % Finalize analysis and write results to file
 % %
 
@@ -187,7 +187,6 @@ function finalize(hui, ~)
 next_pt([], [], 1);
 
 % get shared data, then destroy the GUI
-hfig = gcf();
 share = get(gcf, 'UserData');
 
 % close the GUI
@@ -201,11 +200,129 @@ ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.
 roi = ~isnan(share.piv_u);
 piv_d = bwdist(bwperim(roi));
 piv_d(~roi) = NaN;
-ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'linear');
+ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'linear'); % pixels
+pixel_to_meter = abs(share.piv_x(1)-share.piv_x(2));
+ctrl_d = ctrl_d*pixel_to_meter;
 
 % write analysis data to netCDF file
+ncid = netcdf.create(result_file, 'CLOBBER');
 
-% plot control point location on displacement magnitude
+globatt = netcdf.getConstant('NC_GLOBAL'); 
+netcdf.putAtt(ncid, globatt, 'image_file_name', image_file);
+netcdf.putAtt(ncid, globatt, 'image_file_md5', util_md5_hash(image_file));
+netcdf.putAtt(ncid, globatt, 'displ_file_name', displ_file);
+netcdf.putAtt(ncid, globatt, 'displ_file_md5', util_md5_hash(displ_file));
+netcdf.putAtt(ncid, globatt, 'step_index', step);
+
+dim_pt = netcdf.defDim(ncid, 'point', share.num_pts);
+dim_image_x = netcdf.defDim(ncid, 'image_x', length(share.image_x));
+dim_image_y = netcdf.defDim(ncid, 'image_y', length(share.image_y));
+dim_piv_x = netcdf.defDim(ncid, 'piv_x', length(share.piv_x));
+dim_piv_y = netcdf.defDim(ncid, 'piv_y', length(share.piv_y));
+
+var_pt = netcdf.defVar(ncid, 'pt', 'NC_SHORT', dim_pt);
+netcdf.putAtt(ncid, var_pt, 'long_name', 'control point index');
+netcdf.putAtt(ncid, var_pt, 'units', '1');
+
+var_ctrl_x = netcdf.defVar(ncid, 'ctrl_x', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_x, 'long_name', 'control point x-position');
+netcdf.putAtt(ncid, var_ctrl_x, 'units', 'meters');
+
+var_ctrl_y = netcdf.defVar(ncid, 'ctrl_y', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_y, 'long_name', 'control point y-position');
+netcdf.putAtt(ncid, var_ctrl_y, 'units', 'meters');
+
+var_ctrl_d = netcdf.defVar(ncid, 'ctrl_d', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_d, 'long_name', 'control point distance to boundary');
+netcdf.putAtt(ncid, var_ctrl_d, 'units', 'meters');
+
+var_ctrl_u_man = netcdf.defVar(ncid, 'ctrl_u_man', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_u_man, 'long_name', 'control point displacement, x-component, manual estimate');
+netcdf.putAtt(ncid, var_ctrl_u_man, 'units', 'meters');
+
+var_ctrl_v_man = netcdf.defVar(ncid, 'ctrl_v_man', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_v_man, 'long_name', 'control point displacement, y-component, manual estimate');
+netcdf.putAtt(ncid, var_ctrl_v_man, 'units', 'meters');
+
+var_ctrl_u_piv = netcdf.defVar(ncid, 'ctrl_u_piv', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_u_piv, 'long_name', 'control point displacement, x-component, PIV estimate');
+netcdf.putAtt(ncid, var_ctrl_u_piv, 'units', 'meters');
+
+var_ctrl_v_piv = netcdf.defVar(ncid, 'ctrl_v_piv', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_v_piv, 'long_name', 'control point displacement, y-component, PIV estimate');
+netcdf.putAtt(ncid, var_ctrl_v_piv, 'units', 'meters');
+
+var_image_x = netcdf.defVar(ncid, 'image_x', 'NC_DOUBLE', dim_image_x);
+netcdf.putAtt(ncid, var_image_x, 'long_name', 'image grid x-coordinate');
+netcdf.putAtt(ncid, var_image_x, 'units', 'meters');
+
+var_image_y = netcdf.defVar(ncid, 'image_y', 'NC_DOUBLE', dim_image_y);
+netcdf.putAtt(ncid, var_image_y, 'long_name', 'image grid y-coordinate');
+netcdf.putAtt(ncid, var_image_y, 'units', 'meters');
+
+var_ini = netcdf.defVar(ncid, 'ini', 'NC_DOUBLE', [dim_image_y, dim_image_x]);
+netcdf.putAtt(ncid, var_ini, 'long_name', 'image at initial time');
+netcdf.putAtt(ncid, var_ini, 'units', 'normalized intensity');
+
+var_fin = netcdf.defVar(ncid, 'fin', 'NC_DOUBLE', [dim_image_y, dim_image_x]);
+netcdf.putAtt(ncid, var_fin, 'long_name', 'image at final time'); 
+netcdf.putAtt(ncid, var_fin, 'units', 'normalized intensity');
+
+var_piv_x = netcdf.defVar(ncid, 'piv_x', 'NC_DOUBLE', dim_piv_x);
+netcdf.putAtt(ncid, var_piv_x, 'long_name', 'PIV grid x-coordinate');
+netcdf.putAtt(ncid, var_piv_x, 'units', 'meters');
+
+var_piv_y = netcdf.defVar(ncid, 'piv_y', 'NC_DOUBLE', dim_piv_y);
+netcdf.putAtt(ncid, var_piv_y, 'long_name', 'PIV grid y-coordinate');
+netcdf.putAtt(ncid, var_piv_y, 'units', 'meters');
+
+var_piv_u = netcdf.defVar(ncid, 'piv_u', 'NC_DOUBLE', [dim_piv_y, dim_piv_x]);
+netcdf.putAtt(ncid, var_piv_u, 'long_name', 'displacement, x-component, piv estimate');
+netcdf.putAtt(ncid, var_piv_u, 'units', 'meters/step');
+
+var_piv_v = netcdf.defVar(ncid, 'piv_v', 'NC_DOUBLE', [dim_piv_y, dim_piv_x]);
+netcdf.putAtt(ncid, var_piv_v, 'long_name', 'displacement, y-component, piv estimate');
+netcdf.putAtt(ncid, var_piv_v, 'units', 'meters/step');
+
+netcdf.endDef(ncid);
+
+netcdf.putVar(ncid, var_pt, 1:share.num_pts);
+netcdf.putVar(ncid, var_ctrl_x, share.ctrl_x);
+netcdf.putVar(ncid, var_ctrl_y, share.ctrl_y);
+netcdf.putVar(ncid, var_ctrl_d, ctrl_d);
+netcdf.putVar(ncid, var_ctrl_u_man, share.ctrl_u);
+netcdf.putVar(ncid, var_ctrl_v_man, share.ctrl_v);
+netcdf.putVar(ncid, var_ctrl_u_piv, ctrl_u_piv);
+netcdf.putVar(ncid, var_ctrl_v_piv, ctrl_v_piv);
+netcdf.putVar(ncid, var_image_x, share.image_x);
+netcdf.putVar(ncid, var_image_y, share.image_y);
+netcdf.putVar(ncid, var_ini, share.ini);
+netcdf.putVar(ncid, var_fin, share.fin);
+netcdf.putVar(ncid, var_piv_x, share.piv_x);
+netcdf.putVar(ncid, var_piv_y, share.piv_y);
+netcdf.putVar(ncid, var_piv_u, share.piv_u);
+netcdf.putVar(ncid, var_piv_v, share.piv_v);
+
+netcdf.close(ncid);
+
+% % plot control point location on displacement magnitude
+% hf = figure;
+% hf.Units = 'Normalized';
+% hf.Position = [0, 0.3, 1, 0.3];
+% hf.Name = 'piv_check_manual';
+% 
+% ax = axes();
+% imagesc(share.piv_x, share.piv_y, share.piv_m*1000, 'AlphaData', ~isnan(share.piv_u));
+% hcb = colorbar;
+% hcb.Label.String = '[mm/step]';
+% ax.YDir = 'Normal';
+% hold on
+% plot(share.ctrl_x, share.ctrl_y, '*k');
+% xlabel('x-position [m]');
+% ylabel('y-position [m]');
+% title('Location of control points for manual PIV check');
+% 
+% keyboard
 
 % plot PDF of piv-manual
 
