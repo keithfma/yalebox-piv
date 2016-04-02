@@ -305,24 +305,21 @@ netcdf.putVar(ncid, var_piv_v, share.piv_v);
 
 netcdf.close(ncid);
 
-% % plot control point location on displacement magnitude
-% hf = figure;
-% hf.Units = 'Normalized';
-% hf.Position = [0, 0.3, 1, 0.3];
-% hf.Name = 'piv_check_manual';
-% 
-% ax = axes();
-% imagesc(share.piv_x, share.piv_y, share.piv_m*1000, 'AlphaData', ~isnan(share.piv_u));
-% hcb = colorbar;
-% hcb.Label.String = '[mm/step]';
-% ax.YDir = 'Normal';
-% hold on
-% plot(share.ctrl_x, share.ctrl_y, '*k');
-% xlabel('x-position [m]');
-% ylabel('y-position [m]');
-% title('Location of control points for manual PIV check');
-% 
-% keyboard
+% plot control point location on displacement magnitude
+hf = figure;
+hf.Units = 'Normalized';
+hf.Position = [0, 0.3, 1, 0.3];
+hf.Name = 'piv_check_manual';
+ax = axes();
+imagesc(share.piv_x, share.piv_y, share.piv_m*1000, 'AlphaData', ~isnan(share.piv_u));
+hcb = colorbar;
+hcb.Label.String = '[mm/step]';
+ax.YDir = 'Normal';
+hold on
+plot(share.ctrl_x, share.ctrl_y, '*k');
+xlabel('x-position [m]');
+ylabel('y-position [m]');
+title('Location of control points for manual PIV check');
 
 % plot PDF of piv-manual
 
