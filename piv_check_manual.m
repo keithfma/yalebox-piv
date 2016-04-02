@@ -42,11 +42,8 @@ share = struct(...
     'num_pts', 20, ...
     'ctrl_x', [], ...
     'ctrl_y', [], ...
-    'ctrl_u_piv', [], ...
-    'ctrl_v_piv', [], ...
-    'ctrl_u_man', [], ...
-    'ctrl_v_man', [], ...
-    'ctrl_d', [], ...
+    'ctrl_u', [], ...
+    'ctrl_v', [], ...
     'ii', 0);
 
 % find the index of the displacements and images
@@ -201,8 +198,8 @@ fin_xy = hpt.getPosition();
 
 % compute manually estimated displacement
 man_uv = fin_xy-ini_xy;
-share.ctrl_u_man(share.ii) = man_uv(1);
-share.ctrl_v_man(share.ii) = man_uv(2);
+share.ctrl_u(share.ii) = man_uv(1);
+share.ctrl_v(share.ii) = man_uv(2);
 
 % update location of the control point to the midpoint
 mid_xy = mean([ini_xy; fin_xy]);
@@ -234,8 +231,8 @@ if share.ii < 1; share.ii = share.num_pts; end
 % update ini and fin plots
 axes(findobj('Tag', 'ax_ini'));
 hpt = get(gca, 'UserData');
-guess_x = share.ctrl_x(share.ii) - 0.5*share.ctrl_u_man(share.ii); % use manual estimate so I can refine
-guess_y = share.ctrl_y(share.ii) - 0.5*share.ctrl_v_man(share.ii);
+guess_x = share.ctrl_x(share.ii) - 0.5*share.ctrl_u(share.ii); % use manual estimate so I can refine
+guess_y = share.ctrl_y(share.ii) - 0.5*share.ctrl_v(share.ii);
 
 hpt.setPosition([guess_x, guess_y]);
 xlim(guess_x+[-0.005, 0.005]);
@@ -243,8 +240,8 @@ ylim(guess_y+[-0.005, 0.005]);
 
 axes(findobj('Tag', 'ax_fin'));
 hpt = get(gca, 'UserData');
-guess_x = share.ctrl_x(share.ii) + 0.5*share.ctrl_u_man(share.ii);
-guess_y = share.ctrl_y(share.ii) + 0.5*share.ctrl_v_man(share.ii);
+guess_x = share.ctrl_x(share.ii) + 0.5*share.ctrl_u(share.ii);
+guess_y = share.ctrl_y(share.ii) + 0.5*share.ctrl_v(share.ii);
 hpt.setPosition([guess_x, guess_y]);
 xlim(guess_x+[-0.005, 0.005]);
 ylim(guess_y+[-0.005, 0.005]);
@@ -279,13 +276,10 @@ function get_ctrl_pts(~, ~)
 share = get(gcf, 'UserData');
 
 % (re)allocate control point vectors 
-share.ctrl_x     = nan(share.num_pts, 1);
-share.ctrl_y     = nan(share.num_pts, 1);
-share.ctrl_u_piv = nan(share.num_pts, 1);
-share.ctrl_v_piv = nan(share.num_pts, 1);
-share.ctrl_u_man = nan(share.num_pts, 1);
-share.ctrl_v_man = nan(share.num_pts, 1);
-share.ctrl_d     = nan(share.num_pts, 1);
+share.ctrl_x = nan(share.num_pts, 1);
+share.ctrl_y = nan(share.num_pts, 1);
+share.ctrl_u = nan(share.num_pts, 1);
+share.ctrl_v = nan(share.num_pts, 1);
 
 % generate num_pts random points within the data roi
 get_pt_x = @() rand(1)*range(share.piv_x)+min(share.piv_x);
@@ -304,8 +298,8 @@ for ii = 1:share.num_pts
 end
 
 % interpolate piv displacements at the control points, initial guess from PIV results
-share.ctrl_u_man = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
-share.ctrl_v_man = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
+share.ctrl_u = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
+share.ctrl_v = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
 
 % TO DO: compute distance to the boundary at the control points
 
