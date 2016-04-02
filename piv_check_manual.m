@@ -16,7 +16,7 @@ function [] = piv_check_manual(image_file, displ_file, step, result_file)
 %   displ_file, and so will probably at the midpoint between two images (e.g.
 %   11.5)
 %
-% result_file = String, path to the output CSV file, the program will prompt
+% result_file = String, path to the output results file, the program will prompt
 %   before overwriting
 % %
 
@@ -190,9 +190,10 @@ ctrl_u_piv = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.
 ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
 
 % compute distance to sand boundary for control points
-keyboard
-
-% construct file name
+roi = ~isnan(share.piv_u);
+piv_d = bwdist(bwperim(roi));
+piv_d(~roi) = NaN;
+ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'linear');
 
 % write analysis data to netCDF file
 
