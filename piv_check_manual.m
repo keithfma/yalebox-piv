@@ -28,6 +28,14 @@ validateattributes(displ_file,  {'char'}, {'vector'}, mfilename, 'displ_file');
 validateattributes(result_file, {'char'}, {'vector'}, mfilename, 'result_file');
 validateattributes(step, {'numeric'}, {'scalar'}, mfilename, 'step');
 
+% protect against accidental overwriting
+if exist(result_file, 'file') == 2
+    response = questdlg('Results file exists', 'WARNING', 'overwrite and continue','exit','exit', 'exit');
+    if strcmp(response, 'overwrite and continue') ~= 1
+        return
+    end
+end
+    
 % create struct for shared data
 share = struct(...
     'ini', [], ...
