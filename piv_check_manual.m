@@ -154,7 +154,7 @@ but_done.Units = 'Normalized';
 but_done.Position = [0.85, 0.25, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
-% but_done.Callback = @finalize;
+but_done.Callback = @finalize;
 but_done.Enable = 'off';
 
 % initialize the gui
@@ -171,15 +171,36 @@ hf.Visible = 'on';
 
 end
 
-function finalize()
+function finalize(hui, ~)
 % Finalize analysis and write results to file
 % %
 
-% interpolate PIV displacements at final control points
+% make sure the last point has been recorded
+next_pt([], [], 1);
+
+% get shared data, then destroy the GUI
+hfig = gcf();
+share = get(gcf, 'UserData');
+
+% close the GUI
+close(hui.Parent);
+
+% interpolate PIV displacements at control points
+ctrl_u_piv = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
+ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
+
+% compute distance to sand boundary for control points
+keyboard
 
 % construct file name
 
-% write output CSV and MAT
+% write analysis data to netCDF file
+
+% plot control point location on displacement magnitude
+
+% plot PDF of piv-manual
+
+% plot piv vs. manual (u, v, mag, theta)
 
 end
 
