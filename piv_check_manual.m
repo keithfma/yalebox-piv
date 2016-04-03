@@ -203,11 +203,6 @@ share = get(gcf, 'UserData');
 % close the GUI
 close(hui.Parent);
 
-% DEBUG: add some noise to the manual results for the plot
-share.ctrl_u = share.ctrl_u + 0.001*randn(share.num_pts, 1);
-share.ctrl_v = share.ctrl_v + 0.001*randn(share.num_pts, 1);
-% END DEBUG
-
 % interpolate PIV displacements at control points
 ctrl_u_piv = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
 ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
