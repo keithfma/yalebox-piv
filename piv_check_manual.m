@@ -454,6 +454,10 @@ share.ii = share.ii+step;
 if share.ii > share.num_pts; share.ii = 1;             end
 if share.ii < 1;             share.ii = share.num_pts; end
 
+% update counter
+counter = findobj('Tag', 'text_curr_pt');
+counter.String = sprintf('Point %i of %i', share.ii, share.num_pts); 
+
 % update ini and fin plots
 axes(findobj('Tag', 'ax_ini'));
 hpt = get(gca, 'UserData');
