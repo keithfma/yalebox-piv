@@ -1,4 +1,5 @@
 function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
+% function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %
 % Estimate displacements manually by selecting matching points in an image pair.
 % Writes results to a csv file with columns: row_ti, column_ti, row_tf,
@@ -6,18 +7,18 @@ function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %
 % Arguments:
 % 
-% image_file = String, path to netCDF file containing PIV input images, as
-%   produced by prep_series.m
+%   image_file = String, path to netCDF file containing PIV input images, as
+%       produced by prep_series.m
 %
-% displ_file = String, path to netCDF file containing PIV output data, as
-%   produced by piv_series.m
+%   displ_file = String, path to netCDF file containing PIV output data, as
+%       produced by piv_series.m
 %
-% step = Scalar, step to be checked, this should be a valid time step in
-%   displ_file, and so will probably at the midpoint between two images (e.g.
-%   11.5)
+%   step = Scalar, step to be checked, this should be a valid time step in
+%       displ_file, and so will probably at the midpoint between two images
+%       (e.g. 11.5)
 %
-% result_prefix = String, prefix for results files, can include the path. The
-%   program will prompt before overwriting
+%   result_prefix = String, prefix for results files, can include the path. The
+%       program will prompt before overwriting
 % %
 
 %% init
