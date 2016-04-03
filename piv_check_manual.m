@@ -105,12 +105,14 @@ title('Displacement Magnitude')
 axes('Position', [0.05, 0.05, 0.35, 0.5]);
 imagesc(share.piv_x, share.piv_y, share.ini);
 hpt = impoint(gca, [0, 0]);
+hpt.setColor('k');
 set(gca, 'Tag', 'ax_ini', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Initial Image');
 
 axes('Position', [0.45, 0.05, 0.35, 0.5]);
 imagesc(share.piv_x, share.piv_y, share.fin);
 hpt = impoint(gca, [0, 0]);
+hpt.setColor('k');
 set(gca, 'Tag', 'ax_fin', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Final Image');
 
@@ -435,6 +437,9 @@ function next_pt(~, ~, step)
 % previous (step == -1) control point
 % %
 
+% constants
+dim = [-0.003, 0.003];
+
 % get shared data
 hfig = gcf();
 share = get(gcf, 'UserData');
@@ -446,8 +451,8 @@ end
 
 % change to next/prev control point, wrapping around as needed
 share.ii = share.ii+step;
-if share.ii > share.num_pts; share.ii = 1; end
-if share.ii < 1; share.ii = share.num_pts; end
+if share.ii > share.num_pts; share.ii = 1;             end
+if share.ii < 1;             share.ii = share.num_pts; end
 
 % update ini and fin plots
 axes(findobj('Tag', 'ax_ini'));
@@ -456,16 +461,16 @@ guess_x = share.ctrl_x(share.ii) - 0.5*share.ctrl_u(share.ii); % use manual esti
 guess_y = share.ctrl_y(share.ii) - 0.5*share.ctrl_v(share.ii);
 
 hpt.setPosition([guess_x, guess_y]);
-xlim(guess_x+[-0.005, 0.005]);
-ylim(guess_y+[-0.005, 0.005]);
+xlim(guess_x+dim);
+ylim(guess_y+dim);
 
 axes(findobj('Tag', 'ax_fin'));
 hpt = get(gca, 'UserData');
 guess_x = share.ctrl_x(share.ii) + 0.5*share.ctrl_u(share.ii);
 guess_y = share.ctrl_y(share.ii) + 0.5*share.ctrl_v(share.ii);
 hpt.setPosition([guess_x, guess_y]);
-xlim(guess_x+[-0.005, 0.005]);
-ylim(guess_y+[-0.005, 0.005]);
+xlim(guess_x+dim);
+ylim(guess_y+dim);
 
 % set shared data
 set(hfig, 'UserData', share);
