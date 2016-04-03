@@ -1,4 +1,4 @@
-function [] = piv_check_manual(image_file, displ_file, step, result_file)
+function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %
 % Estimate displacements manually by selecting matching points in an image pair.
 % Writes results to a csv file with columns: row_ti, column_ti, row_tf,
@@ -16,8 +16,8 @@ function [] = piv_check_manual(image_file, displ_file, step, result_file)
 %   displ_file, and so will probably at the midpoint between two images (e.g.
 %   11.5)
 %
-% result_file = String, path to the output results file, the program will prompt
-%   before overwriting
+% result_prefix = String, prefix for results files, can include the path. The
+%   program will prompt before overwriting
 % %
 
 %% init
@@ -25,19 +25,18 @@ function [] = piv_check_manual(image_file, displ_file, step, result_file)
 % sanity check
 validateattributes(image_file,  {'char'}, {'vector'}, mfilename, 'image_file');
 validateattributes(displ_file,  {'char'}, {'vector'}, mfilename, 'displ_file');
-validateattributes(result_file, {'char'}, {'vector'}, mfilename, 'result_file');
+validateattributes(result_prefix, {'char'}, {'vector'}, mfilename, 'result_prefix');
 validateattributes(step, {'numeric'}, {'scalar'}, mfilename, 'step');
-
-% protect against accidental overwriting
-if exist(result_file, 'file') == 2
-    response = questdlg('Results file exists', 'WARNING', 'overwrite and continue','exit','exit', 'exit');
-    if strcmp(response, 'overwrite and continue') ~= 1
-        return
-    end
-end
     
 % create struct for shared data
 share = struct(...
+    'image_file', image_file, ...
+    'displ_file', displ_file, ...
+    'step', step, ...
+    'result_nc', [result_prefix, '.nc'], ...
+    'result_fig_loc', [result_prefix, '_loc.fig'], ...
+    'result_fig_pdf', [result_prefix, '_pdf.fig'], ...
+    'result_fig_vs', [result_prefix, '_vs.fig'], ...
     'ini', [], ...
     'fin', [], ...
     'image_x', [], ...
@@ -53,6 +52,18 @@ share = struct(...
     'ctrl_u', [], ...
     'ctrl_v', [], ...
     'ii', 0);
+
+% protect against accidental overwriting
+if exist(share.result_nc, 'file') == 2 ...
+        || exist(share.result_fig_loc, 'file') == 2 ...
+        || exist(share.result_fig_pdf, 'file') == 2 ...
+        || exist(share.result_fig_vs, 'file') == 2
+    
+    but = questdlg('One or more results file exists', 'WARNING', 'OVERWRITE','EXIT','EXIT', 'EXIT');
+    if strcmp(but, 'OVERWRITE') ~= 1
+        return
+    end
+end
 
 % find the index of the displacements and images
 displ_step = ncread(displ_file, 'step');
@@ -162,7 +173,7 @@ but_done.Units = 'Normalized';
 but_done.Position = [0.85, 0.25, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
-but_done.Callback = {@finalize, image_file, displ_file, result_file, step};
+but_done.Callback = @finalize;
 but_done.Enable = 'off';
 
 % initialize the gui
@@ -179,7 +190,7 @@ hf.Visible = 'on';
 
 end
 
-function finalize(hui, ~, image_file, displ_file, result_file, step)
+function finalize(hui, ~)
 % Finalize analysis and write results to file
 % %
 
@@ -191,6 +202,11 @@ share = get(gcf, 'UserData');
 
 % close the GUI
 close(hui.Parent);
+
+% DEBUG: add some noise to the manual results for the plot
+share.ctrl_u = share.ctrl_u + 0.001*randn(share.num_pts, 1);
+share.ctrl_v = share.ctrl_v + 0.001*randn(share.num_pts, 1);
+% END DEBUG
 
 % interpolate PIV displacements at control points
 ctrl_u_piv = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
@@ -204,15 +220,25 @@ ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'l
 pixel_to_meter = abs(share.piv_x(1)-share.piv_x(2));
 ctrl_d = ctrl_d*pixel_to_meter;
 
+% compute results vars
+ctrl_m = sqrt(share.ctrl_u.^2+share.ctrl_v.^2);
+ctrl_m_piv = sqrt(ctrl_u_piv.^2+ctrl_v_piv.^2);
+ctrl_theta = atand(share.ctrl_v./share.ctrl_u);
+ctrl_theta_piv = atand(ctrl_v_piv./ctrl_u_piv);
+diff_u = 1000*(ctrl_u_piv-share.ctrl_u);
+diff_v = 1000*(ctrl_v_piv-share.ctrl_v);
+diff_m = 1000*(ctrl_m_piv-ctrl_m);
+diff_theta = 1000*(ctrl_theta_piv-ctrl_theta);
+
 % write analysis data to netCDF file
-ncid = netcdf.create(result_file, 'CLOBBER');
+ncid = netcdf.create(share.result_nc, 'CLOBBER');
 
 globatt = netcdf.getConstant('NC_GLOBAL'); 
-netcdf.putAtt(ncid, globatt, 'image_file_name', image_file);
-netcdf.putAtt(ncid, globatt, 'image_file_md5', util_md5_hash(image_file));
-netcdf.putAtt(ncid, globatt, 'displ_file_name', displ_file);
-netcdf.putAtt(ncid, globatt, 'displ_file_md5', util_md5_hash(displ_file));
-netcdf.putAtt(ncid, globatt, 'step_index', step);
+netcdf.putAtt(ncid, globatt, 'image_file_name', share.image_file);
+netcdf.putAtt(ncid, globatt, 'image_file_md5', util_md5_hash(share.image_file));
+netcdf.putAtt(ncid, globatt, 'displ_file_name', share.displ_file);
+netcdf.putAtt(ncid, globatt, 'displ_file_md5', util_md5_hash(share.displ_file));
+netcdf.putAtt(ncid, globatt, 'step_index', share.step);
 
 dim_pt = netcdf.defDim(ncid, 'point', share.num_pts);
 dim_image_x = netcdf.defDim(ncid, 'image_x', length(share.image_x));
@@ -305,25 +331,80 @@ netcdf.putVar(ncid, var_piv_v, share.piv_v);
 
 netcdf.close(ncid);
 
-% plot control point location on displacement magnitude
+% plot control point location on displacement magnitude, save
 hf = figure;
 hf.Units = 'Normalized';
 hf.Position = [0, 0.3, 1, 0.3];
 hf.Name = 'piv_check_manual';
+
 ax = axes();
 imagesc(share.piv_x, share.piv_y, share.piv_m*1000, 'AlphaData', ~isnan(share.piv_u));
 hcb = colorbar;
-hcb.Label.String = '[mm/step]';
+hcb.Label.String = 'mm/step';
 ax.YDir = 'Normal';
 hold on
 plot(share.ctrl_x, share.ctrl_y, '*k');
-xlabel('x-position [m]');
-ylabel('y-position [m]');
+xlabel('x-position, m');
+ylabel('y-position, m');
 title('Location of control points for manual PIV check');
 
+saveas(hf, share.result_fig_loc);
+
 % plot PDF of piv-manual
+hf = figure;
+hf.Name = 'piv_check_manual';
+
+subplot(2,2,1);
+[y, x] = ksdensity(diff_u);
+plot(x, y);
+xlabel('u_{PIV-manual}, mm');
+ylabel('\rho');
+
+subplot(2,2,2);
+[y, x] = ksdensity(diff_v);
+plot(x, y);
+xlabel('v_{PIV-manual}, mm');
+ylabel('\rho');
+
+subplot(2,2,3);
+[y, x] = ksdensity(diff_m);
+plot(x, y);
+xlabel('mag_{PIV-manual}, mm');
+ylabel('\rho');
+
+subplot(2,2,4);
+[y, x] = ksdensity(diff_theta);
+plot(x, y);
+xlabel('\theta_{PIV-manual}, deg');
+ylabel('\rho');
+
+saveas(hf, share.result_fig_pdf);
 
 % plot piv vs. manual (u, v, mag, theta)
+hf = figure;
+hf.Name = 'piv_check_manual';
+
+subplot(2,2,1);
+plot(1000*ctrl_d, diff_u, 'xk');
+xlabel('Dist to Bnd, mm');
+ylabel('u_{PIV-manual}, mm');
+
+subplot(2,2,2);
+plot(1000*ctrl_d, diff_v, 'xk');
+xlabel('Dist to Bnd, mm');
+ylabel('v_{PIV-manual}, mm');
+
+subplot(2,2,3);
+plot(1000*ctrl_d, diff_m, 'xk');
+xlabel('Dist to Bnd, mm');
+ylabel('mag_{PIV-manual}, mm');
+
+subplot(2,2,4);
+plot(1000*ctrl_d, diff_theta, 'xk');
+xlabel('Dist to Bnd, mm');
+ylabel('\theta_{PIV-manual}, deg');
+
+saveas(hf, share.result_fig_vs);
 
 end
 
