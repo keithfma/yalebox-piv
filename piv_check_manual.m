@@ -226,7 +226,7 @@ ctrl_theta_piv = atand(ctrl_v_piv./ctrl_u_piv);
 diff_u = 1000*(ctrl_u_piv-share.ctrl_u);
 diff_v = 1000*(ctrl_v_piv-share.ctrl_v);
 diff_m = 1000*(ctrl_m_piv-ctrl_m);
-diff_theta = 1000*(ctrl_theta_piv-ctrl_theta);
+diff_theta = ctrl_theta_piv-ctrl_theta;
 
 % write analysis data to netCDF file
 ncid = netcdf.create(share.result_nc, 'CLOBBER');
