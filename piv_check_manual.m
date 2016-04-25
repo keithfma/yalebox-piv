@@ -160,7 +160,7 @@ but_next_pt.Units = 'Normalized';
 but_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
 but_next_pt.String = 'Next Point';
 but_next_pt.Tag = 'but_next_pt';
-but_next_pt.Callback = {@next_pt, 1};
+but_next_pt.Callback = {@next_pt, 1, 1};
 but_next_pt.Enable = 'off';
 
 but_prev_pt = uicontrol('Style', 'pushbutton');
@@ -168,12 +168,20 @@ but_prev_pt.Units = 'Normalized';
 but_prev_pt.Position = [0.85, 0.35, 0.1, 0.05];
 but_prev_pt.String = 'Previous Point';
 but_prev_pt.Tag = 'but_prev_pt';
-but_prev_pt.Callback = {@next_pt, -1};
+but_prev_pt.Callback = {@next_pt, 1, -1};
 but_prev_pt.Enable = 'off';
+
+but_delete = uicontrol('Style', 'pushbutton');
+but_delete.Units = 'Normalized';
+but_delete.Position = [0.85, 0.25, 0.1, 0.05];
+but_delete.String = 'Delete Point';
+but_delete.Tag = 'but_delete';
+but_delete.Callback = @delete_pt;
+but_delete.Enable = 'off';
 
 but_done = uicontrol('Style', 'pushbutton');
 but_done.Units = 'Normalized';
-but_done.Position = [0.85, 0.25, 0.1, 0.05];
+but_done.Position = [0.85, 0.15, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
 but_done.Callback = @finalize;
@@ -193,12 +201,13 @@ hf.Visible = 'on';
 
 end
 
+
 function finalize(hui, ~)
 % Finalize analysis and write results to file
 % %
 
 % make sure the last point has been recorded
-next_pt([], [], 1);
+next_pt([], [], 1, 0);
 
 % get shared data, then destroy the GUI
 share = get(gcf, 'UserData');
@@ -406,6 +415,28 @@ saveas(hf, share.result_fig_vs);
 
 end
 
+function delete_pt(~, ~)
+% Delete the current point
+
+% get shared data
+hfig = gcf();
+share = get(gcf, 'UserData');
+
+% delete point
+share.num_pts = share.num_pts-1;
+share.ctrl_x(share.ii) = [];
+share.ctrl_y(share.ii) = [];
+share.ctrl_u(share.ii) = [];
+share.ctrl_v(share.ii) = [];
+
+% set shared data
+set(hfig, 'UserData', share);
+
+% refresh the GUI for the next point
+next_pt([], [], 0, 0);
+
+end
+
 function [share] = record_pt(share)
 % Record analysis results from current axes (u_man, v_man, new ctrl_x, ctrl_y)
 % %
@@ -432,9 +463,9 @@ share.ctrl_y(share.ii) = mid_xy(2);
 end
 
 
-function next_pt(~, ~, step)
-% Record results from the last point, and analyze the next (step == 1) or
-% previous (step == -1) control point
+function next_pt(~, ~, record, step)
+% Record results from the last point (record == 1) or don't (record == 0), and
+% analyze the next (step == 1) or previous (step == -1) control point
 % %
 
 % constants
@@ -444,9 +475,12 @@ dim = [-0.003, 0.003];
 hfig = gcf();
 share = get(gcf, 'UserData');
 
+
 % record results from last point
-if share.ii ~= 0 % skip first time
+if record == 1
+    disp([share.num_pts, share.ii, share.ctrl_x(share.ii), share.ctrl_y(share.ii)]);
     share = record_pt(share);
+    disp([share.num_pts, share.ii, share.ctrl_x(share.ii), share.ctrl_y(share.ii)]);
 end
 
 % change to next/prev control point, wrapping around as needed
@@ -491,10 +525,11 @@ h = findobj('Tag', 'edit_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
 h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
+h = findobj('Tag', 'but_delete'); h.Enable = 'on';
 h = findobj('Tag', 'but_done'); h.Enable = 'on';
 
 % start analysis for first point
-next_pt([], [], 1);
+next_pt([], [], 0, 1);
 
 end
 
