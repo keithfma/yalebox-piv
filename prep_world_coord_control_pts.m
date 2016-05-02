@@ -8,7 +8,7 @@ function woco = prep_world_coord_control_pts(woco_image, show)
 %   woco_image = String, filename of the world coordinate grid image,
 %       required.
 %
-%   show = (Optional) Scalar, logical flag, default = false
+%   show = (Optional) Scalar, logical flag, default = true
 %
 %   woco.xw, woco.yw = 1D vectors, control point world coordinate x- and
 %       y-position in meters
@@ -20,7 +20,7 @@ function woco = prep_world_coord_control_pts(woco_image, show)
 
 % set defaults
 if nargin == 1; 
-    show = false; 
+    show = true; 
 end
 
 % check for sane arguments
