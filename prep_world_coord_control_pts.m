@@ -1,5 +1,5 @@
-function woco = prep_world_coord_control_pts(woco_image, show)
-% function woco = prep_world_coord_control_pts(woco_image, show)
+function [xw, yw, xp, yp] = prep_world_coord_control_pts(woco_image, show)
+% function [xw, yw, xp, yp] = prep_world_coord_control_pts(woco_image, show)
 %
 % Interactively extract control points defining the world coordinate image.
 %
@@ -10,11 +10,11 @@ function woco = prep_world_coord_control_pts(woco_image, show)
 %
 %   show = (Optional) Scalar, logical flag, default = true
 %
-%   woco.xw, woco.yw = 1D vectors, control point world coordinate x- and
-%       y-position in meters
+%   xw, yw = 1D vectors, control point world coordinate x- and y-position
+%       in meters
 %
-%   woco.xp, woco.yp = 1D vectors, control point image coordinate x- and
-%       y-position in pixels
+%   xp, yp = 1D vectors, control point image coordinate x- and y-position
+%       in pixels
 %
 % Keith Ma
 
@@ -102,9 +102,6 @@ for ii = 1:npts
     yp(ii) = tmp(2);
 end
  
-% prepare output struct
-woco = struct('xw', xw, 'yw', yw, 'xp', xp, 'yp', yp);
-
 % (optional) show image with annotated control points
 if show
     figure()
@@ -115,9 +112,9 @@ if show
     ylabel('Y [pixels]');
     hold on
     for ii = 1:npts
-        plot(woco.xp(ii), woco.yp(ii), ...
+        plot(xp(ii), yp(ii), ...
             'Marker', 'x', 'MarkerSize', 10, 'Color', 'r', 'LineStyle', 'None');
-        text(woco.xp(ii), woco.yp(ii), sprintf('(%.2f, %.2f)', woco.xw(ii), woco.yw(ii)), ...
+        text(xp(ii), yp(ii), sprintf('(%.2f, %.2f)', xw(ii), yw(ii)), ...
             'FontSize', 8, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
     end
 end
