@@ -1,34 +1,22 @@
-function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
-                    morph_open_rad, morph_erode_rad, show, verbose)
-% function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
-%                     morph_open_rad, morph_erode_rad, show, verbose)
+function mask = prep_mask_auto(rgb, entropy_len, cluster_center, show, verbose)
+% function mask = prep_mask_auto(rgb, entropy_len, cluster_center, show, verbose)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
-% image prior to PIV analysis or other applications. Sand is identified by
-% remapping to HSV colorspace, filtering and thresholding the "hue" and "value"
-% bands.
+% image prior to PIV analysis or other applications. 
+% 
+% Sand is identified by segmentation using a previously trained kmeans cluster
+% model. Results are cleaned up with some simple BW image operations.
 %
 % Arguments:
 %
-%   hsv = 3D matrix, double, Color image in HSV colorspace.
+%   rgb = 3D matrix, double, Color image in RGB colorspace.
 %
-%   hue_lim = 2-element vector, double, range [0, 1]. [minimum, maximum] HSV
-%     "hue" included as sand in the mask.
+%   entropy_len = scalar, integer, window size in pixels for entropy filter.
 %
-%   val_lim = 2-element vector, double, range [0,1]. [minimum, maximum] HSV
-%     "value" included as sand in the mask.
-%
-%   entr_lim = 2-element vector, double, range [0, 1]. [minimum, maximum]
-%     entropy included as sand in the mask. 
-%
-%   entr_win = scalar, integer, window size in pixels for entropy filter.
-%
-%   morph_open_rad = scalar, double, radius of disk structuring element used in
-%     mophological opening filter. 
-%
-%   morph_erode_rad = scalar, double, radius of disk structuring element used in
-%     mophological erosion filter.
+%   cluster_center = 2D matrix, cluster centers as produced by kmeans() on a
+%   training image. Each row contains one cluster center in [hue, value,
+%   entropy] coordinates.
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
@@ -41,74 +29,69 @@ function mask = prep_mask_auto(hsv, hue_lim, val_lim, entr_lim, entr_win, ...
 % Keith Ma
 
 % set default values
-if nargin < 7; show = false; end
-if nargin < 8; verbose = false; end
+if nargin < 4; show = false; end
+if nargin < 5; verbose = false; end
 
 % check for sane arguments, set default values
-narginchk(7,9);
-validateattributes(hsv, {'double'}, {'3d', '>=', 0, '<=', 1});
-validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
-validateattributes(val_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
-validateattributes(entr_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
-validateattributes(entr_win, {'numeric'}, {'scalar', 'integer', 'positive'});
-validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'});
-validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'});
+narginchk(3,5);
+validateattributes(rgb, {'numeric'}, {'3d'});
+validateattributes(entropy_len, {'numeric'}, {'scalar', 'integer', 'positive', 'odd'});
+validateattributes(cluster_center, {'numeric'}, {'2d', 'ncols', 3});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
-% get hue, value, and entropy, normalized to the range [0, 1]
-hue = hsv(:,:,1);
-value = hsv(:,:,3);
-entropy = entropyfilt(value, true(entr_win));
-
-hue = hue-min(hue(:)); hue = hue./max(hue(:));
-value = value-min(value(:)); value = value./max(value(:));
-entropy = entropy-min(entropy(:)); entropy = entropy./max(entropy(:));
-
-% threshold bands
-hue_mask = hue >= hue_lim(1) & hue <= hue_lim(2);
-value_mask = value >= val_lim(1) & value <= val_lim(2);
-entropy_mask = entropy >= entr_lim(1) & entropy <= entr_lim(2);
-
-% create mask
-mask = hue_mask & value_mask & entropy_mask;
-
-% fill holes - top and bottom
-wall = true(1, size(mask,2));
-mask = [wall; mask; wall];
-mask = imfill(mask, 'holes');
-mask = mask(2:end-1, :);
-
-% fill holes - left and right
-wall = true(size(mask, 1), 1);
-mask = [wall, mask, wall];
-mask = imfill(mask, 'holes');
-mask = mask(:, 2:end-1);
-
-% clean up edges with morphological filters
-% ...remove noise (open), then trim boundary (erode)
-mask = imopen(mask, strel('disk', morph_open_rad));
-mask = imerode(mask, strel('disk', morph_erode_rad));
-
-% (optional) plot to facilitate parameter selection
-if show
-    figure()
-    colormap(gray);
-    subplot(3,2,1); imagesc(hue); title('hue'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,2); imagesc(hue_mask); title('hue mask'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,3); imagesc(value); title('value'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,4); imagesc(value_mask); title('value mask'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,5); imagesc(entropy); title('entropy'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,6); imagesc(entropy_mask); title('entropy mask'); set(gca,'XTick', [], 'YTick',[])
-    
-    figure()    
-    colormap(gray);
-    subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
-    subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
+% get input data layers: hue, value, and entropy
+if verbose
+    fprintf('prep_mask_auto: computing data layers from rgb\n');
 end
 
-% (optional) report percentage masked
+hsv = rgb2hsv(rgb);
+hue = hsv(:,:,1);
+value = hsv(:,:,3);
+entropy = entropyfilt(value, true(entropy_len));
+
+% apply kmeans cluster model to segment image 
 if verbose
-    pct_sand = 100*sum(mask(:))/numel(mask);
-    fprintf('%s: %.1f%% sand, %.1f%% background\n', mfilename, pct_sand, 100-pct_sand);
+    fprintf('prep_mask_auto: segmenting image\n');
+end
+
+cluster_data = [hue(:), value(:), entropy(:)];
+warning('off', 'stats:kmeans:FailedToConverge');
+cluster_label = kmeans(cluster_data, size(cluster_center, 1), ...
+    'MaxIter', 1,...
+    'Start', cluster_center);
+warning( 'on', 'stats:kmeans:FailedToConverge');
+cluster_label = reshape(cluster_label, size(hue));
+
+% create mask
+mask = cluster_label == 1;
+
+% cleanup mask
+if verbose
+    fprintf('prep_mask_auto_train: cleaning up mask\n');
+end
+
+% fill holes, wall off left, right and bottom
+wall_lr = true(size(mask, 1), 1);
+mask = [wall_lr, mask, wall_lr];
+wall_b = true(1, size(mask,2));
+mask = [mask; wall_b];
+mask = imfill(mask, 'holes');
+mask = mask(1:end-1, 2:end-1);
+
+% extract largest connected object
+object_label = bwlabel(mask);
+largest_object = mode(object_label(object_label>0));
+mask = object_label == largest_object;
+
+% remove upper "halo"
+disk = strel('disk', ceil(entropy_len/2)+1);
+mask = imerode(mask, disk);
+
+% (optional) plot to check results
+if show
+    figure()
+    subplot(3,1,1); imagesc(value); title('value'); set(gca,'XTick', [], 'YTick',[])    
+    subplot(3,1,2); imagesc(cluster_label); title('cluster'); set(gca,'XTick', [], 'YTick',[])    
+    subplot(3,1,3); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
 end
