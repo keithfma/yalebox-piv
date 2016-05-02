@@ -75,9 +75,9 @@ end
 wall_lr = true(size(mask, 1), 1);
 mask = [wall_lr, mask, wall_lr];
 wall_b = true(1, size(mask,2));
-mask = [mask; wall_b];
+mask = [wall_b; mask];
 mask = imfill(mask, 'holes');
-mask = mask(1:end-1, 2:end-1);
+mask = mask(2:end, 2:end-1);
 
 % extract largest connected object
 object_label = bwlabel(mask);
