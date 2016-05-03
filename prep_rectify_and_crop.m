@@ -1,7 +1,7 @@
 function [rgb_r, coord_x, coord_y] = ...
-    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show)
+    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % function [rgb_r, coord_x, coord_y] = ...
-%     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show)
+%     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % 
 % Use manually defined world-coordinate control points to project image
 % into a regular coordinate system, and crop this image to the desired
@@ -25,6 +25,8 @@ function [rgb_r, coord_x, coord_y] = ...
 %
 % show = Logical flag, plot the rectified image, default = false 
 %
+% show = Logical flag, print verbose messages, default = false 
+%
 % rgb_r = 3D matrix, rectified and cropped image
 %
 % coord_x, coord_y = Vectors, world coordinate vectors for rgb_r
@@ -32,7 +34,8 @@ function [rgb_r, coord_x, coord_y] = ...
 % % Keith Ma
 
 % sanity check
-if nargin ==7; show = false; end
+if nargin == 7 || isempty(show); show = false; end
+if nargin == 8 || isempty(verbose); verbose = false; end
 
 validateattributes(ctrl_xp, {'numeric'}, {'vector'});
 validateattributes(ctrl_yp, {'numeric'}, {'vector', 'numel', numel(ctrl_xp)});
@@ -42,6 +45,11 @@ validateattributes(crop_xw, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(crop_yw, {'numeric'}, {'vector', 'numel', 2});
 assert(crop_xw(2)>crop_xw(1));
 assert(crop_yw(2)>crop_yw(1));
+
+if verbose
+    fprintf('%s: input image size = %d x %d x %d\n', ...
+        mfilename, size(rgb, 1), size(rgb, 2), size(rgb, 3));
+end
 
 % get pixel size from median of pairwise distance between all points
 Dw = pdist([ctrl_xw, ctrl_yw]);
@@ -54,12 +62,12 @@ ctrl_xr = 1+(ctrl_xw-crop_xw(1))*delta_pixel_per_meter;
 ctrl_yr = 1+(ctrl_yw-crop_yw(1))*delta_pixel_per_meter;
  
 % transform image to rectified coordinates
-% ... note: for some reason, I can't supress all of the following warning,
-% ... but it is harmless
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
+warning('off', 'images:geotrans:estimateOutputBoundsFailed');
 tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', 10);
 rgb_r = imwarp(rgb, tform);
 warning('on', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
+warning('on', 'images:geotrans:estimateOutputBoundsFailed');
 
 % crop rectified image
 crop_xlim_r = 1+(crop_xw-crop_xw(1))*delta_pixel_per_meter;
@@ -72,6 +80,11 @@ origin_xr = ctrl_xr(ctrl_xw == 0  & ctrl_yw == 0);
 origin_yr = ctrl_yr(ctrl_xw == 0  & ctrl_yw == 0);
 coord_x = ((1:size(rgb_r, 2))-origin_xr)*delta_meter_per_pixel;
 coord_y = ((1:size(rgb_r, 1))-origin_yr)*delta_meter_per_pixel;
+
+if verbose
+    fprintf('%s: output image size = %d x %d x %d\n', ...
+        mfilename, size(rgb_r, 1), size(rgb_r, 2), size(rgb_r, 3));
+end
 
 % optional: show results
 if show

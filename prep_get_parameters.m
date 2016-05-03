@@ -52,4 +52,5 @@ eql = prep_intensity(value, mask_manual & mask_auto, eql_len, true, true);
 %% Save parameters for batch processing
 
 save(param_out_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp', 'crop_xw', ...
-    'crop_yw', 'entropy_len', 'num_cluster', 'cluster_center', 'eql_len', 'xw', 'yw'); 
+    'crop_yw', 'entropy_len', 'num_cluster', 'cluster_center', 'eql_len', ...
+    'xw', 'yw', 'mask_manual'); 
