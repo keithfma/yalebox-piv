@@ -1,5 +1,5 @@
 function [rgb_r, coord_x, coord_y] = ...
-    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
+    prep_rectify_and_crop_fix(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % function [rgb_r, coord_x, coord_y] = ...
 %     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % 
@@ -57,29 +57,47 @@ Dp = pdist([ctrl_xp, ctrl_yp]);
 delta_pixel_per_meter = median(Dp./Dw);
 delta_meter_per_pixel = median(Dw./Dp);
 
-% get rectified pixel coordinates from origin and pixel size
-ctrl_xr = 1+(ctrl_xw-crop_xw(1))*delta_pixel_per_meter;
-ctrl_yr = 1+(ctrl_yw-crop_yw(1))*delta_pixel_per_meter;
- 
-% transform image to rectified coordinates
+% convert parameters to rectified pixel coordinates 
+% ...origin at world (0,0), regular pixel size
+ctrl_xr = ctrl_xw*delta_pixel_per_meter;
+ctrl_yr = ctrl_yw*delta_pixel_per_meter;
+crop_xr = crop_xw*delta_pixel_per_meter;
+crop_yr = crop_yw*delta_pixel_per_meter;
+origin_xr = 0;
+origin_yr = 0;
+
+% transform image to rectified pixel coordinates
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('off', 'images:geotrans:estimateOutputBoundsFailed');
 tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', 10);
-rgb_r = imwarp(rgb, tform);
+% tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'projective');
+imref = imref2d([size(rgb,1), size(rgb,2)]);
+[rgb_r, imref_r] = imwarp(rgb, imref, tform, 'cubic');
 warning('on', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('on', 'images:geotrans:estimateOutputBoundsFailed');
 
-% crop rectified image
-crop_xlim_r = 1+(crop_xw-crop_xw(1))*delta_pixel_per_meter;
-crop_ylim_r = 1+(crop_yw-crop_yw(1))*delta_pixel_per_meter;
-cropbox = [crop_xlim_r(1), crop_ylim_r(1), diff(crop_xlim_r), diff(crop_ylim_r)];
-rgb_r = imcrop(rgb_r, cropbox);
+% get subscripts for origin and crop limits in rectified image
+[origin_col, origin_row] = imref_r.worldToIntrinsic(origin_xr, origin_yr);
 
-% generate coordinate vectors (assumes that x=0, y = 0 is a control point)
-origin_xr = ctrl_xr(ctrl_xw == 0  & ctrl_yw == 0);
-origin_yr = ctrl_yr(ctrl_xw == 0  & ctrl_yw == 0);
-coord_x = ((1:size(rgb_r, 2))-origin_xr)*delta_meter_per_pixel;
-coord_y = ((1:size(rgb_r, 1))-origin_yr)*delta_meter_per_pixel;
+[crop_col, crop_row] = imref_r.worldToIntrinsic(crop_xr, crop_yr);
+
+crop_row(1) = max(1, floor(crop_row(1)));
+crop_row(2) = min(size(rgb_r,1), ceil(crop_row(2)));
+
+crop_col(1) = max(1, floor(crop_col(1)));
+crop_col(2) = min(size(rgb_r,2), ceil(crop_col(2)));
+
+crop_rect = [crop_col(1), crop_row(1), diff(crop_col), diff(crop_row)];
+
+% crop rectified image, adjust origin location
+rgb_r = imcrop(rgb_r, crop_rect);
+origin_row = 1+origin_row-crop_row(1);
+origin_col = 1+origin_col-crop_col(1);
+
+% generate world coordinate vectors for rectified, cropped image
+% ... convert pixel distance to origin to meters
+coord_x = ((1:size(rgb_r, 2))-origin_col)*delta_meter_per_pixel;
+coord_y = ((1:size(rgb_r, 1))-origin_row)*delta_meter_per_pixel;
 
 if verbose
     fprintf('%s: output image size = %d x %d x %d\n', ...
