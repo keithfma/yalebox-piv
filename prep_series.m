@@ -1,11 +1,15 @@
-% function [] = prep_series(output_file, image_path, image_names, verbose)
-% function [] = prep_series(output_file, image_path, image_names, x, y, scale, ...
-%                   offset, mask_manual, hue_lim, val_lim, entr_lim, entr_win, ...
-%                   morph_open_rad, morph_erode_rad, nwin, verbose)
+function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
+                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
+                  num_cluster, cluster_center, eql_len, xw, yw, mask_manual, ...
+                  verbose)
+% function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
+%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
+%                   num_cluster, cluster_center, eql_len, xw, yw, mask_manual, ...
+%                   verbose)
 % 
-% Create PIV input file for a given image series. Reads in the images,
-% performs masking and color correction, and saves the results and metadata
-% in a netCDF file.
+% Create PIV input file for a given image series. Reads in the images, rectifies
+% and crops, masks, corrects illuination, and saves the results and metadata in
+% a netCDF file.
 %
 % Arguments:
 % 
@@ -16,14 +20,26 @@
 %   image_names = Cell array of strings, cells must contain filenames for
 %       successive images in the experiment image series. 
 %
-%   x, y, scale, offset = Output arguments from prep_world_coord().
+%   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp = Control points, as defined by
+%       prep_world_coord_control_pts()
+%
+%   crop_xw, crop_yw = Image crop limits in world coordinates, see
+%       prep_rectify_and_crop()
+%
+%   entropy_len = Size of entropy filter window, see prep_mask_auto()
+%
+%   num_cluster = Number of kmeans clusters in segmentation routine, see
+%       prep_mask_auto()
+%
+%   cluster_center = kmeans cluster centroids, each center is one row with
+%       variables (hue, value, entropy) in columns, see prep_mask_auto()
+%
+%   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
+%
+%   xw, yw = Coordinate vectors for rectified/cropped image, in meters, see
+%       prep_rectify_and_crop()
 %
 %   mask_manual = Output argument from prep_mask_manual()
-%
-%   hue_lim, val_lim, entr_lim, entr_win, morph_open_rad, morph_erode_rad = Input 
-%       arguments for prep_mask_auto()
-%
-%   nwin = Input argument from prep_intensity()
 %
 %   verbose = Logical flag, display verbose messages (1) or don't (0)
 %
@@ -34,18 +50,12 @@
 %
 % %
 
-% DEBUG
-output_file = 'junk.nc';
-image_names = {'K24_050.jpg', 'K24_100.jpg', 'K24_150.jpg'};
-image_path = '/home/kfm/Documents/dissertation/yalebox-exp-erosion/data/k24/image/clean';
-verbose = true;
-
-% % check for sane arguments (pass-through arguments are checked in subroutines)
-% narginchk(16, 16); 
-% validateattributes(output_file, {'char'}, {'vector'});
-% validateattributes(image_path, {'char'}, {'vector'});
-% validateattributes(image_names, {'cell'}, {'vector'});
-% 
+% check for sane arguments (pass-through arguments are checked in subroutines)
+narginchk(17, 17); 
+validateattributes(output_file, {'char'}, {'vector'});
+validateattributes(image_path, {'char'}, {'vector'});
+validateattributes(image_names, {'cell'}, {'vector'});
+validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 % get some size parameters
 nx = numel(xw);
@@ -155,7 +165,7 @@ for i = 1:num_image
     raw = imread(this_file);
      
     if verbose
-        fprintf('%s: %s\n', mfilename, this_file);
+        fprintf('\n%s: %s\n', mfilename, this_file);
     end
     
     % rectify and crop
