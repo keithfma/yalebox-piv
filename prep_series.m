@@ -73,6 +73,7 @@ end
 ncid = netcdf.create(output_file, 'NETCDF4');
 
 % add global attributes 
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox git_hash', util_git_hash());
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xw', ctrl_xw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yw', ctrl_yw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp', ctrl_xp);
