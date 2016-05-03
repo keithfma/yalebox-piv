@@ -57,6 +57,8 @@
 
 % DEBUG
 output_file = 'junk.nc';
+image_names = {'K24_050.jpg', 'K24_100.jpg', 'K24_150.jpg'};
+image_path = '/home/kfm/Documents/dissertation/yalebox-exp-erosion/data/k24/image/clean';
 
 % create netcdf file
 ncid = netcdf.create(output_file, 'NETCDF4');
@@ -75,44 +77,55 @@ for ii = 1:num_cluster
 end
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity eql_len', eql_len);
      
-% % create dimensions
-% x_dimid = netcdf.defDim(ncid, 'x', numel(x));
-% y_dimid = netcdf.defDim(ncid, 'y', numel(y));
-% s_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
-% 
+% create dimensions
+x_dimid = netcdf.defDim(ncid, 'x', numel(xw));
+y_dimid = netcdf.defDim(ncid, 'y', numel(yw));
+step_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
+rgb_dimid = netcdf.defDim(ncid, 'rgb', 3);
+ 
 % % define variables and thier attributes, compression, and chunking
 % dim_3d = [x_dimid, y_dimid, s_dimid];
 % chunk_3d = [numel(x), numel(y), 1];
 % dim_2d= [x_dimid, y_dimid];
-% 
-% x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
-% netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
-% netcdf.putAtt(ncid, x_varid, 'units', 'meters');
-% 
-% y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
-% netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
-% netcdf.putAtt(ncid, y_varid, 'units', 'meters');
-% 
-% s_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', s_dimid);
-% netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
-% netcdf.putAtt(ncid, s_varid, 'units', '1');
-% 
-% i_varid = netcdf.defVar(ncid, 'intensity', 'NC_FLOAT', dim_3d);
-% netcdf.putAtt(ncid, i_varid, 'long_name', 'normalized sand brightness');
-% netcdf.putAtt(ncid, i_varid, 'units', '1');
-% netcdf.defVarDeflate(ncid, i_varid, true, true, 1);
-% netcdf.defVarChunking(ncid, i_varid, 'CHUNKED', chunk_3d);
-% 
-% ma_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', dim_3d);
-% netcdf.putAtt(ncid, ma_varid, 'long_name', 'sand mask, automatic');
-% netcdf.putAtt(ncid, ma_varid, 'units', 'boolean');
-% netcdf.defVarDeflate(ncid, ma_varid, true, true, 1);
-% netcdf.defVarChunking(ncid, ma_varid, 'CHUNKED', chunk_3d);
-% 
-% mm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', dim_2d);
-% netcdf.putAtt(ncid, mm_varid, 'long_name', 'sand mask, manual');
-% netcdf.putAtt(ncid, mm_varid, 'units', 'boolean');
-% netcdf.defVarDeflate(ncid, mm_varid, true, true, 1);
+ 
+x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
+netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
+netcdf.putAtt(ncid, x_varid, 'units', 'meters');
+ 
+y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
+netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
+netcdf.putAtt(ncid, y_varid, 'units', 'meters');
+ 
+step_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', step_dimid);
+netcdf.putAtt(ncid, step_varid, 'long_name', 'step number');
+netcdf.putAtt(ncid, step_varid, 'units', '1');
+ 
+rgb_varid = netcdf.defVar(ncid, 'rgb', 'NC_CHAR', rgb_dimid);
+netcdf.putAtt(ncid, rgb_varid, 'long_name', 'color band');
+netcdf.putAtt(ncid, rgb_varid, 'units', 'char');
+
+raw_varid = netcdf.defVar(ncid, 'raw', 'NC_BYTE', [x_dimid, y_dimid, rgb_dimid, step_dimid]);
+netcdf.putAtt(ncid, raw_varid, 'long_name', 'original image');
+netcdf.putAtt(ncid, raw_varid, 'units', '24-bit color');
+netcdf.defVarDeflate(ncid, raw_varid, true, true, 1);
+netcdf.defVarChunking(ncid, raw_varid, 'CHUNKED', [numel(xw), numel(yw), 3, 1]);
+
+image_varid = netcdf.defVar(ncid, 'image', 'NC_FLOAT', [x_dimid, y_dimid, step_dimid]);
+netcdf.putAtt(ncid, image_varid, 'long_name', 'normalized sand brightness');
+netcdf.putAtt(ncid, image_varid, 'units', '1');
+netcdf.defVarDeflate(ncid, image_varid, true, true, 1);
+netcdf.defVarChunking(ncid, image_varid, 'CHUNKED', [numel(xw), numel(yw), 1]);
+
+maska_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', [x_dimid, y_dimid, step_dimid]);
+netcdf.putAtt(ncid, maska_varid, 'long_name', 'sand mask, automatic');
+netcdf.putAtt(ncid, maska_varid, 'units', 'boolean');
+netcdf.defVarDeflate(ncid, maska_varid, true, true, 1);
+netcdf.defVarChunking(ncid, maska_varid, 'CHUNKED', [numel(xw), numel(yw), 1]);
+ 
+maskm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', [x_dimid, y_dimid]);
+netcdf.putAtt(ncid, maskm_varid, 'long_name', 'sand mask, manual');
+netcdf.putAtt(ncid, maskm_varid, 'units', 'boolean');
+netcdf.defVarDeflate(ncid, maskm_varid, true, true, 1);
 
 % finish netcdf creation
 netcdf.endDef(ncid);
