@@ -1,11 +1,9 @@
 function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-                  num_cluster, cluster_center, eql_len, xw, yw, mask_manual, ...
-                  verbose)
+                  num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
 % function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 %                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-%                   num_cluster, cluster_center, eql_len, xw, yw, mask_manual, ...
-%                   verbose)
+%                   num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
 % 
 % Create PIV input file for a given image series. Reads in the images, rectifies
 % and crops, masks, corrects illuination, and saves the results and metadata in
@@ -41,21 +39,13 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 %
 %   mask_manual = Output argument from prep_mask_manual()
 %
-%   verbose = Logical flag, display verbose messages (1) or don't (0)
-%
-%   PIV input netCDF format:
-%       dimensions: x, y, step
-%       variables: mask_auto, mask_manual, x, y, step, intensity
-%       attributes: all preprocessing parameters
-%
-% %
+% % Keith Ma
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(17, 17); 
+narginchk(16, 16); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 % get some size parameters
 nx = numel(xw);
@@ -164,9 +154,8 @@ for i = 1:num_image
     this_file = [image_path filesep image_names{i}];
     raw = imread(this_file);
      
-    if verbose
-        fprintf('\n%s: %s\n', mfilename, this_file);
-    end
+    % update user (always verbose)
+    fprintf('\n%s: %s\n', mfilename, this_file);
     
     % rectify and crop
     rgb = prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, ...

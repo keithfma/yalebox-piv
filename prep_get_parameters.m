@@ -49,8 +49,17 @@ hsv = rgb2hsv(rgb);
 value = hsv(:,:,3);
 eql = prep_intensity(value, mask_manual & mask_auto, eql_len, true, true);
 
+%% Get image file directory and file list
+
+output_file = 'junk.image.nc';
+image_path = '/home/kfm/Documents/dissertation/yalebox-exp-erosion/data/k24/image/clean';
+image_name_glob = 'K24*.jpg';
+
+tmp = dir(fullfile(image_path, image_name_glob));
+image_names = {tmp(:).name};
+
 %% Save parameters for batch processing
 
 save(param_out_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp', 'crop_xw', ...
     'crop_yw', 'entropy_len', 'num_cluster', 'cluster_center', 'eql_len', ...
-    'xw', 'yw', 'mask_manual'); 
+    'xw', 'yw', 'mask_manual', 'output_file', 'image_path', 'image_names'); 
