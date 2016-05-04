@@ -6,7 +6,7 @@
 %% Init
 
 image_in_file = '../yalebox-exp-erosion/data/K23_side.image.nc';
-param_out_file = 'test/prep_get_parameters.mat';
+param_out_file = '../yalebox-exp-erosion/data/K23_side_piv_param.mat';
 ini_step = 10;
 
 %% Read in image pair, masks, coordinate vectors
@@ -29,7 +29,7 @@ ini_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index],   [inf, inf, 1]
 ini_mask = logical(ini_mask) & mask_manual;
 
 fin_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index+1],   [inf, inf, 1]); 
-fin_mask = logical(ini_mask) & mask_manual;
+fin_mask = logical(fin_mask) & mask_manual;
 
 xw = ncread(image_in_file, 'x');
 xw = double(xw);
@@ -67,16 +67,16 @@ title('fin\_mask');
 %% Set parameters, run PIV, compute strain, and plot results
 
 % set parameters
-samplen = [30, 30]; %#ok!
-sampspc = [15, 15]; %#ok!
-intrlen = [120, 60]; %#ok!
-npass = [1, 1]; %#ok!
+samplen = [30, 20];
+sampspc = [15, 10];
+intrlen = [120, 40];
+npass = [1, 3]; 
 valid_max = 2;
 valid_eps = 0.1;
 lowess_span_pts = 9;
 spline_tension = 0.95;
-min_frac_data = 0.5; 
-min_frac_overlap = 0.5;
+min_frac_data = 0.33; 
+min_frac_overlap = 0.33;
 
 % run piv
 [xx, yy, uu, vv, roi] = ...
@@ -139,3 +139,7 @@ set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
 title('spin');
 
 %% Save parameters to mat file
+
+save(param_out_file, 'samplen',  'sampspc', 'intrlen', 'npass', 'valid_max', ...
+    'valid_eps', 'lowess_span_pts', 'spline_tension', 'min_frac_data', ...
+    'min_frac_overlap');

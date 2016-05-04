@@ -31,7 +31,7 @@ function [r1, c1, u1, v1, x1, y1] = ...
 
 if verbose
     fprintf('%s: new grid = [%d, %d], old grid = [%d, %d]\n', ...
-        mfilename, size(r0,1), size(r0,2), size(r1,1), size(r1,2));
+        mfilename, size(r1,1), size(r1,2), size(r0,1), size(r0,2));
 end
 
 u1 = spline2d(c1(:), r1(:), c0(roi), r0(roi), u0(roi), tension);
