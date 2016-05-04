@@ -9,19 +9,30 @@ image_in_file = '../yalebox-exp-erosion/data/K23_side.image.nc';
 param_out_file = 'test/prep_get_parameters.mat';
 ini_step = 10;
 
-%% Read in image pair
+%% Read in image pair with masks
 
 % find index of ini and fin
 step = ncread(image_in_file, 'step');
 ini_index = find(step == ini_step);
 
-% read images
+% read images and masks
+mask_manual = ncread(image_in_file, 'mask_manual');
+mask_manual = logical(mask_manual);
+
 ini = ncread(image_in_file, 'image', [1, 1, ini_index],   [inf, inf, 1]); 
+ini = double(ini);
+
 fin = ncread(image_in_file, 'image', [1, 1, ini_index+1], [inf, inf, 1]); 
+fin = double(fin);
+
+ini_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index],   [inf, inf, 1]); 
+ini_mask = logical(ini_mask) & mask_manual;
+
+fin_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index+1],   [inf, inf, 1]); 
+fin_mask = logical(ini_mask) & mask_manual;
 
 % convert to double
-ini = double(ini);
-fin = double(fin);
+
 
 % display images
 figure 
@@ -37,5 +48,23 @@ colormap('gray');
 ax.YDir = 'normal';
 title('fin');
 
+figure 
+ax = subplot(2,1,1);
+imagesc(ini_mask);
+colormap('gray');
+ax.YDir = 'normal';
+title('ini\_mask');
+
+ax = subplot(2,1,2);
+imagesc(fin_mask);
+colormap('gray');
+ax.YDir = 'normal';
+title('fin\_mask');
+
+%% Set parameters and run PIV
+
+% piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
+%         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+%         min_frac_data, min_frac_overlap, verbose) 
 
 
