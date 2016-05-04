@@ -9,7 +9,7 @@ image_in_file = '../yalebox-exp-erosion/data/K23_side.image.nc';
 param_out_file = 'test/prep_get_parameters.mat';
 ini_step = 10;
 
-%% Read in image pair with masks
+%% Read in image pair, masks, coordinate vectors
 
 % find index of ini and fin
 step = ncread(image_in_file, 'step');
@@ -31,40 +31,43 @@ ini_mask = logical(ini_mask) & mask_manual;
 fin_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index+1],   [inf, inf, 1]); 
 fin_mask = logical(ini_mask) & mask_manual;
 
-% convert to double
+xw = ncread(image_in_file, 'x');
+xw = double(xw);
 
+yw = ncread(image_in_file, 'y');
+yw = double(yw);
 
 % display images
 figure 
 ax = subplot(2,1,1);
-imagesc(ini);
+imagesc(xw, yw, ini);
 colormap('gray');
 ax.YDir = 'normal';
 title('ini');
 
 ax = subplot(2,1,2);
-imagesc(fin);
+imagesc(xw, yw, fin);
 colormap('gray');
 ax.YDir = 'normal';
 title('fin');
 
 figure 
 ax = subplot(2,1,1);
-imagesc(ini_mask);
+imagesc(xw, yw, ini_mask);
 colormap('gray');
 ax.YDir = 'normal';
 title('ini\_mask');
 
 ax = subplot(2,1,2);
-imagesc(fin_mask);
+imagesc(xw, yw, fin_mask);
 colormap('gray');
 ax.YDir = 'normal';
 title('fin\_mask');
 
 %% Set parameters and run PIV
 
-% piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-%         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-%         min_frac_data, min_frac_overlap, verbose) 
+piv(ini, fin, ini_mask, fin_mask, xw, yw, samplen, sampspc, ...
+        intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
+        min_frac_data, min_frac_overlap, verbose) 
 
 
