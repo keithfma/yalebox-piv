@@ -106,7 +106,7 @@ validateattributes( lowess_span_pts,  {'numeric'}, {'scalar', 'integer'});
 validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes( verbose,          {'numeric'}, {'scalar', 'binary'});
+validateattributes( verbose,          {'numeric', 'logical'}, {'scalar', 'binary'});
 
 % verbose output
 if verbose

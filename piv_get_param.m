@@ -64,18 +64,18 @@ colormap('gray');
 ax.YDir = 'normal';
 title('fin\_mask');
 
-%% Set parameters and run PIV
+%% Set parameters, run PIV, compute strain, and plot results
 
 % set parameters
-samplen = [30, 30];
-sampspc = [15, 15];
-intrlen = [120, 60];
-npass = [1, 3];
+samplen = [30, 30]; %#ok!
+sampspc = [15, 15]; %#ok!
+intrlen = [120, 60]; %#ok!
+npass = [1, 1]; %#ok!
 valid_max = 2;
 valid_eps = 0.1;
 lowess_span_pts = 9;
 spline_tension = 0.95;
-min_frac_data = 0.8; 
+min_frac_data = 0.5; 
 min_frac_overlap = 0.5;
 
 % run piv
@@ -84,16 +84,20 @@ min_frac_overlap = 0.5;
         intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
         min_frac_data, min_frac_overlap, true); 
 
-% plot results
-%...get data limits
+% compute strain    
 [xxg, yyg] = meshgrid(xx, yy);
 mask_uv = ~isnan(uu) & ~isnan(vv);
+[mm, spin, Dv, Dd, D2x, D2y, WkStar, AkStar] = ...
+    deformation(xxg, yyg, uu, vv, mask_uv);
+
+% get data limits
 uv_xlim = [min(xxg(mask_uv)), max(xxg(mask_uv))];
 uv_ylim = [min(yyg(mask_uv)), max(yyg(mask_uv))];
+
+% plot displacements
 %... displacement magnitude and direction, [mm/step]
 figure
 subplot(3,1,1);
-mm = sqrt(uu.^2+vv.^2);
 imagesc(xx, yy, mm*1000, 'AlphaData', ~isnan(mm)); 
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
@@ -111,5 +115,27 @@ imagesc(xx, yy, vv*1000, 'AlphaData', ~isnan(vv));
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
 title('V');
+
+% plot strain
+%... Dd
+figure
+subplot(3,1,1);
+imagesc(xx, yy, Dd, 'AlphaData', ~isnan(Dd)); 
+colorbar;
+set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
+title('Dd');
+%... Dv
+subplot(3,1,2);
+imagesc(xx, yy, Dv, 'AlphaData', ~isnan(Dv)); 
+colormap(gca, flipud(colormap)); % flow is in negative x direction
+colorbar;
+set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
+title('Dv');
+%... spin
+subplot(3,1,3);
+imagesc(xx, yy, spin, 'AlphaData', ~isnan(spin)); 
+colorbar;
+set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
+title('spin');
 
 %% Save parameters to mat file
