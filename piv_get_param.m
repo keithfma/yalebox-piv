@@ -70,7 +70,7 @@ title('fin\_mask');
 samplen = [30, 20];
 sampspc = [15, 10];
 intrlen = [120, 40];
-npass = [1, 3]; 
+npass = [1, 2]; 
 valid_max = 2;
 valid_eps = 0.1;
 lowess_span_pts = 9;

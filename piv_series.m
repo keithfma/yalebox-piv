@@ -27,19 +27,6 @@ narginchk(13, 13);
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 
-% check for sane input file
-info = ncinfo(input_file);
-assert( length(info.Dimensions) == 3 );
-for ii = 1:3
-    assert( ismember(info.Dimensions(ii).Name, {'x', 'y', 'step'}), ...
-        sprintf('Invalid input file, failed to find dimension %s', info.Dimensions(ii).Name));
-end
-assert( length(info.Variables) == 6 );
-for ii = 1:6
-    assert( ismember(info.Variables(ii).Name, {'x', 'y', 'step', 'intensity', 'mask_manual', 'mask_auto'}), ...
-              sprintf('Invalid input file, failed to find variable %s', info.Variables(ii).Name));
-end
-
 % read input dimension values
 x_img =      double( ncread(input_file, 'x')     );
 y_img =      double( ncread(input_file, 'y')     );
@@ -68,7 +55,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_t
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
+% netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
@@ -76,8 +63,8 @@ y_dimid = netcdf.defDim(ncid, 'y', ny);
 s_dimid = netcdf.defDim(ncid, 'step', ns);
 
 % define variables and thier attributes, compression, and chunking
-dim_3d = [x_dimid, y_dimid, s_dimid];
-chunk_3d = [length(x_piv), length(y_piv), 1];
+dim_3d = [y_dimid, x_dimid, s_dimid];
+chunk_3d = [length(y_piv), length(x_piv), 1];
 
 x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
 netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
@@ -121,9 +108,9 @@ netcdf.putVar(ncid, s_varid, step_piv);
 netcdf.close(ncid);
 
 % initialize loop by reading first image
-img1 = double( ncread(input_file, 'intensity', [1, 1, 1], [inf, inf, 1])' );
-roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
-roi1 = ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1])' & roi_const;
+img1 = double(ncread(input_file, 'image', [1, 1, 1], [inf, inf, 1]));
+roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));
+roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1]))& roi_const;
 
 % analyse all steps
 for ii = 1:ns
@@ -136,8 +123,8 @@ for ii = 1:ns
     img0 = img1;
     roi0 = roi1;
     
-    img1 = double( ncread(input_file, 'intensity', [1, 1, ii+1], [inf, inf, 1])' );
-    roi1 = ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])' & roi_const;
+    img1 = double(ncread(input_file, 'image', [1, 1, ii+1], [inf, inf, 1]));
+    roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])) & roi_const;
     
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = ...
@@ -147,9 +134,9 @@ for ii = 1:ns
         
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    
-    netcdf.putVar(ncid, u_varid, [0, 0, ii-1], [nx, ny, 1], u_piv');
-    netcdf.putVar(ncid, v_varid, [0, 0, ii-1], [nx, ny, 1], v_piv'); 
-    netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [nx, ny, 1], int8(roi_piv)');  
+    netcdf.putVar(ncid, u_varid, [0, 0, ii-1], [ny, nx, 1], u_piv);
+    netcdf.putVar(ncid, v_varid, [0, 0, ii-1], [ny, nx, 1], v_piv); 
+    netcdf.putVar(ncid, r_varid, [0, 0, ii-1], [ny, nx, 1], int8(roi_piv));  
     netcdf.close(ncid);
     
     if verbose
