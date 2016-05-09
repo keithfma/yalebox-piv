@@ -1,21 +1,17 @@
-# YALEBOX-PIV SOFTWARE SUITE 
+# Yalebox-PIV
 
-This PIV implementation was designed specifically for use with the Yalebox analog model of crustal deformation.  Features are:
+Tools for sandbox image series analysis developed for the Yale University
+Department of Geology &amp; Geophysics "Yalebox". Includes:
 
-- Direct spatial doamin computation of the correlation function, allowing for large displacements of small sampling windows.
-- Iterative grid refinement, allowing for accurate results at high resolution
-- Flexible vector validation
-- Transformation from pixel to world coordinates
-- Smoothing and gradient functions that ignore values outside the sand, eliminating spurious edge gradients
+- Preprocessing: distortion correction, masking, adaptive histogram equalization 
+- Particle Image velocimetry (PIV): iterative image-deformation method using masked cross-correlation
+- Strain analysis
+- Movie composition
 
-Enjoy!
+## Usage
 
-## WORKFLOW 
-
-1. Begin with a suitable image series (corrected lens distortion and perspective, masked regions outside the sand with 0's, rotated such that the tabletop is horizontal).
-2. Explore settings either manually or using testparams.m to determine a suitable combination for the particular image series at hand.
-3. Define the run paramenters using writeinput.m
-4. Call runpivseries.m to run sandboxpiv.m for each image pair in the series 
-5. Define the world coordinate system with getpivwoco.m and a suitable world coordinate image
-6. Convert all piv data files to world coordinates with datapostprocess.m
-7. Manipulate as you please, using nangrad2.m and nansmooth2.m as needed to reduce spurious edge gradients.
+A typical workflow is to make use of the "helper" scripts `prep_get_param.m`
+and `piv_get_param.m` to experiment with free parameters for a particular
+experiment image series. Once a satisfactory set of parameters is found, the
+`prep_series()` and `piv_series()` functions can be used to process the whole
+experiment. Results are saved in as internally documented netCDF files. 

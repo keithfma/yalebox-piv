@@ -1,3 +1,7 @@
 private/
 *~
 .*.swp
+*.mexa64
+temp/*
+*.mat
+**/html

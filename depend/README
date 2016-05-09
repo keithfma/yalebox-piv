@@ -1,0 +1,25 @@
+This folder contains external dependencies needed by the yalebox programs. These
+include:
+
+(1) DCT-PLS (Discrete Cosine Transform - Penalized Least Squares) PIV
+post-processing tools. See: Garcia, D. (2010). A fast all-in-one method for
+automated post-processing of PIV data. Experiments in Fluids, 50(5), 1247?1259.
+doi:10.1007/s00348-010-0985-y.
+
+pppiv.m
+smoothn.m
+dctn.m
+idctn.m
+
+(2) High accuracy derivative estimation routines, see: Hany Farid and Eero
+Simoncelli "Differentiation of Discrete Multi-Dimensional Signals" IEEE Trans.
+Image Processing. 13(4): 496-508 (2004)
+
+derivativesByFilter.m
+
+(3) Interpolation/extrapolation using numerical solution to the Laplacian
+equation (by John D'Errico, by way of the MATLAB file exchange).
+
+inpaint_nans.m
+
+(4) spline2d from Wessel & Bercovici 1998 tspline MATLAB package
