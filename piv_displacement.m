@@ -78,7 +78,13 @@ for ii = 1:nr
         
         % compute location of this observation at midpoint time
         c1(ii,jj) = c_centroid + 0.5*u1(ii,jj);
-        r1(ii,jj) = r_centroid + 0.5*v1(ii,jj);        
+        r1(ii,jj) = r_centroid + 0.5*v1(ii,jj);    
+        
+        % % DEBUG: line added to pause routine and generate plots, if desired
+        % if all(intr(:)~=0)
+        %     save('piv_dump.mat');
+        %     error('SAVED WINDOW DATA TO piv_dump.mat');
+        % end
                 
     end
 end

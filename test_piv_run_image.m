@@ -14,8 +14,8 @@ function [] = test_piv_run_image(force)
 %% parameters
 
 % image parameters
-tform = [1, 0.05, 0;  
-         0,    1, 0];
+tform = [1,     0.05, 2;  
+         0.025,    1, 5];
 bnd_mean = 0.7;
 bnd_ampl = 0.1;
 bnd_freq = 1;
@@ -23,14 +23,14 @@ bnd_freq = 1;
 % piv parameters
 samplen = [30, 30];
 sampspc = [15, 15];
-intrlen = [100, 40];
+intrlen = [100, 60];
 npass = [1, 2];
 valid_max = 2;
-valid_eps = 0.01;
-lowess_span_pts = 16;
+valid_eps = 0.1;
+lowess_span_pts = 9;
 spline_tension = 0.95;
 min_frac_data = 0.8;
-min_frac_overlap = min_frac_data/2;
+min_frac_overlap = 0.5;
 
 % local parameters
 data_file = 'test/image.mat';

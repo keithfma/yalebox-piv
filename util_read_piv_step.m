@@ -30,10 +30,10 @@ ny = numel(yy);
 step = ncread(piv_file, 'step', index, 1);
 step = double(step);
 
-uu = ncread(piv_file, 'u', [1, 1, index], [nx, ny, 1])';
+uu = ncread(piv_file, 'u', [1, 1, index], [ny, nx, 1]);
 uu = double(squeeze(uu));
 
-vv = ncread(piv_file, 'v', [1, 1, index], [nx, ny, 1])';
+vv = ncread(piv_file, 'v', [1, 1, index], [ny, nx, 1]);
 vv = double(squeeze(vv));
 
 mm = sqrt(uu.*uu+vv.*vv);
