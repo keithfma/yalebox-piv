@@ -33,6 +33,20 @@ crop_yw = [ 0.002, 0.200];
 
 mask_manual = prep_mask_manual(rgb);
 
+%% Apply automatic masking model
+
+hue_lim = [0, 0.5];
+val_lim = [0.25, 1];
+entropy_lim = [0.4, 1];
+entropy_len = 11;
+morph_open_rad = 10;
+morph_erode_rad = 5;
+
+hsv = rgb2hsv(rgb);
+
+mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entropy_lim, entropy_len, ...
+                    morph_open_rad, morph_erode_rad, true, true);
+
 %% Train and apply automatic masking model
 
 % parameters
