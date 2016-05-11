@@ -1,9 +1,11 @@
 function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
-                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-                  num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
+                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
+                  value_lim, entropy_lim, entropy_len, morph_open_rad, ...
+                  morph_erode_rad, eql_len, xw, yw, mask_manual)
 % function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
-%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-%                   num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
+%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
+%                   value_lim, entropy_lim, entropy_len, morph_open_rad, ...
+%                   morph_erode_rad, eql_len, xw, yw, mask_manual)
 % 
 % Create PIV input file for a given image series. Reads in the images, rectifies
 % and crops, masks, corrects illuination, and saves the results and metadata in
@@ -23,14 +25,14 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 %
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
+% 
+%   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
+%       prep_mask_auto()
 %
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
 %
-%   num_cluster = Number of kmeans clusters in segmentation routine, see
-%       prep_mask_auto()
-%
-%   cluster_center = kmeans cluster centroids, each center is one row with
-%       variables (hue, value, entropy) in columns, see prep_mask_auto()
+%   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
+%       radius for morphological filters in prep_mask_auto()
 %
 %   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
 %
@@ -42,7 +44,7 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 % % Keith Ma
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(16, 16); 
+assert(nargin == 19);
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
@@ -80,11 +82,12 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yp', ctrl_yp);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_xw', crop_xw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_yw', crop_yw);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto value_lim', value_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_lim', entropy_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_len', entropy_len);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto num_cluster', num_cluster);
-for ii = 1:num_cluster
-    netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), sprintf('prep_mask_auto cluster_center_%d', ii), cluster_center(ii,:));
-end
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity eql_len', eql_len);
      
 % create dimensions

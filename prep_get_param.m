@@ -45,14 +45,14 @@ mask_manual = prep_mask_manual(rgb);
 
 % parameters
 hue_lim = [0.01, 0.3];
-val_lim = [0.05, 0.5];
+value_lim = [0.05, 0.5];
 entropy_lim = [0.4, 1];
 entropy_len = 11;
 morph_open_rad = 10;
 morph_erode_rad = 5;
 
 % actions
-mask_auto = prep_mask_auto(rgb, hue_lim, val_lim, entropy_lim, entropy_len, ...
+mask_auto = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len, ...
                     morph_open_rad, morph_erode_rad, true, true);
 
 %% adaptive histogram equalization
