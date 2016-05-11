@@ -1,5 +1,5 @@
-function eql = prep_intensity(rgb, mask, nwin, show, verbose)
-% function eql = prep_intensity(rgb, mask, nwin, show, verbose)
+function eql = prep_intensity(rgb, mask, eql_len, show, verbose)
+% function eql = prep_intensity(rgb, mask, eql_len, show, verbose)
 %
 % Convert masked color image to "equalized" grayscale image. 
 %
@@ -16,7 +16,7 @@ function eql = prep_intensity(rgb, mask, nwin, show, verbose)
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
-%   nwin = Scalar, integer, odd. Side length (in pixels) for the local
+%   eql_len = Scalar, integer, odd. Side length (in pixels) for the local
 %       neighborhood used to compute the transform for each pixel.
 %
 %   show = Optional, scalar, logical flag, set to True to plot the original and
@@ -38,7 +38,7 @@ if nargin < 5; verbose = false; end
 % check for sane inputs
 validateattributes(rgb, {'numeric'}, {'3d'});
 validateattributes(mask, {'logical'}, {'2d', 'size', [size(rgb,1), size(rgb, 2)]});
-validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'});
+validateattributes(eql_len, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
@@ -50,7 +50,7 @@ img(~mask) = 0;
 % get constants, preallocate variables
 [nr, nc] = size(img);
 eql = zeros(nr, nc);
-nhalfwin = floor(nwin/2);
+nhalfwin = floor(eql_len/2);
 
 % (optional) report basic stats on intial image
 if verbose

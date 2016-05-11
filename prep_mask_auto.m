@@ -1,6 +1,6 @@
-function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_win, ...
+function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len, ...
                     morph_open_rad, morph_erode_rad, show, verbose)
-% function mask = prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, entropy_win, ...
+% function mask = prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, entropy_len, ...
 %                     morph_open_rad, morph_erode_rad, show, verbose)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
@@ -21,7 +21,7 @@ function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_win
 %   entropy_lim = 2-element vector, double, range [0, 1]. [minimum, maximum]
 %     entropy included as sand in the mask. 
 %
-%   entropy_win = scalar, integer, window size in pixels for entropy filter.
+%   entropy_len = scalar, integer, window size in pixels for entropy filter.
 %
 %   morph_open_rad = scalar, double, radius of disk structuring element used in
 %     mophological opening filter. 
@@ -49,7 +49,7 @@ validateattributes(rgb, {'numeric'}, {'3d'});
 validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(value_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(entropy_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
-validateattributes(entropy_win, {'numeric'}, {'scalar', 'integer', 'positive'});
+validateattributes(entropy_len, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'});
 validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
@@ -59,7 +59,7 @@ validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 hsv = rgb2hsv(rgb);
 hue = hsv(:,:,1);
 value = hsv(:,:,3);
-entropy = entropyfilt(value, true(entropy_win));
+entropy = entropyfilt(value, true(entropy_len));
 
 hue = hue-min(hue(:)); hue = hue./max(hue(:));
 value = value-min(value(:)); value = value./max(value(:));
