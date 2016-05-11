@@ -35,37 +35,23 @@ mask_manual = prep_mask_manual(rgb);
 
 %% Apply automatic masking model
 
-hue_lim = [0, 0.5];
-val_lim = [0.25, 1];
+hue_lim = [0.01, 0.3];
+val_lim = [0.05, 0.5];
 entropy_lim = [0.4, 1];
 entropy_len = 11;
 morph_open_rad = 10;
 morph_erode_rad = 5;
 
-hsv = rgb2hsv(rgb);
-
-mask_auto = prep_mask_auto(hsv, hue_lim, val_lim, entropy_lim, entropy_len, ...
+mask_auto = prep_mask_auto(rgb, hue_lim, val_lim, entropy_lim, entropy_len, ...
                     morph_open_rad, morph_erode_rad, true, true);
 
-%% Train and apply automatic masking model
-
-% parameters
-entropy_len = 11;
-num_cluster = 3;
-
-% actions
-cluster_center = prep_mask_auto_train(rgb, entropy_len, num_cluster, true, true);
-
-%% Masked adaptive histogram equalization
+%% adaptive histogram equalization
 
 % parameters
 eql_len = 21;
 
 % actions
-mask_auto = prep_mask_auto(rgb, entropy_len, cluster_center, true, true);
-hsv = rgb2hsv(rgb);
-value = hsv(:,:,3);
-eql = prep_intensity(value, mask_manual & mask_auto, eql_len, true, true);
+eql = prep_intensity(rgb, mask_manual & mask_auto, eql_len, true, true);
 
 %% Get image file directory and file list
 

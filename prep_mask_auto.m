@@ -86,10 +86,10 @@ object_label = bwlabel(mask);
 largest_object = mode(object_label(object_label>0));
 mask = object_label == largest_object;
 
-% clean up edges with morphological filters
-% ...remove noise (open), then trim boundary (erode)
-mask = imopen(mask, strel('disk', morph_open_rad));
-mask = imerode(mask, strel('disk', morph_erode_rad));
+% % clean up edges with morphological filters
+% % ...remove noise (open), then trim boundary (erode)
+% mask = imopen(mask, strel('disk', morph_open_rad));
+% mask = imerode(mask, strel('disk', morph_erode_rad));
 
 % (optional) plot to facilitate parameter selection
 if show

@@ -1,10 +1,10 @@
-function eql = prep_intensity(img, mask, nwin, show, verbose)
-% function eql = prep_intensity(img, mask, nwin, show, verbose)
+function eql = prep_intensity(rgb, mask, nwin, show, verbose)
+% function eql = prep_intensity(rgb, mask, nwin, show, verbose)
 %
 % Convert masked color image to "equalized" grayscale image. 
 %
-% Equalization transforms pixel intensity so that the image histogram is
-% approximately uniform. A simple adaptive (local window) method is used, in
+% Equalization transforms rgb to grayscale with approximatley uniform pixel
+% intensity distribution. A simple adaptive (local window) method is used, in
 % which the value of each pixel is replaced with its percentile in a local
 % window. This is equivalent to the normal method of using a CDF as a transform
 % function, but more efficient, since it is not necessary to compute the CDF to
@@ -12,7 +12,7 @@ function eql = prep_intensity(img, mask, nwin, show, verbose)
 %
 % Arguments:
 %
-%   img = 2D matrix, double, grayscale image in the range [0, 1].
+%   rgb = 3D matrix, RGB color image
 %
 %   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
 %
@@ -36,19 +36,21 @@ if nargin < 4; show = false; end
 if nargin < 5; verbose = false; end
 
 % check for sane inputs
-validateattributes(img, {'double'}, {'2d', '>=', 0, '<=', 1});
-validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
+validateattributes(rgb, {'numeric'}, {'3d'});
+validateattributes(mask, {'logical'}, {'2d', 'size', [size(rgb,1), size(rgb, 2)]});
 validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
+
+% convert rgb to masked grayscale
+img = rgb2hsv(rgb);
+img = img(:,:,3); % grayscale layer is  HSV "value"
+img(~mask) = 0;
 
 % get constants, preallocate variables
 [nr, nc] = size(img);
 eql = zeros(nr, nc);
 nhalfwin = floor(nwin/2);
-
-% apply mask
-img(~mask) = 0;
 
 % (optional) report basic stats on intial image
 if verbose
