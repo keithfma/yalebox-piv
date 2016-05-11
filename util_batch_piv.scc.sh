@@ -6,6 +6,7 @@
 #$ -P glaciermod
 #$ -j y
 #$ -pe omp 12
+#$ -l h_rt=24:00:00
 
 # define parameters
 yalebox_path=/projectnb/glaciermod/yalebox-piv
