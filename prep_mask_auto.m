@@ -50,8 +50,8 @@ validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}
 validateattributes(value_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(entropy_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(entropy_len, {'numeric'}, {'scalar', 'integer', 'positive'});
-validateattributes(morph_open_rad, {'numeric'}, {'scalar', 'positive'});
-validateattributes(morph_erode_rad, {'numeric'}, {'scalar', 'positive'});
+validateattributes(morph_open_rad, {'numeric'}, {'scalar', '>=', 0});
+validateattributes(morph_erode_rad, {'numeric'}, {'scalar', '>=', 0});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
@@ -86,10 +86,14 @@ object_label = bwlabel(mask);
 largest_object = mode(object_label(object_label>0));
 mask = object_label == largest_object;
 
-% % clean up edges with morphological filters
-% % ...remove noise (open), then trim boundary (erode)
-% mask = imopen(mask, strel('disk', morph_open_rad));
-% mask = imerode(mask, strel('disk', morph_erode_rad));
+% clean up edges with morphological filters
+% ...remove noise (open), then trim boundary (erode)
+if morph_open_rad > 0
+    mask = imopen(mask, strel('disk', morph_open_rad));
+end
+if morph_erode_rad > 0
+    mask = imerode(mask, strel('disk', morph_erode_rad));
+end
 
 % (optional) plot to facilitate parameter selection
 if show
