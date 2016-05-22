@@ -1,5 +1,5 @@
-function img_a = movie_aux_scalebar(img, x, y, str, pos, clr, opac, fsize, fclr, bclr, bopac)
-% function img_a = movie_aux_scalebar(img, x, y, str, pos, clr, opac, fsize, fclr, bclr, bopac)
+function img_a = movie_frame_scalebar(img, x, y, str, pos, clr, opac, fsize, fclr, bclr, bopac)
+% function img_a = movie_frame_scalebar(img, x, y, str, pos, clr, opac, fsize, fclr, bclr, bopac)
 %
 % Add scalebar annotation to the input image using MATLABs insertShape and
 % insertText functions.

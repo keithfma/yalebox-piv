@@ -1,4 +1,4 @@
-function [rimg, rx, ry] = movie_aux_resize(img, x, y, max_dim)
+function [rimg, rx, ry] = movie_frame_resize(img, x, y, max_dim)
 %
 % Resample image such that it does not exceed the specified dimensions and
 % the aspect ratio is preserved. Uses the MATLAB function imresize to
