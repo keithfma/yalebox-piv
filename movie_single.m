@@ -98,19 +98,30 @@ function [] = movie_single(prm, show_frame)
 % %
 
 % parse inputs
-make_movie = nargin < 4 || isempty(show_frame);
+make_movie = nargin < 2 || isempty(show_frame);
+is_color = strcmp(prm.input_var, 'img_raw');
 
 % get netcdf ids
-ncid = netcdf.open(input_file, 'NOWRITE');
-intens_id = netcdf.inqVarID(ncid, 'intensity');
+ncid = netcdf.open(prm.input_file, 'NOWRITE');
+img_id = netcdf.inqVarID(ncid, prm.input_var);
 
 % get coordinate vectors
 x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
 y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
 
-% prepare movie object: 16-bit grayscale Motion JPEG 2000, lossless compression
-if make_movie
+% prepare movie object...
+if make_movie && ~is_color
+    %...16-bit grayscale Motion JPEG 2000, lossless compression
+    output_file_matlab = [prm.output_stub '.mj2'];
+    movie_writer = VideoWriter(output_file_matlab, 'Archival');
+    movie_writer.MJ2BitDepth = 16;
+    movie_writer.FrameRate = prm.frame_rate; % frames/second
+    movie_writer.open();
+end
+if make_movie && is_color
+    %...24-bit grayscale Motion JPEG 2000, lossless compression
+    output_file = [prm.output_stub '.mj2'];
     movie_writer = VideoWriter(output_file, 'Archival');
     movie_writer.MJ2BitDepth = 16;
     movie_writer.FrameRate = prm.frame_rate; % frames/second
@@ -118,7 +129,7 @@ if make_movie
 end
 
 % loop: read data, annotate images, create frames
-intens_prev = zeros(numel(y), numel(x));
+img_prev = zeros(numel(y), numel(x));
 for i = 1:numel(step)
 
     if ~make_movie && step(i) ~= show_frame
@@ -128,16 +139,20 @@ for i = 1:numel(step)
     % update user
     fprintf('step: %i\n', step(i));
  
-    % read intensity image
-    intens = netcdf.getVar(ncid, intens_id, [0, 0, i-1], [numel(x), numel(y), 1])';
+    % read image
+    if is_color
+        % TBD
+    else
+        img = netcdf.getVar(ncid, img_id, [0, 0, i-1], [numel(y), numel(x), 1]);
+    end
     
     % apply threshold and decay
-    intens(intens<prm.threshold) = 0;
-    intens = intens + intens_prev*prm.memory;
-    intens_prev = intens; % prep for next frame
+    img(img<prm.threshold) = 0;
+    img = img + img_prev*prm.memory;
+    img_prev = img; % prep for next frame
     
     % resize and reshape image as needed
-    [frame, xf, yf] = movie_frame_resize(intens, x, y, prm.max_dim);
+    [frame, xf, yf] = movie_frame_resize(img, x, y, prm.max_dim);
     [frame, yf] = movie_frame_flip(frame, yf);
     
     % add annotations (triangles, scale, title, counter)
@@ -164,12 +179,31 @@ end
 
 % finalize
 netcdf.close(ncid);
-if make_movie
-    movie_writer.close();
-    fprintf('Run the following command to re-encode as an MP4 video:\n');
-    fprintf('\tavconv <original video> -c:v libx264 -aspect:v %f <new mp4 video>\n', ...
-        size(frame, 2)/size(frame, 1));    
-else
+
+if ~make_movie
+    % display processed frame
     imshow(frame);
+else
+    % finish movie and convert movie to better format using ffmpeg
+    % ...MATLAB for Linux video support is limited, so I use ffmpeg
+    % ...ffmpeg commands lines modified from https://trac.ffmpeg.org/wiki/Encode/H.264
+    movie_writer.close();
+    
+    output_file_ffmpeg = [prm.output_stub, '.mp4'];
+    output_file_ffmpeg_small = [prm.output_stub, '_small.mp4'];
+    
+    cmd_ffmpeg = sprintf('ffmpeg -i %s -c:v libx264 -preset veryslow -crf 18  -aspect:v %f -pix_fmt yuv420p %s', ...
+        output_file_matlab, size(frame,2)/size(frame,1), output_file_ffmpeg);
+    cmd_ffmpeg_small = sprintf('ffmpeg -i %s -c:v libx264 -preset veryslow -crf 28  -aspect:v %f -pix_fmt yuv420p %s', ...
+        output_file_matlab, size(frame,2)/size(frame,1), output_file_ffmpeg_small);
+    
+    system(cmd_ffmpeg);
+    system(cmd_ffmpeg_small);
+    
+    fprintf('%s: Complete\n', mfilename);
+    fprintf('Generated the following files:\n');
+    fprintf('- original movie (MATLAB): %s\n', output_file_matlab);
+    fprintf('- high quality re-encoded movie (FFMPEG): %s\n', output_file_ffmpeg);
+    fprintf('- small(er) re-encoded movie (FFMPEG): %s\n', output_file_ffmpeg_small);
 end
 

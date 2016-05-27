@@ -7,9 +7,9 @@
 %% Define parameters
 
 % source parameters
-input_file = 'my_input.nc'; 
-output_stub = 'my_output'; 
-input_var = 'image'; 
+prm.input_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_02_siden_image.nc'; 
+prm.output_stub = 'fault_ss_02_siden_movie_bw'; 
+prm.input_var = 'img'; 
 
 % video parameters
 prm.frame_rate = 7;
@@ -51,4 +51,5 @@ prm.count_box_opac = 0;
 %% Test parameters
 
 show_frame_number = 1;
+movie_single(prm, show_frame_number)
 

@@ -1,8 +1,9 @@
 function [rimg, rx, ry] = movie_frame_resize(img, x, y, max_dim)
 %
-% Resample image such that it does not exceed the specified dimensions and
-% the aspect ratio is preserved. Uses the MATLAB function imresize to
-% interpolate and apply anti-aliasing filter.
+% Resample image such that it does not exceed the specified dimensions and the
+% aspect ratio is preserved. Uses the MATLAB function imresize to interpolate
+% and apply anti-aliasing filter. Requires that both output dimensions be even
+% to be compatible with common video codecs (i.e. H.264)
 %
 % Arguments:
 % 
@@ -50,6 +51,16 @@ if nx > max_dim(1) || ny > max_dim(2) % resize
             'Method', 'lanczos3',...            
             'Antialiasing', true);
         
+    end
+    
+    % delete one row/col if dimension is not even
+    if mod(numel(rx), 2) == 1
+        rx = rx(1:end-1);
+        rimg = rimg(:, 1:end-1);
+    end
+     if mod(numel(ry), 2) == 1
+        ry = ry(1:end-1);
+        rimg = rimg(1:end-1, :);
     end
     
     % trim values interpolated outside of valid [0, 1] range
