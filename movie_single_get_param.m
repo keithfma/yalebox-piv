@@ -8,14 +8,14 @@
 
 % source parameters
 prm.input_file = '~/Documents/dissertation/yalebox-exp-fault/data/fault_ss_02_siden_image.nc'; 
-prm.output_stub = 'fault_ss_02_siden_movie_bw'; 
+prm.output_stub = 'fault_ss_02_siden_movie_bw_streak'; 
 prm.input_var = 'img'; 
 
 % video parameters
 prm.frame_rate = 7;
 prm.max_dim = [1920, 1080];
-prm.threshold = -inf;
-prm.memory = 0;
+prm.threshold = 0.975;
+prm.memory = 0.25;
 
 % s-point triangle annotation parameters
 prm.tri_tip = [0, 0; -0.15, 0]; % 1 triangle per row, position in m

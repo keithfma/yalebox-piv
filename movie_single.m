@@ -99,19 +99,21 @@ function [] = movie_single(prm, show_frame)
 
 % parse inputs
 make_movie = nargin < 2 || isempty(show_frame);
-is_color = strcmp(prm.input_var, 'img_raw');
+is_raw = strcmp(prm.input_var, 'img_raw');
 
 % get netcdf ids
 ncid = netcdf.open(prm.input_file, 'NOWRITE');
 img_id = netcdf.inqVarID(ncid, prm.input_var);
+mask_auto_id = netcdf.inqVarID(ncid, 'mask_auto');
 
-% get coordinate vectors
+% get constant vars
 x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
 y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
+mask_manual = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_manual'));
 
 % prepare movie object...
-if make_movie && ~is_color
+if make_movie && ~is_raw
     %...16-bit grayscale Motion JPEG 2000, lossless compression
     output_file_matlab = [prm.output_stub '.mj2'];
     movie_writer = VideoWriter(output_file_matlab, 'Archival');
@@ -119,17 +121,17 @@ if make_movie && ~is_color
     movie_writer.FrameRate = prm.frame_rate; % frames/second
     movie_writer.open();
 end
-if make_movie && is_color
+if make_movie && is_raw
     %...24-bit grayscale Motion JPEG 2000, lossless compression
-    output_file = [prm.output_stub '.mj2'];
-    movie_writer = VideoWriter(output_file, 'Archival');
-    movie_writer.MJ2BitDepth = 16;
+    output_file_matlab = [prm.output_stub '.mj2'];
+    movie_writer = VideoWriter(output_file_matlab, 'Archival');
+    movie_writer.MJ2BitDepth = 8;
     movie_writer.FrameRate = prm.frame_rate; % frames/second
     movie_writer.open();
 end
 
 % loop: read data, annotate images, create frames
-img_prev = zeros(numel(y), numel(x));
+img_prev = 0;
 for i = 1:numel(step)
 
     if ~make_movie && step(i) ~= show_frame
@@ -140,10 +142,14 @@ for i = 1:numel(step)
     fprintf('step: %i\n', step(i));
  
     % read image
-    if is_color
-        % TBD
+    if is_raw
+        img = netcdf.getVar(ncid, img_id, [0, 0, 0, i-1], [numel(y), numel(x), 3, 1]);
+        mask_auto = netcdf.getVar(ncid, mask_auto_id, [0, 0, i-1], [numel(y), numel(x), 1]);
+        mask = mask_auto & mask_manual;
+        img(repmat(~mask, [1, 1, 3])) = 0;
     else
         img = netcdf.getVar(ncid, img_id, [0, 0, i-1], [numel(y), numel(x), 1]);
+        img = double(img);
     end
     
     % apply threshold and decay
@@ -172,7 +178,7 @@ for i = 1:numel(step)
 
     % add frame to movie
     if make_movie
-        writeVideo(movie_writer, im2frame(double(frame)));
+        writeVideo(movie_writer, im2frame(frame));
     end
     
 end

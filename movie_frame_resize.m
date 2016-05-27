@@ -24,6 +24,7 @@ function [rimg, rx, ry] = movie_frame_resize(img, x, y, max_dim)
 
 nx = numel(x);
 ny = numel(y);
+nc = size(img,3); % colors
 
 if nx > max_dim(1) || ny > max_dim(2) % resize
     
@@ -56,16 +57,18 @@ if nx > max_dim(1) || ny > max_dim(2) % resize
     % delete one row/col if dimension is not even
     if mod(numel(rx), 2) == 1
         rx = rx(1:end-1);
-        rimg = rimg(:, 1:end-1);
+        rimg = rimg(:, 1:end-1, :);
     end
      if mod(numel(ry), 2) == 1
         ry = ry(1:end-1);
-        rimg = rimg(1:end-1, :);
+        rimg = rimg(1:end-1, :, :);
     end
     
     % trim values interpolated outside of valid [0, 1] range
-    rimg(rimg>1) = 1;
-    rimg(rimg<0) = 0;
+    if isa(rimg, 'double')
+        rimg(rimg>1) = 1;
+        rimg(rimg<0) = 0;
+    end
     
 else % no resize needed
     rimg = img;
