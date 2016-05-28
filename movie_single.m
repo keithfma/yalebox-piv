@@ -1,6 +1,6 @@
-function [] = movie_single(prm, show_frame)
-% function [] = movie_single(prm, show_frame)
-% 
+function [] = movie_single(prm, movie_type, show_frame)
+% function [] = movie_single(prm, movie_type, show_frame)
+%
 % Generate video for a single view of a yalebox experiment from the output of
 % the pre-processing routine prep_series(). The (many) parameters below control
 % the content, size, annotation, memory, etc for the video. All processing is
@@ -9,15 +9,12 @@ function [] = movie_single(prm, show_frame)
 % command line needed to do so.
 %
 % ----- Source parameters -----
-% 
+%
 % prm.input_file = String, path to input netCDF file as produced by
 %   prep_series()
 %
 % prm.output_stub = String, path to output video file, without file extension
 %
-% prm.input_var = String, name of the netCDF variable that contains the input
-%   images, valid selections are: img, img_raw
-% 
 % ----- Video parameters -----
 %
 % prm.frame_rate = Scalar integer, frames/sec in output video
@@ -35,10 +32,10 @@ function [] = movie_single(prm, show_frame)
 % ----- S-point triangle annotation parameters -----
 %
 % prm.tri_tip = Vector, size = [number of triangles, 2], tip location of s-point
-%   triangles in [x, y] world coordinates, with 1 triangle in each row 
+%   triangles in [x, y] world coordinates, with 1 triangle in each row
 %
 % prm.tri_len = Scalar, side length for all (equilateral) triangles in world
-%   coordinates 
+%   coordinates
 %
 % prm.tri_color = String, color definition MATLAB can understand, e.g. 'red'
 %
@@ -49,7 +46,7 @@ function [] = movie_single(prm, show_frame)
 % prm.title_str = Cell array of strings, title string for each experiment
 %   segment
 %
-% prm.title_str_start = Vector, starting index for each experiment segment 
+% prm.title_str_start = Vector, starting index for each experiment segment
 %
 % prm.title_size = Scalar, integer, title font size in points
 %
@@ -58,8 +55,8 @@ function [] = movie_single(prm, show_frame)
 % prm.title_box_color = String, color definition MATLAB can understand
 %
 % prm.title_box_opacity = Scalar, range [0, 1], "alpha" for the title box
-% 
-% ----- Scalebar annotation parameters ----- 
+%
+% ----- Scalebar annotation parameters -----
 %
 % prm.scale_pos = Vector, scalebar location and size as a MATLAB position vector
 %   in world units, [left, bottom, width, height]
@@ -78,7 +75,7 @@ function [] = movie_single(prm, show_frame)
 %
 % prm.scale_box_opacity = Scalar, range [0, 1], "alpha" for the scale label box
 %
-% ----- Counter annotation parameters ----- 
+% ----- Counter annotation parameters -----
 %
 % prm.count_pos = Vector, counter position in [x, y] world units
 %
@@ -89,8 +86,10 @@ function [] = movie_single(prm, show_frame)
 % prm.count_box_color = String, color definition MATLAB can understand, e.g. 'red'
 %
 % prm.count_box_opac = Scalar, range [0, 1], "alpha" for the counter text box
-% 
+%
 % ----- Other -----
+%
+% movie_type = String, select movie type, valid options are: color, streak
 %
 % show_frame = OPTIONAL, show a single frame at step == show_frame, do not
 %   process other frames or make a movie, used for testing parameter
@@ -98,74 +97,63 @@ function [] = movie_single(prm, show_frame)
 % %
 
 % parse inputs
-make_movie = nargin < 2 || isempty(show_frame);
-is_raw = strcmp(prm.input_var, 'img_raw');
+make_movie = nargin < 3 || isempty(show_frame);
+assert(ismember(movie_type, {'color', 'streak'}));
+switch movie_type
+    case 'color'        
+        read_image = @read_image_color;
+        output_file_matlab = [prm.output_stub '_color.mj2'];
+        
+    case 'streak'
+        read_image = @read_image_gray;
+        output_file_matlab = [prm.output_stub '_streak.mj2'];
+        img_prev = 0;
+        
+end
 
-% get netcdf ids
+% open netCDF file and get coordinate vars
 ncid = netcdf.open(prm.input_file, 'NOWRITE');
-img_id = netcdf.inqVarID(ncid, prm.input_var);
-mask_auto_id = netcdf.inqVarID(ncid, 'mask_auto');
-
-% get constant vars
 x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
 y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
 step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
-mask_manual = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_manual'));
 
-% prepare movie object...
-if make_movie && ~is_raw
-    %...16-bit grayscale Motion JPEG 2000, lossless compression
-    output_file_matlab = [prm.output_stub '.mj2'];
+% prepare movie object...format = motion JPEG 2000, lossless compression
+if make_movie
     movie_writer = VideoWriter(output_file_matlab, 'Archival');
-    movie_writer.MJ2BitDepth = 16;
-    movie_writer.FrameRate = prm.frame_rate; % frames/second
-    movie_writer.open();
-end
-if make_movie && is_raw
-    %...24-bit grayscale Motion JPEG 2000, lossless compression
-    output_file_matlab = [prm.output_stub '.mj2'];
-    movie_writer = VideoWriter(output_file_matlab, 'Archival');
-    movie_writer.MJ2BitDepth = 8;
     movie_writer.FrameRate = prm.frame_rate; % frames/second
     movie_writer.open();
 end
 
 % loop: read data, annotate images, create frames
-img_prev = 0;
 for i = 1:numel(step)
-
+    
     if ~make_movie && step(i) ~= show_frame
         continue
     end
-
+    
     % update user
     fprintf('step: %i\n', step(i));
- 
-    % read image
-    if is_raw
-        img = netcdf.getVar(ncid, img_id, [0, 0, 0, i-1], [numel(y), numel(x), 3, 1]);
-        mask_auto = netcdf.getVar(ncid, mask_auto_id, [0, 0, i-1], [numel(y), numel(x), 1]);
-        mask = mask_auto & mask_manual;
-        img(repmat(~mask, [1, 1, 3])) = 0;
-    else
-        img = netcdf.getVar(ncid, img_id, [0, 0, i-1], [numel(y), numel(x), 1]);
-        img = double(img);
-    end
     
-    % apply threshold and decay
-    img(img<prm.threshold) = 0;
-    img = img + img_prev*prm.memory;
-    img_prev = img; % prep for next frame
+    % read image
+    img = read_image(ncid, numel(x), numel(y), i);
     
     % resize and reshape image as needed
-    [frame, xf, yf] = movie_frame_resize(img, x, y, prm.max_dim);
-    [frame, yf] = movie_frame_flip(frame, yf);
+    [img, xf, yf] = movie_frame_resize(img, x, y, prm.max_dim);
+    [img, yf] = movie_frame_flip(img, yf);
+    
+    % streak only: apply threshold and decay
+    if strcmp(movie_type, 'streak')        
+        img(img<prm.streak_threshold) = 0;
+        img(img>=prm.streak_threshold) = 1;
+        img = img + img_prev*prm.streak_memory;
+        img_prev = img; 
+    end
     
     % add annotations (triangles, scale, title, counter)
-    frame = movie_frame_spoint(frame, xf, yf, prm.tri_tip, prm.tri_len, ...
+    frame = movie_frame_spoint(img, xf, yf, prm.tri_tip, prm.tri_len, ...
         prm.tri_color, prm.tri_opacity);
     
-    title_ind = find(step(i) >= prm.title_str_start , 1, 'last');    
+    title_ind = find(step(i) >= prm.title_str_start , 1, 'last');
     frame = movie_frame_title(frame, prm.title_str{title_ind}, ...
         prm.title_size, prm.title_color, prm.title_box_color, prm.title_box_opacity);
     
@@ -175,7 +163,7 @@ for i = 1:numel(step)
     
     frame = movie_frame_counter(frame, xf, yf, step(i), prm.count_pos, ...
         prm.count_size, prm.count_color, prm.count_box_color, prm.count_box_opac);
-
+    
     % add frame to movie
     if make_movie
         writeVideo(movie_writer, im2frame(frame));
@@ -188,6 +176,7 @@ netcdf.close(ncid);
 
 if ~make_movie
     % display processed frame
+    figure
     imshow(frame);
 else
     % finish movie and convert movie to better format using ffmpeg
@@ -208,8 +197,24 @@ else
     
     fprintf('%s: Complete\n', mfilename);
     fprintf('Generated the following files:\n');
-    fprintf('- original movie (MATLAB): %s\n', output_file_matlab);
-    fprintf('- high quality re-encoded movie (FFMPEG): %s\n', output_file_ffmpeg);
-    fprintf('- small(er) re-encoded movie (FFMPEG): %s\n', output_file_ffmpeg_small);
+    fprintf('-original (MATLAB): %s\n', output_file_matlab);
+    fprintf('-high quality(FFMPEG): %s\n', output_file_ffmpeg);
+    fprintf('-small (FFMPEG): %s\n', output_file_ffmpeg_small);
 end
 
+
+function im = read_image_gray(ncid, nx, ny, step)
+% Read grayscale image from netCDF variable 'img'
+
+im = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'img'), [0, 0, step-1], [ny, nx, 1]);
+im = double(im);
+
+
+function im = read_image_color(ncid, nx, ny, step)
+% Read color image from netCDF variable 'img_rgb'
+
+im = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'img_rgb'), [0, 0, 0, step-1], [ny, nx, 3, 1]);
+mask_auto = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_auto'), [0, 0, step-1], [ny, nx, 1]);
+mask_manual = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_manual'));
+mask = mask_auto & mask_manual;
+im(repmat(~mask, [1, 1, 3])) = 0;
