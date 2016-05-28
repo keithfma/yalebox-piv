@@ -113,7 +113,7 @@ rgb_varid = netcdf.defVar(ncid, 'rgb', 'NC_CHAR', rgb_dimid);
 netcdf.putAtt(ncid, rgb_varid, 'long_name', 'color band');
 netcdf.putAtt(ncid, rgb_varid, 'units', 'char');
 
-raw_varid = netcdf.defVar(ncid, 'img_raw', 'NC_UBYTE', [y_dimid, x_dimid, rgb_dimid, step_dimid]);
+raw_varid = netcdf.defVar(ncid, 'img_rgb', 'NC_UBYTE', [y_dimid, x_dimid, rgb_dimid, step_dimid]);
 netcdf.putAtt(ncid, raw_varid, 'long_name', 'rectified rgb image');
 netcdf.putAtt(ncid, raw_varid, 'units', '24-bit color');
 netcdf.defVarDeflate(ncid, raw_varid, true, true, 1);
