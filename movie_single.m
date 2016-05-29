@@ -110,7 +110,7 @@ switch movie_type
         read_image = @read_image_gray;
         output_file_matlab = [prm.output_stub '_streak.mj2'];
         output_file_ffmpeg = [prm.output_stub, '_streak.mp4'];
-        output_file_ffmpeg_small = [prm.output_stub, 'streak_small.mp4'];
+        output_file_ffmpeg_small = [prm.output_stub, '_streak_small.mp4'];
         img_prev = 0;
         
 end
@@ -188,8 +188,6 @@ else
     % ...MATLAB for Linux video support is limited, so I use ffmpeg
     % ...ffmpeg commands lines modified from https://trac.ffmpeg.org/wiki/Encode/H.264
     movie_writer.close();
-    
-
     
     cmd_ffmpeg = sprintf('ffmpeg -i %s -c:v libx264 -preset veryslow -crf 18  -aspect:v %f -pix_fmt yuv420p %s', ...
         output_file_matlab, size(frame,2)/size(frame,1), output_file_ffmpeg);

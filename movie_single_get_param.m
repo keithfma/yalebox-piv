@@ -10,7 +10,7 @@ prm.output_stub = '~/Documents/dissertation/yalebox-exp-fault/movie/fault_ss_02_
 % video parameters
 prm.frame_rate = 8;
 prm.max_dim = [1920, 1080];
-prm.streak_threshold = 0.95;  
+prm.streak_threshold = 1;  
 prm.streak_memory = 0.5; 
 
 % s-point triangle annotation parameters
@@ -46,7 +46,7 @@ prm.count_box_opac = 0;
 
 %% Test parameters
 
-show_frame_number = 227;
+show_frame_number = 35;
 movie_single(prm, 'color', show_frame_number);
 movie_single(prm, 'streak', show_frame_number);
 
