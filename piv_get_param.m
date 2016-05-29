@@ -19,10 +19,10 @@ ini_index = find(step == ini_step);
 mask_manual = ncread(image_in_file, 'mask_manual');
 mask_manual = logical(mask_manual);
 
-ini = ncread(image_in_file, 'image', [1, 1, ini_index],   [inf, inf, 1]); 
+ini = ncread(image_in_file, 'img', [1, 1, ini_index],   [inf, inf, 1]); 
 ini = double(ini);
 
-fin = ncread(image_in_file, 'image', [1, 1, ini_index+1], [inf, inf, 1]); 
+fin = ncread(image_in_file, 'img', [1, 1, ini_index+1], [inf, inf, 1]); 
 fin = double(fin);
 
 ini_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index],   [inf, inf, 1]); 
