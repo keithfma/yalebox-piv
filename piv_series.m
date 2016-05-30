@@ -123,7 +123,7 @@ for ii = 1:ns
     img0 = img1;
     roi0 = roi1;
     
-    img1 = double(ncread(input_file, 'image', [1, 1, ii+1], [inf, inf, 1]));
+    img1 = double(ncread(input_file, 'img', [1, 1, ii+1], [inf, inf, 1]));
     roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])) & roi_const;
     
     % perform piv analysis
