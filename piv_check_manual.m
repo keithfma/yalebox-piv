@@ -37,7 +37,8 @@ share = struct(...
     'result_nc', [result_prefix, '.nc'], ...
     'result_fig_loc', [result_prefix, '_loc.fig'], ...
     'result_fig_pdf', [result_prefix, '_pdf.fig'], ...
-    'result_fig_vs', [result_prefix, '_vs.fig'], ...
+    'result_fig_dist_bnd', [result_prefix, '_dist_bnd.fig'], ...
+    'result_fig_dist_top', [result_prefix, '_dist_top.fig'], ...
     'ini', [], ...
     'fin', [], ...
     'image_x', [], ...
@@ -58,7 +59,8 @@ share = struct(...
 if exist(share.result_nc, 'file') == 2 ...
         || exist(share.result_fig_loc, 'file') == 2 ...
         || exist(share.result_fig_pdf, 'file') == 2 ...
-        || exist(share.result_fig_vs, 'file') == 2
+        || exist(share.result_fig_dist_bnd, 'file') == 2 ...
+        || exist(share.result_fig_dist_top, 'file') == 2
     
     but = questdlg('One or more results file exists', 'WARNING', 'OVERWRITE','EXIT','EXIT', 'EXIT');
     if strcmp(but, 'OVERWRITE') ~= 1
@@ -235,16 +237,11 @@ close(hui.Parent);
 ctrl_u_piv = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
 ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
 
-% compute distance to sand boundary for control points
-roi = ~isnan(share.piv_u);
-piv_d = bwdist(bwperim(roi));
-piv_d(~roi) = NaN;
-ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'linear'); % pixels
-pixel_to_meter = abs(share.piv_x(1)-share.piv_x(2));
-ctrl_d = ctrl_d*pixel_to_meter;
-
-% compute distance to the upper boundary for control points
-
+% interpolate distance to boundary and top boundary for control points
+ctrl_d_bnd = interp2(share.image_x, share.image_y, share.image_dist_bnd, ...
+    share.ctrl_x, share.ctrl_y, 'linear');
+ctrl_d_top = interp2(share.image_x, share.image_y, share.image_dist_bnd_top, ...
+    share.ctrl_x, share.ctrl_y, 'linear');
 
 % compute results vars
 ctrl_m = sqrt(share.ctrl_u.^2+share.ctrl_v.^2);
@@ -284,9 +281,13 @@ var_ctrl_y = netcdf.defVar(ncid, 'ctrl_y', 'NC_DOUBLE', dim_pt);
 netcdf.putAtt(ncid, var_ctrl_y, 'long_name', 'control point y-position');
 netcdf.putAtt(ncid, var_ctrl_y, 'units', 'meters');
 
-var_ctrl_d = netcdf.defVar(ncid, 'ctrl_d', 'NC_DOUBLE', dim_pt);
-netcdf.putAtt(ncid, var_ctrl_d, 'long_name', 'control point distance to boundary');
-netcdf.putAtt(ncid, var_ctrl_d, 'units', 'meters');
+var_ctrl_d_bnd = netcdf.defVar(ncid, 'ctrl_d_bnd', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_d_bnd, 'long_name', 'control point distance to boundary');
+netcdf.putAtt(ncid, var_ctrl_d_bnd, 'units', 'meters');
+
+var_ctrl_d_top = netcdf.defVar(ncid, 'ctrl_d_top', 'NC_DOUBLE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_d_top, 'long_name', 'control point distance to top boundary');
+netcdf.putAtt(ncid, var_ctrl_d_top, 'units', 'meters');
 
 var_ctrl_u_man = netcdf.defVar(ncid, 'ctrl_u_man', 'NC_DOUBLE', dim_pt);
 netcdf.putAtt(ncid, var_ctrl_u_man, 'long_name', 'control point displacement, x-component, manual estimate');
@@ -341,7 +342,8 @@ netcdf.endDef(ncid);
 netcdf.putVar(ncid, var_pt, 1:share.num_pts);
 netcdf.putVar(ncid, var_ctrl_x, share.ctrl_x);
 netcdf.putVar(ncid, var_ctrl_y, share.ctrl_y);
-netcdf.putVar(ncid, var_ctrl_d, ctrl_d);
+netcdf.putVar(ncid, var_ctrl_d_bnd, ctrl_d_bnd);
+netcdf.putVar(ncid, var_ctrl_d_top, ctrl_d_top);
 netcdf.putVar(ncid, var_ctrl_u_man, share.ctrl_u);
 netcdf.putVar(ncid, var_ctrl_v_man, share.ctrl_v);
 netcdf.putVar(ncid, var_ctrl_u_piv, ctrl_u_piv);
@@ -406,31 +408,57 @@ ylabel('\rho');
 
 saveas(hf, share.result_fig_pdf);
 
-% plot piv vs. manual (u, v, mag, theta)
+% plot piv-manual vs distance from boundary
 hf = figure;
 hf.Name = 'piv_check_manual';
 
 subplot(2,2,1);
-plot(1000*ctrl_d, diff_u, 'xk');
+plot(1000*ctrl_d_bnd, diff_u, 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('u_{PIV-manual}, mm');
 
 subplot(2,2,2);
-plot(1000*ctrl_d, diff_v, 'xk');
+plot(1000*ctrl_d_bnd, diff_v, 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('v_{PIV-manual}, mm');
 
 subplot(2,2,3);
-plot(1000*ctrl_d, diff_m, 'xk');
+plot(1000*ctrl_d_bnd, diff_m, 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('mag_{PIV-manual}, mm');
 
 subplot(2,2,4);
-plot(1000*ctrl_d, diff_theta, 'xk');
+plot(1000*ctrl_d_bnd, diff_theta, 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('\theta_{PIV-manual}, deg');
 
-saveas(hf, share.result_fig_vs);
+saveas(hf, share.result_fig_dist_bnd);
+
+% plot piv-manual vs distance from boundary
+hf = figure;
+hf.Name = 'piv_check_manual';
+
+subplot(2,2,1);
+plot(1000*ctrl_d_top, diff_u, 'xk');
+xlabel('Dist to Top, mm');
+ylabel('u_{PIV-manual}, mm');
+
+subplot(2,2,2);
+plot(1000*ctrl_d_top, diff_v, 'xk');
+xlabel('Dist to Top, mm');
+ylabel('v_{PIV-manual}, mm');
+
+subplot(2,2,3);
+plot(1000*ctrl_d_top, diff_m, 'xk');
+xlabel('Dist to Top, mm');
+ylabel('mag_{PIV-manual}, mm');
+
+subplot(2,2,4);
+plot(1000*ctrl_d_top, diff_theta, 'xk');
+xlabel('Dist to Top, mm');
+ylabel('\theta_{PIV-manual}, deg');
+
+saveas(hf, share.result_fig_dist_top);
 
 end
 
