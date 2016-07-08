@@ -90,6 +90,22 @@ share.piv_roi = double(~isnan(share.piv_m));
 share.piv_x = double(ncread(displ_file, 'x'));
 share.piv_y = double(ncread(displ_file, 'y'));
 
+% compute gridded distance to boundaries
+share.image_meters_per_pixel = abs(diff(share.image_x(1:2)));
+share.image_roi = (share.ini > 0) | (share.fin > 0);
+
+bnd = bwperim(share.image_roi);
+share.image_dist_bnd = bwdist(bnd)*share.image_meters_per_pixel;
+
+bnd_top = zeros(size(share.ini));
+for jj = 1:size(bnd_top, 2)
+    ii = find(share.image_roi(:,jj) == 1, 1, 'last');
+    if ~isempty(ii)
+        bnd_top(ii,jj) = 1;
+    end
+end
+share.image_dist_bnd_top = bwdist(bnd_top)*share.image_meters_per_pixel;
+
 % create full-screen figure and attach shared data, invisible until init is completed
 hf = figure;
 hf.Units = 'Normalized';
@@ -226,6 +242,9 @@ piv_d(~roi) = NaN;
 ctrl_d = interp2(share.piv_x, share.piv_y, piv_d, share.ctrl_x, share.ctrl_y, 'linear'); % pixels
 pixel_to_meter = abs(share.piv_x(1)-share.piv_x(2));
 ctrl_d = ctrl_d*pixel_to_meter;
+
+% compute distance to the upper boundary for control points
+
 
 % compute results vars
 ctrl_m = sqrt(share.ctrl_u.^2+share.ctrl_v.^2);
@@ -566,8 +585,6 @@ end
 share.ctrl_u = interp2(share.piv_x, share.piv_y, share.piv_u, share.ctrl_x, share.ctrl_y, 'linear');
 share.ctrl_v = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.ctrl_y, 'linear');
 
-% TO DO: compute distance to the boundary at the control points
-
 % set shared data
 set(gcf, 'UserData', share);
 
@@ -602,6 +619,3 @@ else
 end
 
 end
-
-
-
