@@ -77,14 +77,14 @@ image_index_tf = displ_index_tm+1;
 assert(image_step(image_index_ti) == floor(step));
 assert(image_step(image_index_tf) == ceil(step));
 
-% extract image, displacement, and coordinate data, transposing as needed
-share.ini = double(ncread(image_file, 'intensity', [1, 1, image_index_ti], [inf, inf, 1]))';
-share.fin = double(ncread(image_file, 'intensity', [1, 1, image_index_tf], [inf, inf, 1]))';
+% extract image, displacement, and coordinate data
+share.ini = double(ncread(image_file, 'img', [1, 1, image_index_ti], [inf, inf, 1]));
+share.fin = double(ncread(image_file, 'img', [1, 1, image_index_tf], [inf, inf, 1]));
 share.image_x = double(ncread(image_file, 'x'));
 share.image_y = double(ncread(image_file, 'y'));
 
-share.piv_u = double(ncread(displ_file, 'u', [1, 1, displ_index_tm], [inf, inf, 1]))';
-share.piv_v = double(ncread(displ_file, 'v', [1, 1, displ_index_tm], [inf, inf, 1]))';
+share.piv_u = double(ncread(displ_file, 'u', [1, 1, displ_index_tm], [inf, inf, 1]));
+share.piv_v = double(ncread(displ_file, 'v', [1, 1, displ_index_tm], [inf, inf, 1]));
 share.piv_m = sqrt(share.piv_u.^2 + share.piv_v.^2);
 share.piv_roi = double(~isnan(share.piv_m));
 share.piv_x = double(ncread(displ_file, 'x'));
@@ -116,7 +116,7 @@ hpt.setColor('k');
 set(gca, 'Tag', 'ax_fin', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Final Image');
 
-% create num_pts control
+% create controls
 text_num_pts = uicontrol('Style', 'text');
 text_num_pts.Units = 'Normalized';
 text_num_pts.Position = [0.85, 0.85, 0.1, 0.05];

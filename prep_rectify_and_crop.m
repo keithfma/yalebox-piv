@@ -1,5 +1,5 @@
 function [rgb_r, coord_x, coord_y] = ...
-    prep_rectify_and_crop_fix(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
+    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % function [rgb_r, coord_x, coord_y] = ...
 %     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
 % 
@@ -25,7 +25,7 @@ function [rgb_r, coord_x, coord_y] = ...
 %
 % show = Logical flag, plot the rectified image, default = false 
 %
-% show = Logical flag, print verbose messages, default = false 
+% verbose = Logical flag, print verbose messages, default = false 
 %
 % rgb_r = 3D matrix, rectified and cropped image
 %
@@ -51,6 +51,12 @@ if verbose
         mfilename, size(rgb, 1), size(rgb, 2), size(rgb, 3));
 end
 
+% ensure control points are column vectors
+ctrl_xw = ctrl_xw(:);
+ctrl_yw = ctrl_yw(:);
+ctrl_xp = ctrl_xp(:);
+ctrl_yp = ctrl_yp(:);
+
 % get pixel size from median of pairwise distance between all points
 Dw = pdist([ctrl_xw, ctrl_yw]);
 Dp = pdist([ctrl_xp, ctrl_yp]);
@@ -70,7 +76,6 @@ origin_yr = 0;
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('off', 'images:geotrans:estimateOutputBoundsFailed');
 tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', 10);
-% tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'projective');
 imref = imref2d([size(rgb,1), size(rgb,2)]);
 [rgb_r, imref_r] = imwarp(rgb, imref, tform, 'cubic');
 warning('on', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
