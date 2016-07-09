@@ -51,7 +51,9 @@ share = struct(...
     'piv_u', [], ...
     'piv_v', [], ...
     'piv_m', [], ...
-    'num_pts', 20, ...
+    'top_num_pts', 10, ...
+    'rand_num_pts', 20, ...
+    'num_pts', 30, ...
     'xmin_pts', [], ...
     'xmax_pts', [], ...
     'ctrl_x', [], ...
@@ -153,44 +155,53 @@ set(gca, 'Tag', 'ax_fin', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Final Image');
 
 % create controls
-text_x_lim = uicontrol('Style', 'text');
-text_x_lim.Units = 'Normalized';
-text_x_lim.Position = [0.85, 0.90, 0.1, 0.05];
-text_x_lim.BackgroundColor = [1 1 1];
-text_x_lim.String = 'X range for test points (min, max)';
+text_xlim = uicontrol('Style', 'text');
+text_xlim.Units = 'Normalized';
+text_xlim.Position = [0.85, 0.90, 0.1, 0.05];
+text_xlim.BackgroundColor = [1 1 1];
+text_xlim.String = 'X range for test points (min, max)';
 
-edit_num_pts = uicontrol('Style', 'edit');
-edit_num_pts.Units = 'Normalized';      
-edit_num_pts.Position = [0.86, 0.85, 0.04, 0.05];
-edit_num_pts.BackgroundColor = [1 1 1];
-edit_num_pts.String = share.xmin_pts;
-edit_num_pts.Tag = 'edit_xmin_pts';
-edit_num_pts.Callback = @set_xlim_pts;
-edit_num_pts.Enable = 'on';
+edit_xmin_pts = uicontrol('Style', 'edit');
+edit_xmin_pts.Units = 'Normalized';      
+edit_xmin_pts.Position = [0.86, 0.85, 0.04, 0.05];
+edit_xmin_pts.BackgroundColor = [1 1 1];
+edit_xmin_pts.String = share.xmin_pts;
+edit_xmin_pts.Tag = 'edit_xmin_pts';
+edit_xmin_pts.Callback = @set_xlim_pts;
+edit_xmin_pts.Enable = 'on';
 
-edit_num_pts = uicontrol('Style', 'edit');
-edit_num_pts.Units = 'Normalized';      
-edit_num_pts.Position = [0.91, 0.85, 0.04, 0.05];
-edit_num_pts.BackgroundColor = [1 1 1];
-edit_num_pts.String = share.xmax_pts;
-edit_num_pts.Tag = 'edit_xmax_pts';
-edit_num_pts.Callback = @set_xlim_pts;
-edit_num_pts.Enable = 'on';
+edit_xmax_pts = uicontrol('Style', 'edit');
+edit_xmax_pts.Units = 'Normalized';      
+edit_xmax_pts.Position = [0.91, 0.85, 0.04, 0.05];
+edit_xmax_pts.BackgroundColor = [1 1 1];
+edit_xmax_pts.String = share.xmax_pts;
+edit_xmax_pts.Tag = 'edit_xmax_pts';
+edit_xmax_pts.Callback = @set_xlim_pts;
+edit_xmax_pts.Enable = 'on';
 
 text_num_pts = uicontrol('Style', 'text');
 text_num_pts.Units = 'Normalized';
 text_num_pts.Position = [0.85, 0.775, 0.1, 0.05];
 text_num_pts.BackgroundColor = [1 1 1];
-text_num_pts.String = 'Number of random test points';
+text_num_pts.String = 'Number of points on top bnd and random';
 
-edit_num_pts = uicontrol('Style', 'edit');
-edit_num_pts.Units = 'Normalized';      
-edit_num_pts.Position = [0.87, 0.725, 0.05, 0.05];
-edit_num_pts.BackgroundColor = [1 1 1];
-edit_num_pts.String = share.num_pts;
-edit_num_pts.Tag = 'edit_num_pts';
-edit_num_pts.Callback = @set_num_pts;
-edit_num_pts.Enable = 'on';
+edit_top_num_pts = uicontrol('Style', 'edit');
+edit_top_num_pts.Units = 'Normalized';      
+edit_top_num_pts.Position = [0.86, 0.725, 0.04, 0.05];
+edit_top_num_pts.BackgroundColor = [1 1 1];
+edit_top_num_pts.String = share.top_num_pts;
+edit_top_num_pts.Tag = 'edit_top_num_pts';
+edit_top_num_pts.Callback = @set_num_pts;
+edit_top_num_pts.Enable = 'on';
+
+edit_rand_num_pts = uicontrol('Style', 'edit');
+edit_rand_num_pts.Units = 'Normalized';      
+edit_rand_num_pts.Position = [0.91, 0.725, 0.04, 0.05];
+edit_rand_num_pts.BackgroundColor = [1 1 1];
+edit_rand_num_pts.String = share.rand_num_pts;
+edit_rand_num_pts.Tag = 'edit_rand_num_pts';
+edit_rand_num_pts.Callback = @set_num_pts;
+edit_rand_num_pts.Enable = 'on';
 
 but_get_pts = uicontrol('Style', 'pushbutton');
 but_get_pts.Units = 'Normalized';
@@ -608,7 +619,10 @@ function start_analysis(hui, ~)
 
 % disable / enable controls
 hui.Enable = 'off';
-h = findobj('Tag', 'edit_num_pts'); h.Enable = 'off';
+h = findobj('Tag', 'edit_xmin_pts'); h.Enable = 'off';
+h = findobj('Tag', 'edit_xmax_pts'); h.Enable = 'off';
+h = findobj('Tag', 'edit_top_num_pts'); h.Enable = 'off';
+h = findobj('Tag', 'edit_rand_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
 h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
@@ -621,7 +635,7 @@ next_pt([], [], 0, 1);
 end
 
 function get_ctrl_pts(~, ~)
-% Get randomly distributed control points with 20% on the upper boundary
+% Get control points along top boundary and randomly distributed
 % %
 
 % get shared data
@@ -634,17 +648,16 @@ share.ctrl_u = nan(share.num_pts, 1);
 share.ctrl_v = nan(share.num_pts, 1);
 
 % populate the upper boundary, points are evenly spaced along boundary
-num_pts_top = round(0.2*share.num_pts);
-idx_pts_top = round(linspace(1, length(share.piv_x), num_pts_top+2));
+idx_pts_top = round(linspace(1, length(share.piv_x), share.top_num_pts+2));
 idx_pts_top = idx_pts_top(2:end-1);
-share.ctrl_x(1:num_pts_top) = share.piv_x(idx_pts_top);
-share.ctrl_y(1:num_pts_top) = share.piv_y_top(idx_pts_top);
+share.ctrl_x(1:share.top_num_pts) = share.piv_x(idx_pts_top);
+share.ctrl_y(1:share.top_num_pts) = share.piv_y_top(idx_pts_top);
 
 % generate remaining random points within the data roi
 get_pt_x = @() rand(1)*(share.xmax_pts-share.xmin_pts)+min(share.xmin_pts);
 get_pt_y = @() rand(1)*range(share.piv_y)+min(share.piv_y);
 
-for ii = (num_pts_top+1):share.num_pts
+for ii = (share.top_num_pts+1):share.num_pts
     while isnan(share.ctrl_x(ii))
        pt_x = get_pt_x();
        pt_y = get_pt_y();
@@ -704,16 +717,29 @@ set(gcf, 'UserData', share);
 
 end
 
-function set_num_pts(hui, ~)
+function set_num_pts(~, ~)
 % Set the number of control points 
 
-num_pts = str2double(hui.String);
+share = get(gcf, 'UserData');
 
-if isempty(num_pts) || isnan(num_pts) || num_pts <= 0 || round(num_pts) ~= num_pts
-    warndlg('Number of points must be a positive integer')
+hrand = findobj('Tag', 'edit_rand_num_pts');
+rand_num_pts = str2double(hrand.String);
+if isempty(rand_num_pts) || isnan(rand_num_pts) || rand_num_pts <= 0 || round(rand_num_pts) ~= rand_num_pts
+    warndlg('Number of random points must be a positive integer')
     return
-else
-    hui.Parent.UserData.num_pts = num_pts;
 end
+
+htop = findobj('Tag', 'edit_top_num_pts');
+top_num_pts = str2double(htop.String);
+if isempty(top_num_pts) || isnan(top_num_pts) || top_num_pts <= 0 || round(top_num_pts) ~= top_num_pts
+    warndlg('Number of top points must be a positive integer')
+    return
+end
+
+share.rand_num_pts = rand_num_pts;
+share.top_num_pts = top_num_pts;
+share.num_pts = rand_num_pts+top_num_pts;
+
+set(gcf, 'UserData', share);
 
 end
