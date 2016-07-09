@@ -648,7 +648,10 @@ share.ctrl_u = nan(share.num_pts, 1);
 share.ctrl_v = nan(share.num_pts, 1);
 
 % populate the upper boundary, points are evenly spaced along boundary
-idx_pts_top = round(linspace(1, length(share.piv_x), share.top_num_pts+2));
+idx_pts_top = round(linspace(...
+    find(share.piv_x >= share.xmin_pts, 1, 'first'),...
+    find(share.piv_x <= share.xmax_pts, 1, 'last'), ...
+    share.top_num_pts+2));
 idx_pts_top = idx_pts_top(2:end-1);
 share.ctrl_x(1:share.top_num_pts) = share.piv_x(idx_pts_top);
 share.ctrl_y(1:share.top_num_pts) = share.piv_y_top(idx_pts_top);
