@@ -49,6 +49,8 @@ share = struct(...
     'piv_v', [], ...
     'piv_m', [], ...
     'num_pts', 20, ...
+    'xmin_pts', [], ...
+    'xmax_pts', [], ...
     'ctrl_x', [], ...
     'ctrl_y', [], ...
     'ctrl_u', [], ...
@@ -108,6 +110,10 @@ for jj = 1:size(bnd_top, 2)
 end
 share.image_dist_bnd_top = bwdist(bnd_top)*share.image_meters_per_pixel;
 
+% update control point x limits to data limits
+share.xmin_pts = min(share.piv_x);
+share.xmax_pts = max(share.piv_x);
+
 % create full-screen figure and attach shared data, invisible until init is completed
 hf = figure;
 hf.Units = 'Normalized';
@@ -135,15 +141,39 @@ set(gca, 'Tag', 'ax_fin', 'NextPlot','add', 'YDir', 'Normal', 'UserData', hpt);
 title('Final Image');
 
 % create controls
+text_x_lim = uicontrol('Style', 'text');
+text_x_lim.Units = 'Normalized';
+text_x_lim.Position = [0.85, 0.90, 0.1, 0.05];
+text_x_lim.BackgroundColor = [1 1 1];
+text_x_lim.String = 'X range for test points (min, max)';
+
+edit_num_pts = uicontrol('Style', 'edit');
+edit_num_pts.Units = 'Normalized';      
+edit_num_pts.Position = [0.86, 0.85, 0.04, 0.05];
+edit_num_pts.BackgroundColor = [1 1 1];
+edit_num_pts.String = share.xmin_pts;
+edit_num_pts.Tag = 'edit_xmin_pts';
+edit_num_pts.Callback = @set_xlim_pts;
+edit_num_pts.Enable = 'on';
+
+edit_num_pts = uicontrol('Style', 'edit');
+edit_num_pts.Units = 'Normalized';      
+edit_num_pts.Position = [0.91, 0.85, 0.04, 0.05];
+edit_num_pts.BackgroundColor = [1 1 1];
+edit_num_pts.String = share.xmax_pts;
+edit_num_pts.Tag = 'edit_xmax_pts';
+edit_num_pts.Callback = @set_xlim_pts;
+edit_num_pts.Enable = 'on';
+
 text_num_pts = uicontrol('Style', 'text');
 text_num_pts.Units = 'Normalized';
-text_num_pts.Position = [0.85, 0.85, 0.1, 0.05];
+text_num_pts.Position = [0.85, 0.775, 0.1, 0.05];
 text_num_pts.BackgroundColor = [1 1 1];
 text_num_pts.String = 'Number of random test points';
 
 edit_num_pts = uicontrol('Style', 'edit');
-edit_num_pts.Units = 'Normalized';
-edit_num_pts.Position = [0.87, 0.79, 0.05, 0.05];
+edit_num_pts.Units = 'Normalized';      
+edit_num_pts.Position = [0.87, 0.725, 0.05, 0.05];
 edit_num_pts.BackgroundColor = [1 1 1];
 edit_num_pts.String = share.num_pts;
 edit_num_pts.Tag = 'edit_num_pts';
@@ -152,7 +182,7 @@ edit_num_pts.Enable = 'on';
 
 but_get_pts = uicontrol('Style', 'pushbutton');
 but_get_pts.Units = 'Normalized';
-but_get_pts.Position = [0.85, 0.7, 0.1, 0.05];
+but_get_pts.Position = [0.85, 0.65, 0.1, 0.05];
 but_get_pts.String = 'Get Control Points';
 but_get_pts.Tag = 'but_get_pts';
 but_get_pts.Callback = @get_ctrl_pts;
@@ -160,7 +190,7 @@ but_get_pts.Enable = 'on';
 
 button_start_analysis = uicontrol('Style', 'pushbutton');
 button_start_analysis.Units = 'Normalized';
-button_start_analysis.Position = [0.85, 0.6, 0.1, 0.05];
+button_start_analysis.Position = [0.85, 0.575, 0.1, 0.05];
 button_start_analysis.String = 'Start Analysis';
 button_start_analysis.Tag = 'button_start_analysis';
 button_start_analysis.Callback = @start_analysis;
@@ -594,7 +624,7 @@ share.ctrl_u = nan(share.num_pts, 1);
 share.ctrl_v = nan(share.num_pts, 1);
 
 % generate num_pts random points within the data roi
-get_pt_x = @() rand(1)*range(share.piv_x)+min(share.piv_x);
+get_pt_x = @() rand(1)*(share.xmax_pts-share.xmin_pts)+min(share.xmin_pts);
 get_pt_y = @() rand(1)*range(share.piv_y)+min(share.piv_y);
 
 for ii = 1:share.num_pts
@@ -631,6 +661,32 @@ delete(findobj(hax, 'Type', 'Line')); % remove any existing points
 hold on
 plot(hax.Parent.UserData.ctrl_x, hax.Parent.UserData.ctrl_y, 'xk');
 hold off
+
+end
+
+function set_xlim_pts(~, ~)
+% Set the x-limits of the region containing control points, and refresh points
+
+hmin = findobj('Tag', 'edit_xmin_pts');
+xmin = str2double(hmin.String);
+disp(xmin)
+
+hmax = findobj('Tag', 'edit_xmax_pts');
+xmax = str2double(hmax.String);
+disp(xmax)
+
+share = get(gcf, 'UserData');
+if isempty(xmin) || isnan(xmax) || isempty(xmax) ||isnan(xmax) || xmax<=xmin
+    warndlg('Invalid choice for x-limits');
+    hmin.String = share.xmin_pts;
+    hmax.String = share.xmax_pts;
+    return
+end
+share.xmin_pts = max(xmin, min(share.piv_x));
+share.xmax_pts = min(xmax, max(share.piv_x));
+get_ctrl_pts([],[]);
+set(gcf, 'UserData', share);
+
 
 end
 
