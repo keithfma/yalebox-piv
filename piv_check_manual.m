@@ -555,9 +555,7 @@ share = get(gcf, 'UserData');
 
 % record results from last point
 if record == 1
-    disp([share.num_pts, share.ii, share.ctrl_x(share.ii), share.ctrl_y(share.ii)]);
     share = record_pt(share);
-    disp([share.num_pts, share.ii, share.ctrl_x(share.ii), share.ctrl_y(share.ii)]);
 end
 
 % change to next/prev control point, wrapping around as needed
@@ -669,11 +667,9 @@ function set_xlim_pts(~, ~)
 
 hmin = findobj('Tag', 'edit_xmin_pts');
 xmin = str2double(hmin.String);
-disp(xmin)
 
 hmax = findobj('Tag', 'edit_xmax_pts');
 xmax = str2double(hmax.String);
-disp(xmax)
 
 share = get(gcf, 'UserData');
 if isempty(xmin) || isnan(xmax) || isempty(xmax) ||isnan(xmax) || xmax<=xmin
@@ -686,7 +682,6 @@ share.xmin_pts = max(xmin, min(share.piv_x));
 share.xmax_pts = min(xmax, max(share.piv_x));
 get_ctrl_pts([],[]);
 set(gcf, 'UserData', share);
-
 
 end
 
