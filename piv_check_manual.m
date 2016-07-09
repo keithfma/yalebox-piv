@@ -42,9 +42,12 @@ share = struct(...
     'ini', [], ...
     'fin', [], ...
     'image_x', [], ...
-    'image_y', [], ...    
+    'image_y', [], ... 
+    'image_dist_bnd', [], ...
+    'image_dist_top', [], ...
     'piv_x', [], ...
     'piv_y', [], ...
+    'piv_y_top', [], ...
     'piv_u', [], ...
     'piv_v', [], ...
     'piv_m', [], ...
@@ -108,7 +111,16 @@ for jj = 1:size(bnd_top, 2)
         bnd_top(ii,jj) = 1;
     end
 end
-share.image_dist_bnd_top = bwdist(bnd_top)*share.image_meters_per_pixel;
+share.image_dist_top = bwdist(bnd_top)*share.image_meters_per_pixel;
+
+% store location of upper boundary in piv results
+share.piv_y_top = zeros(size(share.piv_x));
+for jj = 1:length(share.piv_x)
+    ii = find(~isnan(share.piv_u(:,jj)), 1, 'last');
+    if ~isempty(ii)
+        share.piv_y_top(jj) = share.piv_y(ii);
+    end
+end
 
 % update control point x limits to data limits
 share.xmin_pts = min(share.piv_x);
@@ -270,7 +282,7 @@ ctrl_v_piv = interp2(share.piv_x, share.piv_y, share.piv_v, share.ctrl_x, share.
 % interpolate distance to boundary and top boundary for control points
 ctrl_d_bnd = interp2(share.image_x, share.image_y, share.image_dist_bnd, ...
     share.ctrl_x, share.ctrl_y, 'linear');
-ctrl_d_top = interp2(share.image_x, share.image_y, share.image_dist_bnd_top, ...
+ctrl_d_top = interp2(share.image_x, share.image_y, share.image_dist_top, ...
     share.ctrl_x, share.ctrl_y, 'linear');
 
 % compute results vars
@@ -609,7 +621,7 @@ next_pt([], [], 0, 1);
 end
 
 function get_ctrl_pts(~, ~)
-% Get randomly distributed control points
+% Get randomly distributed control points with 20% on the upper boundary
 % %
 
 % get shared data
@@ -621,11 +633,18 @@ share.ctrl_y = nan(share.num_pts, 1);
 share.ctrl_u = nan(share.num_pts, 1);
 share.ctrl_v = nan(share.num_pts, 1);
 
-% generate num_pts random points within the data roi
+% populate the upper boundary, points are evenly spaced along boundary
+num_pts_top = round(0.2*share.num_pts);
+idx_pts_top = round(linspace(1, length(share.piv_x), num_pts_top+2));
+idx_pts_top = idx_pts_top(2:end-1);
+share.ctrl_x(1:num_pts_top) = share.piv_x(idx_pts_top);
+share.ctrl_y(1:num_pts_top) = share.piv_y_top(idx_pts_top);
+
+% generate remaining random points within the data roi
 get_pt_x = @() rand(1)*(share.xmax_pts-share.xmin_pts)+min(share.xmin_pts);
 get_pt_y = @() rand(1)*range(share.piv_y)+min(share.piv_y);
 
-for ii = 1:share.num_pts
+for ii = (num_pts_top+1):share.num_pts
     while isnan(share.ctrl_x(ii))
        pt_x = get_pt_x();
        pt_y = get_pt_y();
