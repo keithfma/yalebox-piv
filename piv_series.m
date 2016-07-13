@@ -55,7 +55,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_t
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
+%netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
 
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
@@ -108,9 +108,12 @@ netcdf.putVar(ncid, s_varid, step_piv);
 netcdf.close(ncid);
 
 % initialize loop by reading first image
-img1 = double(ncread(input_file, 'img', [1, 1, 1], [inf, inf, 1]));
 roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));
 roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1]))& roi_const;
+% img1 = double(ncread(input_file, 'img', [1, 1, 1], [inf, inf, 1]));
+img1 = double(ncread(input_file, 'img_rgb', [1, 1, 1, 1], [inf, inf, inf, 1]));
+img1 = rgb2gray(img1./255);
+img1(~roi1) = 0;
 
 % analyse all steps
 for ii = 1:ns
@@ -123,8 +126,11 @@ for ii = 1:ns
     img0 = img1;
     roi0 = roi1;
     
-    img1 = double(ncread(input_file, 'img', [1, 1, ii+1], [inf, inf, 1]));
     roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])) & roi_const;
+    % img1 = double(ncread(input_file, 'img', [1, 1, ii+1], [inf, inf, 1]));
+    img1 = double(ncread(input_file, 'img_rgb', [1, 1, 1, ii+1], [inf, inf, inf, 1]));
+    img1 = rgb2gray(img1./255);
+    img1(~roi1) = 0;
     
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = ...
