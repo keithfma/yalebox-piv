@@ -2,8 +2,7 @@ function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 % function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %
 % Estimate displacements manually by selecting matching points in an image pair.
-% Writes results to a csv file with columns: row_ti, column_ti, row_tf,
-% column_tf, row_tm, column_tm, u_chk_tm, v_chk_tm, u_piv_tm, v_piv_tm.
+% Writes results to a self-documented netCDF file.
 %
 % Arguments:
 % 
@@ -18,7 +17,7 @@ function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %       (e.g. 11.5)
 %
 %   result_prefix = String, prefix for results files, can include the path. The
-%       program will prompt before overwriting
+%       program will prompt before overwriting 
 % %
 
 %% init
@@ -211,9 +210,17 @@ but_get_pts.Tag = 'but_get_pts';
 but_get_pts.Callback = @get_ctrl_pts;
 but_get_pts.Enable = 'on';
 
+button_restart = uicontrol('Style', 'pushbutton');
+button_restart.Units = 'Normalized';
+button_restart.Position = [0.85, 0.575, 0.1, 0.05];
+button_restart.String = 'Restart from file';
+button_restart.Tag = 'button_restart';
+button_restart.Callback = @restart_from_file;
+button_restart.Enable = 'on';
+
 button_start_analysis = uicontrol('Style', 'pushbutton');
 button_start_analysis.Units = 'Normalized';
-button_start_analysis.Position = [0.85, 0.575, 0.1, 0.05];
+button_start_analysis.Position = [0.85, 0.50, 0.1, 0.05];
 button_start_analysis.String = 'Start Analysis';
 button_start_analysis.Tag = 'button_start_analysis';
 button_start_analysis.Callback = @start_analysis;
@@ -221,14 +228,14 @@ button_start_analysis.Enable = 'on';
 
 text_curr_pt = uicontrol('Style', 'text');
 text_curr_pt.Units = 'Normalized';
-text_curr_pt.Position = [0.85, 0.5, 0.1, 0.05];
+text_curr_pt.Position = [0.85, 0.425, 0.1, 0.05];
 text_curr_pt.BackgroundColor = [1 1 1];
 text_curr_pt.String = '';
 text_curr_pt.Tag = 'text_curr_pt';
 
 but_next_pt = uicontrol('Style', 'pushbutton');
 but_next_pt.Units = 'Normalized';
-but_next_pt.Position = [0.85, 0.45, 0.1, 0.05];
+but_next_pt.Position = [0.85, 0.35, 0.1, 0.05];
 but_next_pt.String = 'Next Point';
 but_next_pt.Tag = 'but_next_pt';
 but_next_pt.Callback = {@next_pt, 1, 1};
@@ -236,7 +243,7 @@ but_next_pt.Enable = 'off';
 
 but_prev_pt = uicontrol('Style', 'pushbutton');
 but_prev_pt.Units = 'Normalized';
-but_prev_pt.Position = [0.85, 0.35, 0.1, 0.05];
+but_prev_pt.Position = [0.85, 0.275, 0.1, 0.05];
 but_prev_pt.String = 'Previous Point';
 but_prev_pt.Tag = 'but_prev_pt';
 but_prev_pt.Callback = {@next_pt, 1, -1};
@@ -244,7 +251,7 @@ but_prev_pt.Enable = 'off';
 
 but_delete = uicontrol('Style', 'pushbutton');
 but_delete.Units = 'Normalized';
-but_delete.Position = [0.85, 0.25, 0.1, 0.05];
+but_delete.Position = [0.85, 0.20, 0.1, 0.05];
 but_delete.String = 'Delete Point';
 but_delete.Tag = 'but_delete';
 but_delete.Callback = @delete_pt;
@@ -252,7 +259,7 @@ but_delete.Enable = 'off';
 
 but_done = uicontrol('Style', 'pushbutton');
 but_done.Units = 'Normalized';
-but_done.Position = [0.85, 0.15, 0.1, 0.05];
+but_done.Position = [0.85, 0.125, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
 but_done.Callback = @finalize;
@@ -272,6 +279,18 @@ hf.Visible = 'on';
 
 end
 
+
+function restart_from_file(~,~)
+% Reset internal variables from existing output file
+% %
+
+% get file name
+
+% read values of input arguments, validate
+
+% read and set relevant data
+
+end
 
 function finalize(hui, ~)
 % Finalize analysis and write results to file
@@ -624,6 +643,7 @@ h = findobj('Tag', 'edit_xmax_pts'); h.Enable = 'off';
 h = findobj('Tag', 'edit_top_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'edit_rand_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
+h = findobj('Tag', 'button_restart'); h.Enable = 'off';
 h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_delete'); h.Enable = 'on';
