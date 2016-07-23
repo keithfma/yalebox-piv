@@ -284,11 +284,30 @@ function restart_from_file(~,~)
 % Reset internal variables from existing output file
 % %
 
-% get file name
+% get shared data
+share = get(gcf, 'UserData');
 
-% read values of input arguments, validate
+% get file name interactively
+[file_name, path_name] = uigetfile('*.nc');
+restart_name = sprintf('%s%s%s', path_name, filesep, file_name);
+
+% validate that output file uses the same inputs arguments
+assert(strcmp(share.image_file, ncreadatt(restart_name, '/', 'image_file_name'))); 
+assert(strcmp(share.displ_file, ncreadatt(restart_name, '/', 'displ_file_name')));
+disp(share.step)
+disp(ncreadatt(restart_name, '/', 'step_index'))
+assert(share.step == ncreadatt(restart_name, '/', 'step_index'));
 
 % read and set relevant data
+share.ctrl_x = ncread(restart_name, 'ctrl_x');
+share.ctrl_y = ncread(restart_name, 'ctrl_y');
+share.ctrl_u = ncread(restart_name, 'ctrl_u_man');
+share.ctrl_v = ncread(restart_name, 'ctrl_v_man');
+set(gcf, 'UserData', share);
+
+% get started!
+update_ax_displ;
+start_analysis([], []);
 
 end
 
@@ -632,12 +651,12 @@ set(hfig, 'UserData', share);
 
 end
 
-function start_analysis(hui, ~)
+function start_analysis(~, ~)
 % Switch from initialization to analysis mode
 % %
 
 % disable / enable controls
-hui.Enable = 'off';
+h = findobj('Tag', 'button_start_analysis'); h.Enable = 'off';
 h = findobj('Tag', 'edit_xmin_pts'); h.Enable = 'off';
 h = findobj('Tag', 'edit_xmax_pts'); h.Enable = 'off';
 h = findobj('Tag', 'edit_top_num_pts'); h.Enable = 'off';
