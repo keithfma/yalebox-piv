@@ -397,9 +397,9 @@ var_ctrl_v_piv = netcdf.defVar(ncid, 'ctrl_v_piv', 'NC_DOUBLE', dim_pt);
 netcdf.putAtt(ncid, var_ctrl_v_piv, 'long_name', 'control point displacement, y-component, PIV estimate');
 netcdf.putAtt(ncid, var_ctrl_v_piv, 'units', 'meters');
 
-var_ctrl_flag_piv = netcdf.defVar(ncid, 'ctrl_flag', 'NC_BYTE', dim_pt);
-netcdf.putAtt(ncid, var_ctrl_flag_piv, 'long_name', 'control point validity flag, 1->matched0->not matched');
-netcdf.putAtt(ncid, var_ctrl_flag_piv, 'units', 'true false');
+var_ctrl_flag = netcdf.defVar(ncid, 'ctrl_flag', 'NC_BYTE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_flag, 'long_name', 'control point validity flag, 1->matched0->not matched');
+netcdf.putAtt(ncid, var_ctrl_flag, 'units', 'true false');
 
 var_image_x = netcdf.defVar(ncid, 'image_x', 'NC_DOUBLE', dim_image_x);
 netcdf.putAtt(ncid, var_image_x, 'long_name', 'image grid x-coordinate');
@@ -444,7 +444,7 @@ netcdf.putVar(ncid, var_ctrl_u_man, share.ctrl_u);
 netcdf.putVar(ncid, var_ctrl_v_man, share.ctrl_v);
 netcdf.putVar(ncid, var_ctrl_u_piv, ctrl_u_piv);
 netcdf.putVar(ncid, var_ctrl_v_piv, ctrl_v_piv);
-netcdf.putVar(ncid, var_ctrl_flag, ctrl_flag);
+netcdf.putVar(ncid, var_ctrl_flag, uint8(share.ctrl_flag));
 netcdf.putVar(ncid, var_image_x, share.image_x);
 netcdf.putVar(ncid, var_image_y, share.image_y);
 netcdf.putVar(ncid, var_ini, share.ini);
@@ -468,10 +468,11 @@ hcb = colorbar;
 hcb.Label.String = 'mm/step';
 ax.YDir = 'Normal';
 hold on
-plot(share.ctrl_x, share.ctrl_y, '*k');
+plot(share.ctrl_x(share.ctrl_flag), share.ctrl_y(share.ctrl_flag), '*k');
+plot(share.ctrl_x(~share.ctrl_flag), share.ctrl_y(~share.ctrl_flag), '*r');
 xlabel('x-position, m');
 ylabel('y-position, m');
-title('Location of control points for manual PIV check');
+title('Location of control points for manual PIV check (black->matched, red->unmatched');
 
 saveas(hf, share.result_fig_loc);
 
@@ -480,25 +481,25 @@ hf = figure;
 hf.Name = 'piv_check_manual';
 
 subplot(2,2,1);
-[y, x] = ksdensity(diff_u);
+[y, x] = ksdensity(diff_u(share.ctrl_flag));
 plot(x, y);
 xlabel('u_{PIV-manual}, mm');
 ylabel('\rho');
 
 subplot(2,2,2);
-[y, x] = ksdensity(diff_v);
+[y, x] = ksdensity(diff_v(share.ctrl_flag));
 plot(x, y);
 xlabel('v_{PIV-manual}, mm');
 ylabel('\rho');
 
 subplot(2,2,3);
-[y, x] = ksdensity(diff_m);
+[y, x] = ksdensity(diff_m(share.ctrl_flag));
 plot(x, y);
 xlabel('mag_{PIV-manual}, mm');
 ylabel('\rho');
 
 subplot(2,2,4);
-[y, x] = ksdensity(diff_theta);
+[y, x] = ksdensity(diff_theta(share.ctrl_flag));
 plot(x, y);
 xlabel('\theta_{PIV-manual}, deg');
 ylabel('\rho');
@@ -510,22 +511,22 @@ hf = figure;
 hf.Name = 'piv_check_manual';
 
 subplot(2,2,1);
-plot(1000*ctrl_d_bnd, diff_u, 'xk');
+plot(1000*ctrl_d_bnd(share.ctrl_flag), diff_u(share.ctrl_flag), 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('u_{PIV-manual}, mm');
 
 subplot(2,2,2);
-plot(1000*ctrl_d_bnd, diff_v, 'xk');
+plot(1000*ctrl_d_bnd(share.ctrl_flag), diff_v(share.ctrl_flag), 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('v_{PIV-manual}, mm');
 
 subplot(2,2,3);
-plot(1000*ctrl_d_bnd, diff_m, 'xk');
+plot(1000*ctrl_d_bnd(share.ctrl_flag), diff_m(share.ctrl_flag), 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('mag_{PIV-manual}, mm');
 
 subplot(2,2,4);
-plot(1000*ctrl_d_bnd, diff_theta, 'xk');
+plot(1000*ctrl_d_bnd(share.ctrl_flag), diff_theta(share.ctrl_flag), 'xk');
 xlabel('Dist to Bnd, mm');
 ylabel('\theta_{PIV-manual}, deg');
 
@@ -536,22 +537,22 @@ hf = figure;
 hf.Name = 'piv_check_manual';
 
 subplot(2,2,1);
-plot(1000*ctrl_d_top, diff_u, 'xk');
+plot(1000*ctrl_d_top(share.ctrl_flag), diff_u(share.ctrl_flag), 'xk');
 xlabel('Dist to Top, mm');
 ylabel('u_{PIV-manual}, mm');
 
 subplot(2,2,2);
-plot(1000*ctrl_d_top, diff_v, 'xk');
+plot(1000*ctrl_d_top(share.ctrl_flag), diff_v(share.ctrl_flag), 'xk');
 xlabel('Dist to Top, mm');
 ylabel('v_{PIV-manual}, mm');
 
 subplot(2,2,3);
-plot(1000*ctrl_d_top, diff_m, 'xk');
+plot(1000*ctrl_d_top(share.ctrl_flag), diff_m(share.ctrl_flag), 'xk');
 xlabel('Dist to Top, mm');
 ylabel('mag_{PIV-manual}, mm');
 
 subplot(2,2,4);
-plot(1000*ctrl_d_top, diff_theta, 'xk');
+plot(1000*ctrl_d_top(share.ctrl_flag), diff_theta(share.ctrl_flag), 'xk');
 xlabel('Dist to Top, mm');
 ylabel('\theta_{PIV-manual}, deg');
 
