@@ -59,6 +59,7 @@ share = struct(...
     'ctrl_y', [], ...
     'ctrl_u', [], ...
     'ctrl_v', [], ...
+	'ctrl_flag', [], ...
     'ii', 0);
 
 % protect against accidental overwriting
@@ -228,38 +229,37 @@ button_start_analysis.Enable = 'on';
 
 text_curr_pt = uicontrol('Style', 'text');
 text_curr_pt.Units = 'Normalized';
-text_curr_pt.Position = [0.85, 0.425, 0.1, 0.05];
+text_curr_pt.Position = [0.85, 0.35, 0.1, 0.05];
 text_curr_pt.BackgroundColor = [1 1 1];
 text_curr_pt.String = '';
 text_curr_pt.Tag = 'text_curr_pt';
 
 but_next_pt = uicontrol('Style', 'pushbutton');
 but_next_pt.Units = 'Normalized';
-but_next_pt.Position = [0.85, 0.35, 0.1, 0.05];
+but_next_pt.Position = [0.85, 0.275, 0.1, 0.05];
 but_next_pt.String = 'Next Point';
 but_next_pt.Tag = 'but_next_pt';
-but_next_pt.Callback = {@next_pt, 1, 1};
+but_next_pt.Callback = {@next_pt, 1};
 but_next_pt.Enable = 'off';
 
 but_prev_pt = uicontrol('Style', 'pushbutton');
 but_prev_pt.Units = 'Normalized';
-but_prev_pt.Position = [0.85, 0.275, 0.1, 0.05];
+but_prev_pt.Position = [0.85, 0.2, 0.1, 0.05];
 but_prev_pt.String = 'Previous Point';
 but_prev_pt.Tag = 'but_prev_pt';
-but_prev_pt.Callback = {@next_pt, 1, -1};
+but_prev_pt.Callback = {@next_pt, -1};
 but_prev_pt.Enable = 'off';
 
-but_delete = uicontrol('Style', 'pushbutton');
-but_delete.Units = 'Normalized';
-but_delete.Position = [0.85, 0.20, 0.1, 0.05];
-but_delete.String = 'Delete Point';
-but_delete.Tag = 'but_delete';
-but_delete.Callback = @delete_pt;
-but_delete.Enable = 'off';
+but_flag = uicontrol('Style', 'checkbox');
+but_flag.Units = 'Normalized';
+but_flag.Position = [0.85, 0.125, 0.1, 0.05];
+but_flag.String = 'Good';
+but_flag.Tag = 'but_flag';
+but_flag.Enable = 'off';
 
 but_done = uicontrol('Style', 'pushbutton');
 but_done.Units = 'Normalized';
-but_done.Position = [0.85, 0.125, 0.1, 0.05];
+but_done.Position = [0.85, 0.05, 0.1, 0.05];
 but_done.String = 'Done';
 but_done.Tag = 'but_done';
 but_done.Callback = @finalize;
@@ -303,6 +303,7 @@ share.ctrl_x = ncread(restart_name, 'ctrl_x');
 share.ctrl_y = ncread(restart_name, 'ctrl_y');
 share.ctrl_u = ncread(restart_name, 'ctrl_u_man');
 share.ctrl_v = ncread(restart_name, 'ctrl_v_man');
+share.ctrl_flag = ncread(restart_name, 'ctrl_flag');
 set(gcf, 'UserData', share);
 
 % get started!
@@ -316,7 +317,7 @@ function finalize(hui, ~)
 % %
 
 % make sure the last point has been recorded
-next_pt([], [], 1, 0);
+next_pt([], [], 0);
 
 % get shared data, then destroy the GUI
 share = get(gcf, 'UserData');
@@ -396,6 +397,10 @@ var_ctrl_v_piv = netcdf.defVar(ncid, 'ctrl_v_piv', 'NC_DOUBLE', dim_pt);
 netcdf.putAtt(ncid, var_ctrl_v_piv, 'long_name', 'control point displacement, y-component, PIV estimate');
 netcdf.putAtt(ncid, var_ctrl_v_piv, 'units', 'meters');
 
+var_ctrl_flag_piv = netcdf.defVar(ncid, 'ctrl_flag', 'NC_BYTE', dim_pt);
+netcdf.putAtt(ncid, var_ctrl_flag_piv, 'long_name', 'control point validity flag, 1->matched0->not matched');
+netcdf.putAtt(ncid, var_ctrl_flag_piv, 'units', 'true false');
+
 var_image_x = netcdf.defVar(ncid, 'image_x', 'NC_DOUBLE', dim_image_x);
 netcdf.putAtt(ncid, var_image_x, 'long_name', 'image grid x-coordinate');
 netcdf.putAtt(ncid, var_image_x, 'units', 'meters');
@@ -439,6 +444,7 @@ netcdf.putVar(ncid, var_ctrl_u_man, share.ctrl_u);
 netcdf.putVar(ncid, var_ctrl_v_man, share.ctrl_v);
 netcdf.putVar(ncid, var_ctrl_u_piv, ctrl_u_piv);
 netcdf.putVar(ncid, var_ctrl_v_piv, ctrl_v_piv);
+netcdf.putVar(ncid, var_ctrl_flag, ctrl_flag);
 netcdf.putVar(ncid, var_image_x, share.image_x);
 netcdf.putVar(ncid, var_image_y, share.image_y);
 netcdf.putVar(ncid, var_ini, share.ini);
@@ -553,27 +559,6 @@ saveas(hf, share.result_fig_dist_top);
 
 end
 
-function delete_pt(~, ~)
-% Delete the current point
-
-% get shared data
-hfig = gcf();
-share = get(gcf, 'UserData');
-
-% delete point
-share.num_pts = share.num_pts-1;
-share.ctrl_x(share.ii) = [];
-share.ctrl_y(share.ii) = [];
-share.ctrl_u(share.ii) = [];
-share.ctrl_v(share.ii) = [];
-
-% set shared data
-set(hfig, 'UserData', share);
-
-% refresh the GUI for the next point
-next_pt([], [], 0, 0);
-
-end
 
 function [share] = record_pt(share)
 % Record analysis results from current axes (u_man, v_man, new ctrl_x, ctrl_y)
@@ -598,12 +583,15 @@ mid_xy = mean([ini_xy; fin_xy]);
 share.ctrl_x(share.ii) = mid_xy(1);
 share.ctrl_y(share.ii) = mid_xy(2);
 
+% get validity flag
+flag = findobj('Tag', 'but_flag');
+share.ctrl_flag(share.ii) = flag.Value;
+
 end
 
 
-function next_pt(~, ~, record, step)
-% Record results from the last point (record == 1) or don't (record == 0), and
-% analyze the next (step == 1) or previous (step == -1) control point
+function next_pt(~, ~, step)
+% Analyze the next (step == 1) or previous (step == -1) control point
 % %
 
 % constants
@@ -613,10 +601,9 @@ dim = [-0.003, 0.003];
 hfig = gcf();
 share = get(gcf, 'UserData');
 
-
 % record results from last point
-if record == 1
-    share = record_pt(share);
+if share.ii ~= 0 
+	share = record_pt(share);
 end
 
 % change to next/prev control point, wrapping around as needed
@@ -646,8 +633,15 @@ hpt.setPosition([guess_x, guess_y]);
 xlim(guess_x+dim);
 ylim(guess_y+dim);
 
+% update flag checkbox
+flag = findobj('Tag', 'but_flag');
+flag.Value = share.ctrl_flag(share.ii);
+
 % set shared data
 set(hfig, 'UserData', share);
+
+% update control point plot
+update_ax_displ();
 
 end
 
@@ -663,13 +657,13 @@ h = findobj('Tag', 'edit_top_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'edit_rand_num_pts'); h.Enable = 'off';
 h = findobj('Tag', 'but_get_pts');  h.Enable = 'off';
 h = findobj('Tag', 'button_restart'); h.Enable = 'off';
+h = findobj('Tag', 'but_flag'); h.Enable = 'on';
 h = findobj('Tag', 'but_next_pt'); h.Enable = 'on';
 h = findobj('Tag', 'but_prev_pt'); h.Enable = 'on';
-h = findobj('Tag', 'but_delete'); h.Enable = 'on';
 h = findobj('Tag', 'but_done'); h.Enable = 'on';
 
 % start analysis for first point
-next_pt([], [], 0, 1);
+next_pt([], [], 1);
 
 end
 
@@ -685,6 +679,7 @@ share.ctrl_x = nan(share.num_pts, 1);
 share.ctrl_y = nan(share.num_pts, 1);
 share.ctrl_u = nan(share.num_pts, 1);
 share.ctrl_v = nan(share.num_pts, 1);
+share.ctrl_flag = true(share.num_pts, 1);
 
 % populate the upper boundary, points are evenly spaced along boundary
 idx_pts_top = round(linspace(...
@@ -727,12 +722,20 @@ function update_ax_displ()
 % Replot the location of control points in the displacement magnitude plot
 % %
 
+share = get(gcf, 'UserData');
+
 hax = findobj('Tag', 'ax_displ');
 axes(hax);
 delete(findobj(hax, 'Type', 'Line')); % remove any existing points
 hold on
-plot(hax.Parent.UserData.ctrl_x, hax.Parent.UserData.ctrl_y, 'xk');
+plot(share.ctrl_x(share.ctrl_flag), share.ctrl_y(share.ctrl_flag), 'xk');
+plot(share.ctrl_x(~share.ctrl_flag), share.ctrl_y(~share.ctrl_flag), 'xr');
+if share.ii ~= 0
+	plot(share.ctrl_x(share.ii), share.ctrl_y(share.ii), 'ob');
+end
 hold off
+
+set(gcf, 'UserData', share);
 
 end
 
