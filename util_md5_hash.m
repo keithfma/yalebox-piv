@@ -10,7 +10,15 @@ function hash = util_md5_hash(file)
 %   hash = String, MD5 hash of input file
 % %
 
-[stat, out] = system(sprintf('md5sum %s', file));
+if isunix
+    cmd = sprintf('md5sum %s', file);
+elseif ispc
+    cmd = sprintf('FCIV -md5 -add %s', file); % FAILS
+else
+    error('Operating system not supported');
+end
+
+[stat, out] = system(cmd);
 assert(stat == 0, 'Failed to compute MD5 hash');
 
 out_parts = strsplit(out, ' ');
