@@ -32,7 +32,7 @@ if nargin < 4; show = false; end
 if nargin < 5; verbose = false; end
 
 % check for sane inputs
-validateattributes(img, {'numeric'}, {'3d', '2d'});
+validateattributes(img, {'numeric'}, {'3d'}); % 3 or fewer dims
 validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
 validateattributes(eql_len, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
