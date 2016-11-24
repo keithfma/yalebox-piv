@@ -15,3 +15,8 @@ and `piv_get_param.m` to experiment with free parameters for a particular
 experiment image series. Once a satisfactory set of parameters is found, the
 `prep_series()` and `piv_series()` functions can be used to process the whole
 experiment. Results are saved in as internally documented netCDF files. 
+
+## To Do
+
++ Experiment: use interpolant rather than LOESS smoother to get regular grid
++ Experiment: remove scattered points that lie outside the future footprint
