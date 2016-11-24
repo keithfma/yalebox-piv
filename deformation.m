@@ -81,8 +81,11 @@ if useMatlabGradient
     [F11,F12] = gradient(uX,dX,dY);
     [F21,F22] = gradient(uY,dX,dY); 
 else
-    [F11,F12] = derivativesByFilters(uX,'x','y',dX,dY,'five');
-    [F21,F22] = derivativesByFilters(uY,'x','y',dX,dY,'five');
+%     [F11,F12] = derivativesByFilters(uX,'x','y',dX,dY,'five');
+%     [F21,F22] = derivativesByFilters(uY,'x','y',dX,dY,'five');
+    
+    [F11,F12] = derivativesByFilters(uX,'x','y',dX,dY,'seven');
+    [F21,F22] = derivativesByFilters(uY,'x','y',dX,dY,'seven');
 end
 
 F11 = F11 + 1;
@@ -135,12 +138,12 @@ Dv = sqrt(1/3)*(D1 + D2);
 % +/-3sigma. Must be enabled in the "choose methods" section.
 
 if useGaussianSmoothing
-    spin = imgaussian(spin,1.2,3);
-    Dv = imgaussian(Dv,1.2,3);
-    Dd = imgaussian(Dd,1.2,3);
-    % Dt = imgaussian(Dt,1.2,3);
-    D2x = imgaussian(D2x,1.2,3);
-    D2y = imgaussian(D2y,1.2,3);
+    spin = imgaussfilt(spin,1.2);
+    Dv = imgaussfilt(Dv,1.2);
+    Dd = imgaussfilt(Dd,1.2);
+    % Dt = imgaussfilt(Dt,1.2);
+    D2x = imgaussfilt(D2x,1.2);
+    D2y = imgaussfilt(D2y,1.2);
 end
 
 %... Remove padding

@@ -159,14 +159,16 @@ for pp = 1:np
             min_frac_data, min_frac_overlap, verbose);
         
     % validate displacement update 
-    [du_pts_tm, dv_pts_tm] = ...
-        piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
-            valid_eps, true);    
-
-    % interpolate/smooth valid vectors to sample grid, outside roi is NaN
-    [du_grd_tm, dv_grd_tm] = ...
-        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-            lowess_span_pts, verbose);
+    % NOTE: neighborhood is hard-coded here
+    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);
+    
+    % interpolate valid vectors to sample grid, outside roi is NaN    
+    % NOTE: may want to fully populate the sample grid in final pass to
+    % facilitate derivative estimation.
+    [du_grd_tm, dv_grd_tm] = piv_spline_interp(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+        spline_tension, true);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;

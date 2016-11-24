@@ -18,5 +18,6 @@ experiment. Results are saved in as internally documented netCDF files.
 
 ## To Do
 
-+ Experiment: use interpolant rather than LOESS smoother to get regular grid
-+ Experiment: remove scattered points that lie outside the future footprint
++ Check boundary treatment for spline-in-tension interpolation
++ Check details of derivative estimators
++ Explore finite strain analysis
