@@ -1,4 +1,4 @@
-function [z, l] = spline2d (x_out, y_out, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11)
+function [z, l] = spline2d (x_out, y_out, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11) %#ok!
 %	$Id: spline2d.m,v 1.3 2014/06/29 03:31:27 myself Exp $
 % SPLINE2D	Gridding using Green's function for splines in tension
 %
@@ -50,7 +50,7 @@ verbose = 0;
 IM = sqrt (-1);
 length_scale = abs (max(x_out(:)) - min(x_out(:)) + IM * (max(y_out(:)) - min(y_out(:)))) / 50;
 
-if (nargin == 5 | nargin == 10 | nargin == 7)	% No tension selected, set default
+if (nargin == 5 || nargin == 10 || nargin == 7)	% No tension selected, set default
 	t = 0;
 	n_args = nargin;
 else
@@ -60,14 +60,14 @@ else
 		length_scale = t(2);
 		t = t(1);
 	end
-	if (t < 0.0 | t >= 1.0)
+	if (t < 0.0 || t >= 1.0)
 		error ('spline2d: tension must be 0 <= t < 1 !')
 	end
 end
 
 % Now figure out what was passed and assign the data accordingly
 
-if (n_args == 5 | n_args == 10)	% z_data supplied
+if (n_args == 5 || n_args == 10)	% z_data supplied
 	x_data = arg_3;
 	y_data = arg_4;
 	z_data = arg_5;
@@ -95,13 +95,13 @@ n1 = 0;
 
 % First we must enforce the use of column vectors for the data constrainst
 
-if (n_args == 5 | n_args == 10)	% z_data supplied; check if we must transpose
+if (n_args == 5 || n_args == 10)	% z_data supplied; check if we must transpose
 	[m,n] = size (x_data); if (m < n), x_data = x_data'; end
 	[m,n] = size (y_data); if (m < n), y_data = y_data'; end
 	[m,n] = size (z_data); if (m < n), z_data = z_data'; end
 	n0 = length (z_data);
 end
-if (n_args == 7 | n_args == 10)	% z_slope supplied; check if we must transpose
+if (n_args == 7 || n_args == 10)	% z_slope supplied; check if we must transpose
 	[m,n] = size (x_slope); if (m < n), x_slope = x_slope'; end
 	[m,n] = size (y_slope); if (m < n), y_slope = y_slope'; end
 	[m,n] = size (i_slope); if (m < n), i_slope = i_slope'; end
@@ -127,11 +127,11 @@ elseif (n_args == 7)
     vx1=i_slope.*z_slope/xsc; 
     vy1=j_slope.*z_slope/ysc; 
     is1=vx1./sqrt(vx1.^2+vy1.^2);
-    js1=vy1./sqrt(vx1.^2+vy1.^2);
+    js1=vy1./sqrt(vx1.^2+vy1.^2); % BUG: Unused
     z_slope=sqrt(vx1.^2+vy1.^2);
     % detrending
     th1=acos(is1);
-    phi=atan(gg(2)/gg(3));
+    phi=atan(gg(2)/gg(3)); % BUG: gg never defined for gradient-only case
     gam=th1-phi;    
     i_slope=cos(gam);
     j_slope=sin(gam);
@@ -144,8 +144,8 @@ else  % n_args == 10
     % scaling 
     vx1=i_slope.*z_slope/xsc; %vx=i_slope.*z_slope; vx1=vx/xsc;
     vy1=j_slope.*z_slope/ysc; %vy=j_slope.*z_slope; vy1=vy/ysc;
-    is1=vx1./sqrt(vx1.^2+vy1.^2);
-    js1=vy1./sqrt(vx1.^2+vy1.^2);
+    is1=vx1./sqrt(vx1.^2+vy1.^2); % BUG: fails for zero gradient
+    js1=vy1./sqrt(vx1.^2+vy1.^2); % BUG: never used
     z_slope=sqrt(vx1.^2+vy1.^2);
     % detrending
     th1=acos(is1);
@@ -174,18 +174,18 @@ end
 
 % Now build the square n x n linear system that must be solved for the alpha's
 if verbose
-    disp ('build matrix')
+    disp('build matrix')
     tic
 end
 n = n0 + n1;
 A = zeros (n, n);
-if (n_args == 5 | n_args == 10)	% z_data supplied; build data matrix rows
+if (n_args == 5 || n_args == 10)	% z_data supplied; build data matrix rows
 	for i = 1:n0
 		r = (abs ((xp(i) - xp) + IM * (yp(i) - yp)));
 		A(i,:) = (spline2d_green (r, p))'; %FRAM, was spline2d_green
 	end
 end
-if (n_args == 7 | n_args == 10)	% z_slope supplied; build slope matrix rows
+if (n_args == 7 || n_args == 10)	% z_slope supplied; build slope matrix rows
 	for i = 1:n1
 		j = i + n0;
 		dx = xp(j) - xp;
@@ -194,7 +194,7 @@ if (n_args == 7 | n_args == 10)	% z_slope supplied; build slope matrix rows
 	end
 end
 if verbose    
-    disp ([num2str(toc),' now solve matrix'])
+    disp([num2str(toc),' now solve matrix'])
     tic
 end
 % Done building square linear system, now solve it
@@ -202,12 +202,14 @@ end
 alpha = A \ zp;
 
 if (nargout == 2)	% Return eigenvalues
-	if verbose;disp ('find eigenvalues'); end
+    if verbose
+        disp('find eigenvalues');
+    end
 	l = svd (A);
 end
 
 if verbose
-    disp ([num2str(toc),' now evaluate'])
+    disp([num2str(toc),' now evaluate'])
     tic
 end
 % Now evaluate final solution at output locations
@@ -219,7 +221,7 @@ for i = 1:length(alpha)
 end
 
 if verbose    
-    disp ([num2str(toc),' now done'])
+    disp([num2str(toc),' now done'])
 end
 
 % FRAM FRAM FRAM 
