@@ -138,12 +138,13 @@ Dv = sqrt(1/3)*(D1 + D2);
 % +/-3sigma. Must be enabled in the "choose methods" section.
 
 if useGaussianSmoothing
-    spin = imgaussfilt(spin,1.2);
-    Dv = imgaussfilt(Dv,1.2);
-    Dd = imgaussfilt(Dd,1.2);
-    % Dt = imgaussfilt(Dt,1.2);
-    D2x = imgaussfilt(D2x,1.2);
-    D2y = imgaussfilt(D2y,1.2);
+    sigma = 1.2;% 0.8; %1.2;
+    spin = imgaussfilt(spin,sigma);
+    Dv = imgaussfilt(Dv,sigma);
+    Dd = imgaussfilt(Dd,sigma);
+    % Dt = imgaussfilt(Dt,sigma);
+    D2x = imgaussfilt(D2x,sigma);
+    D2y = imgaussfilt(D2y,sigma);
 end
 
 %... Remove padding
