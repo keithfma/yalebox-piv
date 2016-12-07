@@ -1,4 +1,4 @@
-function [dzdx, dzdy] = post_gradient(x, y, zz, pad_method)
+function [dzdx, dzdy] = post_spatial_gradient(x, y, zz, pad_method)
 %
 % Return numerical gradient using optimal 7-tap method from reference [1].
 %
