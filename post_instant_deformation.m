@@ -43,15 +43,5 @@ if verbose
    fprintf('%s: start\n', mfilename); 
 end
 
-% pad data
-pad_coord = @(z, dz) [z(1)+dz*(-pad_width:-1)'; z(:); z(end)+dz*(1:pad_width)'];
-x_p = pad_coord(x, x(2)-x(1));
-y_p = pad_coord(y, y(2)-y(1));
-
-if strcmp(pad_method, 'nearest')
-    
-    keyboard
-    
-else
-    error('invalid padding method selected');
-end
+% compute spatial gradients
+[dudx, dudy] = post_gradient(x, y, uu, pad_method);
