@@ -27,21 +27,35 @@ ny = length(y);
 validateattributes(zz, {'numeric'}, {'size', [ny, nx]}, mfilename, 'zz');
 validateattributes(pad_method, {'char'}, {'vector'}, mfilename, 'pad_method');
 
+% get some constants
+dx = x(2)-x(1);
+dy = y(2)-y(1);
+roi = ~isnan(zz);
+
 % pad coordinate vectors and data matrix
 pad_coord = @(z, dz) [z(1)+dz*(-pad_width:-1)'; z(:); z(end)+dz*(1:pad_width)'];
-x_p = pad_coord(x, x(2)-x(1));
-y_p = pad_coord(y, y(2)-y(1));
-
+x_p = pad_coord(x, dx);
+y_p = pad_coord(y, dy);
 [xx_p, yy_p] = meshgrid(x_p, y_p);
 zz_p = padarray(zz, [pad_width, pad_width], NaN, 'both');
+roi_p = padarray(roi, [pad_width, pad_width], false, 'both');
 
 if strcmp(pad_method, 'nearest')
-    roi = ~isnan(zz_p);
-    si = scatteredInterpolant(xx_p(roi), yy_p(roi), zz_p(roi), ...
+    si = scatteredInterpolant(xx_p(roi_p), yy_p(roi_p), zz_p(roi_p), ...
         'nearest', 'nearest');
-    zz_p(~roi) = si(xx_p(~roi), yy_p(~roi));
+    zz_p(~roi_p) = si(xx_p(~roi_p), yy_p(~roi_p));
 else
     error('invalid padding method selected');
 end
 
-keyboard
+% compute gradient
+[dzdx_p, dzdy_p] = derivativesByFilters(zz_p, 'x', 'y', dx, dy, 'seven');
+
+% remove pad
+unpad = @(m) m(pad_width+1:end-pad_width, pad_width+1:end-pad_width);
+dzdx = unpad(dzdx_p);
+dzdy = unpad(dzdy_p);
+
+% re-apply ROI mask
+dzdx(~roi) = NaN;
+dzdy(~roi) = NaN;

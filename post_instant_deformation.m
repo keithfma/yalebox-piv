@@ -20,9 +20,6 @@ function [] = post_instant_deformation(...
 %
 % %
 
-% define constants
-pad_width = 3;
-
 % check inputs
 narginchk(6,7);
 validateattributes(x, {'numeric'}, {'vector','real'}, mfilename, 'x');
@@ -45,3 +42,6 @@ end
 
 % compute spatial gradients
 [dudx, dudy] = post_gradient(x, y, uu, pad_method);
+[dvdx, dvdy] = post_gradient(x, y, vv, pad_method);
+
+keyboard
