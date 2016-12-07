@@ -50,9 +50,8 @@ cmode = bitor(netcdf.getConstant('NETCDF4'), netcdf.getConstant('NOCLOBBER'));
 ncid = netcdf.create(post_netcdf, cmode);
 
 % add global attributes 
-% <TODO> Fix the broken MD5 hash utility on windows
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox commit hash', util_git_hash());
-% netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_netcdf MD5 hash', util_md5_hash(piv_netcdf));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_netcdf MD5 hash', util_md5_hash(piv_netcdf));
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'pro_bbox', pro_bbox);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'retro_bbox', retro_bbox);
 % netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), '', );
@@ -93,7 +92,6 @@ netcdf.putAtt(ncid, u_retro_varid, 'units', 'meters/step');
 v_retro_varid = netcdf.defVar(ncid, 'v_retro', 'NC_FLOAT', s_dimid);
 netcdf.putAtt(ncid, v_retro_varid, 'long_name', 'median retroside section displacement vector, y-component');
 netcdf.putAtt(ncid, v_retro_varid, 'units', 'meters/step');
-
 
 % finish netcdf creation
 netcdf.endDef(ncid);
