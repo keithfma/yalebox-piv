@@ -41,6 +41,9 @@ if verbose
 end
 
 % TODO: Review the following calculations in detail
+% TODO: Modify testing code to use this routine
+% TODO: Add smoothing option(s)
+% TODO: Add alternative padding option(s)
 
 % calculate deformation-gradient tensor 
 % NOTE: F = E + 1, where E is the displacement-gradient tensor
