@@ -36,7 +36,7 @@ yy   = double(ncread(piv_netcdf, 'y'));
 step = double(ncread(piv_netcdf, 'step'));
 uu   = double(ncread(piv_netcdf, 'u'));
 vv   = double(ncread(piv_netcdf, 'v'));
-roi  = double(ncread(piv_netcdf, 'roi'));
+roi  = logical(ncread(piv_netcdf, 'roi'));
 % % derived
 mm = sqrt(uu.^2+vv.^2);
 num_steps = length(step);
@@ -94,22 +94,22 @@ netcdf.putAtt(ncid, v_retro_varid, 'long_name', 'median retroside section displa
 netcdf.putAtt(ncid, v_retro_varid, 'units', 'meters/step');
 
 L11_varid = netcdf.defVar(ncid, 'L11', 'NC_FLOAT', dim_3d);
-netcdf.defChunking(ncid, L11_varid, 'CHUNKED', chunk_3d);
+netcdf.defVarChunking(ncid, L11_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, L11_varid, 'long_name', 'du/dx, deformation gradient tensor element (1,1)');
 netcdf.putAtt(ncid, L11_varid, 'units', '1');
 
 L12_varid = netcdf.defVar(ncid, 'L12', 'NC_FLOAT', dim_3d);
-netcdf.defChunking(ncid, L12_varid, 'CHUNKED', chunk_3d);
+netcdf.defVarChunking(ncid, L12_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, L12_varid, 'long_name', 'du/dy, deformation gradient tensor element (1,2)');
 netcdf.putAtt(ncid, L12_varid, 'units', '1');
 
 L21_varid = netcdf.defVar(ncid, 'L21', 'NC_FLOAT', dim_3d);
-netcdf.defChunking(ncid, L21_varid, 'CHUNKED', chunk_3d);
+netcdf.defVarChunking(ncid, L21_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, L21_varid, 'long_name', 'dv/dx, deformation gradient tensor element (2,1)');
 netcdf.putAtt(ncid, L21_varid, 'units', '1');
 
 L22_varid = netcdf.defVar(ncid, 'L22', 'NC_FLOAT', dim_3d);
-netcdf.defChunking(ncid, L22_varid, 'CHUNKED', chunk_3d);
+netcdf.defVarChunking(ncid, L22_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, L22_varid, 'long_name', 'dv/dy, deformation gradient tensor element (2,2)');
 netcdf.putAtt(ncid, L22_varid, 'units', '1');
 
