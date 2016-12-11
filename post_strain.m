@@ -1,4 +1,4 @@
-function [L, F] = post_strain(x, y, uu, vv, roi, pad_method, verbose)
+function [L, F] = post_strain(x, y, uu, vv, roi, pad_method)
 %
 % Compute strain deformation parameters for input velocity fields.
 %
@@ -10,8 +10,6 @@ function [L, F] = post_strain(x, y, uu, vv, roi, pad_method, verbose)
 %   roi: Region-of-interest mask matrix (false for no data)
 %   pad_method: (temporary) Select padding method, valid options are 
 %       {'nearest'}
-%   verbose: (optional) Flag indicating whether to print verbose messages 
-%       (true) or not (false), default = false
 %   L: Displacement-gradient tensor field, 3D matrix, last dimension stores
 %       tensor components column-wise (L11, L21, L12, L22)
 %   F: Deformation-gradient tensor, 3D matrix, stored same as L
@@ -27,15 +25,6 @@ validateattributes(uu, {'numeric'}, {'size', [ny, nx]}, mfilename, 'uu');
 validateattributes(vv, {'numeric'}, {'size', [ny, nx]}, mfilename, 'vv');
 validateattributes(roi,  {'logical'}, {'size', [ny, nx]}, mfilename, 'roi');
 validateattributes(pad_method, {'char'}, {'vector'}, mfilename, 'pad_method');
-if nargin == 5
-    verbose = false;
-end
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar'}, ...
-    mfilename, 'verbose');
-
-if verbose
-   fprintf('%s: start\n', mfilename); 
-end
 
 % calculate displacement-gradient tensor 
 [L11, L12] = spatial_gradient(x, y, uu, pad_method);

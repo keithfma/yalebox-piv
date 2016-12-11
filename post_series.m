@@ -156,12 +156,14 @@ netcdf.close(ncid);
 % run analyses for each timestep
 % for ii = 1:num_steps
 for ii = 1:20 % DEBUG
+    
+    % get results
     us = uu(:,:,ii);
     vs = vv(:,:,ii);
     rois = roi(:,:,ii);
     uv_pro   = post_displ_rect(xx, yy, us, vs, pro_bbox);
     uv_retro = post_displ_rect(xx, yy, us, vs, retro_bbox);
-    [L, F] = post_strain(xx, yy, us, vs, rois, pad_method, true);
+    [L, F] = post_strain(xx, yy, us, vs, rois, pad_method);
     
     % save results
     ncid = netcdf.open(post_netcdf, 'WRITE');
@@ -178,6 +180,9 @@ for ii = 1:20 % DEBUG
     netcdf.putVar(ncid, F12_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,3));
     netcdf.putVar(ncid, F22_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,4));
     netcdf.close(ncid);
+    
+    % report progress
+    fprintf('%s: %d of %d\n', mfilename, ii, num_steps);
 end
 
 % finalize
