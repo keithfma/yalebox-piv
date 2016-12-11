@@ -1,5 +1,5 @@
 function [] = post_series(piv_netcdf, post_netcdf, pro_bbox, ...
-                          retro_bbox, pad_method)
+                          retro_bbox, pad_method, notes)
 % 
 % Run post-processing analyses on PIV data, and saves the results and
 % metadata in a netCDF file.
@@ -14,10 +14,17 @@ function [] = post_series(piv_netcdf, post_netcdf, pro_bbox, ...
 %       height] for the bounding boxes used to estimate pro- and retro-
 %       plate displacements from PIV data.
 %   pad_method: String, ...
+%   notes: String, notes to be included in output netCDF as a global
+%       attribute. default = ''
 %
 % Output netCDF is self-documenting
 %
 % % Keith Ma
+
+% set defaults
+if nargin < 6
+    notes = '';
+end
 
 % check (immediate) input arguments
 validateattributes(piv_netcdf, {'char'}, {'nonempty'}, ...
@@ -27,7 +34,8 @@ assert(exist(piv_netcdf, 'file') == 2, ...
 validateattributes(post_netcdf, {'char'}, {'nonempty'}, ...
     mfilename, 'post_netcdf');
 assert(exist(post_netcdf, 'file') ~= 2, ...
-    sprintf('output file %s already exists', post_netcdf));    
+    sprintf('output file %s already exists', post_netcdf));
+validateattributes(notes, {'char'}, {}, mfilename, 'notes');
 
 % read in PIV data from netCDF
 % % stored
@@ -54,6 +62,7 @@ netcdf.putAtt(ncid, global_id, 'piv_netcdf MD5 hash', util_md5_hash(piv_netcdf))
 netcdf.putAtt(ncid, global_id, 'pro_bbox', pro_bbox);
 netcdf.putAtt(ncid, global_id, 'retro_bbox', retro_bbox);
 netcdf.putAtt(ncid, global_id, 'pad_method', pad_method);
+netcdf.putAtt(ncid, global_id, 'notes', notes);
 % netcdf.putAtt(ncid, global_id, '', );
 
 % define dimensions
@@ -144,6 +153,7 @@ for ii = 1:num_steps
     netcdf.putVar(ncid, L12_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,3));
     netcdf.putVar(ncid, L22_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,4));
     netcdf.close(ncid);
+    break
 end
 
 % finalize
