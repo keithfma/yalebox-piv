@@ -104,23 +104,43 @@ netcdf.putAtt(ncid, v_retro_varid, 'units', 'meters/step');
 
 L11_varid = netcdf.defVar(ncid, 'L11', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, L11_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L11_varid, 'long_name', 'du/dx, deformation gradient tensor element (1,1)');
+netcdf.putAtt(ncid, L11_varid, 'long_name', 'du/dx, displacement gradient tensor element (1,1)');
 netcdf.putAtt(ncid, L11_varid, 'units', '1');
 
 L12_varid = netcdf.defVar(ncid, 'L12', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, L12_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L12_varid, 'long_name', 'du/dy, deformation gradient tensor element (1,2)');
+netcdf.putAtt(ncid, L12_varid, 'long_name', 'du/dy, displacement gradient tensor element (1,2)');
 netcdf.putAtt(ncid, L12_varid, 'units', '1');
 
 L21_varid = netcdf.defVar(ncid, 'L21', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, L21_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L21_varid, 'long_name', 'dv/dx, deformation gradient tensor element (2,1)');
+netcdf.putAtt(ncid, L21_varid, 'long_name', 'dv/dx, displacement gradient tensor element (2,1)');
 netcdf.putAtt(ncid, L21_varid, 'units', '1');
 
 L22_varid = netcdf.defVar(ncid, 'L22', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, L22_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L22_varid, 'long_name', 'dv/dy, deformation gradient tensor element (2,2)');
+netcdf.putAtt(ncid, L22_varid, 'long_name', 'dv/dy, displacement gradient tensor element (2,2)');
 netcdf.putAtt(ncid, L22_varid, 'units', '1');
+
+F11_varid = netcdf.defVar(ncid, 'F11', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, F11_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, F11_varid, 'long_name', 'dx/dX, deformation gradient tensor element (1,1)');
+netcdf.putAtt(ncid, F11_varid, 'units', '1');
+
+F12_varid = netcdf.defVar(ncid, 'F12', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, F12_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, F12_varid, 'long_name', 'dx/dY, deformation gradient tensor element (1,2)');
+netcdf.putAtt(ncid, F12_varid, 'units', '1');
+
+F21_varid = netcdf.defVar(ncid, 'F21', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, F21_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, F21_varid, 'long_name', 'dy/dX, deformation gradient tensor element (2,1)');
+netcdf.putAtt(ncid, F21_varid, 'units', '1');
+
+F22_varid = netcdf.defVar(ncid, 'F22', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, F22_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, F22_varid, 'long_name', 'dy/dY, deformation gradient tensor element (2,2)');
+netcdf.putAtt(ncid, F22_varid, 'units', '1');
 
 % finish netcdf creation
 netcdf.endDef(ncid);
@@ -134,7 +154,8 @@ netcdf.putVar(ncid, s_varid, step);
 netcdf.close(ncid);
 
 % run analyses for each timestep
-for ii = 1:num_steps
+% for ii = 1:num_steps
+for ii = 1:20 % DEBUG
     us = uu(:,:,ii);
     vs = vv(:,:,ii);
     rois = roi(:,:,ii);
@@ -152,8 +173,11 @@ for ii = 1:num_steps
     netcdf.putVar(ncid, L21_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,2));
     netcdf.putVar(ncid, L12_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,3));
     netcdf.putVar(ncid, L22_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,4));
+    netcdf.putVar(ncid, F11_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,1));
+    netcdf.putVar(ncid, F21_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,2));
+    netcdf.putVar(ncid, F12_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,3));
+    netcdf.putVar(ncid, F22_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,4));
     netcdf.close(ncid);
-    break
 end
 
 % finalize
