@@ -1,4 +1,5 @@
-function [] = post_series(piv_netcdf, post_netcdf, pro_bbox, retro_bbox)
+function [] = post_series(piv_netcdf, post_netcdf, pro_bbox, ...
+                          retro_bbox, pad_method)
 % 
 % Run post-processing analyses on PIV data, and saves the results and
 % metadata in a netCDF file.
@@ -11,13 +12,14 @@ function [] = post_series(piv_netcdf, post_netcdf, pro_bbox, retro_bbox)
 %       unhappy accidents
 %   pro_bbox, retro_bbox: 4-element position vectors [xmin, ymin, width,
 %       height] for the bounding boxes used to estimate pro- and retro-
-%       plate displacements from PIV data. 
+%       plate displacements from PIV data.
+%   pad_method: String, ...
 %
 % Output netCDF is self-documenting
 %
 % % Keith Ma
 
-% parse input arguments
+% check (immediate) input arguments
 validateattributes(piv_netcdf, {'char'}, {'nonempty'}, ...
     mfilename, 'piv_netcdf');
 assert(exist(piv_netcdf, 'file') == 2, ...
@@ -26,20 +28,16 @@ validateattributes(post_netcdf, {'char'}, {'nonempty'}, ...
     mfilename, 'post_netcdf');
 assert(exist(post_netcdf, 'file') ~= 2, ...
     sprintf('output file %s already exists', post_netcdf));    
-validateattributes(pro_bbox, {'numeric'}, {'vector', 'numel', 4}, ...
-    mfilename, 'pro_bbox');
-validateattributes(retro_bbox, {'numeric'}, {'vector', 'numel', 4}, ...
-    mfilename, 'retro_bbox');
 
 % read in PIV data from netCDF
-%...stored
+% % stored
 xx   = double(ncread(piv_netcdf, 'x')); 
 yy   = double(ncread(piv_netcdf, 'y')); 
 step = double(ncread(piv_netcdf, 'step'));
 uu   = double(ncread(piv_netcdf, 'u'));
 vv   = double(ncread(piv_netcdf, 'v'));
 roi  = double(ncread(piv_netcdf, 'roi'));
-%...derived
+% % derived
 mm = sqrt(uu.^2+vv.^2);
 num_steps = length(step);
 num_x = length(xx);
@@ -50,11 +48,13 @@ cmode = bitor(netcdf.getConstant('NETCDF4'), netcdf.getConstant('NOCLOBBER'));
 ncid = netcdf.create(post_netcdf, cmode);
 
 % add global attributes 
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox commit hash', util_git_hash());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_netcdf MD5 hash', util_md5_hash(piv_netcdf));
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'pro_bbox', pro_bbox);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'retro_bbox', retro_bbox);
-% netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), '', );
+global_id = netcdf.getConstant('GLOBAL');
+netcdf.putAtt(ncid, global_id, 'yalebox commit hash', util_git_hash());
+netcdf.putAtt(ncid, global_id, 'piv_netcdf MD5 hash', util_md5_hash(piv_netcdf));
+netcdf.putAtt(ncid, global_id, 'pro_bbox', pro_bbox);
+netcdf.putAtt(ncid, global_id, 'retro_bbox', retro_bbox);
+netcdf.putAtt(ncid, global_id, 'pad_method', pad_method);
+% netcdf.putAtt(ncid, global_id, '', );
 
 % define dimensions
 x_dimid = netcdf.defDim(ncid, 'x', num_x);
@@ -93,6 +93,26 @@ v_retro_varid = netcdf.defVar(ncid, 'v_retro', 'NC_FLOAT', s_dimid);
 netcdf.putAtt(ncid, v_retro_varid, 'long_name', 'median retroside section displacement vector, y-component');
 netcdf.putAtt(ncid, v_retro_varid, 'units', 'meters/step');
 
+L11_varid = netcdf.defVar(ncid, 'L11', 'NC_FLOAT', dim_3d);
+netcdf.defChunking(ncid, L11_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, L11_varid, 'long_name', 'du/dx, deformation gradient tensor element (1,1)');
+netcdf.putAtt(ncid, L11_varid, 'units', '1');
+
+L12_varid = netcdf.defVar(ncid, 'L12', 'NC_FLOAT', dim_3d);
+netcdf.defChunking(ncid, L12_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, L12_varid, 'long_name', 'du/dy, deformation gradient tensor element (1,2)');
+netcdf.putAtt(ncid, L12_varid, 'units', '1');
+
+L21_varid = netcdf.defVar(ncid, 'L21', 'NC_FLOAT', dim_3d);
+netcdf.defChunking(ncid, L21_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, L21_varid, 'long_name', 'dv/dx, deformation gradient tensor element (2,1)');
+netcdf.putAtt(ncid, L21_varid, 'units', '1');
+
+L22_varid = netcdf.defVar(ncid, 'L22', 'NC_FLOAT', dim_3d);
+netcdf.defChunking(ncid, L22_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, L22_varid, 'long_name', 'dv/dy, deformation gradient tensor element (2,2)');
+netcdf.putAtt(ncid, L22_varid, 'units', '1');
+
 % finish netcdf creation
 netcdf.endDef(ncid);
 netcdf.close(ncid);    
@@ -108,11 +128,10 @@ netcdf.close(ncid);
 for ii = 1:num_steps
     us = uu(:,:,ii);
     vs = vv(:,:,ii);
+    rois = roi(:,:,ii);
     uv_pro   = post_displ_rect(xx, yy, us, vs, pro_bbox);
     uv_retro = post_displ_rect(xx, yy, us, vs, retro_bbox);
-    % area budget
-    % infinitesimal strain analysis
-    % finite strain analysis
+    [L, F] = post_strain(xx, yy, us, vs, rois, pad_method, true);
     
     % save results
     ncid = netcdf.open(post_netcdf, 'WRITE');
@@ -120,6 +139,10 @@ for ii = 1:num_steps
     netcdf.putVar(ncid, v_pro_varid, ii-1, 1, uv_pro(2));    
     netcdf.putVar(ncid, u_retro_varid, ii-1, 1, uv_retro(1));
     netcdf.putVar(ncid, v_retro_varid, ii-1, 1, uv_retro(2));
+    netcdf.putVar(ncid, L11_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,1));
+    netcdf.putVar(ncid, L21_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,2));
+    netcdf.putVar(ncid, L12_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,3));
+    netcdf.putVar(ncid, L22_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,4));
     netcdf.close(ncid);
 end
 
