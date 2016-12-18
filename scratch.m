@@ -16,4 +16,4 @@ x = double(ncread(data_file, 'x'));
 y = double(ncread(data_file, 'y'));
 
 % compute instantaneous deformation (includes padding)
-[L, F] = post_strain(x, y, uu, vv, roi, 'nearest', true);
+[L, F, S] = post_strain(x, y, uu, vv, roi, 'nearest');
