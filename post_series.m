@@ -102,26 +102,6 @@ v_retro_varid = netcdf.defVar(ncid, 'v_retro', 'NC_FLOAT', s_dimid);
 netcdf.putAtt(ncid, v_retro_varid, 'long_name', 'median retroside section displacement vector, y-component');
 netcdf.putAtt(ncid, v_retro_varid, 'units', 'meters/step');
 
-L11_varid = netcdf.defVar(ncid, 'L11', 'NC_FLOAT', dim_3d);
-netcdf.defVarChunking(ncid, L11_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L11_varid, 'long_name', 'du/dx, displacement gradient tensor element (1,1)');
-netcdf.putAtt(ncid, L11_varid, 'units', '1');
-
-L12_varid = netcdf.defVar(ncid, 'L12', 'NC_FLOAT', dim_3d);
-netcdf.defVarChunking(ncid, L12_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L12_varid, 'long_name', 'du/dy, displacement gradient tensor element (1,2)');
-netcdf.putAtt(ncid, L12_varid, 'units', '1');
-
-L21_varid = netcdf.defVar(ncid, 'L21', 'NC_FLOAT', dim_3d);
-netcdf.defVarChunking(ncid, L21_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L21_varid, 'long_name', 'dv/dx, displacement gradient tensor element (2,1)');
-netcdf.putAtt(ncid, L21_varid, 'units', '1');
-
-L22_varid = netcdf.defVar(ncid, 'L22', 'NC_FLOAT', dim_3d);
-netcdf.defVarChunking(ncid, L22_varid, 'CHUNKED', chunk_3d);
-netcdf.putAtt(ncid, L22_varid, 'long_name', 'dv/dy, displacement gradient tensor element (2,2)');
-netcdf.putAtt(ncid, L22_varid, 'units', '1');
-
 F11_varid = netcdf.defVar(ncid, 'F11', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, F11_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, F11_varid, 'long_name', 'dx/dX, deformation gradient tensor element (1,1)');
@@ -142,6 +122,75 @@ netcdf.defVarChunking(ncid, F22_varid, 'CHUNKED', chunk_3d);
 netcdf.putAtt(ncid, F22_varid, 'long_name', 'dy/dY, deformation gradient tensor element (2,2)');
 netcdf.putAtt(ncid, F22_varid, 'units', '1');
 
+S1_varid = netcdf.defVar(ncid, 'S1', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S1_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S1_varid, 'long_name', 'maximum principle stretch');
+netcdf.putAtt(ncid, S1_varid, 'units', '1');
+
+S1x_varid = netcdf.defVar(ncid, 'S1x', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S1x_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S1x_varid, 'long_name', 'maximum principle stretch unit direction vector, x-component');
+netcdf.putAtt(ncid, S1x_varid, 'units', '1');
+
+S1y_varid = netcdf.defVar(ncid, 'S1y', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S1y_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S1y_varid, 'long_name', 'maximum principle stretch unit direction vector, y-component');
+netcdf.putAtt(ncid, S1y_varid, 'units', '1');
+
+S2_varid = netcdf.defVar(ncid, 'S2', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S2_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S2_varid, 'long_name', 'minimum principle stretch');
+netcdf.putAtt(ncid, S2_varid, 'units', '1');
+
+S2x_varid = netcdf.defVar(ncid, 'S2x', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S2x_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S2x_varid, 'long_name', 'minimum principle stretch unit direction vector, x-component');
+netcdf.putAtt(ncid, S2x_varid, 'units', '1');
+
+S2y_varid = netcdf.defVar(ncid, 'S2y', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, S2y_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, S2y_varid, 'long_name', 'minimum principle stretch unit direction vector, y-component');
+netcdf.putAtt(ncid, S2y_varid, 'units', '1');
+
+spin_varid = netcdf.defVar(ncid, 'spin', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, spin_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, spin_varid, 'long_name', 'Local rotation angle, clockwise');
+netcdf.putAtt(ncid, spin_varid, 'units', 'radians');
+
+D1_varid = netcdf.defVar(ncid, 'D1', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, D1_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, D1_varid, 'long_name', 'equivalent maximum principle stretch rate');
+netcdf.putAtt(ncid, D1_varid, 'units', '1/step');
+
+D2_varid = netcdf.defVar(ncid, 'D2', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, D2_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, D2_varid, 'long_name', 'equivalent minimum principle stretch rate');
+netcdf.putAtt(ncid, D2_varid, 'units', '1/step');
+
+Dd_varid = netcdf.defVar(ncid, 'Dd', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, Dd_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, Dd_varid, 'long_name', 'deviatoric strain rate');
+netcdf.putAtt(ncid, Dd_varid, 'units', '1/step');
+netcdf.putAtt(ncid, Dd_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
+
+Dv_varid = netcdf.defVar(ncid, 'Dv', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, Dv_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, Dv_varid, 'long_name', 'volume strain rate');
+netcdf.putAtt(ncid, Dv_varid, 'units', '1/step');
+netcdf.putAtt(ncid, Dv_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
+
+Wk_star_varid = netcdf.defVar(ncid, 'Wk_star', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, Wk_star_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, Wk_star_varid, 'long_name', 'kinematic dilatancy number, relative to Dd');
+netcdf.putAtt(ncid, Wk_star_varid, 'units', '1');
+netcdf.putAtt(ncid, Wk_star_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
+
+Ak_star_varid = netcdf.defVar(ncid, 'Ak_star', 'NC_FLOAT', dim_3d);
+netcdf.defVarChunking(ncid, Ak_star_varid, 'CHUNKED', chunk_3d);
+netcdf.putAtt(ncid, Ak_star_varid, 'long_name', 'kinematic vorticity number, relative to Dd');
+netcdf.putAtt(ncid, Ak_star_varid, 'units', '1');
+netcdf.putAtt(ncid, Ak_star_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
+
 % finish netcdf creation
 netcdf.endDef(ncid);
 netcdf.close(ncid);    
@@ -154,8 +203,7 @@ netcdf.putVar(ncid, s_varid, step);
 netcdf.close(ncid);
 
 % run analyses for each timestep
-% for ii = 1:num_steps
-for ii = 1:20 % DEBUG
+for ii = 1:num_steps
     
     % get results
     us = uu(:,:,ii);
@@ -163,7 +211,7 @@ for ii = 1:20 % DEBUG
     rois = roi(:,:,ii);
     uv_pro   = post_displ_rect(xx, yy, us, vs, pro_bbox);
     uv_retro = post_displ_rect(xx, yy, us, vs, retro_bbox);
-    [L, F] = post_strain(xx, yy, us, vs, rois, pad_method);
+    strain = post_strain(xx, yy, us, vs, rois, pad_method);
     
     % save results
     ncid = netcdf.open(post_netcdf, 'WRITE');
@@ -171,21 +219,29 @@ for ii = 1:20 % DEBUG
     netcdf.putVar(ncid, v_pro_varid, ii-1, 1, uv_pro(2));    
     netcdf.putVar(ncid, u_retro_varid, ii-1, 1, uv_retro(1));
     netcdf.putVar(ncid, v_retro_varid, ii-1, 1, uv_retro(2));
-    netcdf.putVar(ncid, L11_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,1));
-    netcdf.putVar(ncid, L21_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,2));
-    netcdf.putVar(ncid, L12_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,3));
-    netcdf.putVar(ncid, L22_varid, [0, 0, ii-1], [num_y, num_x, 1], L(:,:,4));
-    netcdf.putVar(ncid, F11_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,1));
-    netcdf.putVar(ncid, F21_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,2));
-    netcdf.putVar(ncid, F12_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,3));
-    netcdf.putVar(ncid, F22_varid, [0, 0, ii-1], [num_y, num_x, 1], F(:,:,4));
+    netcdf.putVar(ncid, F11_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.F11);
+    netcdf.putVar(ncid, F21_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.F21);
+    netcdf.putVar(ncid, F12_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.F12);
+    netcdf.putVar(ncid, F22_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.F22);
+    netcdf.putVar(ncid, S1_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S1);
+    netcdf.putVar(ncid, S1x_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S1x);
+    netcdf.putVar(ncid, S1y_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S1y);
+    netcdf.putVar(ncid, S2_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S2);
+    netcdf.putVar(ncid, S2x_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S2x);
+    netcdf.putVar(ncid, S2y_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.S2y);
+    netcdf.putVar(ncid, spin_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.spin);
+    netcdf.putVar(ncid, D1_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.D1);
+    netcdf.putVar(ncid, D2_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.D2);
+    netcdf.putVar(ncid, Dd_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.Dd);
+    netcdf.putVar(ncid, Dv_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.Dv);
+    netcdf.putVar(ncid, Wk_star_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.Wk_star);
+    netcdf.putVar(ncid, Ak_star_varid, [0, 0, ii-1], [num_y, num_x, 1], strain.Ak_star);
     netcdf.close(ncid);
     
     % report progress
     fprintf('%s: %d of %d\n', mfilename, ii, num_steps);
 end
 
-% finalize
-
-% % debug
+% % <DEBUG>
 % keyboard
+% % </DEBUG>
