@@ -1,9 +1,11 @@
 function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
-                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-                  num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
+                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
+                  value_lim, entropy_lim, entropy_len, morph_open_rad, ...
+                  morph_erode_rad, eql_len, xw, yw, mask_manual)
 % function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
-%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, entropy_len, ...
-%                   num_cluster, cluster_center, eql_len, xw, yw, mask_manual)
+%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
+%                   value_lim, entropy_lim, entropy_len, morph_open_rad, ...
+%                   morph_erode_rad, eql_len, xw, yw, mask_manual)
 % 
 % Create PIV input file for a given image series. Reads in the images, rectifies
 % and crops, masks, corrects illuination, and saves the results and metadata in
@@ -23,14 +25,14 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 %
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
+% 
+%   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
+%       prep_mask_auto()
 %
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
 %
-%   num_cluster = Number of kmeans clusters in segmentation routine, see
-%       prep_mask_auto()
-%
-%   cluster_center = kmeans cluster centroids, each center is one row with
-%       variables (hue, value, entropy) in columns, see prep_mask_auto()
+%   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
+%       radius for morphological filters in prep_mask_auto()
 %
 %   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
 %
@@ -42,7 +44,7 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 % % Keith Ma
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(16, 16); 
+assert(nargin == 19);
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
@@ -50,12 +52,12 @@ validateattributes(image_names, {'cell'}, {'vector'});
 % get some size parameters
 nx = numel(xw);
 ny = numel(yw);
-info = imfinfo([image_path filesep image_names{1}]);
-raw_nrow = info.Height;
-raw_ncol = info.Width;
 num_image = numel(image_names);
 
 % check that all images exist and have the expected size and type
+info = imfinfo([image_path filesep image_names{1}]);
+raw_nrow = info.Height;
+raw_ncol = info.Width;
 for i = 1:num_image
     try
         this_file = [image_path filesep image_names{i}];
@@ -80,18 +82,17 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yp', ctrl_yp);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_xw', crop_xw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_yw', crop_yw);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto hue_lim', hue_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto value_lim', value_lim);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_lim', entropy_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_len', entropy_len);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto num_cluster', num_cluster);
-for ii = 1:num_cluster
-    netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), sprintf('prep_mask_auto cluster_center_%d', ii), cluster_center(ii,:));
-end
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity eql_len', eql_len);
      
 % create dimensions
 x_dimid = netcdf.defDim(ncid, 'x', nx);
 y_dimid = netcdf.defDim(ncid, 'y', ny);
-row_dimid = netcdf.defDim(ncid, 'row', raw_nrow);
-col_dimid = netcdf.defDim(ncid, 'col', raw_ncol);
 step_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
 rgb_dimid = netcdf.defDim(ncid, 'rgb', 3);
  
@@ -112,17 +113,17 @@ rgb_varid = netcdf.defVar(ncid, 'rgb', 'NC_CHAR', rgb_dimid);
 netcdf.putAtt(ncid, rgb_varid, 'long_name', 'color band');
 netcdf.putAtt(ncid, rgb_varid, 'units', 'char');
 
-raw_varid = netcdf.defVar(ncid, 'raw', 'NC_UBYTE', [row_dimid, col_dimid, rgb_dimid, step_dimid]);
-netcdf.putAtt(ncid, raw_varid, 'long_name', 'original image');
+raw_varid = netcdf.defVar(ncid, 'img_rgb', 'NC_UBYTE', [y_dimid, x_dimid, rgb_dimid, step_dimid]);
+netcdf.putAtt(ncid, raw_varid, 'long_name', 'rectified rgb image');
 netcdf.putAtt(ncid, raw_varid, 'units', '24-bit color');
 netcdf.defVarDeflate(ncid, raw_varid, true, true, 1);
-netcdf.defVarChunking(ncid, raw_varid, 'CHUNKED', [raw_nrow, raw_ncol, 3, 1]);
+netcdf.defVarChunking(ncid, raw_varid, 'CHUNKED', [ny, nx, 3, 1]);
 
-image_varid = netcdf.defVar(ncid, 'image', 'NC_FLOAT', [y_dimid, x_dimid, step_dimid]);
-netcdf.putAtt(ncid, image_varid, 'long_name', 'normalized sand brightness');
-netcdf.putAtt(ncid, image_varid, 'units', '1');
-netcdf.defVarDeflate(ncid, image_varid, true, true, 1);
-netcdf.defVarChunking(ncid, image_varid, 'CHUNKED', [ny, nx, 1]);
+img_varid = netcdf.defVar(ncid, 'img', 'NC_FLOAT', [y_dimid, x_dimid, step_dimid]);
+netcdf.putAtt(ncid, img_varid, 'long_name', 'rectified normalized grayscale image');
+netcdf.putAtt(ncid, img_varid, 'units', '1');
+netcdf.defVarDeflate(ncid, img_varid, true, true, 1);
+netcdf.defVarChunking(ncid, img_varid, 'CHUNKED', [ny, nx, 1]);
 
 maska_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', [y_dimid, x_dimid, step_dimid]);
 netcdf.putAtt(ncid, maska_varid, 'long_name', 'sand mask, automatic');
@@ -159,25 +160,21 @@ for i = 1:num_image
     fprintf('\n%s: %s\n', mfilename, this_file);
     
     % rectify and crop
-    rgb = prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, ...
+    raw = prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, ...
               crop_yw, raw, false, true);
      
     % compute automatic mask
-    mask_auto = prep_mask_auto(rgb, entropy_len, cluster_center, false, true);
-
+    mask_auto = prep_mask_auto(raw, hue_lim, value_lim, entropy_lim, ...
+                    entropy_len, morph_open_rad, morph_erode_rad, false, true);
+    
     % equalize intensity
-    hsv = rgb2hsv(rgb);
-    value = hsv(:,:,3);
-    eql = prep_intensity(value, mask_manual & mask_auto, eql_len, false, true);
+    img = prep_intensity(raw, mask_manual & mask_auto, eql_len, false, true);
      
     % save results   
     ncid = netcdf.open(output_file, 'WRITE');
-    netcdf.putVar(ncid, maska_varid, [0, 0, i-1], [ny, nx, 1], ...
-        uint8(mask_auto));
-    netcdf.putVar(ncid, image_varid, [0, 0, i-1], [ny, nx, 1], ...
-        eql);
-    netcdf.putVar(ncid, raw_varid, [0, 0, 0, i-1], [raw_nrow, raw_ncol, 3, 1], ...
-        raw);
+    netcdf.putVar(ncid, maska_varid, [0, 0, i-1], [ny, nx, 1], uint8(mask_auto));
+    netcdf.putVar(ncid, img_varid, [0, 0, i-1], [ny, nx, 1], img);
+    netcdf.putVar(ncid, raw_varid, [0, 0, 0, i-1], [ny, nx, 3, 1], raw);
     netcdf.close(ncid);
      
 end

@@ -1,34 +1,30 @@
-function eql = prep_intensity(img, mask, nwin, show, verbose)
-% function eql = prep_intensity(img, mask, nwin, show, verbose)
+function eql = prep_intensity(img, mask, eql_len, show, verbose)
+% function eql = prep_intensity(img, mask, eql_len, show, verbose)
 %
 % Convert masked color image to "equalized" grayscale image. 
 %
-% Equalization transforms pixel intensity so that the image histogram is
-% approximately uniform. A simple adaptive (local window) method is used, in
-% which the value of each pixel is replaced with its percentile in a local
-% window. This is equivalent to the normal method of using a CDF as a transform
-% function, but more efficient, since it is not necessary to compute the CDF to
-% convert just one pixel.
+% Equalization transforms the image to grayscale with approximatley uniform
+% pixel intensity distribution. A simple adaptive (local window) method is
+% used, in which the value of each pixel is replaced with its percentile in
+% a local window. This is equivalent to the normal method of using a CDF as
+% a transform function, but more efficient, since it is not necessary to
+% compute the CDF to convert just one pixel.
 %
 % Arguments:
-%
-%   img = 2D matrix, double, grayscale image in the range [0, 1].
-%
-%   mask = 2D matrix, double, TRUE where there is sand, FALSE elsewhere
-%
-%   nwin = Scalar, integer, odd. Side length (in pixels) for the local
+%   img: 3D matrix, RGB color image OR 2D matrix, grayscale image
+%   mask: 2D matrix, double, TRUE where there is sand, FALSE elsewhere
+%   eql_len: Scalar, integer, odd. Side length (in pixels) for the local
 %       neighborhood used to compute the transform for each pixel.
-%
-%   show = Optional, scalar, logical flag, set to True to plot the original and
+%   show: Optional, scalar, logical flag, set to True to plot the original and
 %       equalized intensity images and some simple comparison statistics,
 %       default = false
+%   verbose: Optional, logical flag, display verbose messages (1) or don't (0)
 %
-%   verbose = Optional, logical flag, display verbose messages (1) or don't (0)
-%
-%   eql = 2D matrix, size(mask), double, normalized intensity image with uniform
+% Returns:
+%   eql: 2D matrix, size(mask), double, normalized intensity image with uniform
 %       distribution in the range [0, 1].
 %
-% %
+% % Keith Ma
 
 % set defaults
 narginchk(3, 5)
@@ -36,19 +32,25 @@ if nargin < 4; show = false; end
 if nargin < 5; verbose = false; end
 
 % check for sane inputs
-validateattributes(img, {'double'}, {'2d', '>=', 0, '<=', 1});
+validateattributes(img, {'numeric'}, {'3d'}); % 3 or fewer dims
 validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
-validateattributes(nwin, {'numeric'}, {'integer', 'positive', 'odd'});
+validateattributes(eql_len, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
+
+% convert rgb to grayscale
+if ndims(img) == 3
+    img = rgb2hsv(img);
+    img = img(:,:,3); % grayscale layer is  HSV "value"
+end
+
+% apply mask
+img(~mask) = 0;
 
 % get constants, preallocate variables
 [nr, nc] = size(img);
 eql = zeros(nr, nc);
-nhalfwin = floor(nwin/2);
-
-% apply mask
-img(~mask) = 0;
+nhalfwin = floor(eql_len/2);
 
 % (optional) report basic stats on intial image
 if verbose

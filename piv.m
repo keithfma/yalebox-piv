@@ -1,7 +1,7 @@
-function [xx, yy, uu, vv, roi] = ...
-    piv(ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-        intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-        min_frac_data, min_frac_overlap, verbose)                 
+function [xx, yy, uu, vv, roi] = piv(...
+    ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
+    intrlen, npass, valid_max, valid_eps, spline_tension, ...
+    min_frac_data, min_frac_overlap, verbose)                 
 % New implementation PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -33,9 +33,6 @@ function [xx, yy, uu, vv, roi] = ...
 %
 %   epsilon = Scalar, double, minumum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
-%
-%   lowess_span_pts = Scalar, number of points to include in local fit for 
-%       lowess smoothing/interpolation step.
 %
 %   spline_tension = Scalar, tension parameter for the spline interpolation
 %       routine in ref [4]
@@ -102,7 +99,6 @@ validateattributes( intrlen,          {'numeric'}, {'vector', 'numel', ng, 'inte
 validateattributes( npass,            {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
 validateattributes( valid_max,        {'double'},  {'scalar', 'positive'});
 validateattributes( valid_eps,        {'double'},  {'scalar', 'positive'});
-validateattributes( lowess_span_pts,  {'numeric'}, {'scalar', 'integer'});
 validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
@@ -120,7 +116,6 @@ if verbose
     fprintf('%s: npass = ', mfilename); fprintf('%d ', npass); fprintf('\n');
     fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
     fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
-    fprintf('%s: lowess_span_pts = %d\n', mfilename, lowess_span_pts);
     fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
     fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
@@ -159,14 +154,14 @@ for pp = 1:np
             min_frac_data, min_frac_overlap, verbose);
         
     % validate displacement update 
-    [du_pts_tm, dv_pts_tm] = ...
-        piv_validate_pts_nmed(c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, ...
-            valid_eps, true);    
-
-    % interpolate/smooth valid vectors to sample grid, outside roi is NaN
-    [du_grd_tm, dv_grd_tm] = ...
-        piv_lowess_interp(c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-            lowess_span_pts, verbose);
+    % NOTE: neighborhood is hard-coded here
+    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);
+    
+    % interpolate valid vectors to sample grid, outside roi is NaN    
+    [du_grd_tm, dv_grd_tm] = piv_spline_interp(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+        spline_tension, true);
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;

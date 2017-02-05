@@ -1,5 +1,5 @@
-function img_a = movie_aux_counter(img, x, y, count, pos, fsize, fclr, bclr, bopac)
-% function img_a = movie_aux_counter(img, x, y, count, pos, fsize, fclr, bclr, bopac)
+function img_a = movie_frame_counter(img, x, y, count, pos, fsize, fclr, bclr, bopac)
+% function img_a = movie_frame_counter(img, x, y, count, pos, fsize, fclr, bclr, bopac)
 %
 % Add an integer counter to the input image using the MATLAB insertText
 % function.

@@ -1,9 +1,9 @@
 function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, num_nbr, max_norm_res, epsilon, verbose)
 %
-% Validate the displacement vector field on a scattered grid using a normalized
-% median test including the nearest num_nbr neighbors.  Invalidated points are
-% set to NaN. See reference [1] for details on the original method for a regular
-% grid.
+% Validate the displacement vector field on a scattered grid using a
+% normalized median test including the nearest num_nbr neighbors.
+% Invalidated points are set to NaN. See reference [1] for details on the
+% original method for a regular grid.
 %
 % Arguments:
 %
@@ -27,8 +27,9 @@ function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, num_nbr, max_norm_res,
 %
 % References:
 %
-% [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
-% data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
+% [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for
+% PIV data. Experiments in Fluids, 39(6), 1096???1100.
+% doi:10.1007/s00348-005-0016-6
 
 % initialize
 valid = ~isnan(vv) & ~isnan(uu);
