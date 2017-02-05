@@ -118,6 +118,11 @@ Wk      = 2*spin./(sqrt(2)*Dt);
 Wk_star = 2*spin./(sqrt(2)*Dd);
 Ak      = Dv./(sqrt(2)*Dt);
 Ak_star = Dv./(sqrt(2)*Dd);
+% NOTE: div-by-zero creates inf values that cannot be written to netCDF  
+Wk(isinf(Wk)) = NaN;
+Wk_star(isinf(Wk_star)) = NaN;
+Ak(isinf(Ak)) = NaN;
+Ak_star(isinf(Ak_star)) = NaN;
 
 % prepare outputs
 out = struct();
