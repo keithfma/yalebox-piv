@@ -20,6 +20,11 @@ function [uv_median] = post_displ_rect(xx, yy, uu, vv, bbox)
 % [1] Liu, Y. (2013). Noise reduction by vector median filtering. Geophysics,
 %   78(3), V79–V87. http://doi.org/10.1190/geo2012-0232.1
 
+% check input arguments
+% TODO: validate remaining arguments
+validateattributes(bbox, {'numeric'}, {'vector', 'numel', 4}, ...
+    mfilename, 'bbox');
+
 % extract non-NaN data within bounding box
 x_in_bbox = (xx >= bbox(1)) & (xx <= (bbox(1)+bbox(3)));
 y_in_bbox = (yy >= bbox(2)) & (yy <= (bbox(2)+bbox(4)));
