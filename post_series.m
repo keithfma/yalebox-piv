@@ -198,14 +198,14 @@ netcdf.putAtt(ncid, Dv_varid, 'references', 'Brandon (1995), Ring and Brandon (1
 Wk_star_varid = netcdf.defVar(ncid, 'Wk_star', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, Wk_star_varid, 'CHUNKED', chunk_3d);
 netcdf.defVarDeflate(ncid, Wk_star_varid, true, true, cmp_lvl);
-netcdf.putAtt(ncid, Wk_star_varid, 'long_name', 'kinematic dilatancy number, relative to Dd');
+netcdf.putAtt(ncid, Wk_star_varid, 'long_name', 'kinematic vorticity number, relative to Dd');
 netcdf.putAtt(ncid, Wk_star_varid, 'units', '1');
 netcdf.putAtt(ncid, Wk_star_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
 
 Ak_star_varid = netcdf.defVar(ncid, 'Ak_star', 'NC_FLOAT', dim_3d);
 netcdf.defVarChunking(ncid, Ak_star_varid, 'CHUNKED', chunk_3d);
 netcdf.defVarDeflate(ncid, Ak_star_varid, true, true, cmp_lvl);
-netcdf.putAtt(ncid, Ak_star_varid, 'long_name', 'kinematic vorticity number, relative to Dd');
+netcdf.putAtt(ncid, Ak_star_varid, 'long_name', 'kinematic dilatancy number, relative to Dd');
 netcdf.putAtt(ncid, Ak_star_varid, 'units', '1');
 netcdf.putAtt(ncid, Ak_star_varid, 'references', 'Brandon (1995), Ring and Brandon (1999)'); 
 
