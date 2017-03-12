@@ -38,7 +38,7 @@ ax = gca;
 % select npts control points interactively
 pts = impoint(ax);
 while 1
-    switch questdlg('Add another control point?', 'prep_get_world_coord',  'Yes', 'No', 'No'); 
+    switch questdlg('Add another control point?', 'prep_get_world_coord',  'Yes', 'No', 'Yes'); 
         case 'Yes'
             % do nothing
         case 'No'
