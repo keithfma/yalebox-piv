@@ -7,8 +7,13 @@ function [] = new_ctrl_pts()
 % debug: cleanup and define fake inputs
 close all
 image_file = '..\data\fault_ss_03_siden_clean\woco\fault_ss_03_siden_woco_b.JPG';
+output_file = 'fault_ss_03_siden_ctrl_pts.mat';
+backup_file = [];
 
-% constants
+% constants --------------------------------------------------------------------
+
+disp(mfilename)
+
 margin = 0.05;
 large = 14;
 buffer = 0.1;
@@ -38,19 +43,26 @@ define_width = list_width;
 define_height = list_height;
 define_pos = [define_left, define_bot, define_width, define_height];
 
-delete_left = define_left + 1.1*define_width;
+delete_left = define_left + (1 + buffer)*define_width;
 delete_bot = define_bot;
 delete_width = define_width;
 delete_height = define_height;
 delete_pos = [delete_left, delete_bot, delete_width, delete_height];
 
-done_left = delete_left + 1.1*delete_width;
+done_left = delete_left + (1 + buffer)*delete_width;
 done_bot = delete_bot;
 done_width = delete_width;
 done_height = delete_height;
 done_pos = [done_left, done_bot, done_width, done_height];
 
-% create GUI
+name_left = done_left + (1 + buffer)*done_width;
+name_bot = done_bot;
+name_width = done_width*2;
+name_height = done_height;
+name_pos = [name_left, name_bot, name_width, name_height];
+
+% create GUI -------------------------------------------------------------------
+
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'ctrl_gui');
 
 axes('Units', 'Normalized', 'Position', im_pos, 'NextPlot', 'add', ...
@@ -64,10 +76,10 @@ uitable('Units', 'Normalized', ...
     'ColumnName', {'x [m]', 'y [m]', 'x [pix]', 'y [pix]', 'Done'}, ...
     'ColumnFormat', {'numeric', 'numeric', 'numeric', 'numeric', 'logical'}, ...
     'ColumnEditable', [true, true, false, false, true], ...
-    'Tag', 'ctrl_table', 'CellEditCallback', @do_update_table);
+    'Tag', 'ctrl_table', 'CellEditCallback', @do_table);
 
 uicontrol('Style', 'popupmenu', 'Units', 'normalized', ...
-    'Position', list_pos, 'String', {'-SELECT-'}, 'FontSize', large, ...
+    'Position', list_pos, 'String', {'* SELECT *'}, 'FontSize', large, ...
     'Tag', 'ctrl_list');
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
@@ -80,10 +92,102 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', done_pos, 'String', 'Done', 'FontSize', large, ...
-    'Callback', @do_done);
+    'Callback', @do_done, 'Tag', 'ctrl_done');
 
-set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]);
+uicontrol('Style', 'edit', 'Units', 'normalized', ...
+    'Position', name_pos, 'String', output_file, 'FontSize', large, ...
+    'Tag', 'ctrl_file');
+
+% TODO: handle backup file restart
+
+set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]); % DEBUG
+update_all();
+
+% define callbacks ------------------------------------------------------------
+
+function do_table(~, ~)
+
+% identify edited cells
+[curr, prev] = get_table_data;
+[rr, cc] = find((curr ~= prev) & ~(isnan(curr) & isnan(prev)));
+
+% revert illegal changes
+if isscalar(cc) && isscalar(rr)
+    % user edited one cell of xw, yw, done
+    if cc == 5
+        % update "done" state
+        if any(isnan(curr(rr, 1:4)))
+            warndlg('Cannot mark incomplete control point as "done"');
+            curr(rr, cc) = prev(rr, cc); % undo
+        end
+    elseif cc == 1 || cc == 2
+        % update world coordinates
+        if curr(rr, 5)
+            warndlg('Cannot update world coordinate for point marked as "done"');
+            curr(rr, cc) = prev(rr, cc);  % undo
+        end
+    end
+end
+
+% update UI
+set_table_data(curr);
+update_all();
+
+function [] = do_define(~, ~)
+% Define image coordinates for selected world point, callback for define button
+% % 
+
+% get point index
+idx = get_selected_point;
+if isnan(idx); return; end
+
+% interactive point selection
+him = findobj('Tag', 'ctrl_img');
+hpt = impoint(him);
+pos = hpt.getPosition();
+hpt.delete();
+
+% update table and plot
+[data, ~] = get_table_data();
+data(idx, 3:4) = pos;
+set_table_data(data);
+update_all();
+
+function [] = do_delete(~, ~)
+% Delete record for selected point, callback function for delete button
+% %
+idx = get_selected_point;
+if isnan(idx); return; end
+
+[curr, ~] = get_table_data();
+curr(idx:end, :) = [curr(idx+1:end, :); nan(1, 4), false];
+set_table_data(curr);
+update_all();
+
+
+function [] = do_done(~, ~)
+% Callback for done button, check points and write results
+% %
+
+hf = findobj('Tag', 'ctrl_file');
+filename = hf.String;
+if ~isempty(filename)
+    save_state(filename)
+    close(findobj('Tag', 'ctrl_gui'));
+else
+    warndlg('Cannot save results without an output file name');
+end
+
+% define utilities -------------------------------------------------------------
+
+function update_all()
+% Update all GUI elements (point list, plot, done button) and save backup file
+% %
+
 update_point_list();
+update_plot();
+update_done_button();
+save_state();
 
 
 function set_table_data(data)
@@ -111,6 +215,7 @@ prev = [cell2mat(ht.UserData(:,1:4)), cell2mat(ht.UserData(:, 5))];
 function update_point_list()
 % Populate point list with definable points (have xw, yw, and not marked "done")
 % %
+
 hl = findobj('Tag', 'ctrl_list');
 active_points = hl.String(1); % keep prompt
 [data, ~] = get_table_data();
@@ -126,54 +231,12 @@ hl.Value = length(active_points);
 function idx = get_selected_point()
 % Return index of point selected in point list, or NaN if none
 % %
+
 hl = findobj('Tag', 'ctrl_list');
 idx = str2double(hl.String{hl.Value});
 if isnan(idx)
     warndlg('No point selected');
 end
-
-
-function do_update_table(~, ~)
-% Callback for table update
-
-% fetch current and previous table state as matrix
-[curr, prev] = get_table_data;
-
-% identify edited cells
-[rr, cc] = find((curr ~= prev) & ~(isnan(curr) & isnan(prev)));
-
-% validate user changes
-if isscalar(cc) && isscalar(rr)
-    % user edited one cell of xw, yw, or done columns
-    if cc == 5
-        % update "done" state
-        if any(isnan(curr(rr, 1:4)))
-            warndlg('Cannot mark incomplete control point as "done"');
-            curr(rr, cc) = prev(rr, cc); % undo
-        end
-    elseif cc == 1 || cc == 2
-        % update world coordinates
-        if curr(rr, 5)
-            warndlg('Cannot update world coordinate for point marked as "done"');
-            curr(rr, cc) = prev(rr, cc);  % undo
-        end
-    else
-        error('This should not be possible');
-    end
-elseif length(cc) == 2 && length(rr) == 2
-    % program updated xp and yp columns for one row
-    if (rr(1) ~= rr(2)) || (any(cc < 3) || any(cc > 4))
-        error('This should not be possible');
-    end
-else
-    % who knows?
-    error('This should not be possible');
-end
-        
-% update UI
-set_table_data(curr);
-update_point_list();
-
 
 function update_plot()
 % Update plotted markers on world coordinate image to match table
@@ -191,78 +254,57 @@ for idx = 1:size(data, 1)
 end
 
 
-function [] = do_define(~, ~)
-% Define image coordinates for selected world point, callback for define button
-% % 
-
-% get point index
-idx = get_selected_point;
-if isnan(idx); return; end
-
-% interactive point selection
-him = findobj('Tag', 'ctrl_img');
-hpt = impoint(him);
-pos = hpt.getPosition();
-hpt.delete();
-
-% update table and plot
-[data, ~] = get_table_data();
-data(idx, 3:4) = pos;
-set_table_data(data);
-update_plot();
-
-
-function [] = do_delete(~, ~)
-% Delete record for selected point, callback function for delete button
+function update_done_button()
+% Enable done button if ready to save results (i.e. no partial points)
 % %
-idx = get_selected_point;
-if isnan(idx); return; end
-
-[curr, ~] = get_table_data();
-curr(idx:end, :) = [curr(idx+1:end, :); nan(1, 4), false];
-set_table_data(curr);
-update_plot();
-update_point_list();
-
-
-function [] = do_done(~, ~)
-% Callback for done button, check points and write results
-% %
-
-% get table data
-[data, ~] = get_table_data();
-npts = size(data, 1);
-pts = data(:, 1:4);
-done = data(:, 5);
 
 % label points
-% % 0 -> no point
-% % 1-> partial point
-% % 2-> complete point not marked done
-% % 3-> complete point marked done
-% % 4 -> unknown, wtf
-label = nan(npts, 1);
-for idx = 1:npts
-    if all(isnan(pts(idx,:)))
+% % 0: no point, 1: partial, 2: complete not done, 3: complete done, 4: wtf
+[data, ~] = get_table_data();
+label = nan(size(data, 1), 1);
+for idx = 1:size(data, 1)
+    pts = data(idx, 1:4);
+    done = data(idx, 5);
+    if all(isnan(pts))
         label(idx) = 0;
-    elseif any(isnan(pts(idx,:))) && any(~isnan(pts(idx,:)))
+    elseif any(isnan(pts)) && any(~isnan(pts))
         label(idx) = 1;
-    elseif all(~isnan(pts(idx,:))) && ~done(idx)
+    elseif all(~isnan(pts)) && ~done
         label(idx) = 2;
-    elseif all(~isnan(pts(idx,:))) && done(idx)
+    elseif all(~isnan(pts)) && done
         label(idx) = 3;
     else
         label(idx) = 4;
     end
 end
 
-% halt if not all points are complete or none
-if ~all(label == 0 | label == 3)
-    warndlg('Please complete or delete partial points before exiting');
-    return
+% enable button if all points are complete or none
+hd = findobj('Tag', 'ctrl_done');
+hf = findobj('Tag', 'ctrl_file');
+if all(label == 0 | label == 3)
+    hd.Enable = 'on';
+    hf.Enable = 'on';
+else
+    hd.Enable = 'off';
+    hf.Enable = 'off';
 end
 
-% save or return results and exit
-% TODO: pick a better name
-save;
-close(findobj('Tag', 'ctrl_gui'));
+function save_state(filename)
+% Save the current data table, saves backup if filename is empty, deletes backup
+% on final save
+% %
+
+backup_file = 'ctrl_pts_backup.mat';
+
+if nargin == 0 || isempty(filename)
+    filename = backup_file;
+else
+    delete(backup_file);
+end
+
+[data, ~] = get_table_data();
+ctrl_xw = data(:, 1); %#ok!
+ctrl_yw = data(:, 2); %#ok!
+ctrl_xp = data(:, 3); %#ok!
+ctrl_yp = data(:, 4); %#ok!
+save(filename, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
