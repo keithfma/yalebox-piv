@@ -12,6 +12,7 @@ image_file = '..\data\fault_ss_03_siden_clean\woco\fault_ss_03_siden_woco_b.JPG'
 margin = 0.05;
 large = 14;
 buffer = 0.1;
+max_pts = 5;
 
 im_left = 0.3 + margin;
 im_bot = 0.1 + margin;
@@ -25,22 +26,16 @@ tbl_width = 1 - (3*margin + im_width);
 tbl_height = 1 - (margin + tbl_bot);
 tbl_pos = [tbl_left, tbl_bot, tbl_width, tbl_height];
 
-text_left = margin;
-text_bot = margin;
-text_width = 0.1;
-text_height = 0.05;
-text_pos = [text_left, text_bot, text_width, text_height];
+list_left = margin;
+list_bot = margin;
+list_width = 0.1;
+list_height = 0.05;
+list_pos = [list_left, list_bot, list_width, list_height];
 
-curr_left = text_left + text_width*(1 + buffer);
-curr_bot = text_bot;
-curr_width = text_width;
-curr_height = text_height;
-curr_pos = [curr_left, curr_bot, curr_width, curr_height];
-
-define_left = curr_left + (1 + buffer)*curr_width;
-define_bot = curr_bot;
-define_width = curr_width;
-define_height = curr_height;
+define_left = list_left + (1 + buffer)*list_width;
+define_bot = list_bot;
+define_width = list_width;
+define_height = list_height;
 define_pos = [define_left, define_bot, define_width, define_height];
 
 delete_left = define_left + 1.1*define_width;
@@ -63,18 +58,17 @@ axes('Units', 'Normalized', 'Position', im_pos, ...
 imshow(imread(image_file));
 title('World Coordinate Image');
 
-uitable('Data', cell(100, 5), 'Units', 'Normalized', ...
-    'Position', tbl_pos, ...
-    'ColumnName', {'x_world', 'y_world', 'x_pixel', 'y_pixel', 'done'}, ...
+uitable('Units', 'Normalized', ...
+    'Position', tbl_pos, 'FontSize', large, ...
+    'ColumnName', {'x [m]', 'y [m]', 'x [pix]', 'y [pix]', 'Done'}, ...
     'ColumnFormat', {'numeric', 'numeric', 'numeric', 'numeric', 'logical'}, ...
     'ColumnEditable', [true, true, false, false, true], ...
-    'Tag', 'ctrl_table', 'CellEditCallback', @update_point_list);
-
-uicontrol('Style', 'text', 'Units', 'normalized', ...
-    'Position', text_pos, 'String', 'Control Point:', 'FontSize', large);
+    'Tag', 'ctrl_table', 'CellEditCallback', @do_update_table);
+set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]);
 
 uicontrol('Style', 'popupmenu', 'Units', 'normalized', ...
-    'Position', curr_pos, 'String', {'Current', 'Next'}, 'FontSize', large);
+    'Position', list_pos, 'String', {'-SELECT-'}, 'FontSize', large, ...
+    'Tag', 'ctrl_list');
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', define_pos, 'String', 'Define', 'FontSize', large, ...
@@ -88,18 +82,103 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', done_pos, 'String', 'Done', 'FontSize', large, ...
     'Callback', @do_done);
 
+function set_table_data(data)
+% Set current and update previous data in control point table
+% 
+% Converts data matrix to cell array, preserving logical class, and updates both
+% the current data (table.Data) and previous data (table.UserData)
+% %
+data_cell = [num2cell(data(:, 1:4)), num2cell(logical(data(:, 5)))];
+ht = findobj('Tag', 'ctrl_table');
+ht.Data = data_cell;
+ht.UserData = data_cell;
+
+function [curr, prev] = get_table_data()
+% Fetch current and previous data from control point table
+% 
+% Converts stored cell arrays to matrixes, converting all elements to double
+% %
+ht = findobj('Tag', 'ctrl_table');
+curr = [cell2mat(ht.Data(:,1:4)), cell2mat(ht.Data(:, 5))];
+prev = [cell2mat(ht.UserData(:,1:4)), cell2mat(ht.UserData(:, 5))];
+
+function update_point_list()
+% Populate point list with definable points (have xw, yw, and not marked "done")
+% %
+hl = findobj('Tag', 'ctrl_list');
+active_points = hl.String(1); % keep prompt
+[data, ~] = get_table_data();
+for ii = 1:size(data, 1)
+    if ~isnan(data(ii,1)) && ~isnan(data(ii,2)) && ~data(ii,5) 
+        active_points{end+1} = ii; %#ok!
+    end
+end
+hl.String = active_points;
+hl.Value = length(active_points);
+
+function do_update_table(~, ~)
+% Callback for table update
+
+% fetch current and previous table state as matrix
+[curr, prev] = get_table_data;
+
+% identify edited cell
+[rr, cc] = find((curr ~= prev) & ~(isnan(curr) & isnan(prev)));
+
+% validate user changes
+if cc == 5
+    % update "done" state
+    if any(isnan(curr(rr, 1:4)))
+        warndlg('Cannot mark incomplete control point as "done"');
+        curr(rr, cc) = prev(rr, cc); % undo
+    end
+elseif cc == 1 || cc == 2
+    % update world coordinates
+    if curr(rr, 5)
+        warndlg('Cannot update world coordinate for point marked as "done"');
+        curr(rr, cc) = prev(rr, cc);  % undo
+    end
+else
+    % this should not be possible
+    warndlg('This should not be possible, undoing last table update');
+    curr(rr, cc) = prev(rr, cc);  % undo
+end
+
+% update UI
+set_table_data(curr);
+update_point_list();
+
 function [] = do_define(~, ~)
-% Callback function for next button
-warndlg('DO DEFINE');
+% Define image coordinates for selected world point, callback for define button
+
+idx = get_selected_point;
+if isnan(idx)
+    warndlg('Cannot define: no point selected');
+    return
+end
+warndlg(sprintf('DEFINE: %d', idx));
+
 
 function [] = do_delete(~, ~)
 % Callback function for prev button
-warndlg('DO DELETE');
+idx = get_selected_point;
+if isnan(idx)
+    warndlg('Cannot delete: No point selected');
+    return
+end
+[~, curr] = get_table_data();
+curr(idx:end, :) = [curr(idx+1:end, :); nan(1, 4), false];
+set_table_data(curr);
+update_point_list();
 
 function [] = do_done(~, ~)
 % Callback for done button
+% TODO: confirm before exiting
 warndlg('DO DONE');
 
-function update_point_list(ht, ~)
-% Populate point list with definable points, callback for table edit
-warndlg('DO UPDATE POINT LIST');   
+
+
+function idx = get_selected_point()
+% Return index of point selected in point list, or NaN if none
+hl = findobj('Tag', 'ctrl_list');
+idx = str2double(hl.String{hl.Value});
