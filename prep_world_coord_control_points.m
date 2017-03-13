@@ -1,8 +1,30 @@
-function [] = new_ctrl_pts()
-% new, simpler program for collecting world-coordinate control points
-
-% The main function creates the GUI and registers all the callbacks
-
+function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
+% function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
+%
+% Create GUI to interactively define control points from the world coordinate
+% image. Results are saved to a .mat file containing four variables: ctrl_xw,
+% ctrl_yw, ctrl_xp, ctrl_yp (defined below).
+%
+% NOTE: Results are saved to .mat file after every user update (see the
+% save_state function for the backup file name). If something goes wrong, the
+% GUI can be restarted using this backup to recover.
+%
+% NOTE: This GUI replaces a prior version that used a different syntax. If you
+% see crazy errors, then the calling program may be trying to use the old
+% version.
+%
+% Arguments:
+%   image_file: String, filename of the world coordinate grid image
+%   output_file: String, filename of .mat file to save results, note that this
+%       value can be changed in the GUI
+%   backup_file: [Optional] String, filename of previous results or backup to be
+%       loaded initially, this allows for restarting if something goes wrong.
+%   ctrl_xw, ctrl_yw: 1D vectors, control point world coordinate x- and
+%       y-position in meters
+%   ctrl_xp, ctrl_yp = 1D vectors, control point image coordinate x- and y-position
+%       in pixels
+% 
+% % Keith Ma
 
 % debug: cleanup and define fake inputs
 close all
