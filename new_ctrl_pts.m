@@ -51,12 +51,13 @@ done_height = delete_height;
 done_pos = [done_left, done_bot, done_width, done_height];
 
 % create GUI
-figure('Units', 'Normalized', 'Outerposition', [0 0 1 1]);
+figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'ctrl_gui');
 
-axes('Units', 'Normalized', 'Position', im_pos, ...
+axes('Units', 'Normalized', 'Position', im_pos, 'NextPlot', 'add', ...
     'Tag', 'ctrl_img');
 imshow(imread(image_file));
 title('World Coordinate Image');
+hold on
 
 uitable('Units', 'Normalized', ...
     'Position', tbl_pos, 'FontSize', large, ...
@@ -127,6 +128,9 @@ function idx = get_selected_point()
 % %
 hl = findobj('Tag', 'ctrl_list');
 idx = str2double(hl.String{hl.Value});
+if isnan(idx)
+    warndlg('No point selected');
+end
 
 
 function do_update_table(~, ~)
@@ -135,59 +139,130 @@ function do_update_table(~, ~)
 % fetch current and previous table state as matrix
 [curr, prev] = get_table_data;
 
-% identify edited cell
+% identify edited cells
 [rr, cc] = find((curr ~= prev) & ~(isnan(curr) & isnan(prev)));
 
 % validate user changes
-if cc == 5
-    % update "done" state
-    if any(isnan(curr(rr, 1:4)))
-        warndlg('Cannot mark incomplete control point as "done"');
-        curr(rr, cc) = prev(rr, cc); % undo
+if isscalar(cc) && isscalar(rr)
+    % user edited one cell of xw, yw, or done columns
+    if cc == 5
+        % update "done" state
+        if any(isnan(curr(rr, 1:4)))
+            warndlg('Cannot mark incomplete control point as "done"');
+            curr(rr, cc) = prev(rr, cc); % undo
+        end
+    elseif cc == 1 || cc == 2
+        % update world coordinates
+        if curr(rr, 5)
+            warndlg('Cannot update world coordinate for point marked as "done"');
+            curr(rr, cc) = prev(rr, cc);  % undo
+        end
+    else
+        error('This should not be possible');
     end
-elseif cc == 1 || cc == 2
-    % update world coordinates
-    if curr(rr, 5)
-        warndlg('Cannot update world coordinate for point marked as "done"');
-        curr(rr, cc) = prev(rr, cc);  % undo
+elseif length(cc) == 2 && length(rr) == 2
+    % program updated xp and yp columns for one row
+    if (rr(1) ~= rr(2)) || (any(cc < 3) || any(cc > 4))
+        error('This should not be possible');
     end
 else
-    % this should not be possible
-    warndlg('This should not be possible, undoing last table update');
-    curr(rr, cc) = prev(rr, cc);  % undo
+    % who knows?
+    error('This should not be possible');
 end
-
+        
 % update UI
 set_table_data(curr);
 update_point_list();
 
 
+function update_plot()
+% Update plotted markers on world coordinate image to match table
+% %
+
+delete(findobj('Type', 'text'));
+
+[data, ~] = get_table_data();
+for idx = 1:size(data, 1)
+    xp = data(idx, 3);
+    yp = data(idx, 4);
+    if ~isnan(xp) && ~isnan(yp)
+        text(xp, yp, num2str(idx));
+    end
+end
+
+
 function [] = do_define(~, ~)
 % Define image coordinates for selected world point, callback for define button
 % % 
+
+% get point index
 idx = get_selected_point;
-if isnan(idx)
-    warndlg('Cannot define: no point selected');
-    return
-end
-% TODO: interactive point selection
-warndlg(sprintf('DEFINE: %d', idx));
+if isnan(idx); return; end
+
+% interactive point selection
+him = findobj('Tag', 'ctrl_img');
+hpt = impoint(him);
+pos = hpt.getPosition();
+hpt.delete();
+
+% update table and plot
+[data, ~] = get_table_data();
+data(idx, 3:4) = pos;
+set_table_data(data);
+update_plot();
 
 
 function [] = do_delete(~, ~)
 % Delete record for selected point, callback function for delete button
+% %
 idx = get_selected_point;
-if isnan(idx)
-    warndlg('Cannot delete: No point selected');
-    return
-end
+if isnan(idx); return; end
+
 [curr, ~] = get_table_data();
 curr(idx:end, :) = [curr(idx+1:end, :); nan(1, 4), false];
 set_table_data(curr);
+update_plot();
 update_point_list();
 
 
 function [] = do_done(~, ~)
-% Callback for done button
-% TODO: confirm before exiting
-warndlg('DO DONE');
+% Callback for done button, check points and write results
+% %
+
+% get table data
+[data, ~] = get_table_data();
+npts = size(data, 1);
+pts = data(:, 1:4);
+done = data(:, 5);
+
+% label points
+% % 0 -> no point
+% % 1-> partial point
+% % 2-> complete point not marked done
+% % 3-> complete point marked done
+% % 4 -> unknown, wtf
+label = nan(npts, 1);
+for idx = 1:npts
+    if all(isnan(pts(idx,:)))
+        label(idx) = 0;
+    elseif any(isnan(pts(idx,:))) && any(~isnan(pts(idx,:)))
+        label(idx) = 1;
+    elseif all(~isnan(pts(idx,:))) && ~done(idx)
+        label(idx) = 2;
+    elseif all(~isnan(pts(idx,:))) && done(idx)
+        label(idx) = 3;
+    else
+        label(idx) = 4;
+    end
+end
+
+% halt if not all points are complete or none
+if ~all(label == 0 | label == 3)
+    warndlg('Please complete or delete partial points before exiting');
+    return
+end
+
+% save or return results and exit
+% TODO: pick a better name
+save;
+close(findobj('Tag', 'ctrl_gui'));
