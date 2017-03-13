@@ -64,7 +64,6 @@ uitable('Units', 'Normalized', ...
     'ColumnFormat', {'numeric', 'numeric', 'numeric', 'numeric', 'logical'}, ...
     'ColumnEditable', [true, true, false, false, true], ...
     'Tag', 'ctrl_table', 'CellEditCallback', @do_update_table);
-set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]);
 
 uicontrol('Style', 'popupmenu', 'Units', 'normalized', ...
     'Position', list_pos, 'String', {'-SELECT-'}, 'FontSize', large, ...
@@ -82,6 +81,10 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', done_pos, 'String', 'Done', 'FontSize', large, ...
     'Callback', @do_done);
 
+set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]);
+update_point_list();
+
+
 function set_table_data(data)
 % Set current and update previous data in control point table
 % 
@@ -93,6 +96,7 @@ ht = findobj('Tag', 'ctrl_table');
 ht.Data = data_cell;
 ht.UserData = data_cell;
 
+
 function [curr, prev] = get_table_data()
 % Fetch current and previous data from control point table
 % 
@@ -101,6 +105,7 @@ function [curr, prev] = get_table_data()
 ht = findobj('Tag', 'ctrl_table');
 curr = [cell2mat(ht.Data(:,1:4)), cell2mat(ht.Data(:, 5))];
 prev = [cell2mat(ht.UserData(:,1:4)), cell2mat(ht.UserData(:, 5))];
+
 
 function update_point_list()
 % Populate point list with definable points (have xw, yw, and not marked "done")
@@ -115,6 +120,14 @@ for ii = 1:size(data, 1)
 end
 hl.String = active_points;
 hl.Value = length(active_points);
+
+
+function idx = get_selected_point()
+% Return index of point selected in point list, or NaN if none
+% %
+hl = findobj('Tag', 'ctrl_list');
+idx = str2double(hl.String{hl.Value});
+
 
 function do_update_table(~, ~)
 % Callback for table update
@@ -148,37 +161,33 @@ end
 set_table_data(curr);
 update_point_list();
 
+
 function [] = do_define(~, ~)
 % Define image coordinates for selected world point, callback for define button
-
+% % 
 idx = get_selected_point;
 if isnan(idx)
     warndlg('Cannot define: no point selected');
     return
 end
+% TODO: interactive point selection
 warndlg(sprintf('DEFINE: %d', idx));
 
 
 function [] = do_delete(~, ~)
-% Callback function for prev button
+% Delete record for selected point, callback function for delete button
 idx = get_selected_point;
 if isnan(idx)
     warndlg('Cannot delete: No point selected');
     return
 end
-[~, curr] = get_table_data();
+[curr, ~] = get_table_data();
 curr(idx:end, :) = [curr(idx+1:end, :); nan(1, 4), false];
 set_table_data(curr);
 update_point_list();
+
 
 function [] = do_done(~, ~)
 % Callback for done button
 % TODO: confirm before exiting
 warndlg('DO DONE');
-
-
-
-function idx = get_selected_point()
-% Return index of point selected in point list, or NaN if none
-hl = findobj('Tag', 'ctrl_list');
-idx = str2double(hl.String{hl.Value});
