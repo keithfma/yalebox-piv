@@ -1,4 +1,4 @@
-function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
+function [] = prep_world_coord_control_points(image_file, output_file, backup_file)
 % function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
 %
 % Create GUI to interactively define control points from the world coordinate
@@ -26,15 +26,12 @@ function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
 % 
 % % Keith Ma
 
-% debug
-close all
-
 % constants --------------------------------------------------------------------
 
-margin = 0.05;
+margin = 0.025;
 large = 14;
 buffer = 0.1;
-max_pts = 5;
+max_pts = 100;
 
 im_left = 0.3 + margin;
 im_bot = 0.1 + margin;
@@ -88,9 +85,10 @@ imshow(imread(image_file));
 title('World Coordinate Image');
 hold on
 
+spc = '               ';
 uitable('Units', 'Normalized', ...
     'Position', tbl_pos, 'FontSize', large, ...
-    'ColumnName', {'x [m]', 'y [m]', 'x [pix]', 'y [pix]', 'Done'}, ...
+    'ColumnName', {['x [m]', spc], ['y [m]', spc], 'x [pix]', 'y [pix]', 'Done'}, ...
     'ColumnFormat', {'numeric', 'numeric', 'numeric', 'numeric', 'logical'}, ...
     'ColumnEditable', [true, true, false, false, true], ...
     'Tag', 'ctrl_table', 'CellEditCallback', @do_table);
@@ -117,7 +115,7 @@ uicontrol('Style', 'edit', 'Units', 'normalized', ...
 
 % set initial data (empty or from backup file)
 if nargin < 3 || isempty(backup_file)
-    init_data = [[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)];
+    init_data = [nan(max_pts, 4), false(max_pts, 1)];
 else
     load(backup_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
     max_pts = length(ctrl_xw);
