@@ -26,15 +26,10 @@ function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
 % 
 % % Keith Ma
 
-% debug: cleanup and define fake inputs
+% debug
 close all
-image_file = '..\data\fault_ss_03_siden_clean\woco\fault_ss_03_siden_woco_b.JPG';
-output_file = 'fault_ss_03_siden_ctrl_pts.mat';
-backup_file = [];
 
 % constants --------------------------------------------------------------------
-
-disp(mfilename)
 
 margin = 0.05;
 large = 14;
@@ -120,9 +115,16 @@ uicontrol('Style', 'edit', 'Units', 'normalized', ...
     'Position', name_pos, 'String', output_file, 'FontSize', large, ...
     'Tag', 'ctrl_file');
 
-% TODO: handle backup file restart
+% set initial data (empty or from backup file)
+if nargin < 3 || isempty(backup_file)
+    init_data = [[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)];
+else
+    load(backup_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
+    max_pts = length(ctrl_xw);
+    init_data = [ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, false(max_pts, 1)];
+end
+set_table_data(init_data);
 
-set_table_data([[1, 2, 3, 4, false]; nan(max_pts, 4), false(max_pts, 1)]); % DEBUG
 update_all();
 
 % define callbacks ------------------------------------------------------------
