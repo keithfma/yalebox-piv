@@ -264,9 +264,14 @@ function update_plot()
 % Update plotted markers on world coordinate image to match table
 % %
 
+% store view limits
+him = findobj('Tag', 'ctrl_img');
+xlim = him.XLim;
+ylim = him.YLim;
+
+% replot points and labels
 delete(findobj('Type', 'text'));
 delete(findobj('Type', 'line'));
-
 [data, ~] = get_table_data();
 for idx = 1:size(data, 1)
     xp = data(idx, 3);
@@ -277,6 +282,10 @@ for idx = 1:size(data, 1)
         plot(xp, yp, 'Color', 'r', 'Marker', 'x', 'MarkerSize', 12);
     end
 end
+
+% restore view limits
+him.XLim = xlim;
+him.YLim = ylim;
 
 
 function update_done_button()
