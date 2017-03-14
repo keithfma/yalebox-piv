@@ -31,7 +31,13 @@ function [] = prep_world_coord_control_points(image_file, output_file, backup_fi
 margin = 0.025;
 large = 14;
 buffer = 0.1;
-max_pts = 100;
+max_pts = 500;
+instruct = {'1. Enter world coordinates in xw, yw columns', ...
+            '2. Select point in drop-down menu', ...
+            '3. Push "Define" button to select pixel coordinates on image', ...
+            '4. Mark as "done" if correct, otherwise redefine or delete', ...
+            'NOTE: Points marked "done" cannot be edited or deleted', ...
+            'NOTE: Progress is saved in a backup file to prevent disaster'};
 
 im_left = 0.3 + margin;
 im_bot = 0.1 + margin;
@@ -75,6 +81,13 @@ name_width = done_width*2;
 name_height = done_height;
 name_pos = [name_left, name_bot, name_width, name_height];
 
+help_left = name_left + (1 + buffer)*name_width;
+help_bot = name_bot;
+help_width = done_width;
+help_height = name_height;
+help_pos = [help_left, help_bot, help_width, help_height];
+
+
 % create GUI -------------------------------------------------------------------
 
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'ctrl_gui');
@@ -113,13 +126,17 @@ uicontrol('Style', 'edit', 'Units', 'normalized', ...
     'Position', name_pos, 'String', output_file, 'FontSize', large, ...
     'Tag', 'ctrl_file');
 
+uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
+    'Position', help_pos, 'String', 'Help', 'FontSize', large, ...
+    'Callback', @(~,~) msgbox(instruct));
+
 % set initial data (empty or from backup file)
 if nargin < 3 || isempty(backup_file)
     init_data = [nan(max_pts, 4), false(max_pts, 1)];
+
 else
-    load(backup_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
-    max_pts = length(ctrl_xw);
-    init_data = [ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, false(max_pts, 1)];
+    backup = load(backup_file, 'data');
+    init_data = backup.data;
 end
 set_table_data(init_data);
 
@@ -191,14 +208,8 @@ function [] = do_done(~, ~)
 % Callback for done button, check points and write results
 % %
 
-hf = findobj('Tag', 'ctrl_file');
-filename = hf.String;
-if ~isempty(filename)
-    save_state(filename)
-    close(findobj('Tag', 'ctrl_gui'));
-else
-    warndlg('Cannot save results without an output file name');
-end
+save_state(true)
+close(findobj('Tag', 'ctrl_gui'));
 
 % define utilities -------------------------------------------------------------
 
@@ -209,7 +220,7 @@ function update_all()
 update_point_list();
 update_plot();
 update_done_button();
-save_state();
+save_state(false);
 
 
 function set_table_data(data)
@@ -314,31 +325,37 @@ end
 
 % enable button if all points are complete or none
 hd = findobj('Tag', 'ctrl_done');
-hf = findobj('Tag', 'ctrl_file');
 if all(label == 0 | label == 3)
     hd.Enable = 'on';
-    hf.Enable = 'on';
 else
     hd.Enable = 'off';
-    hf.Enable = 'off';
 end
 
-function save_state(filename)
+function save_state(is_done)
 % Save the current data table, saves backup if filename is empty, deletes backup
 % on final save
 % %
 
-backup_file = 'ctrl_pts_backup.mat';
-
-if nargin == 0 || isempty(filename)
-    filename = backup_file;
-else
-    delete(backup_file);
+hf = findobj('Tag', 'ctrl_file');
+filename = hf.String;
+if isempty(filename)
+    warndlg('Cannot save/backup results without an output file name');
+    return
 end
 
-[data, ~] = get_table_data();
-ctrl_xw = data(:, 1); %#ok!
-ctrl_yw = data(:, 2); %#ok!
-ctrl_xp = data(:, 3); %#ok!
-ctrl_yp = data(:, 4); %#ok!
-save(filename, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
+if ~is_done
+    % save backup
+    [data, ~] = get_table_data(); %#ok!
+    [path, name, ext] = fileparts(filename);
+    backup_file = fullfile(path, [name, '_backup', ext]);
+    save(backup_file, 'data');
+else
+    % save final results
+    [data, ~] = get_table_data();
+    last = find(data(:, 5)==1, 1, 'last');
+    ctrl_xw = data(1:last, 1); %#ok!
+    ctrl_yw = data(1:last, 2); %#ok!
+    ctrl_xp = data(1:last, 3); %#ok!
+    ctrl_yp = data(1:last, 4); %#ok!
+    save(filename, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
+end
