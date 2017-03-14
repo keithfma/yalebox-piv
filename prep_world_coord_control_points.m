@@ -265,13 +265,16 @@ function update_plot()
 % %
 
 delete(findobj('Type', 'text'));
+delete(findobj('Type', 'line'));
 
 [data, ~] = get_table_data();
 for idx = 1:size(data, 1)
     xp = data(idx, 3);
     yp = data(idx, 4);
     if ~isnan(xp) && ~isnan(yp)
-        text(xp, yp, num2str(idx));
+        text(xp, yp, num2str(idx), 'FontSize', 14, ...
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'baseline');
+        plot(xp, yp, 'Color', 'r', 'Marker', 'x', 'MarkerSize', 12);
     end
 end
 
