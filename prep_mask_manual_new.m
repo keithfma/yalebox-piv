@@ -14,7 +14,9 @@ function mask = prep_mask_manual_new(img)
 margin = 0.025; % norm
 buffer = 0.01; % norm
 font = 14; % pt
-instruct = {'Some', 'Instructions', 'Here'};
+instruct = {'1. Click "Add" button to define a mask polygon interactively', ...
+            '2. Click "Delete" button to remove the most recent mask layer', ...
+            '3. Click "Done" to return'};
 
 img_left = margin;
 img_bot = 0.1;
@@ -129,7 +131,6 @@ axis equal off
 function do_del(~, ~)
 % Callback function for delete button
 % %
-keyboard
 hi = findobj('Tag', 'mask_img');
 data = hi.UserData;
 if ~isempty(data.layer)
