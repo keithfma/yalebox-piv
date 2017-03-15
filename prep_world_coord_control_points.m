@@ -1,6 +1,7 @@
 function [xw, yw, xp, yp, done] = ...
     prep_world_coord_control_points(image_file, xw, yw, xp, yp, done)
-% function [] = prep_world_coord_control_pts(image_file, backup_file, restore_file)
+% function [xw, yw, xp, yp, done] = ...
+%     prep_world_coord_control_points(image_file, xw, yw, xp, yp, done)
 %
 % Create GUI to interactively define control points from the world coordinate
 % image.
@@ -210,7 +211,6 @@ function [] = do_done(~, ~)
 % %
 
 uiresume(findobj('Tag', 'ctrl_gui'));
-% delete(findobj('Tag', 'ctrl_gui'));
 
 
 function update_all()
