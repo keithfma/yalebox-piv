@@ -1,37 +1,37 @@
-function [] = prep_world_coord_control_points(image_file, output_file, backup_file)
-% function [] = prep_world_coord_control_pts(image_file, output_file, backup_file)
+function [xw, yw, xp, yp, done] = ...
+    prep_world_coord_control_points(image_file, xw, yw, xp, yp, done)
+% function [] = prep_world_coord_control_pts(image_file, backup_file, restore_file)
 %
 % Create GUI to interactively define control points from the world coordinate
-% image. Results are saved to a .mat file containing four variables: ctrl_xw,
-% ctrl_yw, ctrl_xp, ctrl_yp (defined below).
+% image.
 %
-% NOTE: Results are saved to .mat file after every user update (see the
-% save_state function for the backup file name). If something goes wrong, the
-% GUI can be restarted using this backup to recover.
+% NOTE: Providing the control points as input arguments initializes the data
+%   table. This allows for restarting from a prior attempt or backup.
 %
-% NOTE: This GUI replaces a prior version that used a different syntax. If you
-% see crazy errors, then the calling program may be trying to use the old
-% version.
+% NOTE: The table data (xw, yw, xp, yp, done) is backed up to backup.mat
+%   after every GUI update. If something goes wrong, the GUI can be restarted
+%   using this backup to recover.
 %
 % Arguments:
 %   image_file: String, filename of the world coordinate grid image
-%   output_file: String, filename of .mat file to save results, note that this
-%       value can be changed in the GUI
-%   backup_file: [Optional] String, filename of previous results or backup to be
-%       loaded initially, this allows for restarting if something goes wrong.
-%   ctrl_xw, ctrl_yw: 1D vectors, control point world coordinate x- and
-%       y-position in meters
-%   ctrl_xp, ctrl_yp = 1D vectors, control point image coordinate x- and y-position
-%       in pixels
+%   xw, yw: Optional input, 1D vectors, control point world coordinate x- and y-
+%       position, [m]
+%   xp, yp: Optional input, 1D vectors, control point image coordinate x- and y-
+%       position, [pixels]
+%   done: Optional input, 1D vector, logical flag indicating whether point
+%       definition is final (true) or not (false)
 % 
 % % Keith Ma
 
-% constants --------------------------------------------------------------------
+if nargin ~= 1 && nargin ~= 6
+    error('Invalid number of input arguments');
+end
 
-margin = 0.025;
-large = 14;
-buffer = 0.1;
-max_pts = 500;
+%% constants
+
+margin = 0.025; % norm
+buffer = 0.01; % norm
+large = 14; % pts
 instruct = {'1. Enter world coordinates in xw, yw columns', ...
             '2. Select point in drop-down menu', ...
             '3. Push "Define" button to select pixel coordinates on image', ...
@@ -47,7 +47,7 @@ im_pos = [im_left, im_bot, im_width, im_height];
 
 tbl_left = margin;
 tbl_bot = im_bot;
-tbl_width = 1 - (3*margin + im_width);
+tbl_width = 1 - (2*margin + buffer + im_width);
 tbl_height = 1 - (margin + tbl_bot);
 tbl_pos = [tbl_left, tbl_bot, tbl_width, tbl_height];
 
@@ -57,38 +57,31 @@ list_width = 0.1;
 list_height = 0.05;
 list_pos = [list_left, list_bot, list_width, list_height];
 
-define_left = list_left + (1 + buffer)*list_width;
+define_left = list_left + list_width + buffer;
 define_bot = list_bot;
 define_width = list_width;
 define_height = list_height;
 define_pos = [define_left, define_bot, define_width, define_height];
 
-delete_left = define_left + (1 + buffer)*define_width;
+delete_left = define_left + define_width + buffer;
 delete_bot = define_bot;
 delete_width = define_width;
 delete_height = define_height;
 delete_pos = [delete_left, delete_bot, delete_width, delete_height];
 
-done_left = delete_left + (1 + buffer)*delete_width;
+done_left = delete_left + delete_width + buffer;
 done_bot = delete_bot;
 done_width = delete_width;
 done_height = delete_height;
 done_pos = [done_left, done_bot, done_width, done_height];
 
-name_left = done_left + (1 + buffer)*done_width;
-name_bot = done_bot;
-name_width = done_width*2;
-name_height = done_height;
-name_pos = [name_left, name_bot, name_width, name_height];
-
-help_left = name_left + (1 + buffer)*name_width;
-help_bot = name_bot;
+help_left = done_left + done_width + buffer;
+help_bot = done_bot;
 help_width = done_width;
-help_height = name_height;
+help_height = done_height;
 help_pos = [help_left, help_bot, help_width, help_height];
 
-
-% create GUI -------------------------------------------------------------------
+%% create GUI 
 
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'ctrl_gui');
 
@@ -122,27 +115,34 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', done_pos, 'String', 'Done', 'FontSize', large, ...
     'Callback', @do_done, 'Tag', 'ctrl_done');
 
-uicontrol('Style', 'edit', 'Units', 'normalized', ...
-    'Position', name_pos, 'String', output_file, 'FontSize', large, ...
-    'Tag', 'ctrl_file');
-
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', large, ...
     'Callback', @(~,~) msgbox(instruct));
 
-% set initial data (empty or from backup file)
-if nargin < 3 || isempty(backup_file)
-    init_data = [nan(max_pts, 4), false(max_pts, 1)];
+% TODO
 
+% set initial data (empty or from provided data)
+if nargin == 1
+    restore_state();
 else
-    backup = load(backup_file, 'data');
-    init_data = backup.data;
+    restore_state(xw, yw, xp, yp, done);
 end
-set_table_data(init_data);
 
 update_all();
 
-% define callbacks ------------------------------------------------------------
+%% return results
+
+% waitfor(findobj('Tag', 'ctrl_gui')); % waits here until the do_done() callback triggers uiresume
+uiwait(findobj('Tag', 'ctrl_gui')); % waits here until the do_done() callback triggers uiresume
+[data, ~] = get_table_data();
+last = find(data(:, 5)==1, 1, 'last');
+xw = data(1:last, 1);
+yw = data(1:last, 2);
+xp = data(1:last, 3);
+yp = data(1:last, 4);
+done = data(1:last, 5);
+close(gcf);
+
 
 function do_table(~, ~)
 
@@ -185,6 +185,7 @@ him = findobj('Tag', 'ctrl_img');
 hpt = impoint(him);
 pos = hpt.getPosition();
 hpt.delete();
+set(findobj('Tag', 'ctrl_gui'), 'WaitStatus', 'waiting'); % hack to preserve uiwait
 
 % update table and plot
 [data, ~] = get_table_data();
@@ -205,13 +206,12 @@ update_all();
 
 
 function [] = do_done(~, ~)
-% Callback for done button, check points and write results
+% Callback for done button, deletes GUI which returns control to main function
 % %
 
-save_state(true)
-close(findobj('Tag', 'ctrl_gui'));
+uiresume(findobj('Tag', 'ctrl_gui'));
+% delete(findobj('Tag', 'ctrl_gui'));
 
-% define utilities -------------------------------------------------------------
 
 function update_all()
 % Update all GUI elements (point list, plot, done button) and save backup file
@@ -220,7 +220,7 @@ function update_all()
 update_point_list();
 update_plot();
 update_done_button();
-save_state(false);
+backup_state();
 
 
 function set_table_data(data)
@@ -331,31 +331,32 @@ else
     hd.Enable = 'off';
 end
 
-function save_state(is_done)
-% Save the current data table, saves backup if filename is empty, deletes backup
-% on final save
+
+function backup_state()
+% Save table data to backup file
 % %
 
-hf = findobj('Tag', 'ctrl_file');
-filename = hf.String;
-if isempty(filename)
-    warndlg('Cannot save/backup results without an output file name');
-    return
-end
+[data, ~] = get_table_data();
+xw = data(:,1); %#ok!
+yw = data(:,2); %#ok!
+xp = data(:,3); %#ok!
+yp = data(:,4); %#ok!
+done = data(:,5); %#ok!
+save('backup.mat', 'xw', 'yw', 'xp', 'yp', 'done');
 
-if ~is_done
-    % save backup
-    [data, ~] = get_table_data(); %#ok!
-    [path, name, ext] = fileparts(filename);
-    backup_file = fullfile(path, [name, '_backup', ext]);
-    save(backup_file, 'data');
+function restore_state(xw, yw, xp, yp, done)
+% Restore table data from backup file (if args are provided) or initialize
+% new table (if args are not provided)
+% %
+
+if nargin == 0
+    % init new table data
+    num_pts = 500;
+    data = [nan(num_pts, 4), false(num_pts, 1)];
 else
-    % save final results
-    [data, ~] = get_table_data();
-    last = find(data(:, 5)==1, 1, 'last');
-    ctrl_xw = data(1:last, 1); %#ok!
-    ctrl_yw = data(1:last, 2); %#ok!
-    ctrl_xp = data(1:last, 3); %#ok!
-    ctrl_yp = data(1:last, 4); %#ok!
-    save(filename, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp');
+    % restore table data
+    num_pts = max(500, length(xw)+100); % make sure there is some extra space
+    data = [nan(num_pts, 4), false(num_pts, 1)];
+    data(1:length(xw), :) = [xw, yw, xp, yp, done];
 end
+set_table_data(data);
