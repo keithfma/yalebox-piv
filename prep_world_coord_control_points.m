@@ -211,7 +211,6 @@ function [] = do_done(~, ~)
 % %
 
 uiresume(findobj('Tag', 'ctrl_gui'));
-% delete(findobj('Tag', 'ctrl_gui'));
 
 
 function update_all()

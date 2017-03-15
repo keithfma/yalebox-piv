@@ -50,8 +50,9 @@ help_pos = [help_left, help_bot, help_width, help_height];
 
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'mask_gui');
 
+data = struct('img', img, 'mask', true(size(img, 1), size(img, 2)), 'layer', {{}});
 axes('Units', 'Normalized', 'Position', img_pos, 'NextPlot', 'add', ...
-    'Tag', 'mask_img');
+    'Tag', 'mask_img', 'UserData', data);
 image(img);
 axis equal off
 
@@ -71,6 +72,52 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', font, ...
     'Callback', @(~,~)msgbox(instruct));
 
+uiwait(findobj('Tag', 'mask_gui'));
+
 %% return results
 
+hi = findobj('Tag', 'mask_img'); 
+data = hi.UserData;
+mask = data.mask;
+close(findobj('Tag', 'mask_gui'));
 
+
+function do_add(~, ~)
+% Callback for add mask layer button
+% %
+
+% get current data
+hi = findobj('Tag', 'mask_img');
+data = hi.UserData;
+
+% get new mask polygon interactively
+p = impoly('Closed', true);
+set(findobj('Tag', 'mask_gui'), 'WaitStatus', 'waiting'); % hack for uiwait
+this_layer = ~createMask(p); % invert
+data.layer{end+1} = this_layer;
+
+% compose mask 
+mask = true(size(data.mask));
+for ii = 1:length(data.layer)
+    mask = mask & data.layer{ii};
+end
+data.mask = mask;
+
+% updated stored data
+hi.UserData = data;
+
+% update plot
+masked_img = data.img;
+masked_img(repmat(~mask, 1, 1, 3)) = 0;
+axes(hi);
+delete(findobj('Type', 'Image', 'Parent', hi));
+image(masked_img);
+axis equal off
+
+
+% TODO: add delete button
+
+function do_done(~, ~)
+% Callback for done button, disables uiwait
+% %
+uiresume(findobj('Tag', 'mask_gui'));
