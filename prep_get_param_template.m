@@ -6,10 +6,10 @@
 %% Init
 
 % define
-image_path = fullfile('..', 'data', 'fault_ss_03_siden_clean');
-image_glob = fullfile(image_path, 'fault_ss_03_siden_*.jpg');
-woco_image_file = fullfile(image_path, 'woco', 'fault_ss_03_siden_woco_b.JPG');
-step_image_file = fullfile(image_path, 'fault_ss_03_siden_613.jpg');
+image_path = '../data/fault_ss_03_siden_clean'; % linux slash always works
+image_glob = [image_path, '/fault_ss_03_siden_*.jpg'];
+woco_image_file = [image_path, '/woco/fault_ss_03_siden_woco_b.JPG'];
+step_image_file = [image_path, '/fault_ss_03_siden_613.jpg'];
 num_test_images = 5;
 test_result_file = 'junk.nc'; % netCDF
 ctrl_pts_file = 'fault_ss_03_siden_prep_ctrl_pts.mat'; % MAT
