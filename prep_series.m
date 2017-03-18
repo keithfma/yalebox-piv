@@ -1,8 +1,8 @@
-function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
+function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
                   value_lim, entropy_lim, entropy_len, morph_open_rad, ...
                   morph_erode_rad, eql_len, xw, yw, mask_manual)
-% function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
+% function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 %                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
 %                   value_lim, entropy_lim, entropy_len, morph_open_rad, ...
 %                   morph_erode_rad, eql_len, xw, yw, mask_manual)
@@ -13,7 +13,7 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 %
 % Arguments:
 % 
-%   output_file = String, filename of the netCDF input file to be created. 
+%   result_file = String, filename of the netCDF input file to be created. 
 %
 %   image_path = String, path to folder containing the images.
 %
@@ -45,7 +45,7 @@ function [] = prep_series(output_file, image_path, image_names, ctrl_xw, ...
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 assert(nargin == 19);
-validateattributes(output_file, {'char'}, {'vector'});
+validateattributes(result_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
 
@@ -72,7 +72,7 @@ for i = 1:num_image
 end
 
 % create netcdf file
-ncid = netcdf.create(output_file, 'NETCDF4');
+ncid = netcdf.create(result_file, 'NETCDF4');
 
 % add global attributes 
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox git_hash', util_git_hash());
@@ -141,7 +141,7 @@ netcdf.endDef(ncid);
 netcdf.close(ncid);
 
 % populate constant variables
-ncid = netcdf.open(output_file, 'WRITE');
+ncid = netcdf.open(result_file, 'WRITE');
 netcdf.putVar(ncid, x_varid, xw);
 netcdf.putVar(ncid, y_varid, yw);
 netcdf.putVar(ncid, rgb_varid, 'rgb');
@@ -171,7 +171,7 @@ for i = 1:num_image
     img = prep_intensity(raw, mask_manual & mask_auto, eql_len, false, true);
      
     % save results   
-    ncid = netcdf.open(output_file, 'WRITE');
+    ncid = netcdf.open(result_file, 'WRITE');
     netcdf.putVar(ncid, maska_varid, [0, 0, i-1], [ny, nx, 1], uint8(mask_auto));
     netcdf.putVar(ncid, img_varid, [0, 0, i-1], [ny, nx, 1], img);
     netcdf.putVar(ncid, raw_varid, [0, 0, 0, i-1], [ny, nx, 3, 1], raw);
