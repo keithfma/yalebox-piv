@@ -2,19 +2,22 @@
 % The intended wusage is to make a copy of the script for a given experiment,
 % run it cell by cell, modifying the default parameters to suit the experiment
 % particulars.
+%
+% NOTE: Specific values are from experiment fault_ss_03_sidef, they may be
+% useful or not depending on the experiment
 
 %% Init
 
 % define
-image_path = '../data/fault_ss_03_siden_clean'; % linux slash always works
-image_glob = [image_path, '/fault_ss_03_siden_*.jpg'];
-woco_image_file = [image_path, '/woco/fault_ss_03_siden_woco_b.JPG'];
-step_image_file = [image_path, '/fault_ss_03_siden_613.jpg'];
+image_path = '../data/fault_ss_03_sidef_clean'; % linux slash always works
+image_glob = [image_path, '/fault_ss_03_sidef_*.jpg'];
+woco_image_file = [image_path, '/woco/fault_ss_03_sidef_woco_b.JPG'];
+step_image_file = [image_path, '/fault_ss_03_sidef_613.jpg'];
 num_test_images = 5;
 test_result_file = 'junk.nc'; % netCDF
-ctrl_pts_file = 'fault_ss_03_siden_prep_ctrl_pts.mat'; % MAT
-param_file =  'fault_ss_03_siden_prep_param.mat'; % MAT
-result_file = 'fault_ss_03_siden_image.nc'; % netCDF
+ctrl_pts_file = 'fault_ss_03_sidef_prep_ctrl_pts.mat'; % MAT
+param_file =  'fault_ss_03_sidef_prep_param.mat'; % MAT
+result_file = '../data/fault_ss_03_sidef_image.nc'; % netCDF
 
 % get image file name list
 tmp = dir(image_glob);
@@ -29,13 +32,36 @@ test_image_names = image_names(idx);
 
 %% Define coordinate system control points
 
-[ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, done] = prep_world_coord_control_points(woco_image_file);
-save(ctrl_pts_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp', 'done'); % precious!
+mode = 'load'; % choose from {'try', 'retry', 'load'}
+
+if strcmp(mode, 'try')    
+    [ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, done] = ...
+        prep_world_coord_control_points(woco_image_file);
+    
+elseif strcmp(mode, 'retry')
+    load(ctrl_pts_file);
+    [ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, done] = ...
+        prep_world_coord_control_points(...
+            woco_image_file, ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, done);
+
+elseif strcmp(mode, 'load')
+    load(ctrl_pts_file);    
+
+end
+
+% save, take care to avoid accidental overwriting
+if exist(ctrl_pts_file, 'file') == 2
+    button = questdlg('Control points file exists! Overwrite it?', 'WARNING', 'Yes', 'No', 'No');
+    if strcmp(button, 'Yes')
+        save(ctrl_pts_file, 'ctrl_xw', 'ctrl_yw', 'ctrl_xp', 'ctrl_yp', 'done'); % precious!
+    end
+end
+
 
 %% Rectify and crop 
 
 % parameters
-crop_xw = [-0.265, 0.65];
+crop_xw = [-0.5, 0.65];
 crop_yw = [ 0.002, 0.150]; % trim bottom to crop mylar out
 
 % actions
@@ -55,7 +81,7 @@ mask_manual = prep_mask_manual(rgb);
 
 % parameters
 hue_lim = [0.02, 0.2];
-value_lim = [0.05, 0.5];
+value_lim = [0.15, 1.0];
 entropy_lim = [0.6, 1];
 entropy_len = 11;
 morph_open_rad = 10;
