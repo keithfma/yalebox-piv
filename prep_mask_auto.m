@@ -73,15 +73,17 @@ entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 % create mask
 mask = hue_mask & value_mask & entropy_mask;
 
-% TODO: change strategy to handle top view too
-
-% fill holes, wall off left, right and bottom
-wall_lr = true(size(mask, 1), 1);
-mask = [wall_lr, mask, wall_lr];
-wall_b = true(1, size(mask,2));
-mask = [wall_b; mask];
-mask = imfill(mask, 'holes');
-mask = mask(2:end, 2:end-1);
+% fill holes along edges (wall off one corner, fill, repeat)
+ridx = 1:size(mask, 1);
+cidx = 1:size(mask, 2);
+dr = [1, 1, 0, 0];
+dc = [1, 0, 0, 1];
+for ii = 1:4
+    wall = true(size(mask)+1);
+    wall(ridx+dr(ii), cidx+dc(ii)) = mask;
+    wall = imfill(wall, 'holes');
+    mask = wall(ridx+dr(ii), cidx+dc(ii));
+end
 
 % extract largest connected object
 object_label = bwlabel(mask);
