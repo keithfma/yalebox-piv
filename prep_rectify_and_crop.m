@@ -1,7 +1,9 @@
 function [rgb_r, coord_x, coord_y] = ...
-    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
+    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
+                          rgb, fit_npts, show, verbose)
 % function [rgb_r, coord_x, coord_y] = ...
-%     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show, verbose)
+%     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
+%                           rgb, fit_npts, show, verbose)
 % 
 % Use manually defined world-coordinate control points to project image
 % into a regular coordinate system, and crop this image to the desired
@@ -23,9 +25,14 @@ function [rgb_r, coord_x, coord_y] = ...
 %
 % rgb = 3D matrix, rgb image to be rectified and cropped
 %
+% fit_npts = Integer, parameter to fitgeotrans "Number of points to use in local
+%   weighted mean calculation". The default value usually works well, but
+%   occasionally leads to ill-conditioned arrays (throws a misleading "co-linear
+%   points" error), default = 10
+%
 % show = Logical flag, plot the rectified image, default = false 
 %
-% verbose = Logical flag, print verbose messages, default = false 
+% verbose = Logical flag, print verbose messages, default = false
 %
 % rgb_r = 3D matrix, rectified and cropped image
 %
@@ -34,8 +41,10 @@ function [rgb_r, coord_x, coord_y] = ...
 % % Keith Ma
 
 % sanity check
-if nargin == 7 || isempty(show); show = false; end
-if nargin == 8 || isempty(verbose); verbose = false; end
+if nargin < 8 || isempty(fit_npts); lwm_n = 10; end
+if nargin < 9 || isempty(show); show = false; end
+if nargin < 10 || isempty(verbose); verbose = false; end
+
 
 validateattributes(ctrl_xp, {'numeric'}, {'vector'});
 validateattributes(ctrl_yp, {'numeric'}, {'vector', 'numel', numel(ctrl_xp)});
@@ -45,6 +54,7 @@ validateattributes(crop_xw, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(crop_yw, {'numeric'}, {'vector', 'numel', 2});
 assert(crop_xw(2)>crop_xw(1));
 assert(crop_yw(2)>crop_yw(1));
+validateattributes(fit_npts', {'numeric'}, {'scalar', 'integer', 'positive'});
 
 if verbose
     fprintf('%s: input image size = %d x %d x %d\n', ...
@@ -75,7 +85,7 @@ origin_yr = 0;
 % transform image to rectified pixel coordinates
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('off', 'images:geotrans:estimateOutputBoundsFailed');
-tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', 10);
+tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', fit_npts);
 imref = imref2d([size(rgb,1), size(rgb,2)]);
 [rgb_r, imref_r] = imwarp(rgb, imref, tform, 'cubic');
 warning('on', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');

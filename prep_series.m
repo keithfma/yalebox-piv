@@ -1,11 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
-                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
-                  value_lim, entropy_lim, entropy_len, morph_open_rad, ...
-                  morph_erode_rad, eql_len, xw, yw, mask_manual)
+                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+                  hue_lim, value_lim, entropy_lim, entropy_len, ...
+                  morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
 % function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
-%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, hue_lim, ...
-%                   value_lim, entropy_lim, entropy_len, morph_open_rad, ...
-%                   morph_erode_rad, eql_len, xw, yw, mask_manual)
+%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+%                   hue_lim, value_lim, entropy_lim, entropy_len, ...
+%                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
 % 
 % Create PIV input file for a given image series. Reads in the images, rectifies
 % and crops, masks, corrects illuination, and saves the results and metadata in
@@ -25,6 +25,8 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 %
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
+%
+%   fit_npts = Local neighborhood for image rectification, see prep_rectify_and_crop()
 % 
 %   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
 %       prep_mask_auto()
@@ -44,7 +46,7 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 % % Keith Ma
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-assert(nargin == 19);
+assert(nargin == 20);
 validateattributes(result_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
@@ -82,6 +84,7 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yp', ctrl_yp);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_xw', crop_xw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_yw', crop_yw);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop fit_npts', fit_npts);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto hue_lim', hue_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto value_lim', value_lim);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_lim', entropy_lim);
@@ -161,7 +164,7 @@ for i = 1:num_image
     
     % rectify and crop
     raw = prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, ...
-              crop_yw, raw, false, true);
+              crop_yw, raw, fit_npts, false, true);
      
     % compute automatic mask
     mask_auto = prep_mask_auto(raw, hue_lim, value_lim, entropy_lim, ...

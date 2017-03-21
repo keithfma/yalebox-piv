@@ -5,8 +5,8 @@ function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
-% image prior to PIV analysis or other applications. Sand is identified by thresholding "hue", "value"
-% and "entropy" bands.
+% image prior to PIV analysis or other applications. Sand is identified by
+% thresholding "hue", "value" and "entropy" bands.
 %
 % Arguments:
 %
@@ -72,6 +72,8 @@ entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 
 % create mask
 mask = hue_mask & value_mask & entropy_mask;
+
+% TODO: change strategy to handle top view too
 
 % fill holes, wall off left, right and bottom
 wall_lr = true(size(mask, 1), 1);
