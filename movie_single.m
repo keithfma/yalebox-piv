@@ -4,7 +4,9 @@ function [] = movie_single(input_file, output_file, varargin)
 %   input_file: String, path to input netCDF file as produced by prep_series()
 %   output_file: String, path to output video file, without file extension
 %
-% Optional Parameters ('Name', Value)::
+% Optional Parameters ('Name', Value):
+%   'StepRange': [initial, final] steps in the video, final can be set to inf to
+%       include all available frames, default = [1, inf] (all frames)
 %   'VideoProfile': String, video file type, see MATLAB VideoWriter help for
 %       options, default = 'MPEG-4'
 %   'FrameRate': Integer, video frames-per-second, default = 10
@@ -74,6 +76,9 @@ parser = inputParser();
 
 parser.addRequired('input_file', @(x) exist(x, 'file') == 2);
 parser.addRequired('output_file', @ischar);
+
+parser.addParameter('StepRange', [0, inf], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}) );
 parser.addParameter('VideoProfile', 'MPEG-4', @ischar);
 parser.addParameter('FrameRate', 10, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}) ); 
@@ -116,7 +121,7 @@ parser.addParameter('CounterBoxColor', 'w', ...
 parser.addParameter('CounterBoxAlpha', 0, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
 parser.addParameter('ScalePosition', [], ...
-    @(x) validateattributes(x, {'numeric'}, {'1d'}) );
+    @(x) validateattributes(x, {'numeric'}, {}) );
 parser.addParameter('ScaleColor', 'r', ...
     @(x) validateattributes(x, {'numeric', 'char'}, {}) );
 parser.addParameter('ScaleAlpha', 1, ...
@@ -137,16 +142,24 @@ parser.addParameter('TestFrame', 0, ...
 parser.parse(input_file, output_file, varargin{:});
 args = parser.Results;
 
-% define mode
-movie_mode = ~args.TestFrame;
-
 % warn about unusued parameters
 if args.MinThresh ~= 0 && args.Color
     warning('MinThresh is ignored for Color images');
 end
 
+%% Create video
+
+% get coordinate vars
+xx = double(ncread(args.input_file, 'x'));
+yy = double(ncread(args.input_file, 'y'));
+step = double(ncread(args.input_file, 'step'));
+
+% truncate to desired step range
+min_idx = find(step >= args.StepRange(1), 1, 'first');
+max_idx = find(step <= args.StepRange(2), 1, 'last');
+
 % expand title strings to cell array
-ns = length(ncread(args.input_file, 'step'));
+ns = length(step);
 if ischar(args.TitleStr)
     constant_title = args.TitleStr;
     args.TitleStr = cell(ns, 1);
@@ -154,13 +167,9 @@ if ischar(args.TitleStr)
 elseif iscell(args.TitleStr)
     assert(length(args.TitleStr == ns));
 end
-    
-%% Create video
 
-% get coordinate vars
-xx = double(ncread(args.input_file, 'x'));
-yy = double(ncread(args.input_file, 'y'));
-step = double(ncread(args.input_file, 'step'));
+% define mode
+movie_mode = ~args.TestFrame;
 
 % prepare movie object
 if movie_mode
@@ -170,13 +179,13 @@ if movie_mode
 end
 
 % make frames
-for ii = 1:numel(step)
+for ii = min_idx:max_idx
     
     if ~movie_mode && step(ii) ~= args.TestFrame
         % skip all but indicated frame
         continue
     end
-    
+
     fprintf('step: %i\n', step(ii));
     
     % prepare image
@@ -201,8 +210,6 @@ for ii = 1:numel(step)
     if args.MinThresh > 0 && ~args.Color
         frame(frame < args.MinThresh) = 0;
     end
-    
-    fprintf('%d x %d\n', size(frame, 2), size(frame, 1));
     
     % annotate image
     frame = movie_frame_spoint(frame, xf, yf, args.SptPosition, ...
