@@ -20,7 +20,7 @@ function [rimg, rx, ry] = movie_frame_resize(img, x, y, max_dim)
 %   max_dim = 2-element vector, maximum dimensions for the resized output
 %       image as [max_num_cols, max_num_rows]. 
 %
-% Keith Ma, August 2015
+% % Keith Ma, August 2015
 
 nx = numel(x);
 ny = numel(y);
