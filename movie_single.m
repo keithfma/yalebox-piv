@@ -134,13 +134,18 @@ parser.addParameter('ScaleLabelColor', 'r', ...
     @(x) validateattributes(x, {'numeric', 'char'}, {}) );
 parser.addParameter('ScaleBoxColor', 'w', ...
     @(x) validateattributes(x, {'numeric', 'char'}, {}) );
-parser.addParameter('ScaleBoxAlpha', 1, ...
+parser.addParameter('ScaleBoxAlpha', 0, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
 parser.addParameter('TestFrame', 0, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}) ); 
 
 parser.parse(input_file, output_file, varargin{:});
 args = parser.Results;
+
+% catch other errors
+if args.TestFrame
+    assert(args.TestFrame >= args.StepRange(1) & args.TestFrame <= args.StepRange(2));
+end
 
 % warn about unusued parameters
 if args.MinThresh ~= 0 && args.Color
@@ -165,7 +170,7 @@ if ischar(args.TitleStr)
     args.TitleStr = cell(ns, 1);
     args.TitleStr(:) = {constant_title};
 elseif iscell(args.TitleStr)
-    assert(length(args.TitleStr == ns));
+    assert(length(args.TitleStr) == ns);
 end
 
 % define mode
