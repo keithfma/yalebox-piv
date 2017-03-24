@@ -67,7 +67,12 @@ function [] = movie_single(input_file, output_file, varargin)
 %       box, must be in the range [0, 1], default = 0 (no box)
 %   'TestFrame': Integer, display the the frame with the given index and do not
 %       make any video, intended for parameter exploration, default = 0 (off)
-
+%   'StretchLim': Fraction of the image to saturate, specified as a numeric
+%       scalar or two-element vector [Low_Fract High_Fract] in the range [0 1],
+%       default = [0, 1] (no stretch)
+%   'Gamma': Brightness adjustment factor, the image will be brighter for
+%       gamma < 1 and vice versa, default = 1 (no adjustment)
+% %
 
 
 %% parse inputs
@@ -138,6 +143,10 @@ parser.addParameter('ScaleBoxAlpha', 0, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
 parser.addParameter('TestFrame', 0, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}) ); 
+parser.addParameter('StretchLim', [0, 1], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}) );
+parser.addParameter('Gamma', 1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}) );
 
 parser.parse(input_file, output_file, varargin{:});
 args = parser.Results;
@@ -211,7 +220,15 @@ for ii = min_idx:max_idx
     [frame, xf, yf] = movie_frame_resize(frame, xx, yy, args.MaxDim);
     
     [frame, yf] = movie_frame_flip(frame, yf);
+
+    if args.StretchLim(1) ~= 0 || args.StretchLim(2) ~= 1 
+        frame = imadjust(frame, stretchlim(args.StretchLim));
+    end
     
+    if args.Gamma ~= 1
+        frame = imadjust(frame, [], [], args.Gamma);
+    end
+        
     if args.MinThresh > 0 && ~args.Color
         frame(frame < args.MinThresh) = 0;
     end
