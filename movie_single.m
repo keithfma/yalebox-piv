@@ -1,222 +1,270 @@
-function [] = movie_single(prm, movie_type, show_frame)
-% function [] = movie_single(prm, movie_type, show_frame)
+function [] = movie_single(input_file, output_file, varargin)
 %
-% Generate video for a single view of a yalebox experiment from the output of
-% the pre-processing routine prep_series(). The (many) parameters below control
-% the content, size, annotation, memory, etc for the video. All processing is
-% done in MATLAB, which restricts the type of the output movie file. This can be
-% converted easily after the fact with ffmpeg, and the program prints the
-% command line needed to do so.
+% Required Arguments:
+%   input_file: String, path to input netCDF file as produced by prep_series()
+%   output_file: String, path to output video file, without file extension
 %
-% ----- Source parameters -----
-%
-% prm.input_file = String, path to input netCDF file as produced by
-%   prep_series()
-%
-% prm.output_stub = String, path to output video file, without file extension
-%
-% ----- Video parameters -----
-%
-% prm.frame_rate = Scalar integer, frames/sec in output video
-%
-% prm.max_dim = Vector, length == 2, integer, [row, col] maximum dimensions of
-%   the output video, image is resized to fit in this bounding box
-%
-% prm.threshold = Scalar, threshold value applied to image, pixels <
-%   this value are set to zero
-%
-% prm.memory = Scalar in the range [0, 1], controls the decay of the previous
-%   image, where 1 adds the previous to the current image, and 0 adds nothing from
-%   the previous image
-%
-% ----- S-point triangle annotation parameters -----
-%
-% prm.tri_tip = Vector, size = [number of triangles, 2], tip location of s-point
-%   triangles in [x, y] world coordinates, with 1 triangle in each row
-%
-% prm.tri_len = Scalar, side length for all (equilateral) triangles in world
-%   coordinates
-%
-% prm.tri_color = String, color definition MATLAB can understand, e.g. 'red'
-%
-% prm.tri_opacity = Scalar range [0, 1], "alpha" for the triangle patch
-%
-% ----- Title annotation parameters -----
-%
-% prm.title_str = Cell array of strings, title string for each experiment
-%   segment
-%
-% prm.title_str_start = Vector, starting index for each experiment segment
-%
-% prm.title_size = Scalar, integer, title font size in points
-%
-% prm.title_color = String, color definition MATLAB can understand, e.g. 'red'
-%
-% prm.title_box_color = String, color definition MATLAB can understand
-%
-% prm.title_box_opacity = Scalar, range [0, 1], "alpha" for the title box
-%
-% ----- Scalebar annotation parameters -----
-%
-% prm.scale_pos = Vector, scalebar location and size as a MATLAB position vector
-%   in world units, [left, bottom, width, height]
-%
-% prm.scale_label = String, scalebar label text
-%
-% prm.scale_color = String, color definition MATLAB can understand, e.g. 'red'
-%
-% prm.scale_opacity = Scalar, range [0, 1], "alpha" for the scalebar
-%
-% prm.scale_text_size = Scalar, integer, scale label font size in points
-%
-% prm.scale_text_color = String, color definition MATLAB can understand
-%
-% prm.scale_box_color = String, color definition MATLAB can understand
-%
-% prm.scale_box_opacity = Scalar, range [0, 1], "alpha" for the scale label box
-%
-% ----- Counter annotation parameters -----
-%
-% prm.count_pos = Vector, counter position in [x, y] world units
-%
-% prm.count_size = Scalar, integer, counter font size in points
-%
-% prm.count_color = String, color definition MATLAB can understand, e.g. 'red'
-%
-% prm.count_box_color = String, color definition MATLAB can understand, e.g. 'red'
-%
-% prm.count_box_opac = Scalar, range [0, 1], "alpha" for the counter text box
-%
-% ----- Other -----
-%
-% movie_type = String, select movie type, valid options are: color, streak
-%
-% show_frame = OPTIONAL, show a single frame at step == show_frame, do not
-%   process other frames or make a movie, used for testing parameter
-%   values.
+% Optional Parameters ('Name', Value):
+%   'StepRange': [initial, final] steps in the video, final can be set to inf to
+%       include all available frames, default = [1, inf] (all frames)
+%   'VideoProfile': String, video file type, see MATLAB VideoWriter help for
+%       options, default = 'MPEG-4'
+%   'FrameRate': Integer, video frames-per-second, default = 10
+%   'Color': Logical, set True to use RGB image series for movie, or False to
+%       use (equalized) grayscale image series, default = True
+%   'Mask': Logical: set True to apply mask to images, or False to use the
+%       images as-is, default = True
+%   'MinThresh': Minumum intensity value, pixels dimmer than this are set to 0,
+%       must be in the range [0, 1], default = 0
+%   'MaxDim': Vector, [width, height] maximum dimensions of the output video,
+%       image (and coordinates) are resized to fit in this bounding box, note
+%       that MATLAB places some limits on this depending on your screen size,
+%       default = [1080, 1920]
+%   'SptPosition': Tip location of s-point triangles in [x, y] world coordinates as
+%       (number of triangles) x 2 matrix, with 1 row for each triangle,
+%       default = []
+%   'SptLength': Scalar, side length for all (equilateral) s-point triangles in
+%       world coordinates, default = 0.01
+%   'SptColor': String, s-point triangel color, as a color definition MATLABcan
+%       understand, default = 'r'
+%   'SptAlpha': Scalar, opacity (a.k.a. alpha) for the s-point triangles, must
+%       be in the range [0, 1], default = 1
+%   'TitleStr': String, or cell array of strings for each frame in the movie,
+%       default = '' (no title)
+%   'TitleSize': Scalar, integer, title font size in points, default = 18
+%   'TitleColor': Title color, as any definition MATLAB can understand,
+%       default = 'r'
+%   'TitleBoxColor: Title background box color, as any definition MATLAB can
+%       understand, default = 'w'
+%   'TitleBoxAlpha': Scalar, opacity (a.k.a. alpha) for the title background
+%       box, must be in the range [0, 1], default = 0
+%   'TitleLocation': String, title horizontal location, must be one of
+%       {'left', 'center', 'right'}, default = 'center'
+%   'CounterPosition': Counter position in [x, y] world coordinates,
+%       default = [] (no counter)
+%   'CounterSize': Scalar, integer, counter font size in points, default = 18
+%   'CounterColor: Counter text color, as any definition MATLAB can
+%       understand, default = 'r'
+%   'CounterBoxColor: Counter background box color, as any definition MATLAB can
+%       understand, default = 'w'
+%   'CounterBoxAlpha': Scalar, opacity (a.k.a. alpha) for the counter background
+%       box, must be in the range [0, 1], default = 0 (no box)
+%   'ScalePosition: Vector, scalebar location and size as a MATLAB position
+%       vector in world units, [left, bottom, width, height], default = []
+%       (no scale bar)
+%   'ScaleColor': Scalebar fill color, as any definition MATLAB can understand,
+%       default = 'r'
+%   'ScaleAlpha': Scalar, opacity (a.k.a. alpha) for the scalebar fill color
+%       must be in the range [0, 1], default = 1 (solid)
+%   'ScaleLabel': String, scalebar label text, default = ''
+%   'ScaleLabelSize': Scalar, integer, scalebar label font size in points,
+%       default = 18 
+%   'ScaleLabelColor': Scalebar label color, as any definition MATLAB can
+%       understand, default = 'r'
+%   'ScaleBoxColor': Scalebar background box color, as any definition MATLAB can
+%       understand, default = 'w'
+%   'ScaleBoxAlpha': Scalar, opacity (a.k.a. alpha) for the counter background
+%       box, must be in the range [0, 1], default = 0 (no box)
+%   'TestFrame': Integer, display the the frame with the given index and do not
+%       make any video, intended for parameter exploration, default = 0 (off)
+%   'StretchLim': Fraction of the image to saturate, specified as a numeric
+%       scalar or two-element vector [Low_Fract High_Fract] in the range [0 1],
+%       default = [0, 1] (no stretch)
+%   'Gamma': Brightness adjustment factor, the image will be brighter for
+%       gamma < 1 and vice versa, default = 1 (no adjustment)
 % %
 
-% parse inputs
-make_movie = nargin < 3 || isempty(show_frame);
-assert(ismember(movie_type, {'color', 'streak'}));
-switch movie_type
-    case 'color'        
-        read_image = @read_image_color;
-        output_file_matlab = [prm.output_stub '_color.mj2'];
-        output_file_ffmpeg = [prm.output_stub, '_color.mp4'];
-        output_file_ffmpeg_small = [prm.output_stub, '_color_small.mp4'];
-        
-    case 'streak'
-        read_image = @read_image_gray;
-        output_file_matlab = [prm.output_stub '_streak.mj2'];
-        output_file_ffmpeg = [prm.output_stub, '_streak.mp4'];
-        output_file_ffmpeg_small = [prm.output_stub, '_streak_small.mp4'];
-        img_prev = 0;
-        
+
+%% parse inputs
+
+parser = inputParser();
+
+parser.addRequired('input_file', @(x) exist(x, 'file') == 2);
+parser.addRequired('output_file', @ischar);
+
+parser.addParameter('StepRange', [0, inf], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}) );
+parser.addParameter('VideoProfile', 'MPEG-4', @ischar);
+parser.addParameter('FrameRate', 10, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}) ); 
+parser.addParameter('Color', true, ...
+    @(x) validateattributes(x, {'numeric', 'logical'}, {'scalar', 'binary'}) ); 
+parser.addParameter('Mask', true, ...
+    @(x) validateattributes(x, {'numeric', 'logical'}, {'scalar', 'binary'}) ); 
+parser.addParameter('MinThresh', 0, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) ); 
+parser.addParameter('MaxDim', [1920, 1080], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2, 'positive', 'integer'}) );
+parser.addParameter('SptPosition', [], ...
+    @(x) validateattributes(x, {'numeric'}, {'2d'}) );
+parser.addParameter('SptLength', 0.01, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}) );
+parser.addParameter('SptColor', 'r', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('SptAlpha', 1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
+parser.addParameter('TitleStr', '', ...
+    @(x) validateattributes(x, {'char', 'cell'}, {}) );
+parser.addParameter('TitleSize', 18, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}) );
+parser.addParameter('TitleColor', 'r', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('TitleBoxColor', 'w', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('TitleBoxAlpha', 0, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
+parser.addParameter('TitleLocation', 'center', ...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}) );
+parser.addParameter('CounterPosition', [], ...
+    @(x) validateattributes(x, {'numeric'}, {'2d'}) );
+parser.addParameter('CounterSize', 18, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}) );
+parser.addParameter('CounterColor', 'r', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('CounterBoxColor', 'w', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('CounterBoxAlpha', 0, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
+parser.addParameter('ScalePosition', [], ...
+    @(x) validateattributes(x, {'numeric'}, {}) );
+parser.addParameter('ScaleColor', 'r', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('ScaleAlpha', 1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
+parser.addParameter('ScaleLabel', '', ...
+    @(x) validateattributes(x, {'char'}, {}) );
+parser.addParameter('ScaleLabelSize', 18, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}) );
+parser.addParameter('ScaleLabelColor', 'r', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('ScaleBoxColor', 'w', ...
+    @(x) validateattributes(x, {'numeric', 'char'}, {}) );
+parser.addParameter('ScaleBoxAlpha', 0, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}) );
+parser.addParameter('TestFrame', 0, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer'}) ); 
+parser.addParameter('StretchLim', [0, 1], ...
+    @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2, '>=', 0, '<=', 1}) );
+parser.addParameter('Gamma', 1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}) );
+
+parser.parse(input_file, output_file, varargin{:});
+args = parser.Results;
+
+% catch other errors
+if args.TestFrame
+    assert(args.TestFrame >= args.StepRange(1) & args.TestFrame <= args.StepRange(2));
 end
 
-% open netCDF file and get coordinate vars
-ncid = netcdf.open(prm.input_file, 'NOWRITE');
-x = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'x'));
-y = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'y'));
-step = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'step'));
-
-% prepare movie object...format = motion JPEG 2000, lossless compression
-if make_movie
-    movie_writer = VideoWriter(output_file_matlab, 'Archival');
-    movie_writer.FrameRate = prm.frame_rate; % frames/second
-    movie_writer.open();
+% warn about unusued parameters
+if args.MinThresh ~= 0 && args.Color
+    warning('MinThresh is ignored for Color images');
 end
 
-% loop: read data, annotate images, create frames
-for i = 1:numel(step)
+%% Create video
+
+% get coordinate vars
+xx = double(ncread(args.input_file, 'x'));
+yy = double(ncread(args.input_file, 'y'));
+step = double(ncread(args.input_file, 'step'));
+
+% truncate to desired step range
+min_idx = find(step >= args.StepRange(1), 1, 'first');
+max_idx = find(step <= args.StepRange(2), 1, 'last');
+
+% expand title strings to cell array
+ns = length(step);
+if ischar(args.TitleStr)
+    constant_title = args.TitleStr;
+    args.TitleStr = cell(ns, 1);
+    args.TitleStr(:) = {constant_title};
+elseif iscell(args.TitleStr)
+    assert(length(args.TitleStr) == ns);
+end
+
+% define mode
+movie_mode = ~args.TestFrame;
+
+% prepare movie object
+if movie_mode
+    writer = VideoWriter(args.output_file, args.VideoProfile);
+    writer.FrameRate = args.FrameRate;
+    writer.open();
+end
+
+% make frames
+for ii = min_idx:max_idx
     
-    if ~make_movie && step(i) ~= show_frame
+    if ~movie_mode && step(ii) ~= args.TestFrame
+        % skip all but indicated frame
         continue
     end
+
+    fprintf('step: %i\n', step(ii));
     
-    % update user
-    fprintf('step: %i\n', step(i));
+    % prepare image
+    if args.Color
+        frame = ncread(input_file, 'img_rgb', [1, 1, 1, ii], [inf, inf, inf, 1]);
+    else
+        frame = ncread(input_file, 'img', [1, 1, ii], [inf, inf, 1]);
+    end
+    frame = im2double(frame);
     
-    % read image
-    img = read_image(ncid, numel(x), numel(y), i);
-    
-    % resize and reshape image as needed
-    [img, xf, yf] = movie_frame_resize(img, x, y, prm.max_dim);
-    [img, yf] = movie_frame_flip(img, yf);
-    
-    % streak only: apply threshold and decay
-    if strcmp(movie_type, 'streak')        
-        img(img<prm.streak_threshold) = 0;
-        img(img>=prm.streak_threshold) = 1;
-        img = img + img_prev*prm.streak_memory;
-        img_prev = img; 
-        img(img > 1) = 1;
+    if args.Mask
+        mask_manual = ncread(input_file, 'mask_manual');
+        mask_auto = ncread(input_file, 'mask_auto', [1, 1, ii], [inf, inf, 1]);
+        mask = mask_manual & mask_auto;
+        frame(repmat(~mask, [1, 1, size(frame, 3)])) = 0;
     end
     
-    % add annotations (triangles, scale, title, counter)
-    frame = movie_frame_spoint(img, xf, yf, prm.tri_tip, prm.tri_len, ...
-        prm.tri_color, prm.tri_opacity);
+    [frame, xf, yf] = movie_frame_resize(frame, xx, yy, args.MaxDim);
     
-    title_ind = find(step(i) >= prm.title_str_start , 1, 'last');
-    frame = movie_frame_title(frame, prm.title_str{title_ind}, ...
-        prm.title_size, prm.title_color, prm.title_box_color, prm.title_box_opacity);
-    
-    frame = movie_frame_scalebar(frame, xf, yf, prm.scale_label, ...
-        prm.scale_pos, prm.scale_color, prm.scale_opacity, prm.scale_text_size, ...
-        prm.scale_text_color, prm.scale_box_color, prm.scale_box_opacity);
-    
-    frame = movie_frame_counter(frame, xf, yf, step(i), prm.count_pos, ...
-        prm.count_size, prm.count_color, prm.count_box_color, prm.count_box_opac);
-    
-    % add frame to movie
-    if make_movie
-        writeVideo(movie_writer, im2frame(frame));
+    [frame, yf] = movie_frame_flip(frame, yf);
+
+    if args.StretchLim(1) ~= 0 || args.StretchLim(2) ~= 1 
+        frame = imadjust(frame, stretchlim(args.StretchLim));
     end
     
+    if args.Gamma ~= 1
+        frame = imadjust(frame, [], [], args.Gamma);
+    end
+        
+    if args.MinThresh > 0 && ~args.Color
+        frame(frame < args.MinThresh) = 0;
+    end
+    
+    % annotate image
+    frame = movie_frame_spoint(frame, xf, yf, args.SptPosition, ...
+        args.SptLength, args.SptColor, args.SptAlpha);
+    
+    frame = movie_frame_title(frame, args.TitleStr{ii}, args.TitleSize, ...
+        args.TitleColor, args.TitleBoxColor, args.TitleBoxAlpha, ...
+        args.TitleLocation);
+    
+    if ~isempty(args.CounterPosition)
+        frame = movie_frame_counter(frame, xf, yf, step(ii), ...
+            args.CounterPosition, args.CounterSize, args.CounterColor, ...
+            args.CounterBoxColor, args.CounterBoxAlpha);
+    end
+    
+    if ~isempty(args.ScalePosition)
+        frame = movie_frame_scalebar(frame, xf, yf, args.ScaleLabel, ...
+            args.ScalePosition, args.ScaleColor, args.ScaleAlpha, ...
+            args.ScaleLabelSize, args.ScaleLabelColor, args.ScaleBoxColor, ...
+            args.ScaleBoxAlpha);
+    end
+    
+    % add to movie writer
+    if movie_mode
+        writer.writeVideo(frame);
+    end
+
 end
 
-% finalize
-netcdf.close(ncid);
-
-if ~make_movie
-    % display processed frame
-    figure
-    imshow(frame);
+if movie_mode
+    writer.close();
 else
-    % finish movie and convert movie to better format using ffmpeg
-    % ...MATLAB for Linux video support is limited, so I use ffmpeg
-    % ...ffmpeg commands lines modified from https://trac.ffmpeg.org/wiki/Encode/H.264
-    movie_writer.close();
-    
-    cmd_ffmpeg = sprintf('ffmpeg -i %s -c:v libx264 -preset veryslow -crf 18  -aspect:v %f -pix_fmt yuv420p %s', ...
-        output_file_matlab, size(frame,2)/size(frame,1), output_file_ffmpeg);
-    cmd_ffmpeg_small = sprintf('ffmpeg -i %s -c:v libx264 -preset veryslow -crf 28  -aspect:v %f -pix_fmt yuv420p %s', ...
-        output_file_matlab, size(frame,2)/size(frame,1), output_file_ffmpeg_small);
-    
-    system(cmd_ffmpeg);
-    system(cmd_ffmpeg_small);
-    
-    fprintf('%s: Complete\n', mfilename);
-    fprintf('Generated the following files:\n');
-    fprintf('-original (MATLAB): %s\n', output_file_matlab);
-    fprintf('-high quality(FFMPEG): %s\n', output_file_ffmpeg);
-    fprintf('-small (FFMPEG): %s\n', output_file_ffmpeg_small);
+    hf = figure;
+    hf.Name = sprintf('Movie Frame for Step %i', args.TestFrame);
+    imshow(frame);
 end
-
-
-function im = read_image_gray(ncid, nx, ny, step)
-% Read grayscale image from netCDF variable 'img'
-
-im = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'img'), [0, 0, step-1], [ny, nx, 1]);
-im = double(im);
-
-
-function im = read_image_color(ncid, nx, ny, step)
-% Read color image from netCDF variable 'img_rgb'
-
-im = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'img_rgb'), [0, 0, 0, step-1], [ny, nx, 3, 1]);
-mask_auto = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_auto'), [0, 0, step-1], [ny, nx, 1]);
-mask_manual = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'mask_manual'));
-mask = mask_auto & mask_manual;
-im(repmat(~mask, [1, 1, 3])) = 0;
