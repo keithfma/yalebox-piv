@@ -33,7 +33,7 @@ function [] = piv_series(...
 narginchk(13, 13); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
-validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer');
+validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 
 % read input dimension values
 x_img =      double( ncread(input_file, 'x')     );
