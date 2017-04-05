@@ -1,11 +1,11 @@
 function [] = piv_series(...
-    output_file, input_file, samplen, sampspc, intrlen, npass, ...
-    valid_max, valid_eps, spline_tension, min_frac_data, ...
-    min_frac_overlap, gap, verbose)
+    output_file, input_file, step_range, gap, samplen, sampspc, intrlen, ...
+    npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
+    min_frac_overlap, verbose)
 % function [] = piv_series(...
-%     output_file, input_file, samplen, sampspc, intrlen, npass, ...
-%     valid_max, valid_eps, spline_tension, min_frac_data, ...
-%     min_frac_overlap, verbose)
+%       output_file, input_file, step_range, gap, samplen, sampspc, intrlen, ...
+%       npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
+%       min_frac_overlap, verbose)
 % 
 % Run PIV analysis for a given input series. Input is expected to be a netCDF
 % file as created by prep_series(). Results are saved in a new netCDF file which
@@ -16,23 +16,28 @@ function [] = piv_series(...
 % input_file = String, name of the input netCDF file containing pre-processed
 %   image data
 %
-% samplen, sampspc, intrlen, npass, valid_max, valid_eps ... = Select input
-%   variables for PIV routine piv(), other inputs are contained in the input
-%   file.
+% step_range = 2-element vector, [initial, final] steps of input images series
+%   to include in PIV analysis. Either element can be set to NaN to use the full
+%   range.
 %
 % gap = Scalar, integer, gap between analyzed images in steps, for example, for
 %   an initial image at step 3, setting gap -> 1 would use a final image at step
 %   4 and yield PIV results at step 3.5, or alternatively, setting gap -> 2
 %   would use a final image at step 5 and yield PIV results at step 4.
+% 
+% samplen, sampspc, intrlen, npass, valid_max, valid_eps ... = Select input
+%   variables for PIV routine piv(), other inputs are contained in the input
+%   file.
 %
 % verbose = Scalar, logical, display verbose messages for this function and its
 %   children (1) or don't (0) 
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(13, 13); 
+narginchk(14, 14); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
+validateattributes(step_range, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 
 % read input dimension values
@@ -41,16 +46,25 @@ y_img =      double( ncread(input_file, 'y')     );
 step_img =   double( ncread(input_file, 'step')  );
 
 % compute indices for image pairs
-num_img = length(step_img);
-ini_idx = 1:num_img;
+if isnan(step_range(1))
+    min_idx = 1;
+else
+    min_idx = find(step_img >= step_range(1), 1, 'first');
+end
+if isnan(step_range(2))
+    max_idx = length(step_img);
+else
+    max_idx = find(step_img <= step_range(2), 1, 'last');
+end
+ini_idx = 1:length(step_img);
 fin_idx = ini_idx + gap;
-in_range = ini_idx > 0 & ini_idx <= num_img & fin_idx > 0 & fin_idx <= num_img;
+in_range = ini_idx >= min_idx & ini_idx <= max_idx ...
+         & fin_idx >= min_idx & fin_idx <= max_idx;
 ini_idx = ini_idx(in_range);
 fin_idx = fin_idx(in_range);
 
 % compute output dimensions
 [~, ~, x_piv, y_piv] = piv_sample_grid(samplen(end), sampspc(end), x_img, y_img);        
-% step_piv = step_img(1:end-1)+0.5; % DELETE ME
 step_piv = 0.5*(step_img(ini_idx) + step_img(fin_idx));
 nx = length(x_piv);
 ny = length(y_piv);
@@ -60,6 +74,8 @@ ns = length(step_piv);
 ncid = netcdf.create(output_file, 'NETCDF4');
 
 % add global attributes
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_series step_range', step_range);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_series gap', gap);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv samplen', samplen);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv sampspc', sampspc);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv intrlen', intrlen);
