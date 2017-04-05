@@ -66,11 +66,17 @@ for ii = 1:nr
             piv_window(fin, r0(ii,jj), c0(ii,jj), intrlen);
         
         % compute masked, normalized cross correlation
-        [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);    
+        [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
         xcr(overlap<min_overlap) = 0;
         
         % find correlation plane max, subpixel precision (failed pixels -> NaN)
-        [rpeak, cpeak] = piv_peak_interp(xcr, 0.01);
+        if max(xcr(:)) == 0 
+            % skip if the overlap is everywhere too small
+            rpeak = NaN;
+            cpeak = NaN;
+        else
+            [rpeak, cpeak] = piv_peak_interp(xcr, 0.01);
+        end
         
         % convert position of the correlation max to displacement
         u1(ii,jj) = cpeak-samplen-(samp_cll-intr_cll);
