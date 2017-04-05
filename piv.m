@@ -152,6 +152,17 @@ for pp = 1:np
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
             min_frac_data, min_frac_overlap, verbose);
+    
+    % % handle completely empty frame
+    % if all(~roi(:))
+    %     [r_grd, c_grd, xx, yy] = piv_sample_grid(...
+    %         samplen(end), sampspc(end), xw, yw);
+    %     sz = size(r_grd);
+    %     u_grd_tm = nan(sz);
+    %     v_grd_tm = nan(sz);
+    %     roi = false(sz);
+    %     break
+    % end
         
     % validate displacement update 
     % NOTE: neighborhood is hard-coded here
