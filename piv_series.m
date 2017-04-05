@@ -1,7 +1,7 @@
 function [] = piv_series(...
     output_file, input_file, samplen, sampspc, intrlen, npass, ...
     valid_max, valid_eps, spline_tension, min_frac_data, ...
-    min_frac_overlap, verbose)
+    min_frac_overlap, gap, verbose)
 % function [] = piv_series(...
 %     output_file, input_file, samplen, sampspc, intrlen, npass, ...
 %     valid_max, valid_eps, spline_tension, min_frac_data, ...
@@ -20,23 +20,38 @@ function [] = piv_series(...
 %   variables for PIV routine piv(), other inputs are contained in the input
 %   file.
 %
+% gap = Scalar, integer, gap between analyzed images in steps, for example, for
+%   an initial image at step 3, setting gap -> 1 would use a final image at step
+%   4 and yield PIV results at step 3.5, or alternatively, setting gap -> 2
+%   would use a final image at step 5 and yield PIV results at step 4.
+%
 % verbose = Scalar, logical, display verbose messages for this function and its
 %   children (1) or don't (0) 
 % %
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-narginchk(12, 12); 
+narginchk(13, 13); 
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
+validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer');
 
 % read input dimension values
 x_img =      double( ncread(input_file, 'x')     );
 y_img =      double( ncread(input_file, 'y')     );
 step_img =   double( ncread(input_file, 'step')  );
 
+% compute indices for image pairs
+num_img = length(step_img);
+ini_idx = 1:num_img;
+fin_idx = ini_idx + gap;
+in_range = ini_idx > 0 & ini_idx <= num_img & fin_idx > 0 & fin_idx <= num_img;
+ini_idx = ini_idx(in_range);
+fin_idx = fin_idx(in_range);
+
 % compute output dimensions
 [~, ~, x_piv, y_piv] = piv_sample_grid(samplen(end), sampspc(end), x_img, y_img);        
-step_piv = step_img(1:end-1)+0.5;
+% step_piv = step_img(1:end-1)+0.5; % DELETE ME
+step_piv = 0.5*(step_img(ini_idx) + step_img(fin_idx));
 nx = length(x_piv);
 ny = length(y_piv);
 ns = length(step_piv);
@@ -108,10 +123,8 @@ netcdf.putVar(ncid, y_varid, y_piv);
 netcdf.putVar(ncid, s_varid, step_piv);
 netcdf.close(ncid);
 
-% initialize loop by reading first image
-img1 = double(ncread(input_file, 'img', [1, 1, 1], [inf, inf, 1]));
+% read constants
 roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));
-roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, 1], [inf, inf, 1]))& roi_const;
 
 % analyse all steps
 for ii = 1:ns
@@ -121,11 +134,11 @@ for ii = 1:ns
     end
     
     % update image and roi pair
-    img0 = img1;
-    roi0 = roi1;
+    img0 = double(ncread(input_file, 'img', [1, 1, ini_idx(ii)], [inf, inf, 1]));
+    roi0 = logical(ncread(input_file, 'mask_auto', [1, 1, ini_idx(ii)], [inf, inf, 1])) & roi_const;
     
-    img1 = double(ncread(input_file, 'img', [1, 1, ii+1], [inf, inf, 1]));
-    roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, ii+1], [inf, inf, 1])) & roi_const;
+    img1 = double(ncread(input_file, 'img', [1, 1, fin_idx(ii)], [inf, inf, 1]));
+    roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, fin_idx(ii)], [inf, inf, 1])) & roi_const;
     
     % perform piv analysis
     [~, ~, u_piv, v_piv, roi_piv] = piv(...
