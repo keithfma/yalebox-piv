@@ -1,5 +1,5 @@
-function [ug, vg] = piv_lowess_interp(xp, yp, up, vp, xg, yg, roi, npts, verbose)
-% function [ug, vg] = piv_lowess_interp(xp, yp, up, vp, xg, yg, roi, npts, verbose)
+function [ug, vg] = piv_interp_lowess(xp, yp, up, vp, xg, yg, roi, npts, verbose)
+% function [ug, vg] = piv_interp_lowess(xp, yp, up, vp, xg, yg, roi, npts, verbose)
 %
 % Smooth and interpolate scattered vectors to a regular grid using robust
 % LOWESS. NaNs in input vector grids are ignored. Output vector grids are

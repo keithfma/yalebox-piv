@@ -32,12 +32,12 @@ function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
 
 % get sample grid in pixel coordinates
 sz = [length(yw), length(xw)];
-footprint = len+ceil((sz-len)/spc)*spc; 
-rem = footprint-sz;
-hlen = (len-1)/2; 
+footprint = len + ceil((sz - len)/spc)*spc; 
+rem = footprint - sz;
+hlen = (len - 1)/2; 
 
-start = 1-floor(rem/2)+hlen; 
-stop = start+footprint-len;
+start = 1 - floor(rem/2) + hlen; 
+stop = start + footprint - len;
 
 rvec = start(1):spc:stop(1);
 cvec = start(2):spc:stop(2);

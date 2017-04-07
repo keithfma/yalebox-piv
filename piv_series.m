@@ -147,6 +147,8 @@ for ii = 1:ns
     
     if verbose
         fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
+        fprintf('%s: ini_step = %.1f\n', mfilename, step_img(ini_idx(ii)));
+        fprintf('%s: fin_step = %.1f\n', mfilename, step_img(fin_idx(ii)));
     end
     
     % update image and roi pair
@@ -161,7 +163,10 @@ for ii = 1:ns
         img0, img1, roi0, roi1, x_img, y_img, samplen, sampspc, ...
         intrlen, npass, valid_max, valid_eps, spline_tension, ...
         min_frac_data, min_frac_overlap, verbose); 
-        
+    
+    % DEBUG
+    keyboard
+    
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');    
     netcdf.putVar(ncid, u_varid, [0, 0, ii-1], [ny, nx, 1], u_piv);

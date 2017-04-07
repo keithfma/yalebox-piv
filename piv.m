@@ -1,8 +1,8 @@
 function [xx, yy, uu, vv, roi] = piv(...
     ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-    intrlen, npass, valid_max, valid_eps, spline_tension, ...
-    min_frac_data, min_frac_overlap, verbose)                 
-% New implementation PIV analysis for Yalebox image data
+    intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
+    min_frac_overlap, verbose)                 
+% PIV analysis for Yalebox image data
 %
 % Arguments, input:
 %
@@ -140,7 +140,7 @@ fin_tm = fin_tf;
 roi = true(sz);
 
 % multipass loop
-np = length(samplen); 
+np = length(samplen);
 for pp = 1:np
     
     if verbose
@@ -151,28 +151,26 @@ for pp = 1:np
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
-            min_frac_data, min_frac_overlap, verbose);
+        min_frac_data, min_frac_overlap, verbose);
     
-    % % handle completely empty frame
-    % if all(~roi(:))
-    %     [r_grd, c_grd, xx, yy] = piv_sample_grid(...
-    %         samplen(end), sampspc(end), xw, yw);
-    %     sz = size(r_grd);
-    %     u_grd_tm = nan(sz);
-    %     v_grd_tm = nan(sz);
-    %     roi = false(sz);
-    %     break
-    % end
-        
-    % validate displacement update 
+    % validate displacement update
     % NOTE: neighborhood is hard-coded here
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);
     
-    % interpolate valid vectors to sample grid, outside roi is NaN    
-    [du_grd_tm, dv_grd_tm] = piv_spline_interp(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-        spline_tension, true);
+    % TODO: interpolating to grid is causing artifacts at the lower boundary.
+    %   Sadly, I think I need a better scattered interpolation routine. The key
+    %   feature would be some control over the boundary conditions.
+    
+    % interpolate valid vectors to sample grid, outside roi is NaN
+    
+    % <DEBUG: trying out a few interpolation options>
+    % [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
+    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+    %     spline_tension, true);
+    [du_grd_tm, dv_grd_tm] = piv_interp_biharmonic(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
+    % </DEBUG>
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -181,24 +179,45 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         
+        % TODO: I think that it makes sense to upsample the grid before
+        %   deforming the images
+        
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 0, verbose);
         
+        % TODO: interpolation to the full grid is absolutely *loaded* with nasty
+        %   artifacts. This is upsampling, so there is bound to be trouble, but
+        %   at present it appears to be introducing high-frequency errors.
+        %   Perhaps the tension is too low?
+        
         % interpolate to full sample grid (new if changed)
         % ...needed b/c the roi can change even if the grid is constant
-        [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
-            piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
-                samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);        
+        
+        % <DEBUG: dispensing with repetitive function
+        % [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
+        %     piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
+        %     samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);
+        
+        [r_grd_1, c_grd_1, xx, yy] = piv_sample_grid(...
+            samplen(pp+1), sampspc(pp+1), xw, yw);
+        [u_grd_tm, v_grd_tm] = piv_interp_biharmonic(...
+            c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
+            true(size(r_grd_1)), true);        
+        r_grd = r_grd_1;
+        c_grd = c_grd_1;
+        % </DEBUG>
     end
     
-end   
+    keyboard % DEBUG
+    
+end
 % end multipass loop
 
 % convert displacements to world coordinates (assumes equal grid spacing)
-uu = u_grd_tm.*(xw(2)-xw(1)); 
+uu = u_grd_tm.*(xw(2)-xw(1));
 vv = v_grd_tm.*(yw(2)-yw(1));
 
 end

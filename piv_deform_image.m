@@ -33,6 +33,8 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 %   verbose = Logical flag, display verbose messages (1) or don't
 % %
 
+% TODO: think about what interpolation method to use here...
+
 % Note: A few meaningful suffixes are used to help clarify the variable grids
 % and times, specifically:
 % 

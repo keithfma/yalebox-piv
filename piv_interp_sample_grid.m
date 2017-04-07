@@ -26,6 +26,8 @@ function [r1, c1, u1, v1, x1, y1] = ...
 %
 %   verbose = Logical flag, display verbose messages (1) or don't
 % %
+
+% TODO: This function is obsolete, I handle call piv_interp* directly from piv()
     
 [r1, c1, x1, y1] = piv_sample_grid(len, spc, xw, yw);
 
@@ -34,8 +36,57 @@ if verbose
         mfilename, size(r1,1), size(r1,2), size(r0,1), size(r0,2));
 end
 
-u1 = spline2d(c1(:), r1(:), c0(roi), r0(roi), u0(roi), tension);
-v1 = spline2d(c1(:), r1(:), c0(roi), r0(roi), v0(roi), tension);
+% <DEBUG>: selected biharmonic
+u1 = griddata(c0(roi), r0(roi), u0(roi), c1, r1, 'v4');
+v1 = griddata(c0(roi), r0(roi), v0(roi), c1, r1, 'v4');
+% </DEBUG>
 
-u1 = reshape(u1, size(r1));
-v1 = reshape(v1, size(r1));
+% % <DEBUG: spline-in-tension>
+% u1_t = spline2d(c1(:), r1(:), c0(roi), r0(roi), u0(roi), tension);
+% v1_t = spline2d(c1(:), r1(:), c0(roi), r0(roi), v0(roi), tension);
+% 
+% u1_t = reshape(u1, size(r1));
+% v1_t = reshape(v1, size(r1));
+% % </DEBUG>
+% 
+% % <DEBUG: biharmonic>
+% u1_b = griddata(c0(roi), r0(roi), u0(roi), c1, r1, 'v4');
+% v1_b = griddata(c0(roi), r0(roi), v0(roi), c1, r1, 'v4');
+% % </DEBUG>
+% 
+% % <DEBUG: cubic> 
+% u1_c = griddata(c0(roi), r0(roi), u0(roi), c1, r1, 'cubic');
+% v1_c = griddata(c0(roi), r0(roi), v0(roi), c1, r1, 'cubic');
+% % </DEBUG>
+% 
+% % <DEBUG: natural> 
+% u1_n = griddata(c0(roi), r0(roi), u0(roi), c1, r1, 'natural');
+% v1_n = griddata(c0(roi), r0(roi), v0(roi), c1, r1, 'natural');
+% % </DEBUG>
+% 
+% % <DEBUG: linear> 
+% u1_l = griddata(c0(roi), r0(roi), u0(roi), c1, r1, 'linear');
+% v1_l = griddata(c0(roi), r0(roi), v0(roi), c1, r1, 'linear');
+% % </DEBUG>
+% 
+% % <DEBUG: comparo>
+% subplot(3,2,1); 
+% imagesc(u1_t)
+% title('original')
+% 
+% subplot(3,2,2); 
+% imagesc(u1_b)
+% title('biharmonic')
+% 
+% subplot(3,2,3); 
+% imagesc(u1_c)
+% title('cubic')
+% 
+% subplot(3,2,4); 
+% imagesc(u1_n)
+% title('natural')
+% 
+% subplot(3,2,5); 
+% imagesc(u1_l)
+% title('linear')
+% %</DEBUG>

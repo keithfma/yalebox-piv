@@ -1,9 +1,9 @@
-function [ug, vg] = piv_spline_interp(xp, yp, up, vp, xg, yg, roi, tension, verbose)
-% function [ug, vg] = piv_spline_interp(xp, yp, up, vp, xg, yg, roi, tension, verbose)
+function [ug, vg] = piv_interp_spline(xp, yp, up, vp, xg, yg, roi, tension, verbose)
+% function [ug, vg] = piv_interp_spline(xp, yp, up, vp, xg, yg, roi, tension, verbose)
 %
 % Smooth and interpolate scattered vectors to a regular grid using
-% spline-in-tension interpolation (see [1]). NaNs in input grids are ignored. Output grids
-% are populated in the region-of-interest (roi) and NaN elsewhere.
+% spline-in-tension interpolation (see [1]). NaNs in input grids are ignored.
+% Output grids are populated in the region-of-interest (roi) and NaN elsewhere.
 %
 % Arguments:
 %
@@ -14,7 +14,7 @@ function [ug, vg] = piv_spline_interp(xp, yp, up, vp, xg, yg, roi, tension, verb
 %
 %   xg, yg = 2D matrices, regular grid for output vectors
 %
-%   roi = 2D matrix, region-of-interest mask, 1 vectors should be output
+%   roi = 2D matrix, region-of-interest mask for output, true elements are output
 %
 %   tension = Scalar, tension parameter for interpolation routine, see [1]
 %
@@ -23,7 +23,7 @@ function [ug, vg] = piv_spline_interp(xp, yp, up, vp, xg, yg, roi, tension, verb
 %   verbose = Scalar, logical, display verbose messages (1) or don't (0)
 %
 % References:
-% [1]
+% [1] Wessel & Bercovici ...
 % 
 % %
 
