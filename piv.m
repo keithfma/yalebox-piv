@@ -157,26 +157,11 @@ for pp = 1:np
     % NOTE: neighborhood is hard-coded here
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);
-    
-    % TODO: interpolating to grid is causing artifacts at the lower boundary.
-    %   Sadly, I think I need a better scattered interpolation routine. The key
-    %   feature would be some control over the boundary conditions.
-    
+        
     % interpolate valid vectors to sample grid, outside roi is NaN
-    
-    % <DEBUG: trying out a few interpolation options>
-    
     [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
         spline_tension, true);
-    
-    % [du_grd_tm, dv_grd_tm] = piv_interp_biharmonic(...
-    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
-    
-    % [du_grd_tm, dv_grd_tm] = piv_interp_linear(...
-    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
-    
-    % </DEBUG>
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -185,55 +170,24 @@ for pp = 1:np
     % deform images to midpoint time, if there is another pass
     if pp < np
         
-        % TODO: I think that it makes sense to upsample the grid before
-        %   deforming the images - it looks like I am doing spline interpolation
-        %   a few extra times, which is silly.
-        
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 0, verbose);
         
-        % TODO: interpolation to the full grid is absolutely *loaded* with nasty
-        %   artifacts. This is upsampling, so there is bound to be trouble, but
-        %   at present it appears to be introducing high-frequency errors.
-        %   Perhaps the tension is too low?
-        
-        % NOTE: linear interpolation is shit along the bottom (does not
-        % extrapolate well at all).
-        
         % interpolate to full sample grid (new if changed)
-        % ...needed b/c the roi can change even if the grid is constant
-    
-        keyboard % DEBUG
-        
-        % <DEBUG: dispensing with repetitive function
-        
-        % [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
-        %     piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
-        %     samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);
-        
+        % ...always needed b/c the roi can change even if the grid is constant
         [r_grd_1, c_grd_1, xx, yy] = piv_sample_grid(...
             samplen(pp+1), sampspc(pp+1), xw, yw);
-        
+        domain_1 = true(size(r_grd_1));
         [u_grd_tm, v_grd_tm] = piv_interp_spline(...
-            c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
-            true(size(r_grd_1)), spline_tension, true);
-        
-        % [u_grd_tm, v_grd_tm] = piv_interp_biharmonic(...
-        %     c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
-        %     true(size(r_grd_1)), true);
-        
-        % [u_grd_tm, v_grd_tm] = piv_interp_linear(...
-        %     c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
-        %     true(size(r_grd_1)), true);
+            c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, domain_1, ...
+            spline_tension, true);
         r_grd = r_grd_1;
         c_grd = c_grd_1;
-        % </DEBUG>
+
     end
-    
-    
     
 end
 % end multipass loop
