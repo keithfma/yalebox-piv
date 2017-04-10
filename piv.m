@@ -165,11 +165,17 @@ for pp = 1:np
     % interpolate valid vectors to sample grid, outside roi is NaN
     
     % <DEBUG: trying out a few interpolation options>
-    % [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
-    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-    %     spline_tension, true);
-    [du_grd_tm, dv_grd_tm] = piv_interp_biharmonic(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
+    
+    [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+        spline_tension, true);
+    
+    % [du_grd_tm, dv_grd_tm] = piv_interp_biharmonic(...
+    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
+    
+    % [du_grd_tm, dv_grd_tm] = piv_interp_linear(...
+    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, true);
+    
     % </DEBUG>
     
     % update displacement, points outside roi become NaN
@@ -180,7 +186,8 @@ for pp = 1:np
     if pp < np
         
         % TODO: I think that it makes sense to upsample the grid before
-        %   deforming the images
+        %   deforming the images - it looks like I am doing spline interpolation
+        %   a few extra times, which is silly.
         
         % deform images to midpoint time
         ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
@@ -193,25 +200,40 @@ for pp = 1:np
         %   at present it appears to be introducing high-frequency errors.
         %   Perhaps the tension is too low?
         
+        % NOTE: linear interpolation is shit along the bottom (does not
+        % extrapolate well at all).
+        
         % interpolate to full sample grid (new if changed)
         % ...needed b/c the roi can change even if the grid is constant
+    
+        keyboard % DEBUG
         
         % <DEBUG: dispensing with repetitive function
+        
         % [r_grd, c_grd, u_grd_tm, v_grd_tm, xx, yy] = ...
         %     piv_interp_sample_grid(r_grd, c_grd, u_grd_tm, v_grd_tm, roi, ...
         %     samplen(pp+1), sampspc(pp+1), xw, yw, spline_tension, verbose);
         
         [r_grd_1, c_grd_1, xx, yy] = piv_sample_grid(...
             samplen(pp+1), sampspc(pp+1), xw, yw);
-        [u_grd_tm, v_grd_tm] = piv_interp_biharmonic(...
+        
+        [u_grd_tm, v_grd_tm] = piv_interp_spline(...
             c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
-            true(size(r_grd_1)), true);        
+            true(size(r_grd_1)), spline_tension, true);
+        
+        % [u_grd_tm, v_grd_tm] = piv_interp_biharmonic(...
+        %     c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
+        %     true(size(r_grd_1)), true);
+        
+        % [u_grd_tm, v_grd_tm] = piv_interp_linear(...
+        %     c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, ...
+        %     true(size(r_grd_1)), true);
         r_grd = r_grd_1;
         c_grd = c_grd_1;
         % </DEBUG>
     end
     
-    keyboard % DEBUG
+    
     
 end
 % end multipass loop
