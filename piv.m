@@ -154,8 +154,6 @@ for pp = 1:np
     r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
     c_smp = c_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
     
-    keyboard
-    
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
         piv_displacement(ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...

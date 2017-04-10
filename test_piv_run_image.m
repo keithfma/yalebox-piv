@@ -27,7 +27,6 @@ intrlen = [100, 60];
 npass = [1, 2];
 valid_max = 2;
 valid_eps = 0.1;
-lowess_span_pts = 9;
 spline_tension = 0.95;
 min_frac_data = 0.8;
 min_frac_overlap = 0.5;
@@ -95,8 +94,13 @@ clear F
 
 % run piv
 [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-    sampspc, intrlen, npass, valid_max, valid_eps, lowess_span_pts, ...
-    spline_tension, min_frac_data, min_frac_overlap, 1);
+    sampspc, intrlen, npass, valid_max, valid_eps, spline_tension, ...
+    min_frac_data, min_frac_overlap, 1);
+
+% % TODO: Results indicate exact and computed solutions are off by one. Which is
+% %   wrong?
+% uu = uu-1;
+% vv = vv-1;
 
 % compute exact solution at midpoint time...
 
@@ -122,11 +126,10 @@ vv_exact(:) = spline2d(x_tm(:), y_tm(:), xgrid(:), ygrid(:), v_tm(:), 0.95);
 uu_error = uu-uu_exact;
 vv_error = vv-vv_exact;
 
-% compute strain values
-[displ, ~, ~, Dd, ~, ~, ~, ~] = ...
-    deformation(xgrid, ygrid, uu, vv, ~isnan(uu));
+% compute strain
+strain = post_strain(xx, yy, uu, vv, ~isnan(uu), 'nearest');
 
 % print and plot standard results
 test_piv_util_print_error(uu_error, vv_error);
 test_piv_util_plot_error(uu_error, vv_error);
-test_piv_util_plot(xx, yy, uu, vv, displ, Dd);
+test_piv_util_plot(xx, yy, uu, vv, sqrt(uu.^2, vv.^2), strain.Dd);
