@@ -148,10 +148,26 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
     
+    % <EXPERIMENT>
+    % jiggle sample points by random 1/4 sample spacing
+    sz = size(r_grd);
+    r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
+    c_smp = c_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
+    
+    keyboard
+    
     % get displacements update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-        piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
+        piv_displacement(ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...
         min_frac_data, min_frac_overlap, verbose);
+    % </EXPERIMENT>
+    
+    % % <ORIGINAL>
+    % % get displacements update using normalized cross correlation
+    % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
+    %     piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
+    %     min_frac_data, min_frac_overlap, verbose);
+    % % </ORIGINAL>
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
@@ -162,6 +178,9 @@ for pp = 1:np
     [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
         spline_tension, true);
+    
+    % NOTE: with new "jiggle" it is not obvious that I want to reset the ROI
+    %   with every iteration.
     
     % update displacement, points outside roi become NaN
     u_grd_tm = u_grd_tm + du_grd_tm;
@@ -175,6 +194,9 @@ for pp = 1:np
             v_grd_tm, roi, spline_tension, 1, verbose);
         fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
             v_grd_tm, roi, spline_tension, 0, verbose);
+        
+        % NOTE: nasty ringing on upsampling, I suspect tension splines are
+        %   ill-suited to the upsampling task (as opposed to interp/extrap)
         
         % interpolate to full sample grid (new if changed)
         % ...always needed b/c the roi can change even if the grid is constant
