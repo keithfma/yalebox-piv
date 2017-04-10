@@ -78,7 +78,6 @@ while c1 < nc_img
 end
 
 [c_ext, r_ext] = meshgrid(c0:c_spc:c1, r0:r_spc:r1);
-[nr_ext, nc_ext] = size(c_ext);
 
 % propagate points to target time (half-step forward or back, depending)
 if is_fwd
@@ -92,10 +91,8 @@ else
 end
 
 % interpolate scattered to low-res grid using expensive tension splines
-u_ext_tx = spline2d(c_ext(:), r_ext(:), c_pts_tx(roi), r_pts_tx(roi), u_grd_tm(roi), tension);
-v_ext_tx = spline2d(c_ext(:), r_ext(:), c_pts_tx(roi), r_pts_tx(roi), v_grd_tm(roi), tension);
-u_ext_tx = reshape(u_ext_tx, nr_ext, nc_ext);
-v_ext_tx = reshape(v_ext_tx, nr_ext, nc_ext);
+[u_ext_tx, v_ext_tx] = piv_interp_spline(...
+    c_pts_tx, r_pts_tx, u_grd_tm, v_grd_tm, c_ext, r_ext, true, tension, verbose);
 
 % interpolate on low-res to full-res grid using cheap linear interpolation
 interp = griddedInterpolant(r_ext, c_ext, u_ext_tx, 'linear');
@@ -114,6 +111,7 @@ end
 img_tm = imwarp(img_tx, displacement, 'cubic', 'FillValues', 0);
 
 % deform roi to midpoint time
+% TODO: add ROI as another layer, and warp once.
 tmp = imwarp(double(img_roi_tx), displacement, 'cubic', 'FillValues', 0);
 img_roi_tm = abs(tmp-1) < roi_epsilon;
 
