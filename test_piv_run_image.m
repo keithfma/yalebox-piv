@@ -20,23 +20,15 @@ function [] = test_piv_run_image(varargin)
 %   'shear_mag': Scalar, displacement difference across shear band, applied as a
 %       0.5*shear_mag displacement on one side and a -0.5*shear_mag displacement
 %       on the other, default = sqrt(2)*0.0025
-% 
 %   'bnd_mean': Mean position of the upper boundary imposed on the image, as a
-%       fraction of the image height
+%       fraction of the image height, default = 0.95
 %   'bnd_ampl': Mean amplitude of sinusoidal upper boundary imposed on the
-%       image, as a fraction of the image height
-%   'bnd_ampl': Frequency of sinusoidal upper boundary imposed on the image, as
-%       a fraction of the image width
-%   TODO: TRANSLATION
-%   TODO: SIMPLE SHEAR BAND
-%   TODO: ADD PIV PARAMETERS TOO
+%       image, as a fraction of the image height, default = 0.1
+%   'bnd_freq': Frequency of sinusoidal upper boundary imposed on the image, as
+%       a fraction of the image width, default = 1
+%
 % %
 
-% TODO: what units for transform? for image_pos?
-% TODO: snip from an image.nc file, and keep a small one local in the test
-%   folder
-% TODO: Strip out all the bullshit "efficiencies"
-% TODO: make the image parameters inputs with default values
 % TODO: make the piv parameters inputs with default values
 
 %% parse arguments
@@ -56,17 +48,26 @@ ip.addParameter('translation', [0.005, -0.005], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
 ip.addParameter('shear_theta', 45, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max' 90}));
-ip.addParameter('shear_width', 0.01, ...
+ip.addParameter('shear_width', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 ip.addParameter('shear_mag', sqrt(2)*0.005, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-
+ip.addParameter('bnd_mean', 0.95, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
+ip.addParameter('bnd_ampl', 0.05, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
+ip.addParameter('bnd_freq', 1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
 ip.parse(varargin{:});
 args = ip.Results;
-disp(args)
 
-% read and crop raw image
+% <DEBUG>
+disp(args)
+% </DEBUG>
+
+%% read and crop raw image
+
 xx = ncread(args.image_file, 'x');
 yy = ncread(args.image_file, 'y');
 img = ncread(args.image_file, 'img', [1, 1, args.image_index], [inf, inf, 1]);
@@ -89,7 +90,8 @@ if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
 end
 
-% compute exact displacement field for specified deformation & translation
+%% compute exact displacement field for specified displacements and boundary
+
 u_exact = zeros(sz);
 v_exact = zeros(sz);
 
@@ -112,10 +114,18 @@ u_exact = u_exact + scale*cosd(args.shear_theta)*args.shear_mag;
 v_exact = v_exact + scale*sind(args.shear_theta)*args.shear_mag;
 
 % impose sinusoidal upper boundary
+bnd_mean = args.bnd_mean*range(yy);
+bnd_ampl = args.bnd_ampl*range(yy);
+bnd_freq = 2*pi/range(xx)*args.bnd_freq;
+y_bnd = bnd_mean + bnd_ampl*sin(bnd_freq*xx);
 
+[~, yg] = meshgrid(xx, yy);
+roi = yg <= repmat(y_bnd(:)', numel(yy), 1);
+
+u_exact(~roi) = NaN;
+v_exact(~roi) = NaN;
 
 % <DEBUG>
-
 mag = sqrt(u_exact.^2 + v_exact.^2);
 imagesc(xx, yy, mag);
 set(gca, 'YDir', 'Normal');
@@ -124,10 +134,23 @@ hold on;
 dd = 5;
 quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
     u_exact(1:dd:end, 1:dd:end), v_exact(1:dd:end, 1:dd:end));
-
 % </DEBUG>
 
-keyboard
+%% generate synthetic images
+
+% TODO
+
+%% run PIV on synthetic images
+
+% TODO
+
+%% analyze errors
+
+% TODO
+
+%% OLD
+
+% keyboard
 
 % % image parameters
 % tform = [1,     0.05, 2;  
