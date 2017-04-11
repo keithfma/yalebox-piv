@@ -20,13 +20,7 @@ function [] = test_piv_run_image(varargin)
 %   'shear_mag': Scalar, displacement difference across shear band, applied as a
 %       0.5*shear_mag displacement on one side and a -0.5*shear_mag displacement
 %       on the other, default = sqrt(2)*0.005
-%   'bnd_mean': Mean position of the upper boundary imposed on the image, as a
-%       fraction of the image height, default = 0.95
-%   'bnd_ampl': Mean amplitude of sinusoidal upper boundary imposed on the
-%       image, as a fraction of the image height, default = 0.1
-%   'bnd_freq': Frequency of sinusoidal upper boundary imposed on the image, as
-%       a fraction of the image width, default = 1
-%
+%   
 % %
 
 % TODO: make the piv parameters inputs with default values
@@ -52,23 +46,15 @@ ip.addParameter('shear_width', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 ip.addParameter('shear_mag', 0.01, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-ip.addParameter('bnd_mean', 0.95, ...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
-ip.addParameter('bnd_ampl', 0.05, ...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
-ip.addParameter('bnd_freq', 1, ...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-
-% % piv parameters
-% samplen = [30, 30];
-% sampspc = [15, 15];
-% intrlen = [100, 60];
-% npass = [1, 2];
-% valid_max = 2;
-% valid_eps = 0.1;
-% spline_tension = 0.95;
-% min_frac_data = 0.8;
-% min_frac_overlap = 0.5;
+ip.addParameter('samplen', [30, 30]); % checked by PIV routine
+ip.addParameter('sampspc', [15, 15]);
+ip.addParameter('intrlen', [100, 60]);
+ip.addParameter('npass', [1, 2]);
+ip.addParameter('valid_max', 2);
+ip.addParameter('valid_eps', 0.1);
+ip.addParameter('spline_tension', 0.95);
+ip.addParameter('min_frac_data', 0.8);
+ip.addParameter('min_frac_overlap', 0.5);
 
 ip.parse(varargin{:});
 args = ip.Results;
@@ -134,38 +120,31 @@ scale(scale > 0.5) = 0.5;
 u_exact = u_exact + scale*cosd(args.shear_theta)*args.shear_mag;
 v_exact = v_exact + scale*sind(args.shear_theta)*args.shear_mag;
 
-% compute ROI with sinusoidal upper boundary
-bnd_mean = args.bnd_mean*range(yy);
-bnd_ampl = args.bnd_ampl*range(yy);
-bnd_freq = 2*pi/range(xx)*args.bnd_freq;
-y_bnd = bnd_mean + bnd_ampl*sin(bnd_freq*xx);
-
-[~, yg] = meshgrid(xx, yy);
-roi = yg <= repmat(y_bnd(:)', numel(yy), 1);
-
-% <DEBUG>
-figure
-mag = sqrt(u_exact.^2 + v_exact.^2);
-imagesc(xx, yy, mag);
-set(gca, 'YDir', 'Normal');
-hold on;
-[xg, yg] = meshgrid(xx, yy);
-dd = 5;
-quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
-    u_exact(1:dd:end, 1:dd:end), v_exact(1:dd:end, 1:dd:end));
-% </DEBUG>
-
 %% generate synthetic images
 
 % convert to pixel coords
 u_exact_pix = u_exact/(range(xx)/length(xx));
 v_exact_pix = v_exact/(range(yy)/length(yy));
 
-% deform
+% deform images
 ini = imwarp(img, 0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic'); % dir is ok
 fin = imwarp(img, -0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
 
+% deform masks
+ini_roi = imwarp(double(roi), 0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+ini_roi = logical(round(ini_roi));
+fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+fin_roi = logical(round(fin_roi));
+
 % reapply mask
+ini(~ini_roi) = 0;
+fin(~fin_roi) = 0;
+
+% enforce limits (NOTE: could stretch instead)
+ini(ini < 0) = 0;
+ini(ini > 1) = 1;
+fin(fin < 0) = 0;
+fin(fin > 1) = 1;
 
 % <DEBUG>
 figure
@@ -183,11 +162,42 @@ axis equal tight
 title('fin')
 % </DEBUG>
 
+%% run PIV and strain analysis on synthetic images
+
+[x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(...
+    ini, fin, ini_roi, fin_roi, xx, yy, args.samplen, args.sampspc, ...
+    args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
+    args.spline_tension, args.min_frac_data, args.min_frac_overlap, true);
+
+% <DEBUG>
+figure
+
+subplot(1, 2, 1)
+m_exact = sqrt(u_exact.^2 + v_exact.^2);
+imagesc(xx, yy, m_exact);
+set(gca, 'YDir', 'Normal');
+hold on;
+[xg, yg] = meshgrid(xx, yy);
+dd = 10;
+quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
+    u_exact(1:dd:end, 1:dd:end), v_exact(1:dd:end, 1:dd:end));
+axis equal tight
+title('exact')
+
+subplot(1, 2, 2)
+m_piv = sqrt(u_piv.^2 + v_piv.^2);
+imagesc(x_piv, y_piv, m_piv);
+set(gca, 'YDir', 'Normal');
+hold on;
+[xg, yg] = meshgrid(x_piv, y_piv);
+dd = 1;
+quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
+    u_piv(1:dd:end, 1:dd:end), v_piv(1:dd:end, 1:dd:end));
+axis equal tight
+title('piv')
+% </DEBUG>
+
 keyboard
-
-%% run PIV on synthetic images
-
-% TODO
 
 %% analyze errors
 
@@ -195,90 +205,6 @@ keyboard
 
 %% OLD
 
-% 
-% % local parameters
-% data_file = 'test/image.mat';
-% func_name = 'test_piv_run_image';
-% 
-% %% parse arguments and set defaults
-% 
-% narginchk(0,1);
-% if nargin == 0 || isempty(force) 
-%     force = 0;
-% end
-% 
-% validateattributes(force, {'numeric'}, {'scalar', 'binary'});
-
-% %% compute exact solution
-% 
-% %... deform initial grid
-% [xgrid, ygrid] = meshgrid(xx, yy);
-% [xgrid_defm, ygrid_defm] = test_piv_util_transform(tform, xgrid(:), ygrid(:), 1);
-% xgrid_defm = reshape(xgrid_defm, size(uu));
-% ygrid_defm = reshape(ygrid_defm, size(uu));
-% 
-% %... get displacements and thier location at midpoint time
-% u_tm = xgrid_defm-xgrid;
-% v_tm = ygrid_defm-ygrid;
-% x_tm = 0.5*(xgrid_defm+xgrid);
-% y_tm = 0.5*(ygrid_defm+ygrid);
-% 
-% % ... interpolate/extrapolate to image grid at midpoint time
-% uu_exact = nan(size(xgrid));
-% uu_exact(:) = spline2d(x_tm(:), y_tm(:), xgrid(:), ygrid(:), u_tm(:), 0.95);
-% vv_exact = nan(size(xgrid));
-% vv_exact(:) = spline2d(x_tm(:), y_tm(:), xgrid(:), ygrid(:), v_tm(:), 0.95);
-%     
-% 
-% 
-% %% generate (or load) test images
-% 
-% % check if defined parameters match saved parameters
-% try
-%     F = load(data_file, 'tform', 'bnd_mean', 'bnd_ampl', 'bnd_freq');
-%     same = all(F.tform(:) == tform(:)) && ...
-%         F.bnd_mean == bnd_mean && ...
-%         F.bnd_ampl == bnd_ampl && ...
-%         F.bnd_freq == bnd_freq;
-% catch
-%     same = 0;
-% end
-% 
-% % report status
-% if same 
-%     fprintf('%s: Parameters are not modified\n', func_name); 
-% else
-%     fprintf('%s: Parameters are modified\n', func_name); 
-% end
-% if force
-%     fprintf('%s: Force recompute enabled\n', func_name);
-% else
-%     fprintf('%s: Force recompute disabled\n', func_name);
-% end
-% 
-% % load PIV input data
-% if same && ~force
-%     fprintf('%s: Loading input variables from file\n', func_name);
-%     F = load(data_file, 'ini', 'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
-%     ini = F.ini;
-%     ini_roi = F.ini_roi;
-%     fin = F.fin;
-%     fin_roi = F.fin_roi;
-%     xx = F.xx;
-%     yy = F.yy;
-%     
-% else
-%     fprintf('%s: Generating new input variables\n', func_name);
-%     [ini, fin, ini_roi, fin_roi, xx, yy] = ...
-%         test_piv_create_image(tform, bnd_mean, bnd_ampl, bnd_freq);
-%     save(data_file, 'tform', 'bnd_mean', 'bnd_ampl', 'bnd_freq', 'ini', ...
-%             'ini_roi', 'fin', 'fin_roi', 'xx', 'yy');
-% end
-% 
-% clear F
-% 
-% %% run PIV and analyze results
-% 
 % % run piv
 % [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
 %     sampspc, intrlen, npass, valid_max, valid_eps, spline_tension, ...
