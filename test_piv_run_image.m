@@ -12,14 +12,14 @@ function [] = test_piv_run_image(varargin)
 %       extract and deform. Must contain only sand (all within the ROI),
 %       in meters, default = [-0.12, 0.005, 0.092, 0.07]
 %   'translation': 2-element vector specifying spatially constant translation
-%       in meters, default = [0.005, -0.005]
+%       in meters, default = [0.005, 0.00]
 %   'shear_theta': Scalar, orientation of shear band specified as
 %       counter-clockwise angle to the positive x-axis, in degrees, limited to
 %       range 0 - 90, default = 45
 %   'shear_width': Scalar, width of shear band, in meters, default = 0.05   
 %   'shear_mag': Scalar, displacement difference across shear band, applied as a
 %       0.5*shear_mag displacement on one side and a -0.5*shear_mag displacement
-%       on the other, default = sqrt(2)*0.0025
+%       on the other, default = sqrt(2)*0.005
 %   'bnd_mean': Mean position of the upper boundary imposed on the image, as a
 %       fraction of the image height, default = 0.95
 %   'bnd_ampl': Mean amplitude of sinusoidal upper boundary imposed on the
@@ -44,13 +44,13 @@ ip.addParameter('image_index', 1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 ip.addParameter('image_pos', [-0.12, 0.005, 0.092, 0.07], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
-ip.addParameter('translation', [0.005, -0.005], ...
+ip.addParameter('translation', [0.005, 0.00], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
 ip.addParameter('shear_theta', 45, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max' 90}));
 ip.addParameter('shear_width', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-ip.addParameter('shear_mag', sqrt(2)*0.005, ...
+ip.addParameter('shear_mag', 0.01, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 ip.addParameter('bnd_mean', 0.95, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
@@ -58,6 +58,17 @@ ip.addParameter('bnd_ampl', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'min', 0, 'max', 1}));
 ip.addParameter('bnd_freq', 1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+
+% % piv parameters
+% samplen = [30, 30];
+% sampspc = [15, 15];
+% intrlen = [100, 60];
+% npass = [1, 2];
+% valid_max = 2;
+% valid_eps = 0.1;
+% spline_tension = 0.95;
+% min_frac_data = 0.8;
+% min_frac_overlap = 0.5;
 
 ip.parse(varargin{:});
 args = ip.Results;
@@ -68,9 +79,9 @@ disp(args)
 
 %% read and crop raw image
 
-xx = ncread(args.image_file, 'x');
-yy = ncread(args.image_file, 'y');
-img = ncread(args.image_file, 'img', [1, 1, args.image_index], [inf, inf, 1]);
+xx = double(ncread(args.image_file, 'x'));
+yy = double(ncread(args.image_file, 'y'));
+img = double(ncread(args.image_file, 'img', [1, 1, args.image_index], [inf, inf, 1]));
 mask_auto = ncread(args.image_file, 'mask_auto', [1, 1, args.image_index], [inf, inf, 1]);
 mask_manu = ncread(args.image_file, 'mask_manual');
 roi = mask_auto & mask_manu;
@@ -80,15 +91,25 @@ max_col = find(xx <= args.image_pos(1) + args.image_pos(3), 1, 'last');
 min_row = find(yy >= args.image_pos(2), 1, 'first');
 max_row = find(yy <= args.image_pos(2) + args.image_pos(4), 1, 'last');
 
-xx = xx(min_col:max_col) - xx(min_col);
-yy = yy(min_row:max_row) - yy(min_row);
+xx = xx(min_col:max_col);
+yy = yy(min_row:max_row);
 img = img(min_row:max_row, min_col:max_col);
 roi = roi(min_row:max_row, min_col:max_col);
-sz = size(roi);
 
 if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
 end
+
+%% pad image boundaries (and coordinates) to accomodate edge displacements
+
+padsize = ceil(0.10*size(img));
+img = padarray(img, padsize, 0, 'both');
+roi = padarray(roi, padsize, 0, 'both');
+dx = mean(diff(xx));
+xx = [xx(1)-dx*(padsize(2):-1:1), xx(:)', xx(end)+dx*(1:padsize(2))];
+dy = mean(diff(yy));
+yy = [yy(1)-dy*(padsize(1):-1:1), yy(:)', yy(end)+dy*(1:padsize(1))];
+sz = size(img);
 
 %% compute exact displacement field for specified displacements and boundary
 
@@ -113,7 +134,7 @@ scale(scale > 0.5) = 0.5;
 u_exact = u_exact + scale*cosd(args.shear_theta)*args.shear_mag;
 v_exact = v_exact + scale*sind(args.shear_theta)*args.shear_mag;
 
-% impose sinusoidal upper boundary
+% compute ROI with sinusoidal upper boundary
 bnd_mean = args.bnd_mean*range(yy);
 bnd_ampl = args.bnd_ampl*range(yy);
 bnd_freq = 2*pi/range(xx)*args.bnd_freq;
@@ -122,10 +143,8 @@ y_bnd = bnd_mean + bnd_ampl*sin(bnd_freq*xx);
 [~, yg] = meshgrid(xx, yy);
 roi = yg <= repmat(y_bnd(:)', numel(yy), 1);
 
-u_exact(~roi) = NaN;
-v_exact(~roi) = NaN;
-
 % <DEBUG>
+figure
 mag = sqrt(u_exact.^2 + v_exact.^2);
 imagesc(xx, yy, mag);
 set(gca, 'YDir', 'Normal');
@@ -138,7 +157,33 @@ quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
 
 %% generate synthetic images
 
-% TODO
+% convert to pixel coords
+u_exact_pix = u_exact/(range(xx)/length(xx));
+v_exact_pix = v_exact/(range(yy)/length(yy));
+
+% deform
+ini = imwarp(img, 0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic'); % dir is ok
+fin = imwarp(img, -0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+
+% reapply mask
+
+% <DEBUG>
+figure
+
+subplot(1,2,1)
+imagesc(ini)
+set(gca, 'YDir', 'normal');
+axis equal tight
+title('ini')
+
+subplot(1,2,2)
+imagesc(fin)
+set(gca, 'YDir', 'normal');
+axis equal tight
+title('fin')
+% </DEBUG>
+
+keyboard
 
 %% run PIV on synthetic images
 
@@ -150,25 +195,6 @@ quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
 
 %% OLD
 
-% keyboard
-
-% % image parameters
-% tform = [1,     0.05, 2;  
-%          0.025,    1, 5];
-% bnd_mean = 0.7;
-% bnd_ampl = 0.1;
-% bnd_freq = 1;
-% 
-% % piv parameters
-% samplen = [30, 30];
-% sampspc = [15, 15];
-% intrlen = [100, 60];
-% npass = [1, 2];
-% valid_max = 2;
-% valid_eps = 0.1;
-% spline_tension = 0.95;
-% min_frac_data = 0.8;
-% min_frac_overlap = 0.5;
 % 
 % % local parameters
 % data_file = 'test/image.mat';
