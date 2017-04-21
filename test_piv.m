@@ -140,6 +140,7 @@ x_img = (1:size(img, 2))-1;
 y_img = (1:size(img, 1))-1;
 x_img = x_img - mean(x_img);
 y_img = y_img - mean(y_img);
+[x_img_grd, y_img_grd] = meshgrid(x_img, y_img);
 
 %% compute exact displacement field for specified displacements and boundary
 
@@ -147,30 +148,9 @@ if args.verbose
     fprintf('%s: compute exact displacement field\n', mfilename);
 end
 
-u_exact = zeros(size(img));
-v_exact = zeros(size(img));
-
-% apply constant displacement
-u_exact = u_exact + args.translation(1);
-v_exact = v_exact + args.translation(2);
-
-% apply simple shear in specified band
-% ...create rotated coordinate system with y == 0 at center of shear band
-[x_img_grd, y_img_grd] = meshgrid(x_img, y_img);
-rot = [cosd(args.shear_theta), sind(args.shear_theta); ...
-       -sind(args.shear_theta), cosd(args.shear_theta)];
-xy_tmp = rot*[x_img_grd(:)'; y_img_grd(:)'];
-% x_img_rot = reshape(xy_tmp(1,:), size(img)); % not used, included for reference
-y_img_rot = reshape(xy_tmp(2,:), size(img));
-% ...compute scaling factor for shear displacements
-shear_scale = y_img_rot/args.shear_width;
-shear_scale(shear_scale < -0.5) = -0.5;
-shear_scale(shear_scale > 0.5) = 0.5;
-% ...add shear displacements
-u_shear = shear_scale*cosd(args.shear_theta)*args.shear_mag;
-v_shear = shear_scale*sind(args.shear_theta)*args.shear_mag;
-u_exact = u_exact + u_shear;
-v_exact = v_exact + v_shear;
+[u_exact_img, v_exact_img] = get_exact_uv(...
+    x_img_grd, y_img_grd, args.translation, args.shear_theta, ...
+    args.shear_width, args.shear_mag);
 
 %% generate synthetic images
 
@@ -179,13 +159,13 @@ if args.verbose
 end
 
 % deform images
-ini = imwarp(img, 0.5*cat(3, u_exact, v_exact), 'cubic'); % dir is ok
-fin = imwarp(img, -0.5*cat(3, u_exact, v_exact), 'cubic');
+ini = imwarp(img, 0.5*cat(3, u_exact_img, v_exact_img), 'cubic'); % dir is ok
+fin = imwarp(img, -0.5*cat(3, u_exact_img, v_exact_img), 'cubic');
 
 % deform masks
-ini_roi = imwarp(double(roi), 0.5*cat(3, u_exact, v_exact), 'cubic');
+ini_roi = imwarp(double(roi), 0.5*cat(3, u_exact_img, v_exact_img), 'cubic');
 ini_roi = logical(round(ini_roi));
-fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact, v_exact), 'cubic');
+fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact_img, v_exact_img), 'cubic');
 fin_roi = logical(round(fin_roi));
 
 % reapply mask
@@ -231,15 +211,15 @@ figure
 num_vec = 25; % desired num quiver vectors along largest dim, for downsampling
 
 subplot(1, 2, 1)
-dfact = floor(max(size(u_exact))/num_vec);
-m_exact = sqrt(u_exact.^2 + v_exact.^2);
+dfact = floor(max(size(u_exact_img))/num_vec);
+m_exact = sqrt(u_exact_img.^2 + v_exact_img.^2);
 imagesc(x_img, y_img, m_exact);
 set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 hold on;
 quiver(x_img_grd(1:dfact:end, 1:dfact:end), ...
     y_img_grd(1:dfact:end, 1:dfact:end), ...
-    u_exact(1:dfact:end, 1:dfact:end), ...
-    v_exact(1:dfact:end, 1:dfact:end), '-k');
+    u_exact_img(1:dfact:end, 1:dfact:end), ...
+    v_exact_img(1:dfact:end, 1:dfact:end), '-k');
 cb = colorbar;
 cb.Label.String = 'Displacement Magnitude [pixels]';
 axis equal tight
@@ -264,18 +244,56 @@ title('PIV Displacement Magnitude and Direction')
 
 %% analyze errors
 
+% TODO: Results indicate exact and computed solutions are off by one
+
 if args.verbose
     fprintf('%s: error analysis\n', mfilename);
 end
 
-% TODO: don't interpolote -- generate the exact answer.
-% TODO: Results indicate exact and computed solutions are off by one
-u_exact_at_piv = interp2(x_img_grd, y_img_grd, u_exact, x_piv_grd, y_piv_grd, 'linear');
-v_exact_at_piv = interp2(x_img_grd, y_img_grd, v_exact, x_piv_grd, y_piv_grd, 'linear');
-
+[u_exact_at_piv, v_exact_at_piv] = get_exact_uv(...
+    x_piv_grd, y_piv_grd, args.translation, args.shear_theta, ...
+    args.shear_width, args.shear_mag);
 u_error =  u_exact_at_piv - u_piv;
 v_error =  v_exact_at_piv - v_piv;
 
 % TODO: include these bits here, rather than in separate functions
 test_piv_print_error(u_error, v_error);
 test_piv_plot_error(u_error, v_error);
+
+
+function [u_grd, v_grd] = get_exact_uv(...
+        x_grd, y_grd, translation, shear_theta, shear_width, shear_mag)
+% function [uu, vv] = get_exact_uv(...
+%         xx, yy, translation, shear_theta, shear_width, shear_mag)
+%
+% Compute exact displacement field at specified coordinate grid
+%
+% Arguments:
+%   x_grd, y_grd: Coordinate grids, as produced by meshgrid
+%   all others: displacement field parameters, see test_piv() help
+% %
+
+sz = size(x_grd);
+u_grd = zeros(sz);
+v_grd = zeros(sz);
+
+% apply constant displacement
+u_grd = u_grd + translation(1);
+v_grd = v_grd + translation(2);
+
+% create rotated coordinate system with y == 0 at center of shear band
+rot = [cosd(shear_theta), sind(shear_theta); ...
+       -sind(shear_theta), cosd(shear_theta)];
+xy_rot = rot*[x_grd(:)'; y_grd(:)'];
+y_grd_rot = reshape(xy_rot(2,:), sz);
+
+% compute scaling factor for shear displacements
+shear_scale = y_grd_rot/shear_width;
+shear_scale(shear_scale < -0.5) = -0.5;
+shear_scale(shear_scale > 0.5) = 0.5;
+
+% apply shear displacements
+u_shear = shear_scale*cosd(shear_theta)*shear_mag;
+v_shear = shear_scale*sind(shear_theta)*shear_mag;
+u_grd = u_grd + u_shear;
+v_grd = v_grd + v_shear;
