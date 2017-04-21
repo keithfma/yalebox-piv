@@ -41,6 +41,7 @@ function [] = test_piv(varargin)
 % %
 
 % TODO: maximize figures automatically
+% TODO: propagate verbose flag to functions called by piv()
 
 %% parse arguments
 
@@ -203,7 +204,8 @@ end
 [x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(... 
     ini, fin, ini_roi, fin_roi, x_img, y_img, args.samplen, args.sampspc, ...
     args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
-    args.spline_tension, args.min_frac_data, args.min_frac_overlap, true);
+    args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
+    args.verbose);
 
 % display exact and measure displacement fields
 figure
@@ -245,6 +247,10 @@ title('PIV Displacement Magnitude and Direction')
 %% analyze errors
 
 % TODO: Results indicate exact and computed solutions are off by one
+% % <CLUDGE>
+% u_piv = u_piv - 1;
+% v_piv = v_piv - 1;
+% % </CLUDGE>
 
 if args.verbose
     fprintf('%s: error analysis\n', mfilename);
@@ -253,12 +259,101 @@ end
 [u_exact_at_piv, v_exact_at_piv] = get_exact_uv(...
     x_piv_grd, y_piv_grd, args.translation, args.shear_theta, ...
     args.shear_width, args.shear_mag);
-u_error =  u_exact_at_piv - u_piv;
-v_error =  v_exact_at_piv - v_piv;
+u_error = u_exact_at_piv - u_piv;
+v_error = v_exact_at_piv - v_piv;
+m_error = sqrt(u_error.^2 + v_error.^2);
+theta_error = atan2d(v_exact_at_piv, u_exact_at_piv) - atan2d(v_piv, u_piv);
 
-% TODO: include these bits here, rather than in separate functions
-test_piv_print_error(u_error, v_error);
-test_piv_plot_error(u_error, v_error);
+% print error quantiles
+qnt = 0 : 0.10 : 1;
+u_abs_error_qnt = quantile(abs(u_error(:)), qnt);
+v_abs_error_qnt = quantile(abs(v_error(:)), qnt);
+m_error_qnt = quantile(sqrt(u_error(:).^2 + v_error(:).^2), qnt);
+
+fprintf('\n---- \n');
+fprintf('Displacement Vector Error Quantiles\n\n');
+fprintf('Quantile\t| U Abs Error\t| V Abs Error\t| Mag Error\n'); 
+for i = 1:length(qnt)
+    fprintf('%.2f\t| %.2e\t| %.2e\t| %.2e\n', ...
+        qnt(i), u_abs_error_qnt(i), v_abs_error_qnt(i), m_error_qnt(i));
+end
+fprintf('---- \n\n');
+
+% plot error maps
+figure;
+
+subplot(2, 2, 1);
+imagesc(x_piv, y_piv, u_error, 'AlphaData', roi_piv);
+set(gca, 'YDir', 'normal');
+axis equal tight
+cb = colorbar;
+cb.Label.String = 'Error [pixels]';
+title('U Error')
+
+subplot(2, 2, 2);
+imagesc(x_piv, y_piv, v_error, 'AlphaData', roi_piv);
+set(gca, 'YDir', 'normal');
+axis equal tight
+cb = colorbar;
+cb.Label.String = 'Error [pixels]';
+title('V Error')
+
+subplot(2, 2, 3);
+imagesc(x_piv, y_piv, m_error, 'AlphaData', roi_piv);
+set(gca, 'YDir', 'normal');
+axis equal tight
+cb = colorbar;
+cb.Label.String = 'Error [pixels]';
+title('Magnitude Error')
+
+subplot(2, 2, 4);
+imagesc(x_piv, y_piv, theta_error, 'AlphaData', roi_piv);
+set(gca, 'YDir', 'normal');
+axis equal tight
+cb = colorbar;
+cb.Label.String = 'Error [degrees]';
+title('Theta Error')
+
+% plot error histograms
+num_bins = 50;
+
+figure
+
+subplot(2, 2, 1)
+hist(u_error(~isnan(u_error)), num_bins);
+set(gca, 'XLim', [min(u_error(:)), max(u_error(:))]);
+hh = findobj(gca, 'Type', 'patch');
+hh.LineStyle = 'none';
+title('U Error')
+xlabel('Error [pixels]');
+ylabel('Count [pixels]');
+
+subplot(2, 2, 2)
+hist(v_error(~isnan(v_error)), num_bins);
+set(gca, 'XLim', [min(v_error(:)), max(v_error(:))]);
+hh = findobj(gca, 'Type', 'patch');
+hh.LineStyle = 'none';
+title('V Error')
+xlabel('Error [pixels]');
+ylabel('Count [pixels]');
+
+subplot(2, 2, 3)
+hist(m_error(~isnan(m_error)), num_bins);
+set(gca, 'XLim', [min(m_error(:)), max(m_error(:))]);
+hh = findobj(gca, 'Type', 'patch');
+hh.LineStyle = 'none';
+title('Magnitude Error')
+xlabel('Error [pixels]');
+ylabel('Count [pixels]');
+
+subplot(2, 2, 4)
+hist(theta_error(~isnan(theta_error)), num_bins);
+set(gca, 'XLim', [min(theta_error(:)), max(theta_error(:))]);
+hh = findobj(gca, 'Type', 'patch');
+hh.LineStyle = 'none';
+title('Theta Error')
+xlabel('Error [degrees]');
+ylabel('Count [pixels]');
 
 
 function [u_grd, v_grd] = get_exact_uv(...
