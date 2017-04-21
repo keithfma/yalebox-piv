@@ -25,6 +25,8 @@ function [] = test_piv(varargin)
 %   'shear_mag': Scalar, displacement difference across shear band, applied as a
 %       0.5*shear_mag displacement on one side and a -0.5*shear_mag displacement
 %       on the other, default = sqrt(2)*0.005
+%   'pad_width': Scalar, width of edge padding to add to image (to accomodate
+%       edge displacements) as a fraction of image size, default = 0.1
 %   'samplen': piv() parameter, default [30, 30]
 %   'sampspc': piv() parameter, default [15, 15]
 %   'intrlen': piv() parameter, default [100, 60]
@@ -38,8 +40,7 @@ function [] = test_piv(varargin)
 %       components of the analysis
 % %
 
-% TODO: stick to pixel units internally
-% TODO: clean up variable names
+% TODO: maximize figures automatically
 
 %% parse arguments
 
@@ -62,6 +63,8 @@ ip.addParameter('shear_width', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 ip.addParameter('shear_mag', 0.01, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+ip.addParameter('pad_width', 0.1, ...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
 ip.addParameter('samplen', [30, 30]); % validation handled by PIV routines
 ip.addParameter('sampspc', [15, 15]);
 ip.addParameter('intrlen', [100, 60]);
@@ -100,7 +103,7 @@ max_col = find(xx <= args.image_pos(1) + args.image_pos(3), 1, 'last');
 min_row = find(yy >= args.image_pos(2), 1, 'first');
 max_row = find(yy <= args.image_pos(2) + args.image_pos(4), 1, 'last');
 
-xx = xx(min_col:max_col);
+xx = xx(min_col:max_col); % not used, included for reference
 yy = yy(min_row:max_row);
 img = img(min_row:max_row, min_col:max_col);
 roi = roi(min_row:max_row, min_col:max_col);
@@ -109,20 +112,34 @@ if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
 end
 
+%% convert units from world (meters) to image (pixels)
+% NOTE: all the analysis from here on out is in pixels, these are the units that
+%   matter to the PIV routines.
+
+% conversion factors
+m_per_pix = mean([diff(xx); diff(yy)]); % grid is regular to single precision
+pix_per_m = 1/m_per_pix;
+
+% convert parameters
+args.translation = args.translation*pix_per_m;
+args.shear_width = args.shear_width*pix_per_m;
+args.shear_mag = args.shear_mag*pix_per_m;
+
 %% pad image boundaries (and coordinates) to accomodate edge displacements
 
 if args.verbose
     fprintf('%s: pad image to accomodate edge displacements\n', mfilename);
 end
 
-padsize = ceil(0.10*size(img));
-img = padarray(img, padsize, 0, 'both');
-roi = padarray(roi, padsize, 0, 'both');
-dx = mean(diff(xx));
-xx = [xx(1)-dx*(padsize(2):-1:1), xx(:)', xx(end)+dx*(1:padsize(2))];
-dy = mean(diff(yy));
-yy = [yy(1)-dy*(padsize(1):-1:1), yy(:)', yy(end)+dy*(1:padsize(1))];
-sz = size(img);
+pad_dim = ceil(args.pad_width*size(img));
+img = padarray(img, pad_dim, 0, 'both');
+roi = padarray(roi, pad_dim, 0, 'both');
+
+% create new coordinate vectors, pixel units with origin at padded image center
+x_img = (1:size(img, 2))-1;
+y_img = (1:size(img, 1))-1;
+x_img = x_img - mean(x_img);
+y_img = y_img - mean(y_img);
 
 %% compute exact displacement field for specified displacements and boundary
 
@@ -130,26 +147,30 @@ if args.verbose
     fprintf('%s: compute exact displacement field\n', mfilename);
 end
 
-u_exact = zeros(sz);
-v_exact = zeros(sz);
+u_exact = zeros(size(img));
+v_exact = zeros(size(img));
 
 % apply constant displacement
 u_exact = u_exact + args.translation(1);
 v_exact = v_exact + args.translation(2);
 
 % apply simple shear in specified band
-[xg, yg] = meshgrid(xx - mean(xx), yy - mean(yy));
+% ...create rotated coordinate system with y == 0 at center of shear band
+[x_img_grd, y_img_grd] = meshgrid(x_img, y_img);
 rot = [cosd(args.shear_theta), sind(args.shear_theta); ...
        -sind(args.shear_theta), cosd(args.shear_theta)];
-xy = [xg(:)'; yg(:)'];
-xy = rot*xy;
-yg(:) = xy(2,:);
-scale = yg/args.shear_width;
-scale(scale < -0.5) = -0.5;
-scale(scale > 0.5) = 0.5;
-
-u_exact = u_exact + scale*cosd(args.shear_theta)*args.shear_mag;
-v_exact = v_exact + scale*sind(args.shear_theta)*args.shear_mag;
+xy_tmp = rot*[x_img_grd(:)'; y_img_grd(:)'];
+% x_img_rot = reshape(xy_tmp(1,:), size(img)); % not used, included for reference
+y_img_rot = reshape(xy_tmp(2,:), size(img));
+% ...compute scaling factor for shear displacements
+shear_scale = y_img_rot/args.shear_width;
+shear_scale(shear_scale < -0.5) = -0.5;
+shear_scale(shear_scale > 0.5) = 0.5;
+% ...add shear displacements
+u_shear = shear_scale*cosd(args.shear_theta)*args.shear_mag;
+v_shear = shear_scale*sind(args.shear_theta)*args.shear_mag;
+u_exact = u_exact + u_shear;
+v_exact = v_exact + v_shear;
 
 %% generate synthetic images
 
@@ -157,46 +178,41 @@ if args.verbose
     fprintf('%s: generate synthetic images\n', mfilename);
 end
 
-% convert to pixel coords
-u_exact_pix = u_exact/(range(xx)/length(xx));
-v_exact_pix = v_exact/(range(yy)/length(yy));
-
 % deform images
-ini = imwarp(img, 0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic'); % dir is ok
-fin = imwarp(img, -0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+ini = imwarp(img, 0.5*cat(3, u_exact, v_exact), 'cubic'); % dir is ok
+fin = imwarp(img, -0.5*cat(3, u_exact, v_exact), 'cubic');
 
 % deform masks
-ini_roi = imwarp(double(roi), 0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+ini_roi = imwarp(double(roi), 0.5*cat(3, u_exact, v_exact), 'cubic');
 ini_roi = logical(round(ini_roi));
-fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact_pix, v_exact_pix), 'cubic');
+fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact, v_exact), 'cubic');
 fin_roi = logical(round(fin_roi));
 
 % reapply mask
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
 
-% enforce limits (NOTE: could stretch instead)
+% enforce limits by threshold
+% NOTE: could stretch limits instead, unclear if this matters
 ini(ini < 0) = 0;
 ini(ini > 1) = 1;
 fin(fin < 0) = 0;
 fin(fin > 1) = 1;
 
-% <DEBUG>
-% TODO: make this permanant
+% display initial and final synthetic images
 figure
 
 subplot(1,2,1)
-imagesc(ini)
-set(gca, 'YDir', 'normal');
+imagesc([x_img(1), x_img(end)], [y_img(1), y_img(end)], ini);
+set(gca, 'YDir', 'normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 axis equal tight
-title('ini')
+title('Initial Synthetic Image')
 
 subplot(1,2,2)
-imagesc(fin)
-set(gca, 'YDir', 'normal');
+imagesc([x_img(1), x_img(end)], [y_img(1), y_img(end)], fin);
+set(gca, 'YDir', 'normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 axis equal tight
-title('fin')
-% </DEBUG>
+title('Final Synthetic Image')
 
 %% run PIV analysis on synthetic images
 
@@ -205,38 +221,46 @@ if args.verbose
 end
 
 [x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(... 
-    ini, fin, ini_roi, fin_roi, xx, yy, args.samplen, args.sampspc, ...
+    ini, fin, ini_roi, fin_roi, x_img, y_img, args.samplen, args.sampspc, ...
     args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
-    args.spline_tension, args.min_frac_data, args.min_frac_overlap, true); %#ok<ASGLU>
+    args.spline_tension, args.min_frac_data, args.min_frac_overlap, true);
 
-% <DEBUG>
-% TODO: make this permanant
+% display exact and measure displacement fields
 figure
 
+num_vec = 25; % desired num quiver vectors along largest dim, for downsampling
+
 subplot(1, 2, 1)
+dfact = floor(max(size(u_exact))/num_vec);
 m_exact = sqrt(u_exact.^2 + v_exact.^2);
-imagesc(xx, yy, m_exact);
-set(gca, 'YDir', 'Normal');
+imagesc(x_img, y_img, m_exact);
+set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 hold on;
-[xg, yg] = meshgrid(xx, yy);
-dd = 10;
-quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
-    u_exact(1:dd:end, 1:dd:end), v_exact(1:dd:end, 1:dd:end));
+quiver(x_img_grd(1:dfact:end, 1:dfact:end), ...
+    y_img_grd(1:dfact:end, 1:dfact:end), ...
+    u_exact(1:dfact:end, 1:dfact:end), ...
+    v_exact(1:dfact:end, 1:dfact:end), '-k');
+cb = colorbar;
+cb.Label.String = 'Displacement Magnitude [pixels]';
 axis equal tight
-title('exact')
+title('Exact Displacement Magnitude and Direction')
 
 subplot(1, 2, 2)
+dfact = floor(max(size(u_piv))/num_vec);
 m_piv = sqrt(u_piv.^2 + v_piv.^2);
-imagesc(x_piv, y_piv, m_piv);
-set(gca, 'YDir', 'Normal');
+imagesc(x_piv, y_piv, m_piv, 'AlphaData', roi_piv);
+set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 hold on;
-[xg, yg] = meshgrid(x_piv, y_piv);
-dd = 1;
-quiver(xg(1:dd:end, 1:dd:end), yg(1:dd:end, 1:dd:end), ...
-    u_piv(1:dd:end, 1:dd:end), v_piv(1:dd:end, 1:dd:end));
+[x_piv_grd, y_piv_grd] = meshgrid(x_piv, y_piv);
+quiver(x_piv_grd(1:dfact:end, 1:dfact:end), ...
+    y_piv_grd(1:dfact:end, 1:dfact:end), ...
+    u_piv(1:dfact:end, 1:dfact:end), ...
+    v_piv(1:dfact:end, 1:dfact:end), '-k');
+cb = colorbar;
+cb.Label.String = 'Displacement Magnitude [pixels]';
 axis equal tight
-title('piv')
-% </DEBUG>
+title('PIV Displacement Magnitude and Direction')
+
 
 %% analyze errors
 
@@ -244,25 +268,14 @@ if args.verbose
     fprintf('%s: error analysis\n', mfilename);
 end
 
-u_exact_at_piv = interp2(xx(:)', yy(:), u_exact, x_piv(:)', y_piv(:), 'linear');
-v_exact_at_piv = interp2(xx(:)', yy(:), v_exact, x_piv(:)', y_piv(:), 'linear');
-
-% <DEBUG>
-% TODO: Results indicate exact and computed solutions are off by one. Which is
-%   wrong?
-% BELOW: "fixes" offset issue
-pix_per_m = length(xx)/range(xx);
-u_piv = u_piv - 1/pix_per_m;
-v_piv = v_piv - 1/pix_per_m;
-% </DEBUG>
+% TODO: don't interpolote -- generate the exact answer.
+% TODO: Results indicate exact and computed solutions are off by one
+u_exact_at_piv = interp2(x_img_grd, y_img_grd, u_exact, x_piv_grd, y_piv_grd, 'linear');
+v_exact_at_piv = interp2(x_img_grd, y_img_grd, v_exact, x_piv_grd, y_piv_grd, 'linear');
 
 u_error =  u_exact_at_piv - u_piv;
 v_error =  v_exact_at_piv - v_piv;
 
-% convert to pixels
-pix_per_m = length(xx)/range(xx);
-u_error_pix = u_error*pix_per_m;
-v_error_pix = v_error*pix_per_m;
-
-test_piv_print_error(u_error_pix, v_error_pix);
-test_piv_plot_error(u_error_pix, v_error_pix);
+% TODO: include these bits here, rather than in separate functions
+test_piv_print_error(u_error, v_error);
+test_piv_plot_error(u_error, v_error);
