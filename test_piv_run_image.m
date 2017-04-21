@@ -23,7 +23,9 @@ function [] = test_piv_run_image(varargin)
 %   
 % %
 
-% TODO: make the piv parameters inputs with default values
+% TODO: stick to pixel units internally
+% TODO: clean up variable names
+% 
 
 %% parse arguments
 
@@ -197,32 +199,48 @@ axis equal tight
 title('piv')
 % </DEBUG>
 
-keyboard
-
 %% analyze errors
 
-% TODO
+u_exact_at_piv = interp2(xx(:)', yy(:), u_exact, x_piv(:)', y_piv(:), 'linear');
+v_exact_at_piv = interp2(xx(:)', yy(:), v_exact, x_piv(:)', y_piv(:), 'linear');
 
-%% OLD
+% <DEBUG>
+% TODO: Results indicate exact and computed solutions are off by one. Which is
+%   wrong?
+pix_per_m = length(xx)/range(xx);
+u_piv = u_piv - 1/pix_per_m;
+v_piv = v_piv - 1/pix_per_m;
+% </DEBUG>
 
-% % run piv
-% [xx, yy, uu, vv] = piv(ini, fin, ini_roi, fin_roi, xx, yy, samplen, ...
-%     sampspc, intrlen, npass, valid_max, valid_eps, spline_tension, ...
-%     min_frac_data, min_frac_overlap, 1);
-% 
-% % % TODO: Results indicate exact and computed solutions are off by one. Which is
-% % %   wrong?
-% % uu = uu-1;
-% % vv = vv-1;
-% 
-% % compute errors
-% uu_error = uu-uu_exact;
-% vv_error = vv-vv_exact;
+u_error =  u_exact_at_piv - u_piv;
+v_error =  v_exact_at_piv - v_piv;
+
+% convert to pixels
+pix_per_m = length(xx)/range(xx);
+u_error_pix = u_error*pix_per_m;
+v_error_pix = v_error*pix_per_m;
+
+% compute strain
+
+keyboard
+
+strain_piv = post_strain(x_piv, y_piv, u_piv, v_piv, roi_piv, 'nearest');
+strain_exact_at_piv = post_strain(x_piv, y_piv, u_exact_at_piv, v_exact_at_piv, true(size(u_piv)), 'nearest');
+
+% % FAILS due to memory on interpolation, an analytical solution for strain would be nice
+% strain_exact = post_strain(xx, yy, u_exact, v_exact, true(size(u_exact)), 'nearest');
+
+%% present results 
+
+test_piv_util_print_error(u_error_pix, v_error_pix);
+test_piv_util_plot_error(u_error_pix, v_error_pix);
+
+
+keyboard
+
+
 % 
 % % compute strain
 % strain = post_strain(xx, yy, uu, vv, ~isnan(uu), 'nearest');
 % 
-% % print and plot standard results
-% test_piv_util_print_error(uu_error, vv_error);
-% test_piv_util_plot_error(uu_error, vv_error);
 % test_piv_util_plot(xx, yy, uu, vv, sqrt(uu.^2, vv.^2), strain.Dd);
