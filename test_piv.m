@@ -40,9 +40,6 @@ function [] = test_piv(varargin)
 %       components of the analysis
 % %
 
-% TODO: maximize figures automatically
-% TODO: propagate verbose flag to functions called by piv()
-
 %% parse arguments
 
 % constants
@@ -181,7 +178,7 @@ fin(fin < 0) = 0;
 fin(fin > 1) = 1;
 
 % display initial and final synthetic images
-figure
+figure('Position', get(0, 'ScreenSize'))
 
 subplot(1,2,1)
 imagesc([x_img(1), x_img(end)], [y_img(1), y_img(end)], ini);
@@ -208,7 +205,7 @@ end
     args.verbose);
 
 % display exact and measure displacement fields
-figure
+figure('Position', get(0, 'ScreenSize'))
 
 num_vec = 25; % desired num quiver vectors along largest dim, for downsampling
 
@@ -280,7 +277,7 @@ end
 fprintf('---- \n\n');
 
 % plot error maps
-figure;
+figure('Position', get(0, 'ScreenSize'));
 
 subplot(2, 2, 1);
 imagesc(x_piv, y_piv, u_error, 'AlphaData', roi_piv);
@@ -317,7 +314,7 @@ title('Theta Error')
 % plot error histograms
 num_bins = 50;
 
-figure
+figure('Position', get(0, 'ScreenSize'))
 
 subplot(2, 2, 1)
 hist(u_error(~isnan(u_error)), num_bins);

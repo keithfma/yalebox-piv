@@ -148,7 +148,7 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
     
-    % <EXPERIMENT>
+    % <EXPERIMENT>: Jiggled sample points
     % jiggle sample points by random 1/4 sample spacing
     sz = size(r_grd);
     r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
@@ -160,7 +160,7 @@ for pp = 1:np
         min_frac_data, min_frac_overlap, verbose);
     % </EXPERIMENT>
     
-    % % <ORIGINAL>
+    % % <ORIGINAL> Gridded sample points
     % % get displacements update using normalized cross correlation
     % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
     %     piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
@@ -170,12 +170,12 @@ for pp = 1:np
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, true);
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, verbose);
         
     % interpolate valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
-        spline_tension, true);
+        spline_tension, verbose);
     
     % NOTE: with new "jiggle" it is not obvious that I want to reset the ROI
     %   with every iteration.
@@ -202,7 +202,7 @@ for pp = 1:np
             samplen(pp+1), sampspc(pp+1), xw, yw);
         [u_grd_tm, v_grd_tm] = piv_interp_spline(...
             c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, true, ...
-            spline_tension, true);
+            spline_tension, verbose);
         r_grd = r_grd_1;
         c_grd = c_grd_1;
 
