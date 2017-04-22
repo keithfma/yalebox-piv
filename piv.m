@@ -136,9 +136,6 @@ v_grd_tm = zeros(sz);
 ini_tm = ini_ti;
 fin_tm = fin_tf;
 
-% debug
-roi = true(sz);
-
 % multipass loop
 np = length(samplen);
 for pp = 1:np
@@ -148,24 +145,29 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
     
-    % <EXPERIMENT>: Jiggled sample points
-    % jiggle sample points by random 1/4 sample spacing
-    sz = size(r_grd);
-    r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
-    c_smp = c_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
+
+    if jiggle
+        % EXPERIMENT: "jiggled" sample points
+        
+        % jiggle sample points by random 1/4 sample spacing
+        sz = size(r_grd);
+        r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
+        c_smp = c_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
+        
+        % get displacements update using normalized cross correlation
+        [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
+            piv_displacement(ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...
+            min_frac_data, min_frac_overlap, verbose);
     
-    % get displacements update using normalized cross correlation
-    [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-        piv_displacement(ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...
-        min_frac_data, min_frac_overlap, verbose);
-    % </EXPERIMENT>
+    else 
+        % NORMAL: gridded sample points
     
-    % % <ORIGINAL> Gridded sample points
-    % % get displacements update using normalized cross correlation
-    % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-    %     piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
-    %     min_frac_data, min_frac_overlap, verbose);
-    % % </ORIGINAL>
+        % get displacements update using normalized cross correlation
+        [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
+            piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
+            min_frac_data, min_frac_overlap, verbose);
+
+    end
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here

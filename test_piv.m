@@ -243,12 +243,6 @@ title('PIV Displacement Magnitude and Direction')
 
 %% analyze errors
 
-% TODO: Results indicate exact and computed solutions are off by one
-% % <CLUDGE>
-% u_piv = u_piv - 1;
-% v_piv = v_piv - 1;
-% % </CLUDGE>
-
 if args.verbose
     fprintf('%s: error analysis\n', mfilename);
 end

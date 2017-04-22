@@ -54,6 +54,7 @@ for ii = 1:nr
     for jj = 1:nc
    
         % get sample and interrogation windows, skip if too empty
+%         % NOTE: size(samp) may *not* be [samplen, samplen] due to rounding
         [samp, samp_rll, samp_cll, r_centroid, c_centroid, frac_data] = ...
             piv_window(ini, r0(ii,jj), c0(ii,jj), samplen);        
         
@@ -62,6 +63,7 @@ for ii = 1:nr
             continue; 
         end
         
+        % NOTE: size(intr) may *not* be [intrlen, intrlen] due to rounding
         [intr, intr_rll, intr_cll] = ...
             piv_window(fin, r0(ii,jj), c0(ii,jj), intrlen);
         
@@ -79,8 +81,9 @@ for ii = 1:nr
         end
         
         % convert position of the correlation max to displacement
-        u1(ii,jj) = cpeak-samplen-(samp_cll-intr_cll);
-        v1(ii,jj) = rpeak-samplen-(samp_rll-intr_rll);
+        % NOTE: use actual dimension of sample windows, see NOTE above
+        u1(ii,jj) = cpeak - size(samp, 1) - (samp_cll - intr_cll);
+        v1(ii,jj) = rpeak - size(samp, 1) - (samp_rll - intr_rll);
         
         % compute location of this observation at midpoint time
         c1(ii,jj) = c_centroid + 0.5*u1(ii,jj);
