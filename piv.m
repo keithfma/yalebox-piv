@@ -75,6 +75,10 @@ function [xx, yy, uu, vv, roi] = piv(...
 %   A Green’s function approach. Mathematical Geology, 30(1), 77–93. Retrieved
 %   from http://link.springer.com/article/10.1023/A:1021713421882
 
+% DEBUG: Testing out "jiggled" sample grid
+jiggle = true;
+% jiggle = false;
+
 % Note: variable suffixes are used to describe the time and space grids that
 % each variable represents. These are:
 %   ti -> time of the initial image
@@ -148,6 +152,7 @@ for pp = 1:np
 
     if jiggle
         % EXPERIMENT: "jiggled" sample points
+        fprintf('%s: experimental "jiggled" sample grid\n', mfilename);
         
         % jiggle sample points by random 1/4 sample spacing
         sz = size(r_grd);
