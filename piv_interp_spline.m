@@ -1,19 +1,21 @@
-function [ug, vg] = piv_interp_spline(xp, yp, up, vp, xg, yg, roi, tension, verbose)
-% function [ug, vg] = piv_interp_spline(xp, yp, up, vp, xg, yg, roi, tension, verbose)
+function [uout, vout] = piv_interp_spline(...
+    xi, yi, uin, vin, xout, yout, roi, tension, verbose)
+% function [uout, vout] = piv_interp_spline(...
+%     xi, yi, uin, vin, xout, yout, roi, tension, verbose)
 %
-% Smooth and interpolate scattered vectors to a regular grid using
-% spline-in-tension interpolation (see [1]). NaNs in input grids are ignored.
-% Output grids are populated in the region-of-interest (roi) and NaN elsewhere.
+% Smooth and interpolate scattered vectors within ROI using spline-in-tension
+% interpolation (see [1]). NaNs in input grids are ignored. Output grids are
+% populated in the region-of-interest (roi) and NaN elsewhere.
 %
 % Arguments:
-%   xp, yp = 2D matrices, location of scattered input points
-%   up, vp = 2D matrices, components of displacement vectors at scattered input 
-%       points, NaN values are ignored
-%   xg, yg = 2D matrices, regular grid for output vectors
-%   roi = 2D matrix, region-of-interest mask for output, true elements are
-%       output. If a scalar true is provided, the whole domain is used.
+%   xi, yi = Location of scattered input points
+%   uin, vin = Components of displacement vectors at scattered input points,
+%       NaN values are ignored
+%   xout, yout = Location of output points
+%   roi = Region-of-interest mask for output, true elements are output. If a
+%       scalar true is provided, the whole domain is used.
 %   tension = Scalar, tension parameter for interpolation routine, see [1]
-%   ug, vg = 2D matrices, interpolated output vectors where roi==1, NaNs elsewhere
+%   uout, vout = Interpolated output vectors where roi==1, NaNs elsewhere
 %   verbose = Scalar, logical, display verbose messages (1) or don't (0)
 %
 % References: 
@@ -22,10 +24,10 @@ function [ug, vg] = piv_interp_spline(xp, yp, up, vp, xg, yg, roi, tension, verb
 % %
 
 % init
-from = ~isnan(up) & ~isnan(vp);
+from = ~isnan(uin) & ~isnan(vin);
 if isscalar(roi)
     if roi
-        roi = true(size(xg));
+        roi = true(size(xout));
     else
         error('%s: Bad value for argument "roi"', mfilename);
     end
@@ -36,9 +38,9 @@ if verbose
         mfilename, sum(from(:)), sum(roi(:)), tension);
 end
 
-% interpolate
-ug = nan(size(roi));
-ug(roi) = spline2d(xg(roi), yg(roi), xp(from), yp(from), up(from), tension);
-
-vg = nan(size(roi));
-vg(roi) = spline2d(xg(roi), yg(roi), xp(from), yp(from), vp(from), tension);
+% NOTE: ~2x faster to interpolate as a complex field
+cout = nan(size(roi));
+cout(roi) = spline2d(xout(roi), yout(roi), xi(from), yi(from), ...
+                     uin(from) + 1i*vin(from), tension);
+uout = real(cout);
+vout = imag(cout);

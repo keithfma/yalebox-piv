@@ -149,10 +149,11 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
     
-
     if jiggle
         % EXPERIMENT: "jiggled" sample points
-        fprintf('%s: experimental "jiggled" sample grid\n', mfilename);
+        if verbose
+            fprintf('%s: experimental "jiggled" sample grid\n', mfilename);
+        end
         
         % jiggle sample points by random 1/4 sample spacing
         sz = size(r_grd);
@@ -178,7 +179,7 @@ for pp = 1:np
     % NOTE: neighborhood is hard-coded here
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, verbose);
-        
+    
     % interpolate valid vectors to sample grid, outside roi is NaN
     [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
