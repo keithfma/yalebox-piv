@@ -16,10 +16,10 @@ function [x_soln, y_soln, u_soln_tm, v_soln_tm, roi_soln] = piv(...
 %       length must match the cols and rows, respectively, in both ini and fin.
 %
 %   samplen = Vector, length == number of grid resolutions, integer, side
-%       length of the square sample window
+%       length of the square sample window, [pixels]
 %
-%   sampspc = Vector, length == number of grid resolutions, integer,
-%       spacing between adjacent sample points in the (square) sample grid
+%   sampspc = Scalar, integer, spacing between adjacent sample points in the
+%       (square) sample grid, [pixels].
 %
 %   intrlen = Vector, length == number of grid resolutions, integer, side
 %       length of the square interrogation window
@@ -59,7 +59,13 @@ function [x_soln, y_soln, u_soln_tm, v_soln_tm, roi_soln] = piv(...
 %   roi = 2D matrix, logical, flag indicating whether the data point lies within
 %       PIV analysis (1) or not (0). Points inside the ROI may be measured or
 %       interpolated, points outside the ROI are all interpolated/extrapolated.
-%   
+%
+% Notes:
+%   + Sample grid spacing is held constant since our experiments showed
+%     upsampling introduced ugly interpolation artifacts. We found that holding
+%     grid spacing constant and reducing sample window size is an effective way
+%     to increase spatial resolution while avoiding this issue.
+%
 % References:
 %
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
@@ -98,7 +104,7 @@ validateattributes( fin_roi_tf,       {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes( xw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
 validateattributes( yw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
 validateattributes( samplen,          {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
-validateattributes( sampspc,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes( sampspc,          {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'});
 validateattributes( intrlen,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
 validateattributes( npass,            {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
 validateattributes( valid_max,        {'double'},  {'scalar', 'positive'});
@@ -125,16 +131,16 @@ if verbose
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 end
 
-% NOTE: it would make a LOT of sense to trim then restore the domain to its
+% TODO: it would make a LOT of sense to trim then restore the domain to its
 % minimum size, this would reduce the cost of the full-image interpolations
 % significantly
 
 % expand grid definition vectors to reflect the number of passes
-[samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
+[samplen, intrlen] = expand_grid_def(samplen, intrlen, npass);
 
 % init coordinate grids for accumulated solution at final pass resolution
 [r_soln, c_soln, x_soln, y_soln] = piv_sample_grid(...
-    samplen(end), sampspc(end), xw, yw);
+    samplen(end), sampspc, xw, yw);
 u_soln_tm = zeros(size(r_soln)); 
 v_soln_tm = zeros(size(r_soln));  
 
@@ -148,15 +154,15 @@ for pp = 1:np
     
     if verbose
         fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
-            mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
+            mfilename, pp, np, samplen(pp), sampspc, intrlen(pp));
     end
 
     % create sampling coordinate grids 
-    [r_grd, c_grd, ~, ~] = piv_sample_grid(samplen(pp), sampspc(pp), xw, yw);
+    [r_grd, c_grd, ~, ~] = piv_sample_grid(samplen(pp), sampspc, xw, yw);
     
     % jiggle sample points by random 1/4 sample spacing
-    r_smp = r_grd + 0.50*sampspc(pp)*(rand(size(r_grd)) - 0.5);
-    c_smp = c_grd + 0.50*sampspc(pp)*(rand(size(c_grd)) - 0.5);
+    r_smp = r_grd + 0.50*sampspc*(rand(size(r_grd)) - 0.5);
+    c_smp = c_grd + 0.50*sampspc*(rand(size(c_grd)) - 0.5);
     
     % get displacement update using normalized cross correlation
     [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
@@ -165,30 +171,14 @@ for pp = 1:np
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
-    % NOTE: 0.1 seems too high for valid_eps
-    % NOTE: 8 seems too low for # neighbors
-    % TODO: invalidation should use a radius, otherwise it is sensitive to the changing grid spacing
+    % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, 36, valid_max, 0.01, verbose);
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, verbose);
     
-    % NOTE: can probably figure out a way to interpolate to only the ROI at
-    %   higher resolution, or, could do a cheap within-alpha-shape interpolation
-    
-    % NOTE: this interpolation still introduces terrifying ringing
-    
-    % % <EXPERIMENT>
-    % % NOTE: alpha is not set, probably should be some multiple of the grid spacing
-    % [du_soln_tm, dv_soln_tm] = piv_interp_linear_alpha(...
-    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
-    %     3*sampspc(pp), verbose);
-    % % </EXPERIMENT>
-    
-    % <ORIGINAL>
     % interpolate valid vectors to full accumulated solution grid (expensive)
     [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
         spline_tension, verbose);
-    % <ORIGINAL>
     
     % update displacement solution
     u_soln_tm = u_soln_tm + du_soln_tm;
@@ -217,11 +207,11 @@ end
 
 %% subroutines
 
-function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
+function [slen_ex, ilen_ex] = expand_grid_def(slen, ilen, np)
 %
 % Expand the grid definition vectors to include the correct number of passes for
 % each grid. Input arguments are defined above, but use shortened names here:
-% samplen -> slen, intrlen -> ilen, sampspc -> sspc, npass -> np. 
+% samplen -> slen, intrlen -> ilen, npass -> np. 
 %
 % Note: outputs are intentionally not preallocated - these vectors are small and
 % the performace cost is negligible. 
@@ -229,12 +219,10 @@ function [slen_ex, ilen_ex, sspc_ex] = expand_grid_def(slen, ilen, sspc, np)
 
 slen_ex = [];
 ilen_ex = [];
-sspc_ex = [];
 
 for ii = 1:length(np)
    slen_ex = [slen_ex, repmat(slen(ii), 1, np(ii))]; %#ok!
    ilen_ex = [ilen_ex, repmat(ilen(ii), 1, np(ii))]; %#ok!
-   sspc_ex = [sspc_ex, repmat(sspc(ii), 1, np(ii))]; %#ok!
 end
 
 end

@@ -27,9 +27,9 @@ function [] = test_piv(varargin)
 %       on the other, default = sqrt(2)*0.005
 %   'pad_width': Scalar, width of edge padding to add to image (to accomodate
 %       edge displacements) as a fraction of image size, default = 0.1
-%   'samplen': piv() parameter, default [30, 30]
-%   'sampspc': piv() parameter, default [15, 15]
-%   'intrlen': piv() parameter, default [100, 60]
+%   'samplen': piv() parameter, default [60, 30]
+%   'sampspc': piv() parameter, default 15
+%   'intrlen': piv() parameter, default [120, 60]
 %   'npass': piv() parameter, default [1, 2]
 %   'valid_max': piv() parameter, default 2
 %   'valid_eps': piv() parameter, default 0.1
@@ -39,6 +39,8 @@ function [] = test_piv(varargin)
 %   'verbose': Scalar logical, set true to enable verbose reporting for all
 %       components of the analysis
 % %
+
+% TODO: it looks like relative error is a better measure than absolute...
 
 %% parse arguments
 
@@ -60,12 +62,12 @@ ip.addParameter('shear_theta', 45, ...
 ip.addParameter('shear_width', 0.05, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 ip.addParameter('shear_mag', 0.01, ...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
 ip.addParameter('pad_width', 0.1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
-ip.addParameter('samplen', [30, 30]); % validation handled by PIV routines
-ip.addParameter('sampspc', [15, 15]);
-ip.addParameter('intrlen', [100, 60]);
+ip.addParameter('samplen', [60, 30]); % validation handled by PIV routines
+ip.addParameter('sampspc', 15);
+ip.addParameter('intrlen', [120, 60]);
 ip.addParameter('npass', [1, 2]);
 ip.addParameter('valid_max', 2);
 ip.addParameter('valid_eps', 0.1);
