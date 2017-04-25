@@ -167,33 +167,32 @@ for pp = 1:np
     % NOTE: neighborhood is hard-coded here
     % NOTE: 0.1 seems too high for valid_eps
     % NOTE: 8 seems too low for # neighbors
+    % TODO: invalidation should use a radius, otherwise it is sensitive to the changing grid spacing
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, 16, valid_max, 0.05, verbose);
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 36, valid_max, 0.01, verbose);
     
     % NOTE: can probably figure out a way to interpolate to only the ROI at
     %   higher resolution, or, could do a cheap within-alpha-shape interpolation
     
     % NOTE: this interpolation still introduces terrifying ringing
     
-    % <EXPERIMENT>
-    % NOTE: alpha is not set, probably should be some multiple of the grid spacing
-    [du_soln_tm, dv_soln_tm] = piv_interp_linear_alpha(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
-        3*sampspc(pp), verbose);
-    % </EXPERIMENT>
-    
-    % % <ORIGINAL>
-    % % interpolate valid vectors to full accumulated solution grid (expensive)
-    % [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
+    % % <EXPERIMENT>
+    % % NOTE: alpha is not set, probably should be some multiple of the grid spacing
+    % [du_soln_tm, dv_soln_tm] = piv_interp_linear_alpha(...
     %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
-    %     spline_tension, verbose);
-    % % <ORIGINAL>
+    %     3*sampspc(pp), verbose);
+    % % </EXPERIMENT>
+    
+    % <ORIGINAL>
+    % interpolate valid vectors to full accumulated solution grid (expensive)
+    [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
+        spline_tension, verbose);
+    % <ORIGINAL>
     
     % update displacement solution
     u_soln_tm = u_soln_tm + du_soln_tm;
-    v_soln_tm = v_soln_tm + dv_soln_tm;
-    
-    keyboard
+    v_soln_tm = v_soln_tm + dv_soln_tm;    
     
     % prepare for next pass, if needed
     if pp < np
