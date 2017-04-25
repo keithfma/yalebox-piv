@@ -35,6 +35,8 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 
 % TODO: think about what interpolation method to use here...
 
+% NOTE: roi is currently unused
+
 % Note: A few meaningful suffixes are used to help clarify the variable grids
 % and times, specifically:
 % 
@@ -56,29 +58,6 @@ end
 [nr_img, nc_img] = size(img_tx);
 [c_img, r_img] = meshgrid(1:nc_img, 1:nr_img); % full-res
 
-% get extended grid that spans the image coordinates
-r_spc = r_grd_tm(2,1)-r_grd_tm(1,1);
-r0 = r_grd_tm(1,1);
-while r0 > 1
-    r0 = r0-r_spc;
-end
-r1 = r_grd_tm(end,1);
-while r1 < nr_img
-    r1 = r1+r_spc;
-end
-
-c_spc = c_grd_tm(1,2)-c_grd_tm(1,1);
-c0 = c_grd_tm(1,1);
-while c0 > 1
-    c0 = c0-c_spc;
-end
-c1 = c_grd_tm(1,end);
-while c1 < nc_img
-    c1 = c1+c_spc;
-end
-
-[c_ext, r_ext] = meshgrid(c0:c_spc:c1, r0:r_spc:r1);
-
 % propagate points to target time (half-step forward or back, depending)
 if is_fwd
     % forward image defm, propagate displacements back from midpoint to initial time
@@ -90,15 +69,9 @@ else
     r_pts_tx = r_grd_tm + 0.5*v_grd_tm;    
 end
 
-% interpolate scattered to low-res grid using expensive tension splines
-[u_ext_tx, v_ext_tx] = piv_interp_spline(...
-    c_pts_tx, r_pts_tx, u_grd_tm, v_grd_tm, c_ext, r_ext, true, tension, verbose);
-
-% interpolate on low-res to full-res grid using cheap linear interpolation
-interp = griddedInterpolant(r_ext, c_ext, u_ext_tx, 'linear');
-u_img_tx = interp(r_img, c_img);
-interp.Values = v_ext_tx;
-v_img_tx = interp(r_img, c_img);
+% interpolate vectors to full image resolution as complex field (cheaply)
+[u_img_tx, v_img_tx] = piv_interp_linear(c_pts_tx, r_pts_tx, ...
+    u_grd_tm, v_grd_tm, c_img, r_img, true, verbose);
 
 % prep displacement matrix for image deformation 
 if is_fwd

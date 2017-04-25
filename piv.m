@@ -1,4 +1,4 @@
-function [xx, yy, uu, vv, roi] = piv(...
+function [x_soln, y_soln, u_soln_tm, v_soln_tm, roi_soln] = piv(...
     ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
     intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
     min_frac_overlap, verbose)                 
@@ -75,9 +75,9 @@ function [xx, yy, uu, vv, roi] = piv(...
 %   A Green’s function approach. Mathematical Geology, 30(1), 77–93. Retrieved
 %   from http://link.springer.com/article/10.1023/A:1021713421882
 
-% DEBUG: Testing out "jiggled" sample grid
-jiggle = true;
-% jiggle = false;
+% EXPERIMENT toggle
+% exp = true;
+% exp = false;
 
 % Note: variable suffixes are used to describe the time and space grids that
 % each variable represents. These are:
@@ -125,16 +125,18 @@ if verbose
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 end
 
+% NOTE: it would make a LOT of sense to trim then restore the domain to its
+% minimum size, this would reduce the cost of the full-image interpolations
+% significantly
+
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen, sampspc] = expand_grid_def(samplen, intrlen, sampspc, npass);
 
-% init coordinate grids
-[r_grd, c_grd, xx, yy] = piv_sample_grid(samplen(1), sampspc(1), xw, yw);
-
-% preallocate (only as reccomended by Mlint)
-sz = size(c_grd);
-u_grd_tm = zeros(sz); 
-v_grd_tm = zeros(sz);  
+% init coordinate grids for accumulated solution at final pass resolution
+[r_soln, c_soln, x_soln, y_soln] = piv_sample_grid(...
+    samplen(end), sampspc(end), xw, yw);
+u_soln_tm = zeros(size(r_soln)); 
+v_soln_tm = zeros(size(r_soln));  
 
 % init deformed images
 ini_tm = ini_ti;
@@ -148,80 +150,58 @@ for pp = 1:np
         fprintf('%s: pass %d of %d: samplen = %d, sampspc = %d, intrlen = %d\n', ...
             mfilename, pp, np, samplen(pp), sampspc(pp), intrlen(pp));
     end
-    
-    if jiggle
-        % EXPERIMENT: "jiggled" sample points
-        if verbose
-            fprintf('%s: experimental "jiggled" sample grid\n', mfilename);
-        end
-        
-        % jiggle sample points by random 1/4 sample spacing
-        sz = size(r_grd);
-        r_smp = r_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
-        c_smp = c_grd + 0.50*sampspc(pp)*(rand(sz)-0.5);
-        
-        % get displacements update using normalized cross correlation
-        [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-            piv_displacement(ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...
-            min_frac_data, min_frac_overlap, verbose);
-    
-    else 
-        % NORMAL: gridded sample points
-    
-        % get displacements update using normalized cross correlation
-        [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = ...
-            piv_displacement(ini_tm, fin_tm, r_grd, c_grd, samplen(pp), intrlen(pp), ...
-            min_frac_data, min_frac_overlap, verbose);
 
-    end
+    % create sampling coordinate grids 
+    [r_grd, c_grd, ~, ~] = piv_sample_grid(samplen(pp), sampspc(pp), xw, yw);
+    
+    % jiggle sample points by random 1/4 sample spacing
+    r_smp = r_grd + 0.50*sampspc(pp)*(rand(size(r_grd)) - 0.5);
+    c_smp = c_grd + 0.50*sampspc(pp)*(rand(size(c_grd)) - 0.5);
+    
+    % get displacement update using normalized cross correlation
+    [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
+        ini_tm, fin_tm, r_smp, c_smp, samplen(pp), intrlen(pp), ...
+        min_frac_data, min_frac_overlap, verbose);
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
+    % NOTE: 0.1 seems too high for valid_eps
+    % NOTE: 8 seems too low for # neighbors
     [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, verbose);
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, 16, valid_max, 0.05, verbose);
     
-    % interpolate valid vectors to sample grid, outside roi is NaN
-    [du_grd_tm, dv_grd_tm] = piv_interp_spline(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_grd, r_grd, roi, ...
+    % NOTE: can probably figure out a way to interpolate to only the ROI at
+    %   higher resolution, or, could do a cheap within-alpha-shape interpolation
+    
+    % NOTE: this interpolation still introduces terrifying ringing
+    
+    % interpolate valid vectors to full accumulated solution grid (expensive)
+    [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
+        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
         spline_tension, verbose);
     
-    % NOTE: with new "jiggle" it is not obvious that I want to reset the ROI
-    %   with every iteration.
+    % update displacement solution
+    u_soln_tm = u_soln_tm + du_soln_tm;
+    v_soln_tm = v_soln_tm + dv_soln_tm;
     
-    % update displacement, points outside roi become NaN
-    u_grd_tm = u_grd_tm + du_grd_tm;
-    v_grd_tm = v_grd_tm + dv_grd_tm;
-    
-    % deform images to midpoint time, if there is another pass
+    % prepare for next pass, if needed
     if pp < np
         
         % deform images to midpoint time
-        ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, 1, verbose);
-        fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_grd, c_grd, u_grd_tm, ...
-            v_grd_tm, roi, spline_tension, 0, verbose);
-        
-        % NOTE: nasty ringing on upsampling, I suspect tension splines are
-        %   ill-suited to the upsampling task (as opposed to interp/extrap)
-        
-        % interpolate to full sample grid (new if changed)
-        % ...always needed b/c the roi can change even if the grid is constant
-        [r_grd_1, c_grd_1, xx, yy] = piv_sample_grid(...
-            samplen(pp+1), sampspc(pp+1), xw, yw);
-        [u_grd_tm, v_grd_tm] = piv_interp_spline(...
-            c_grd, r_grd, u_grd_tm, v_grd_tm, c_grd_1, r_grd_1, true, ...
-            spline_tension, verbose);
-        r_grd = r_grd_1;
-        c_grd = c_grd_1;
-
+        % NOTE: roi variable is unused, set to []
+        ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_soln, c_soln, ...
+            u_soln_tm, v_soln_tm, [], spline_tension, 1, verbose);
+        fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_soln, c_soln, ...
+            u_soln_tm, v_soln_tm, [], spline_tension, 0, verbose); 
     end
     
 end
 % end multipass loop
 
 % convert displacements to world coordinates (assumes equal grid spacing)
-uu = u_grd_tm.*(xw(2)-xw(1));
-vv = v_grd_tm.*(yw(2)-yw(1));
+u_soln_tm = u_soln_tm.*(xw(2)-xw(1));
+v_soln_tm = v_soln_tm.*(yw(2)-yw(1));
+roi_soln = roi;
 
 end
 
