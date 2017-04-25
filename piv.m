@@ -175,14 +175,25 @@ for pp = 1:np
     
     % NOTE: this interpolation still introduces terrifying ringing
     
-    % interpolate valid vectors to full accumulated solution grid (expensive)
-    [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
+    % <EXPERIMENT>
+    % NOTE: alpha is not set, probably should be some multiple of the grid spacing
+    [du_soln_tm, dv_soln_tm] = piv_interp_linear_alpha(...
         c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
-        spline_tension, verbose);
+        3*sampspc(pp), verbose);
+    % </EXPERIMENT>
+    
+    % % <ORIGINAL>
+    % % interpolate valid vectors to full accumulated solution grid (expensive)
+    % [du_soln_tm, dv_soln_tm] = piv_interp_spline(...
+    %     c_pts, r_pts, du_pts_tm, dv_pts_tm, c_soln, r_soln, true, ...
+    %     spline_tension, verbose);
+    % % <ORIGINAL>
     
     % update displacement solution
     u_soln_tm = u_soln_tm + du_soln_tm;
     v_soln_tm = v_soln_tm + dv_soln_tm;
+    
+    keyboard
     
     % prepare for next pass, if needed
     if pp < np
@@ -199,8 +210,8 @@ end
 % end multipass loop
 
 % convert displacements to world coordinates (assumes equal grid spacing)
-u_soln_tm = u_soln_tm.*(xw(2)-xw(1));
-v_soln_tm = v_soln_tm.*(yw(2)-yw(1));
+u_soln_tm = u_soln_tm.*(xw(2) - xw(1));
+v_soln_tm = v_soln_tm.*(yw(2) - yw(1));
 roi_soln = roi;
 
 end
