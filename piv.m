@@ -138,6 +138,14 @@ end
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen] = expand_grid_def(samplen, intrlen, npass);
 
+% init sample grid coordinates
+% NOTE: There is only *one* sample grid, shared between all passes. This is true
+%   because the sample window centers are held fixed, and only thier dimension
+%   is allowed to vary between passes.
+[r_samp_tm, c_samp_tm, x_samp_tm, y_samp_tm] = piv_sample_grid(sampspc, xw, yw);
+
+% START HERE
+
 % init coordinate grids for accumulated solution at final pass resolution
 [r_soln, c_soln, x_soln, y_soln] = piv_sample_grid(...
     samplen(end), sampspc, xw, yw);
