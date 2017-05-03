@@ -30,6 +30,8 @@ function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
 %       locations in rr, cc
 % %
 
+% NOTE: I no longer see why the sample window size matters...
+
 % get sample grid in pixel coordinates
 sz = [length(yw), length(xw)];
 footprint = len + ceil((sz - len)/spc)*spc; 

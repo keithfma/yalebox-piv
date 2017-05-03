@@ -35,8 +35,6 @@ function img_tm = piv_deform_image(img_tx, img_roi_tx, r_grd_tm, c_grd_tm, ...
 
 % TODO: think about what interpolation method to use here...
 
-% NOTE: roi is currently unused
-
 % Note: A few meaningful suffixes are used to help clarify the variable grids
 % and times, specifically:
 % 
@@ -55,38 +53,108 @@ if verbose
 end
 
 % get full-res grid of images coordinates
-[nr_img, nc_img] = size(img_tx);
-[c_img, r_img] = meshgrid(1:nc_img, 1:nr_img); % full-res
+[c_img, r_img] = meshgrid(1:size(img_tx, 2), 1:size(img_tx, 2)); 
 
-% propagate points to target time (half-step forward or back, depending)
+% EXPERIMENT: an easier way?
+% input data now cover the whole sample grid
+% upsample displacement field to grid resolution
+% compute the locations in the input image that get translated to each pixel
+% resample the image at those locations
+% fucking. done.
+
+% get full-res grid of images coordinates
+[c_img, r_img] = meshgrid(1:size(img_tx, 2), 1:size(img_tx, 1)); 
+
+% interpolate displacement field to full image resolution
+% NOTE: this is *much* easier since the input grid is completely populated
+% NOTE: transposed as indicated by warning message
+interpolant = griddedInterpolant(c_grd_tm', r_grd_tm', u_grd_tm', 'spline', 'spline');
+u_img_tm = interpolant(c_img', r_img')';
+interpolant.Values = v_grd_tm';
+v_img_tm = interpolant(c_img', r_img')';
+
+% compute location of image points at target time (half-step forward or back)
 if is_fwd
     % forward image defm, propagate displacements back from midpoint to initial time
-    c_pts_tx = c_grd_tm - 0.5*u_grd_tm;
-    r_pts_tx = r_grd_tm - 0.5*v_grd_tm;    
+    c_img_tx = c_img - 0.5*u_img_tm;
+    r_img_tx = r_img - 0.5*v_img_tm;    
 else
     % backward image defm, propagate displacements fwd from midpoint to final time
-    c_pts_tx = c_grd_tm + 0.5*u_grd_tm;
-    r_pts_tx = r_grd_tm + 0.5*v_grd_tm;    
+    c_img_tx = c_img + 0.5*u_img_tm;
+    r_img_tx = r_img + 0.5*v_img_tm;    
 end
 
-% interpolate vectors to full image resolution as complex field (cheaply)
-[u_img_tx, v_img_tx] = piv_interp_linear(c_pts_tx, r_pts_tx, ...
-    u_grd_tm, v_grd_tm, c_img, r_img, true, verbose);
+% resample image at computed points
+% TODO: there is surely a better resampling tool
+interpolant = griddedInterpolant(c_img', r_img', img_tx', 'spline', 'spline');
+img_tm = interpolant(c_img_tx', r_img_tx')';
 
-% prep displacement matrix for image deformation 
-if is_fwd
-    displacement = -0.5*cat(3, u_img_tx, v_img_tx);
-else
-    displacement = 0.5*cat(3, u_img_tx, v_img_tx);
-end
-
-% deform image to midpoint time
-img_tm = imwarp(img_tx, displacement, 'cubic', 'FillValues', 0);
-
-% deform roi to midpoint time
-% TODO: add ROI as another layer, and warp once.
-tmp = imwarp(double(img_roi_tx), displacement, 'cubic', 'FillValues', 0);
-img_roi_tm = abs(tmp-1) < roi_epsilon;
+% likewise, resample the roi
+interpolant.Values = double(img_roi_tx)';
+img_roi_tm = interpolant(c_img_tx', r_img_tx')';
+img_roi_tm = abs(img_roi_tm - 1) < roi_epsilon;
 
 % re-apply roi
 img_tm(~img_roi_tm) = 0;
+
+% % get extended grid that spans the image coordinates
+% r_spc = r_grd_tm(2,1)-r_grd_tm(1,1);
+% r0 = r_grd_tm(1,1);
+% while r0 > 1
+%     r0 = r0-r_spc;
+% end
+% r1 = r_grd_tm(end,1);
+% while r1 < nr_img
+%     r1 = r1+r_spc;
+% end
+% 
+% c_spc = c_grd_tm(1,2)-c_grd_tm(1,1);
+% c0 = c_grd_tm(1,1);
+% while c0 > 1
+%     c0 = c0-c_spc;
+% end
+% c1 = c_grd_tm(1,end);
+% while c1 < nc_img
+%     c1 = c1+c_spc;
+% end
+% 
+% [c_ext, r_ext] = meshgrid(c0:c_spc:c1, r0:r_spc:r1);
+% 
+% % propagate points to target time (half-step forward or back, depending)
+% if is_fwd
+%     % forward image defm, propagate displacements back from midpoint to initial time
+%     c_pts_tx = c_grd_tm - 0.5*u_grd_tm;
+%     r_pts_tx = r_grd_tm - 0.5*v_grd_tm;    
+% else
+%     % backward image defm, propagate displacements fwd from midpoint to final time
+%     c_pts_tx = c_grd_tm + 0.5*u_grd_tm;
+%     r_pts_tx = r_grd_tm + 0.5*v_grd_tm;    
+% end
+
+% % interpolate scattered to low-res grid using expensive tension splines
+% [u_ext_tx, v_ext_tx] = piv_interp_spline(...
+%     c_pts_tx, r_pts_tx, u_grd_tm, v_grd_tm, c_ext, r_ext, true, tension, verbose);
+% 
+% % interpolate on low-res to full-res grid using cheap linear interpolation
+% interp = griddedInterpolant(r_ext, c_ext, u_ext_tx, 'linear');
+% u_img_tx = interp(r_img, c_img);
+% interp.Values = v_ext_tx;
+% v_img_tx = interp(r_img, c_img);
+% 
+% % prep displacement matrix for image deformation 
+% if is_fwd
+%     displacement = -0.5*cat(3, u_img_tx, v_img_tx);
+% else
+%     displacement = 0.5*cat(3, u_img_tx, v_img_tx);
+% end
+% 
+% % deform image to midpoint time
+% img_tm = imwarp(img_tx, displacement, 'cubic', 'FillValues', 0);
+
+% % deform roi to midpoint time
+% % TODO: add ROI as another layer, and warp once.
+% tmp = imwarp(double(img_roi_tx), displacement, 'cubic', 'FillValues', 0);
+% img_roi_tm = abs(tmp-1) < roi_epsilon;
+% 
+% % re-apply roi
+% img_tm(~img_roi_tm) = 0;
