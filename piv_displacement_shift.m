@@ -106,9 +106,11 @@ for ii = 1:nr
         u_tm(ii, jj) = c_tf - c_ti + dc;
         v_tm(ii, jj) = r_tf - r_ti + dr;
 
-        % TODO: get centroid of the sample window
-        r0 = r_ti;
-        c0 = c_ti;
+        % get centroid of the sample window
+        [r_idx, c_idx] = find(samp ~= 0);
+        num = length(r_idx);
+        r0 = sum(r_samp(r_idx))/num;
+        c0 = sum(c_samp(c_idx))/num;
         
         % update observation point to midpoint time
         r_tm(ii, jj) = r0 + 0.5*v_tm(ii, jj);
@@ -130,12 +132,12 @@ end
 u_tm(~roi) = NaN;
 v_tm(~roi) = NaN;
 
-% if verbose
-%     num_total = numel(roi);
-%     num_found = sum(~isnan(u1(:)));
-%     num_skipped = sum(~roi(:));
-%     num_dropped = sum(roi(:) & isnan(u1(:)));
-%     fprintf('%s: found %d (%.1f%%), skipped %d (%.1f%%), dropped %d (%.1f%%)\n', ...
-%         mfilename, num_found, num_found/num_total*100, num_skipped, ...
-%         num_skipped/num_total*100, num_dropped, num_dropped/num_total*100);
-% end
+if verbose
+    num_total = numel(roi);
+    num_found = sum(~isnan(u_tm(:)));
+    num_skipped = sum(~roi(:));
+    num_dropped = sum(roi(:) & isnan(u_tm(:)));
+    fprintf('%s: found %d (%.1f%%), skipped %d (%.1f%%), dropped %d (%.1f%%)\n', ...
+        mfilename, num_found, num_found/num_total*100, num_skipped, ...
+        num_skipped/num_total*100, num_dropped, num_dropped/num_total*100);
+end
