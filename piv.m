@@ -1,4 +1,4 @@
-function [x_samp_tm, y_samp_tm, u_samp_tm, v_samp_tm, roi_samp_tm] = piv(...
+function [x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm] = piv(...
     ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
     intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
     min_frac_overlap, verbose)                 
@@ -138,17 +138,11 @@ end
 % expand grid definition vectors to reflect the number of passes
 [samplen, intrlen] = expand_grid_def(samplen, intrlen, npass);
 
-% init sample grid
-% NOTE: There is only *one* sample grid, shared between all passes. This is true
-%   because the sample window centers are held fixed, and only thier dimension
-%   is allowed to vary between passes.
-[r_samp_tm, c_samp_tm, x_samp_tm, y_samp_tm] = piv_sample_grid(sampspc, xw, yw);
-u_samp_tm = zeros(size(r_samp_tm));
-v_samp_tm = zeros(size(r_samp_tm));
-
-% init deformed images
-ini_tm = ini_ti;
-fin_tm = fin_tf;
+% init sample grid and solution
+% NOTE: expect I will interpolate to this grid after the last step
+[r_grd_tm, c_grd_tm, x_grd_tm, y_grd_tm] = piv_sample_grid(sampspc, xw, yw);
+u_grd_tm = zeros(size(r_grd_tm));
+v_grd_tm = zeros(size(c_grd_tm));
 
 % multipass loop
 np = length(samplen);
@@ -159,52 +153,57 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), intrlen(pp));
     end
     
-    % jiggle sample points by random 1/4 sample spacing
-    r_pts = r_samp_tm + 0.50*sampspc*(rand(size(r_samp_tm)) - 0.5);
-    c_pts = c_samp_tm + 0.50*sampspc*(rand(size(c_samp_tm)) - 0.5);
+    % % jiggle sample points by random 1/4 sample spacing
+    % r_pts = r_grd_tm + 0.50*sampspc*(rand(size(r_grd_tm)) - 0.5);
+    % c_pts = c_grd_tm + 0.50*sampspc*(rand(size(c_grd_tm)) - 0.5);
     
     % get displacement update using normalized cross correlation
-    [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
-        ini_tm, fin_tm, r_pts, c_pts, samplen(pp), intrlen(pp), ...
-        min_frac_data, min_frac_overlap, verbose);
+    
+    [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm] = piv_displacement_shift(...
+        ini_ti, fin_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
+        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, verbose);
+    
+    % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
+    %     ini_tm, fin_tm, r_pts, c_pts, samplen(pp), intrlen(pp), ...
+    %     min_frac_data, min_frac_overlap, verbose);
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
     % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
-    [du_pts_tm, dv_pts_tm] = piv_validate_pts_nmed(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, 8, valid_max, valid_eps, verbose);
-    
-    % TODO: recompute ROI as alpha shape?
-    
-    % new insight --- there is only the final solution grid, so I think I can keep track of the ROI like I did before
+    % TODO: Needs a general review
+    [u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
+     
+%     % get roi for sample grid
+%     % TODO: recompute ROI as alpha shape?
+%     % TODO: see end, and delete if not used
+%     roi_grd_tm = roi_pts_tm; % the lazy way
     
     % interpolate valid vectors to full sample grid (expensive)
-    [du_samp_tm, dv_samp_tm] = piv_interp_spline(...
-        c_pts, r_pts, du_pts_tm, dv_pts_tm, c_samp_tm, r_samp_tm, true, ...
-        spline_tension, verbose);
+    [u_grd_tm, v_grd_tm] = piv_interp_spline(...
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm, ...
+        c_grd_tm, r_grd_tm, true, spline_tension, verbose);
     
-    % update displacement solution
-    u_samp_tm = u_samp_tm + du_samp_tm;
-    v_samp_tm = v_samp_tm + dv_samp_tm;    
-    
-    % deform images (to midpoint time) for next pass
-    if pp < np
-        ini_tm = piv_deform_image(ini_ti, ini_roi_ti, r_samp_tm, c_samp_tm, ...
-            u_samp_tm, v_samp_tm, [], spline_tension, 1, verbose);
-        fin_tm = piv_deform_image(fin_tf, fin_roi_tf, r_samp_tm, c_samp_tm, ...
-            u_samp_tm, v_samp_tm, [], spline_tension, 0, verbose); 
-    end
-    keyboard
+%     % interpolate valid vectors to the last ROI
+%     % NOTE: outside ROI is set to 0, this avoids crazy guesses for later passes
+%     % TODO: recompute ROI as alpha shape?
+%     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
+%         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm, ...
+%         c_grd_tm, r_grd_tm, roi_pts_tm, spline_tension, verbose);
     
 end
 % end multipass loop
 
-% convert displacements to world coordinates (assumes equal grid spacing) NOTE:
-% TODO: Is there some off-by-one error here? My v-displacements have always
-% seemed biased...
-u_samp_tm = u_samp_tm.*(xw(2) - xw(1));
-v_samp_tm = v_samp_tm.*(yw(2) - yw(1));
-roi_samp_tm = roi; % use the final ROI
+% convert displacements to world coordinates (assumes equal grid spacing) 
+% TODO: Is there some off-by-one error here? My v-displacements have always seemed biased...
+u_grd_tm = u_grd_tm.*(xw(2) - xw(1));
+v_grd_tm = v_grd_tm.*(yw(2) - yw(1));
+roi_grd_tm = roi_pts_tm; % use the final ROI
+
+% re-apply last ROI
+% TODO: does this make sense? I think the strain routine just interpolates again.
+u_grd_tm(~roi_grd_tm) = NaN;
+v_grd_tm(~roi_grd_tm) = NaN;
 
 end
 
