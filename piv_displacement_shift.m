@@ -1,7 +1,7 @@
 
 function [r_tm, c_tm, u_tm, v_tm, roi] = ...
     piv_displacement_shift(ini, fin, r_tm, c_tm, u_tm, v_tm, samplen, intrlen, min_frac_data, ...
-        min_frac_overlap, verbose)
+        min_frac_overlap, high_quality, verbose)
 %
 % NEW VERSION: displace sample and interrogation windows from midpoint time,
 % assumes NO image deformation. Below docs are out of date
@@ -85,13 +85,19 @@ for ii = 1:nr
         xcr(overlap < min_overlap) = 0;
         
         % find peak with subpixel precision
+        
+        % TODO: include two options, a 'rough' option for initial passes, and a
+        % 'fine' option for the last pass
+        
         % NOTE: two options below have approx the same accuracy in aggregate,
         %   the first is ~25% faster, but error distribution is multimodal,
         %   second is slower, but error distribution is approx normal.
+        if high_quality
+            [r_peak, c_peak] = piv_peak_optim_interp(xcr, 1e-6); % FINE
+        else
+            [r_peak, c_peak] = piv_peak_gauss2d(xcr); % ROUGH
+        end
         
-        [r_peak, c_peak] = piv_peak_interp(xcr, 0.01);
-        % [r_peak, c_peak] = piv_peak_optim_interp(xcr, 1e-6);
-
         % compute relative displacement, subpixel precision
         dc = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
         dr = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));

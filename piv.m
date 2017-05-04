@@ -158,10 +158,10 @@ for pp = 1:np
     % c_pts = c_grd_tm + 0.50*sampspc*(rand(size(c_grd_tm)) - 0.5);
     
     % get displacement update using normalized cross correlation
-    
+    % TODO: select quality depending on iteration
     [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm] = piv_displacement_shift(...
         ini_ti, fin_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
-        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, verbose);
+        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, false, verbose);
     
     % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
     %     ini_tm, fin_tm, r_pts, c_pts, samplen(pp), intrlen(pp), ...
@@ -195,7 +195,6 @@ end
 % end multipass loop
 
 % convert displacements to world coordinates (assumes equal grid spacing) 
-% TODO: Is there some off-by-one error here? My v-displacements have always seemed biased...
 u_grd_tm = u_grd_tm.*(xw(2) - xw(1));
 v_grd_tm = v_grd_tm.*(yw(2) - yw(1));
 roi_grd_tm = roi_pts_tm; % use the final ROI
