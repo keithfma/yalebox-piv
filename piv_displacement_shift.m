@@ -55,8 +55,8 @@ for ii = 1:nr
         r_ti = r_tm(ii, jj) - 0.5*v_tm(ii, jj);
         c_ti = c_tm(ii, jj) - 0.5*u_tm(ii, jj);
         [samp, r_samp, c_samp] = piv_window_shift(ini, r_ti, c_ti, samplen);        
-        r_ti = r_samp(1) + 0.5*(r_samp(end) - r_samp(1));
-        c_ti = c_samp(1) + 0.5*(c_samp(end) - c_samp(1));
+        r_ti = 0.5*(r_samp(end) + r_samp(1));
+        c_ti = 0.5*(c_samp(end) + c_samp(1));
         
         % skip if sample window is too empty
         frac_data = sum(samp(:) ~= 0)/numel(samp);
@@ -70,8 +70,8 @@ for ii = 1:nr
         r_tf = r_tm(ii, jj) + 0.5*v_tm(ii, jj);
         c_tf = c_tm(ii, jj) + 0.5*u_tm(ii, jj);
         [intr, r_intr, c_intr] = piv_window_shift(fin, r_tf, c_tf, intrlen);
-        r_tf = r_intr(1) + 0.5*(r_intr(end) - r_intr(1));
-        c_tf = c_intr(1) + 0.5*(c_intr(end) - c_intr(1));
+        r_tf = 0.5*(r_intr(end) + r_intr(1));
+        c_tf = 0.5*(c_intr(end) + c_intr(1));
         
         % compute masked, normalized cross correlation
         [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
@@ -85,10 +85,6 @@ for ii = 1:nr
         xcr(overlap < min_overlap) = 0;
         
         % find peak with subpixel precision
-        
-        % TODO: include two options, a 'rough' option for initial passes, and a
-        % 'fine' option for the last pass
-        
         % NOTE: two options below have approx the same accuracy in aggregate,
         %   the first is ~25% faster, but error distribution is multimodal,
         %   second is slower, but error distribution is approx normal.
@@ -98,13 +94,9 @@ for ii = 1:nr
             [r_peak, c_peak] = piv_peak_gauss2d(xcr); % ROUGH
         end
         
-        % compute relative displacement, subpixel precision
-        dc = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
-        dr = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
-        
-        % compute total displacement
-        u_tm(ii, jj) = c_tf - c_ti + dc;
-        v_tm(ii, jj) = r_tf - r_ti + dr;
+        % compute displacement
+        u_tm(ii, jj) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
+        v_tm(ii, jj) = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
 
         % get centroid of the sample window
         [r_idx, c_idx] = find(samp ~= 0);
