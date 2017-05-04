@@ -158,14 +158,15 @@ for pp = 1:np
     % c_pts = c_grd_tm + 0.50*sampspc*(rand(size(c_grd_tm)) - 0.5);
     
     % get displacement update using normalized cross correlation
-    % TODO: select quality depending on iteration
+    if pp == np
+        quality = true;
+    else
+        quality = false;
+    end
     [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm] = piv_displacement_shift(...
         ini_ti, fin_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
-        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, true, verbose);
-    
-    % [r_pts, c_pts, du_pts_tm, dv_pts_tm, roi] = piv_displacement(...
-    %     ini_tm, fin_tm, r_pts, c_pts, samplen(pp), intrlen(pp), ...
-    %     min_frac_data, min_frac_overlap, verbose);
+        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, quality, ...
+        verbose);
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
@@ -178,6 +179,9 @@ for pp = 1:np
 %     % TODO: recompute ROI as alpha shape?
 %     % TODO: see end, and delete if not used
 %     roi_grd_tm = roi_pts_tm; % the lazy way
+
+    % TODO: Cheap interpolation should be fine until the last pass - since the
+    % solution is not accumulated
 
     % interpolate valid vectors to full sample grid (expensive)
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
