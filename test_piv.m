@@ -17,14 +17,15 @@ function [u_piv, v_piv, u_exact_at_piv, v_exact_at_piv] = test_piv(varargin)
 %       extract and deform. Must contain only sand (all within the ROI),
 %       in meters, default = [-0.12, 0.005, 0.092, 0.07]
 %   'translation': 2-element vector specifying spatially constant translation
-%       in meters, default = [0.005, 0.00]
+%       in pixels, default = [10, 0.00]
 %   'shear_theta': Scalar, orientation of shear band specified as
 %       counter-clockwise angle to the positive x-axis, in degrees, limited to
 %       range 0 - 90, default = 45
-%   'shear_width': Scalar, width of shear band, in meters, default = 0.05   
+%   'shear_width': Scalar, width of shear band, as fraction of image height,
+%       default = 0.25   
 %   'shear_mag': Scalar, displacement difference across shear band, applied as a
 %       0.5*shear_mag displacement on one side and a -0.5*shear_mag displacement
-%       on the other, default = sqrt(2)*0.005
+%       on the other, in pixels default = 10
 %   'pad_width': Scalar, width of edge padding to add to image (to accomodate
 %       edge displacements) as a fraction of image size, default = 0.1
 %   'samplen': piv() parameter, default [60, 30]
@@ -55,13 +56,13 @@ ip.addParameter('image_index', 1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 ip.addParameter('image_pos', [-0.12, 0.005, 0.092, 0.07], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
-ip.addParameter('translation', [0.005, 0.00], ...
+ip.addParameter('translation', [10, 0.00], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
 ip.addParameter('shear_theta', 45, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=' 90}));
-ip.addParameter('shear_width', 0.05, ...
+ip.addParameter('shear_width', 0.25, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-ip.addParameter('shear_mag', 0.01, ...
+ip.addParameter('shear_mag', 10, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
 ip.addParameter('pad_width', 0.1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
@@ -112,18 +113,11 @@ if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
 end
 
-%% convert units from world (meters) to image (pixels)
+%% convert units to image (pixels)
 % NOTE: all the analysis from here on out is in pixels, these are the units that
 %   matter to the PIV routines.
 
-% conversion factors
-m_per_pix = mean([diff(xx); diff(yy)]); % grid is regular to single precision
-pix_per_m = 1/m_per_pix;
-
-% convert parameters
-args.translation = args.translation*pix_per_m;
-args.shear_width = args.shear_width*pix_per_m;
-args.shear_mag = args.shear_mag*pix_per_m;
+args.shear_width = args.shear_width*size(img,1);
 
 %% pad image boundaries (and coordinates) to accomodate edge displacements
 
