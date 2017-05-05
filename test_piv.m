@@ -343,8 +343,6 @@ xlabel('Error [degrees]');
 ylabel('Count [pixels]');
 
 
-% keyboard
-
 function [u_grd, v_grd] = get_exact_uv(...
         x_grd, y_grd, translation, shear_theta, shear_width, shear_mag)
 % function [uu, vv] = get_exact_uv(...
@@ -377,7 +375,7 @@ shear_scale(shear_scale < -0.5) = -0.5;
 shear_scale(shear_scale > 0.5) = 0.5;
 
 % apply shear displacements
-u_shear = shear_scale*cosd(shear_theta)*shear_mag;
-v_shear = shear_scale*sind(shear_theta)*shear_mag;
+u_shear = shear_scale*shear_mag;
+v_shear = shear_scale*shear_mag;
 u_grd = u_grd + u_shear;
 v_grd = v_grd + v_shear;
