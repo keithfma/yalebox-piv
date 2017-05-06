@@ -162,16 +162,18 @@ ini_roi = logical(round(ini_roi));
 fin_roi = imwarp(double(roi), -0.5*cat(3, u_exact_img, v_exact_img), 'cubic');
 fin_roi = logical(round(fin_roi));
 
+% enforce limits by threshold
+% NOTE: could stretch limits instead, unclear if this matters
+% NOTE: add a tiny offset so that no sand pixels are exactly zero
+tiny = 1e-5;
+ini(ini < 0) = tiny;
+ini(ini > 1) = 1;
+fin(fin < 0) = tiny;
+fin(fin > 1) = 1;
+
 % reapply mask
 ini(~ini_roi) = 0;
 fin(~fin_roi) = 0;
-
-% enforce limits by threshold
-% NOTE: could stretch limits instead, unclear if this matters
-ini(ini < 0) = 0;
-ini(ini > 1) = 1;
-fin(fin < 0) = 0;
-fin(fin > 1) = 1;
 
 % display initial and final synthetic images
 figure('Position', get(0, 'ScreenSize'))
@@ -199,6 +201,10 @@ end
     args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
     args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
     args.verbose);
+
+% apply roi mask to velocity fields
+u_piv(~roi_piv) = NaN;
+v_piv(~roi_piv) = NaN;
 
 % display exact and measure displacement fields
 figure('Position', get(0, 'ScreenSize'))

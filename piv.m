@@ -1,7 +1,10 @@
 function [x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm] = piv(...
     ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
     intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
-    min_frac_overlap, verbose)                 
+    min_frac_overlap, verbose)
+
+% TODO: return scattered points from last pass too
+
 % PIV analysis for Yalebox image data
 %
 % Arguments, input:
@@ -78,7 +81,7 @@ function [x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm] = piv(...
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 %
 % [4] Wessel, P., & Bercovici, D. (1998). Interpolation with splines in tension:
-%   A Green’s function approach. Mathematical Geology, 30(1), 77–93. Retrieved
+%   A Green's function approach. Mathematical Geology, 30(1), 77-93. Retrieved
 %   from http://link.springer.com/article/10.1023/A:1021713421882
 
 % EXPERIMENT toggle
@@ -153,10 +156,6 @@ for pp = 1:np
             mfilename, pp, np, samplen(pp), intrlen(pp));
     end
     
-    % % jiggle sample points by random 1/4 sample spacing
-    % r_pts = r_grd_tm + 0.50*sampspc*(rand(size(r_grd_tm)) - 0.5);
-    % c_pts = c_grd_tm + 0.50*sampspc*(rand(size(c_grd_tm)) - 0.5);
-    
     % get displacement update using normalized cross correlation
     if pp == np
         quality = true;
@@ -168,6 +167,9 @@ for pp = 1:np
         samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, quality, ...
         verbose);
     
+    % TODO: returned points should just be a list of valid points, no need to
+    % format it as a grid anymore
+    
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
     % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
@@ -175,38 +177,28 @@ for pp = 1:np
     [u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
      
-%     % get roi for sample grid
-%     % TODO: recompute ROI as alpha shape?
-%     % TODO: see end, and delete if not used
-%     roi_grd_tm = roi_pts_tm; % the lazy way
+    % TODO: as above, just return a shorter list
 
-    % TODO: Cheap interpolation should be fine until the last pass - since the
-    % solution is not accumulated
-
+    % TODO: It is probably also OK to evolve the sample grid size, as in
+    % previous versions.
+    
     % interpolate valid vectors to full sample grid (expensive)
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm, ...
         c_grd_tm, r_grd_tm, true, spline_tension, verbose);
     
-%     % interpolate valid vectors to the last ROI
-%     % NOTE: outside ROI is set to 0, this avoids crazy guesses for later passes
-%     % TODO: recompute ROI as alpha shape?
-%     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
-%         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm, ...
-%         c_grd_tm, r_grd_tm, roi_pts_tm, spline_tension, verbose);
-    
 end
 % end multipass loop
+
+% estimate final ROI from alpha hull of final pass sample points
+% NOTE: any "mistakes" here are recoverable from original data, which is saved
+alpha = 5*sampspc; % want a single ROI without holes
+shp = alphaShape(c_pts_tm(roi_pts_tm), r_pts_tm(roi_pts_tm), alpha);
+roi_grd_tm = inShape(shp, c_grd_tm, r_grd_tm);
 
 % convert displacements to world coordinates (assumes equal grid spacing) 
 u_grd_tm = u_grd_tm.*(xw(2) - xw(1));
 v_grd_tm = v_grd_tm.*(yw(2) - yw(1));
-roi_grd_tm = roi_pts_tm; % use the final ROI
-
-% re-apply last ROI
-% TODO: does this make sense? I think the strain routine just interpolates again.
-u_grd_tm(~roi_grd_tm) = NaN;
-v_grd_tm(~roi_grd_tm) = NaN;
 
 end
 
