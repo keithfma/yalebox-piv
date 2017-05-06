@@ -171,8 +171,23 @@ for pp = 1:np
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
     
     [c_pts_tm1, r_pts_tm1, u_pts_tm1, v_pts_tm1] = piv_validate_pts_nmed_new(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 3*samp_spc, valid_max, valid_eps, verbose);
     
+    % plot the two options
+    figure
+    
+    subplot(2,1,1)
+    scatter(c_pts_tm0(:), r_pts_tm0(:), [], u_pts_tm0(:), 'filled');
+    title('Orig')
+    axis equal tight
+    colorbar
+    
+    subplot(2,1,2)
+    scatter(c_pts_tm1(:), r_pts_tm1(:), [], u_pts_tm1(:), 'filled');
+    title('New')
+    axis equal tight
+    colorbar
+   
     keyboard
     
     c_pts_tm = c_pts_tm0;
