@@ -1,4 +1,4 @@
-function [r_sample, c_sample, x_sample_vector, y_sample_vector] = ...
+function [r_sample, c_sample] = ...
              piv_sample_grid(sample_spc, x_world, y_world)
 % function [r_sample, c_sample, x_sample_vector, y_sample_vector] = ...
 %              piv_sample_grid(sample_spc, x_world, y_world)
@@ -13,11 +13,8 @@ function [r_sample, c_sample, x_sample_vector, y_sample_vector] = ...
 %   r_sample, c_sample = 2D matrix, integer, coordinate matrices, as constructed
 %       by meshgrid, for the sample grid in the y (a.k.a. row) and x (a.k.a.
 %       column) directions, in pixels
-%   x_sample_vector, y_sample_vector = Vectors, double, world coordinate vectors
-%       corresponding to the locations in r_sample, c_sample
 % %
 
-% compute sample grid in pixel (intrinsic) coordinates
 remainder = mod((length(y_world)-1), sample_spc);
 r_sample_vector = (1 + remainder/2):sample_spc:length(y_world);
 
@@ -25,12 +22,6 @@ remainder = mod((length(x_world)-1), sample_spc);
 c_sample_vector = (1 + remainder/2):sample_spc:length(x_world);
 
 [c_sample, r_sample] = meshgrid(c_sample_vector, r_sample_vector);
-
-% interpolate pixel coordinates to world coordinates
-x_sample_vector = interp1(1:length(x_world), x_world, c_sample_vector, ...
-                          'linear', 'extrap');
-y_sample_vector = interp1(1:length(y_world), y_world, r_sample_vector, ...
-                          'linear', 'extrap');
 
 % % <DEBUG>: Check grid edges to confirm it is centered in the domain
 % fprintf('Left edge [pixel]: %f, Right edge [pixel]: %f\n', ...

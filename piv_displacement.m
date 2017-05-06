@@ -48,10 +48,10 @@ for ii = 1:nr
         
         % get sample window, offset to initial time
         % NOTE: size(samp) may *not* be [samplen, samplen] due to rounding, it
-        %   follows that the center point must be re-computed
+        %   follows that the true center point may not be r_ti, c_ti, that's OK
         r_ti = r_tm_i(ii, jj) - 0.5*v_tm_i(ii, jj);
         c_ti = c_tm_i(ii, jj) - 0.5*u_tm_i(ii, jj);
-        [samp, r_samp, c_samp, r_ti, c_ti] = piv_window(ini, r_ti, c_ti, samplen); 
+        [samp, r_samp, c_samp] = piv_window(ini, r_ti, c_ti, samplen); 
         
         % skip if sample window is too empty
         frac_data = sum(samp(:) ~= 0)/numel(samp);
@@ -61,10 +61,10 @@ for ii = 1:nr
         
         % get interrogation window, offset to final time
         % NOTE: size(intr) may *not* be [intrlen, intrlen] due to rounding, it
-        %   follows that the center point must be re-computed
+        %   follows that the true center point may not be r_ti, c_ti, that's OK
         r_tf = r_tm_i(ii, jj) + 0.5*v_tm_i(ii, jj);
         c_tf = c_tm_i(ii, jj) + 0.5*u_tm_i(ii, jj);
-        [intr, r_intr, c_intr, r_tf, c_tf] = piv_window(fin, r_tf, c_tf, intrlen);
+        [intr, r_intr, c_intr] = piv_window(fin, r_tf, c_tf, intrlen);
         
         % compute masked, normalized cross correlation
         [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);

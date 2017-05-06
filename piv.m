@@ -1,4 +1,4 @@
-function [x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm] = piv(...
+function result = piv(...
     ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
     intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
     min_frac_overlap, verbose)
@@ -52,6 +52,9 @@ function [x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm] = piv(...
 %       output messages
 %
 % Arguments, output:
+%
+% TODO: return results as a struct
+% x_pts_tm, y_pts_tm, u_pts_tm, v_pts_tm, x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm
 %
 %   xx, yy = Vector, double, coordinate vectors for the final output sample
 %       grid, in world coordinate units
@@ -143,7 +146,7 @@ end
 
 % init sample grid and solution
 % NOTE: expect I will interpolate to this grid after the last step
-[r_grd_tm, c_grd_tm, x_grd_tm, y_grd_tm] = piv_sample_grid(sampspc, xw, yw);
+[r_grd_tm, c_grd_tm] = piv_sample_grid(sampspc, xw, yw);
 u_grd_tm = zeros(size(r_grd_tm));
 v_grd_tm = zeros(size(c_grd_tm));
 
@@ -162,29 +165,25 @@ for pp = 1:np
     else
         quality = false;
     end
-    [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm] = piv_displacement(...
+    [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm] = piv_displacement(...
         ini_ti, fin_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
         samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, quality, ...
         verbose);
     
-    % TODO: returned points should just be a list of valid points, no need to
-    % format it as a grid anymore
+    % TODO: start here
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
     % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
     % TODO: Needs a general review
+    % TODO: Update to work with new pts vectors
     [u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
-     
-    % TODO: as above, just return a shorter list
-
-    % TODO: It is probably also OK to evolve the sample grid size, as in
-    % previous versions.
     
     % interpolate valid vectors to full sample grid (expensive)
+    % TODO: Update to not use any input ROI
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, roi_pts_tm, ...
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, ...
         c_grd_tm, r_grd_tm, true, spline_tension, verbose);
     
 end
@@ -193,16 +192,65 @@ end
 % estimate final ROI from alpha hull of final pass sample points
 % NOTE: any "mistakes" here are recoverable from original data, which is saved
 alpha = 5*sampspc; % want a single ROI without holes
-shp = alphaShape(c_pts_tm(roi_pts_tm), r_pts_tm(roi_pts_tm), alpha);
+shp = alphaShape(c_pts_tm, r_pts_tm, alpha);
 roi_grd_tm = inShape(shp, c_grd_tm, r_grd_tm);
 
-% convert displacements to world coordinates (assumes equal grid spacing) 
-u_grd_tm = u_grd_tm.*(xw(2) - xw(1));
-v_grd_tm = v_grd_tm.*(yw(2) - yw(1));
+% convert all output variables to world coordinate system
+[x_pts_tm, y_pts_tm] = coord_intrinsic_to_world(r_pts_tm, c_pts_tm, xw, yw);
+[x_grd_tm, y_grd_tm] = coord_intrinsic_to_world(r_grd_tm, c_grd_tm, xw, yw);
+[u_pts_tm, v_pts_tm] = displ_intrinsic_to_world(u_pts_tm, v_pts_tm, xw, yw);
+[u_grd_tm, v_grd_tm] = displ_intrinsic_to_world(u_grd_tm, v_grd_tm, xw, yw);
+
+% package results as structure
+result = struct(...
+    'x_pts', x_pts_tm, 'y_pts', y_pts_tm, 'u_pts', u_pts_tm, 'v_pts', v_pts_tm, ...
+    'x_grd', x_grd_tm, 'y_grd', y_grd_tm, 'u_grd', u_grd_tm, 'v_grd', v_grd_tm, ...
+    'roi_grd', roi_grd_tm);
 
 end
 
 %% subroutines
+
+function [xx, yy] = coord_intrinsic_to_world(rr, cc, xx_ref, yy_ref)
+%
+% Convert intrinsic (pixel) coordinates to world coordinates
+%
+% Arguments:
+%   rr, cc: Row and column intrinsic coordinates to be converted
+%   xx_ref, yy_ref: Vectors, reference coordinate vectors
+%   xx, yy: World coordinates correspondint to rr, cc
+%
+% Note: Assumes that xx_ref, yy_ref define a regular coordinate grid with no
+%   rotation (i.e. x = f(r, c) = f(c)), and that they are in the same intrinsic
+%   coordinate system as rr, cc (i.e. the world coordinate position of the point
+%   rr = 1, cc = 1 is exactly xx = xx_ref(1), yy = yy_ref(1))
+% % 
+
+xx = interp1(1:length(xx_ref), xx_ref, cc, 'linear', 'extrap');
+yy = interp1(1:length(yy_ref), yy_ref, rr, 'linear', 'extrap');
+
+end
+
+function [uw, vw] = displ_intrinsic_to_world(ui, vi, xx_ref, yy_ref)
+%
+% Convert displacements from intrisic (pixels) to world units
+%
+% Arguments:
+%   ui, vi: Row and column displacements in intrinsic coordinates to convert
+%   xx_ref, yy_ref: Vectors, reference coordinate vectors
+%   uf, vf: x- and y- direction displacements in world coordinates
+%
+% Note: Assumes that xx_ref, yy_ref define a regular coordinate grid with no
+%   rotation.
+% % 
+
+dx = (xx_ref(2) - xx_ref(1));
+uw = ui*dx;
+
+dy = (yy_ref(2) - yy_ref(1));
+vw = vi*dy;
+
+end
 
 function [slen_ex, ilen_ex] = expand_grid_def(slen, ilen, np)
 %

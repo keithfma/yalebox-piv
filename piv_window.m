@@ -1,7 +1,5 @@
-function [win, r_win, c_win, r_win_cntr, c_win_cntr] = piv_window(...
-    img, r_cntr, c_cntr, len)
-% function [win, r_win, c_win, r_win_cntr, c_win_cntr] = piv_window(...
-%     img, r_cntr, c_cntr, len)
+function [win, r_win, c_win] = piv_window(img, r_cntr, c_cntr, len)
+% function [win, r_win, c_win] = piv_window(img, r_cntr, c_cntr, len)
 % 
 % Extract and return a sample or interrogation window from the input image,
 % padding as needed, and its coordinate information Regions without data are
@@ -23,10 +21,6 @@ function [win, r_win, c_win, r_win_cntr, c_win_cntr] = piv_window(...
 %   win = 2D matrix, double, subset of img, possibly with zero padding
 %
 %   r_win, c_win = Vector, row- and column-coordinates for the returned window
-% 
-%   r_win_cntr, c_win_cntr = Scalar, row- and column-coordinates for the center
-%       of the returned window. Note that this is *not* always the same as the
-%       requested point due to rounding of the window extent.
 % %
 
 % get window limits, may lie outside the image domain
@@ -39,10 +33,6 @@ c1 =  ceil(c_cntr + hlen);
 % create coordinate vectors (pixel / intrinsic units)
 r_win = r0:r1;
 c_win = c0:c1;
-
-% compute true center point of the returned window (account for rounding extent)
-r_win_cntr = 0.5*(r_win(1) + r_win(end));
-c_win_cntr = 0.5*(c_win(1) + c_win(end));
 
 % get pad size, restrict window indices to valid range
 pl = max(0, 1-c0);
