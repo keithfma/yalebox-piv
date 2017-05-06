@@ -176,12 +176,10 @@ for pp = 1:np
     % NOTE: neighborhood is hard-coded here
     % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
     % TODO: Needs a general review
-    % TODO: Update to work with new pts vectors
-    [u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
+    [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
     
     % interpolate valid vectors to full sample grid (expensive)
-    % TODO: Update to not use any input ROI
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, ...
         c_grd_tm, r_grd_tm, true, spline_tension, verbose);

@@ -1,4 +1,5 @@
-function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, num_nbr, max_norm_res, epsilon, verbose)
+function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
+    cc, rr, uu, vv, num_nbr, max_norm_res, epsilon, verbose)
 %
 % Validate the displacement vector field on a scattered grid using a
 % normalized median test including the nearest num_nbr neighbors.
@@ -31,11 +32,18 @@ function [uu, vv] = piv_validate_pts_nmed(cc, rr, uu, vv, num_nbr, max_norm_res,
 % PIV data. Experiments in Fluids, 39(6), 1096???1100.
 % doi:10.1007/s00348-005-0016-6
 
-% initialize
-valid = ~isnan(vv) & ~isnan(uu);
-num_valid_init = sum(valid(:));
-kdtree = KDTreeSearcher([cc(valid), rr(valid)]);
+% check inputs
+validateattributes(uu, {'numeric'}, {'nonnan'});
+validateattributes(vv, {'numeric'}, {'nonnan', 'size', size(uu)});
+validateattributes(cc, {'numeric'}, {'nonnan', 'size', size(uu)});
+validateattributes(rr, {'numeric'}, {'nonnan', 'size', size(uu)});
 
+% initialize
+valid = true(size(uu));
+num_valid_init = numel(uu);
+kdtree = KDTreeSearcher([cc(:), rr(:)]);
+
+% TODO: this coplexity is obsolete
 ind = reshape(1:numel(uu), size(uu));
 ind = ind(valid)'; % linear index for initially valid points, must be a row vector, so we can loop over it
 
@@ -72,12 +80,14 @@ for kk = ind
     
 end
 
-% set invalid points to NaN
-uu(~valid) = NaN;
-vv(~valid) = NaN;
+% drop all invalid points
+uu = uu(valid);
+vv = vv(valid);
+cc = cc(valid);
+rr = rr(valid);
 
 if verbose
-    num_invalidated = num_valid_init-sum(valid(:));
+    num_invalidated = num_valid_init - numel(uu);
     pct_invalidated = 100*num_invalidated/num_valid_init;
     fprintf('%s: invalidated %d (%.1f%%)\n', ...
         mfilename, num_invalidated, pct_invalidated);
