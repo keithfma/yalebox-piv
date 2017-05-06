@@ -1,5 +1,5 @@
 function [u_to, v_to] = piv_interp_spline(...
-    x_from, y_from, u_from, v_from, roi_from, x_to, y_to, roi_to, tension, verbose)
+    x_from, y_from, u_from, v_from, x_to, y_to, roi_to, tension, verbose)
 % function [u_to, v_to] = piv_interp_spline(...
 %     x_from, y_from, u_from, v_from, x_to, y_to, roi_to, tension, verbose)
 %
@@ -11,8 +11,6 @@ function [u_to, v_to] = piv_interp_spline(...
 %   x_from, y_from = Location of scattered input points
 %   u_from, v_from = Components of displacement vectors at scattered input points,
 %       NaN values are ignored
-%   roi_from = Region-of-interest mask for input, true elements are output. If a
-%       scalar true is provided, the whole domain is used.
 %   x_to, y_to = Location of output points
 %   roi_to = Region-of-interest mask for output, true elements are output. If a
 %       scalar true is provided, the whole domain is used.
@@ -26,17 +24,14 @@ function [u_to, v_to] = piv_interp_spline(...
 % %
 
 % parse roi input arguments
-if isscalar(roi_from) && roi_from
-    roi_from = true(size(x_from));
-end
-from = roi_from & ~isnan(u_from);
+from = ~isnan(u_from);
 if isscalar(roi_to) && roi_to
     roi_to = true(size(x_to));
 end
     
 if verbose
     fprintf('%s: source pts = %d, dest pts = %d, tension = %f\n',...
-        mfilename, sum(roi_from(:)), sum(roi_to(:)), tension);
+        mfilename, sum(from(:)), sum(roi_to(:)), tension);
 end
 
 % interpolate as a complex field (~2x faster)

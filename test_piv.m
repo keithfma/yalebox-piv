@@ -196,11 +196,18 @@ if args.verbose
     fprintf('%s: run PIV analysis\n', mfilename);
 end
 
-[x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(... 
+% [x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(... 
+result = piv(...     
     ini, fin, ini_roi, fin_roi, x_img, y_img, args.samplen, args.sampspc, ...
     args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
     args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
     args.verbose);
+
+x_piv = result.x_grd(1,:); % cludge
+y_piv = result.y_grd(:,1);
+u_piv = result.u_grd;
+v_piv = result.v_grd;
+roi_piv = result.roi_grd;
 
 % apply roi mask to velocity fields
 u_piv(~roi_piv) = NaN;
