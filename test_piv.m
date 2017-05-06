@@ -196,15 +196,17 @@ if args.verbose
     fprintf('%s: run PIV analysis\n', mfilename);
 end
 
-% [x_piv, y_piv, u_piv, v_piv, roi_piv] = piv(... 
 result = piv(...     
     ini, fin, ini_roi, fin_roi, x_img, y_img, args.samplen, args.sampspc, ...
     args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
     args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
     args.verbose);
 
-x_piv = result.x_grd(1,:); % cludge
-y_piv = result.y_grd(:,1);
+% extract key results from struct
+x_piv_grd = result.x_grd;
+y_piv_grd = result.y_grd;
+x_piv = x_piv_grd(1,:);
+y_piv = y_piv_grd(:,1);
 u_piv = result.u_grd;
 v_piv = result.v_grd;
 roi_piv = result.roi_grd;
@@ -239,7 +241,6 @@ m_piv = sqrt(u_piv.^2 + v_piv.^2);
 imagesc(x_piv, y_piv, m_piv, 'AlphaData', roi_piv);
 set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
 hold on;
-[x_piv_grd, y_piv_grd] = meshgrid(x_piv, y_piv);
 quiver(x_piv_grd(1:dfact:end, 1:dfact:end), ...
     y_piv_grd(1:dfact:end, 1:dfact:end), ...
     u_piv(1:dfact:end, 1:dfact:end), ...

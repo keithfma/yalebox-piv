@@ -1,70 +1,63 @@
 function result = piv(...
-    ini_ti, fin_tf, ini_roi_ti, fin_roi_tf, xw, yw, samplen, sampspc, ...
-    intrlen, npass, valid_max, valid_eps, spline_tension, min_frac_data, ...
-    min_frac_overlap, verbose)
-
-% TODO: return scattered points from last pass too
-
-% PIV analysis for Yalebox image data
+    img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
+    samp_len, samp_spc, intr_len, num_pass, valid_max, valid_eps, ...
+    spline_tension, min_frac_data, min_frac_overlap, verbose)
 %
-% Arguments, input:
+% function result = piv(...
+%     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
+%     samp_len, samp_spc, intr_len, num_pass, valid_max, valid_eps, ...
+%     spline_tension, min_frac_data, min_frac_overlap, verbose)
 %
-%   ini_ti, fin_tf = 2D matrix, double, range 0 to 1, normalized grayscale image from
-%       the start and end of the step to be analyzed.
+% PIV analysis for Yalebox image data. Returns results at scattered (raw) and
+% gridded (interpolated) points, evaluated at the midpoint time between the two
+% input images. See subroutines docs for additional details.
 %
-%   ini_roi_ti, fin_roi_tf = 2D matrix, logical, mask indicating pixels where there is
-%       sand (1) and where there is only background (0) that should be ignored.
-%
-%   xw, yw = Vector, double, increasing, x- and y-direction coordinate vectors,
-%       length must match the cols and rows, respectively, in both ini and fin.
-%
-%   samplen = Vector, length == number of grid resolutions, integer, side
+% Arguments:
+%   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale image
+%       from the start and end of the step to be analyzed.
+%   roi_img_ti, roi_img_tf = 2D matrix, logical, mask indicating pixels where
+%       there is sand (1) and background (0) that should be ignored.
+%   x_img, y_img = Vector, double, increasing, x- and y-direction
+%       coordinate vectors, length must match the cols and rows, respectively,
+%       in both image grids.
+%   samp_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square sample window, [pixels]
-%
-%   sampspc = Scalar, integer, spacing between adjacent sample points in the
+%   samp_spc = Scalar, integer, spacing between adjacent sample points in the
 %       (square) sample grid, [pixels].
-%
-%   intrlen = Vector, length == number of grid resolutions, integer, side
+%   intr_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square interrogation window
-%
-%   npass = Vector, length == number of grid resolutions, integer, number of
+%   num_pass = Vector, length == number of grid resolutions, integer, number of
 %       image deformation passes
-%
 %   valid_max = Scalar, double, maximum value for the normalized residual
 %       in the vector validation function, above which a vector is flagged
 %       as invalid. Ref [3] reccomends a value of 2.
-%
-%   epsilon = Scalar, double, minumum value of the normalization factor in
+%   valid_eps = Scalar, double, minimum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
-%
 %   spline_tension = Scalar, tension parameter for the spline interpolation
 %       routine in ref [4]
-%
 %   min_frac_data = Scalar, minimum fraction of the sample window that must
 %       contain data (e.g. sand) for the point to be included in the ROI for PIV
 %       analysis
-%
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
-%
 %   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
 %       output messages
 %
-% Arguments, output:
-%
-% TODO: return results as a struct
-% x_pts_tm, y_pts_tm, u_pts_tm, v_pts_tm, x_grd_tm, y_grd_tm, u_grd_tm, v_grd_tm, roi_grd_tm
+%   result.x_pts_tm, result.y_pts_tm: Vector, x- and y-coordinates for sample
+%       points on scattered grid, the "raw" result from the PIV algorithm
+%   result.u_pts_tm, result.v_pts_tm: Vector, x- and y-direction displacements
+%       at sample points on scattered grid, the "raw" result from the PIV
+%       algorithm
+%   result.x_grd_tm, result.y_grd_tm: 2D matrix, x- and y-coordinates for
+%       gridded sample points, the interpolated/extrapolated PIV results
+%   result.u_grd_tm, result.v_grd_tm: 2D matrix, x- and y-direction displacements
+%       for gridded sample points, the interpolated/extrapolated PIV results
+%   result.roi_grd_tm: 2D matrix, logical grid with set to "true" for
+%       interpolated points, and "false" for extrapolated points
 %
 %   xx, yy = Vector, double, coordinate vectors for the final output sample
 %       grid, in world coordinate units
-%
-%   uu, vv = 2D matrix, double, computed displacement in the x- and y-directions
-%       in world coordinate units
-%
-%   roi = 2D matrix, logical, flag indicating whether the data point lies within
-%       PIV analysis (1) or not (0). Points inside the ROI may be measured or
-%       interpolated, points outside the ROI are all interpolated/extrapolated.
 %
 % Notes:
 %   + Sample grid spacing is held constant since our experiments showed
@@ -87,49 +80,45 @@ function result = piv(...
 %   A Green's function approach. Mathematical Geology, 30(1), 77-93. Retrieved
 %   from http://link.springer.com/article/10.1023/A:1021713421882
 
-% EXPERIMENT toggle
-% exp = true;
-% exp = false;
-
-% Note: variable suffixes are used to describe the time and space grids that
-% each variable represents. These are:
+% NOTE: special suffixes describe the time and space grids, these are:
 %   ti -> time of the initial image
 %   tm -> midpoint between initial and final images
 %   tf -> time of the final image
 %   grd -> regular sample grid
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
-    
+% % 
+
 % check for sane inputs
-[nr, nc] = size(ini_ti); % image size
-ng = numel(samplen); % number of grid refinement steps
-validateattributes( ini_ti,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
-validateattributes( fin_tf,           {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
-validateattributes( ini_roi_ti,       {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes( fin_roi_tf,       {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes( xw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
-validateattributes( yw,               {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
-validateattributes( samplen,          {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
-validateattributes( sampspc,          {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'});
-validateattributes( intrlen,          {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
-validateattributes( npass,            {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
-validateattributes( valid_max,        {'double'},  {'scalar', 'positive'});
-validateattributes( valid_eps,        {'double'},  {'scalar', 'positive'});
-validateattributes( spline_tension,   {'numeric'}, {'scalar', '>=', 0, '<', 1});
-validateattributes( min_frac_data,    {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes( min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes( verbose,          {'numeric', 'logical'}, {'scalar', 'binary'});
+[nr, nc] = size(img_ti); % image size
+ng = numel(samp_len); % number of grid refinement steps
+validateattributes(img_ti, {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
+validateattributes(img_tf, {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
+validateattributes(roi_img_ti, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(roi_img_tf, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(x_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
+validateattributes(y_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
+validateattributes(samp_len, {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
+validateattributes(samp_spc, {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'});
+validateattributes(intr_len, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
+validateattributes(num_pass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
+validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
+validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
+validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
+validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
 % verbose output
 if verbose
-    fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(ini_roi_ti(:))/numel(ini_roi_ti));
-    fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(fin_roi_tf(:))/numel(fin_roi_tf));
-    fprintf('%s: xw: min = %.3f, max = %.3f\n', mfilename, min(xw), max(xw));
-    fprintf('%s: yw: min = %.3f, max = %.3f\n', mfilename, min(yw), max(yw));
-    fprintf('%s: samplen = ', mfilename); fprintf('%d ', samplen); fprintf('\n');
-    fprintf('%s: sampspc = ', mfilename); fprintf('%d ', sampspc); fprintf('\n');
-    fprintf('%s: intrlen = ', mfilename); fprintf('%d ', intrlen); fprintf('\n');
-    fprintf('%s: npass = ', mfilename); fprintf('%d ', npass); fprintf('\n');
+    fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
+    fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
+    fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
+    fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
+    fprintf('%s: samp_len = ', mfilename); fprintf('%d ', samp_len); fprintf('\n');
+    fprintf('%s: samp_spc = ', mfilename); fprintf('%d ', samp_spc); fprintf('\n');
+    fprintf('%s: intr_len = ', mfilename); fprintf('%d ', intr_len); fprintf('\n');
+    fprintf('%s: num_pass = ', mfilename); fprintf('%d ', num_pass); fprintf('\n');
     fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
     fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
     fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
@@ -142,21 +131,22 @@ end
 % significantly
 
 % expand grid definition vectors to reflect the number of passes
-[samplen, intrlen] = expand_grid_def(samplen, intrlen, npass);
+[samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
 % init sample grid and solution
-% NOTE: expect I will interpolate to this grid after the last step
-[r_grd_tm, c_grd_tm] = piv_sample_grid(sampspc, xw, yw);
+[r_grd_tm, c_grd_tm] = piv_sample_grid(samp_spc, x_img, y_img);
+
+% initial guess for displacements
 u_grd_tm = zeros(size(r_grd_tm));
 v_grd_tm = zeros(size(c_grd_tm));
 
 % multipass loop
-np = length(samplen);
+np = length(samp_len);
 for pp = 1:np
     
     if verbose
-        fprintf('%s: pass %d of %d: samplen = %d, intrlen = %d\n', ...
-            mfilename, pp, np, samplen(pp), intrlen(pp));
+        fprintf('%s: pass %d of %d: samp_len = %d, intr_len = %d\n', ...
+            mfilename, pp, np, samp_len(pp), intr_len(pp));
     end
     
     % get displacement update using normalized cross correlation
@@ -166,8 +156,8 @@ for pp = 1:np
         quality = false;
     end
     [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm] = piv_displacement(...
-        ini_ti, fin_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
-        samplen(pp), intrlen(pp), min_frac_data, min_frac_overlap, quality, ...
+        img_ti, img_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
+        samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality, ...
         verbose);
     
     % TODO: start here
@@ -189,15 +179,15 @@ end
 
 % estimate final ROI from alpha hull of final pass sample points
 % NOTE: any "mistakes" here are recoverable from original data, which is saved
-alpha = 5*sampspc; % want a single ROI without holes
+alpha = 5*samp_spc; % want a single ROI without holes
 shp = alphaShape(c_pts_tm, r_pts_tm, alpha);
 roi_grd_tm = inShape(shp, c_grd_tm, r_grd_tm);
 
 % convert all output variables to world coordinate system
-[x_pts_tm, y_pts_tm] = coord_intrinsic_to_world(r_pts_tm, c_pts_tm, xw, yw);
-[x_grd_tm, y_grd_tm] = coord_intrinsic_to_world(r_grd_tm, c_grd_tm, xw, yw);
-[u_pts_tm, v_pts_tm] = displ_intrinsic_to_world(u_pts_tm, v_pts_tm, xw, yw);
-[u_grd_tm, v_grd_tm] = displ_intrinsic_to_world(u_grd_tm, v_grd_tm, xw, yw);
+[x_pts_tm, y_pts_tm] = coord_intrinsic_to_world(r_pts_tm, c_pts_tm, x_img, y_img);
+[x_grd_tm, y_grd_tm] = coord_intrinsic_to_world(r_grd_tm, c_grd_tm, x_img, y_img);
+[u_pts_tm, v_pts_tm] = displ_intrinsic_to_world(u_pts_tm, v_pts_tm, x_img, y_img);
+[u_grd_tm, v_grd_tm] = displ_intrinsic_to_world(u_grd_tm, v_grd_tm, x_img, y_img);
 
 % package results as structure
 result = struct(...
@@ -254,7 +244,7 @@ function [slen_ex, ilen_ex] = expand_grid_def(slen, ilen, np)
 %
 % Expand the grid definition vectors to include the correct number of passes for
 % each grid. Input arguments are defined above, but use shortened names here:
-% samplen -> slen, intrlen -> ilen, npass -> np. 
+% samp_len -> slen, intr_len -> ilen, num_pass -> np. 
 %
 % Note: outputs are intentionally not preallocated - these vectors are small and
 % the performace cost is negligible. 
