@@ -160,14 +160,27 @@ for pp = 1:np
         samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality, ...
         verbose);
     
-    % TODO: start here
+    % <TESTING>
     
     % validate displacement update
     % NOTE: neighborhood is hard-coded here
     % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
     % TODO: Needs a general review
-    [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
+    
+    [c_pts_tm0, r_pts_tm0, u_pts_tm0, v_pts_tm0] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
+    
+    [c_pts_tm1, r_pts_tm1, u_pts_tm1, v_pts_tm1] = piv_validate_pts_nmed_new(...
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
+    
+    keyboard
+    
+    c_pts_tm = c_pts_tm0;
+    r_pts_tm = r_pts_tm0;
+    u_pts_tm = u_pts_tm0;
+    v_pts_tm = v_pts_tm0;
+    
+    % </TESTING>
     
     % interpolate valid vectors to full sample grid (expensive)
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
