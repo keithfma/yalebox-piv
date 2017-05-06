@@ -1,36 +1,30 @@
 function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
-    cc, rr, uu, vv, num_nbr, max_norm_res, epsilon, verbose)
+    cc, rr, uu, vv, radius, max_norm_res, epsilon, verbose)
 %
 % Validate the displacement vector field on a scattered grid using a
-% normalized median test including the nearest num_nbr neighbors.
-% Invalidated points are set to NaN. See reference [1] for details on the
-% original method for a regular grid.
+% normalized median test including all neighbors within a fixed radius.
+% Returns a reduced set of only the valid points. See reference [1] for details
+% on the original method for a regular grid.
 %
 % Arguments:
-%
 %   cc, rr = 2D matrix, double, location of scattered points for displacement
 %       vectors.
-%
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
-%
-%   num_nbr = Scalar integer, number of nearest neighbors to include in
-%       normalized median test
-%
+%   radius = Scalar, distance around each point to search for neighbors to
+%       include in normalized median test
 %   max_norm_res = Scalar, double, maximum value for the normalized residual,
 %       above which a vector is flagged as invalid. Reference [1] reccomends a
 %       value of 2.
-%
 %   epsilon = Scalar, double, minumum value of the normalization factor.
 %       Reference [1] recommends a value of 0.1.
-%
 %   verbose = Enable (1) or disable (2) verbose output
 %
 % References:
-%
-% [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for
-% PIV data. Experiments in Fluids, 39(6), 1096???1100.
-% doi:10.1007/s00348-005-0016-6
+%   [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for
+%   PIV data. Experiments in Fluids, 39(6), 1096???1100.
+%   doi:10.1007/s00348-005-0016-6
+% % 
 
 % check inputs
 validateattributes(uu, {'numeric'}, {'nonnan'});
@@ -43,17 +37,15 @@ valid = true(size(uu));
 num_valid_init = numel(uu);
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
-% TODO: this coplexity is obsolete
-ind = reshape(1:numel(uu), size(uu));
-ind = ind(valid)'; % linear index for initially valid points, must be a row vector, so we can loop over it
-
-% loop over initially valid points only
-for kk = ind
+% check all points
+for kk = 1:numel(uu)
     
     % get neighbors
-    nbr = knnsearch(kdtree, [cc(kk), rr(kk)], 'K', num_nbr+1, 'IncludeTies', true);
-    ind_nbr = ind(cell2mat(nbr));
+    % nbr = knnsearch(kdtree, [cc(kk), rr(kk)], 'K', num_nbr+1, 'IncludeTies', true);
+    nbr = rangesearch(kdtree, [cc(kk), rr(kk)], radius);
+    ind_nbr = cell2mat(nbr);
     ind_nbr(ind_nbr == kk) = [];
+    fprintf('num_nbr: %d\n', length(ind_nbr));
     unbr = uu(ind_nbr);
     vnbr = vv(ind_nbr);
     

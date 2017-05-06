@@ -28,10 +28,11 @@ function [u_piv, v_piv, u_exact_at_piv, v_exact_at_piv] = test_piv(varargin)
 %       on the other, in pixels default = 10
 %   'pad_width': Scalar, width of edge padding to add to image (to accomodate
 %       edge displacements) as a fraction of image size, default = 0.1
-%   'samplen': piv() parameter, default [60, 30]
-%   'sampspc': piv() parameter, default 15
-%   'intrlen': piv() parameter, default [120, 60]
-%   'npass': piv() parameter, default [1, 2]
+%   'samp_len': piv() parameter, default [60, 30]
+%   'samp_spc': piv() parameter, default 15
+%   'intr_len': piv() parameter, default [120, 60]
+%   'num_pass': piv() parameter, default [1, 2]
+%   'valid_radius: piv() parameter, default 45
 %   'valid_max': piv() parameter, default 2
 %   'valid_eps': piv() parameter, default 0.1
 %   'spline_tension': piv() parameter, default 0.95
@@ -66,10 +67,11 @@ ip.addParameter('shear_mag', 10, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
 ip.addParameter('pad_width', 0.1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
-ip.addParameter('samplen', [60, 30]); % validation handled by PIV routines
-ip.addParameter('sampspc', 15);
-ip.addParameter('intrlen', [120, 60]);
-ip.addParameter('npass', [1, 2]);
+ip.addParameter('samp_len', [60, 30]); % validation handled by PIV routines
+ip.addParameter('samp_spc', 15);
+ip.addParameter('intr_len', [120, 60]);
+ip.addParameter('num_pass', [1, 2]);
+ip.addParameter('valid_radius', 45);
 ip.addParameter('valid_max', 2);
 ip.addParameter('valid_eps', 0.1);
 ip.addParameter('spline_tension', 0.95);
@@ -197,8 +199,8 @@ if args.verbose
 end
 
 result = piv(...     
-    ini, fin, ini_roi, fin_roi, x_img, y_img, args.samplen, args.sampspc, ...
-    args.intrlen, args.npass, args.valid_max, args.valid_eps, ...
+    ini, fin, ini_roi, fin_roi, x_img, y_img, args.samp_len, args.samp_spc, ...
+    args.intr_len, args.num_pass, args.valid_radius, args.valid_max, args.valid_eps, ...
     args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
     args.verbose);
 

@@ -1,6 +1,6 @@
 function result = piv(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
-    samp_len, samp_spc, intr_len, num_pass, valid_max, valid_eps, ...
+    samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
     spline_tension, min_frac_data, min_frac_overlap, verbose)
 %
 % function result = piv(...
@@ -28,6 +28,8 @@ function result = piv(...
 %       length of the square interrogation window
 %   num_pass = Vector, length == number of grid resolutions, integer, number of
 %       image deformation passes
+%   valid_radius: Scalar, radius around each sample point to include in vector
+%       validation, recommended to use ~4*samp_spc, [pixel] units
 %   valid_max = Scalar, double, maximum value for the normalized residual
 %       in the vector validation function, above which a vector is flagged
 %       as invalid. Ref [3] reccomends a value of 2.
@@ -160,42 +162,11 @@ for pp = 1:np
         samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality, ...
         verbose);
     
-    % <TESTING>
-    
-    % validate displacement update
-    % NOTE: neighborhood is hard-coded here
-    % TODO: Neighborhood cutoff should use distance, some multiple of grid spacing
-    % TODO: Needs a general review
-    
-    [c_pts_tm0, r_pts_tm0, u_pts_tm0, v_pts_tm0] = piv_validate_pts_nmed(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 8, valid_max, valid_eps, verbose);
-    
-    [c_pts_tm1, r_pts_tm1, u_pts_tm1, v_pts_tm1] = piv_validate_pts_nmed_new(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, 3*samp_spc, valid_max, valid_eps, verbose);
-    
-    % plot the two options
-    figure
-    
-    subplot(2,1,1)
-    scatter(c_pts_tm0(:), r_pts_tm0(:), [], u_pts_tm0(:), 'filled');
-    title('Orig')
-    axis equal tight
-    colorbar
-    
-    subplot(2,1,2)
-    scatter(c_pts_tm1(:), r_pts_tm1(:), [], u_pts_tm1(:), 'filled');
-    title('New')
-    axis equal tight
-    colorbar
-   
-    keyboard
-    
-    c_pts_tm = c_pts_tm0;
-    r_pts_tm = r_pts_tm0;
-    u_pts_tm = u_pts_tm0;
-    v_pts_tm = v_pts_tm0;
-    
-    % </TESTING>
+    % validate displacement vectors
+    % TODO: make neighborhood radius (as multiple of samp_spc) and input argument
+    [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
+        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, valid_radius, valid_max, ...
+        valid_eps, verbose);
     
     % interpolate valid vectors to full sample grid (expensive)
     [u_grd_tm, v_grd_tm] = piv_interp_spline(...
