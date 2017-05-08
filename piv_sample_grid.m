@@ -1,58 +1,32 @@
-function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
-% function [rr, cc, xx, yy] = piv_sample_grid(len, spc, xw, yw)
+function [r_sample, c_sample] = piv_sample_grid(sample_spc, img_nr, img_nc)
+%function [r_sample, c_sample] = piv_sample_grid(sample_spc, img_nr, img_nc)
 %
-% Create sample grid with the following characteristics:
-% - sample window edges fall at integer positions
-% - footprint of the sample windows is >= footprint of the image (all pixels
-%   belong to one or more sample windows and no sample windows lie entirely
-%   outside the image)
-% - grid is centered with respect to the image (e.g. overhanging sample window
-%   footprint is the same width on opposing sides, to within a pixel)
-%
-% Note that the first sample window requires 'len' rows and cols, and each
-% additional window requires 'spc' rows and cols.
+% Create sample grid which is the largest centered grid that fits in the domain
 %
 % Arguments:
-%
-%   len = Scalar, integer, length of sample window in pixels
-%
-%   spc = Scalar, integer, grid spacing in pixels
-%
-%   xw, yw = Vectors, double, world coordinates for the input images. Vector
-%       sizes match the input images, such that size(image, 1) == length(yw) and
-%       size(image, 2) == length(xw)
-%
-%   rr, cc = 2D matrix, integer, coordinate matrices, as constructed by meshgrid, 
-%       for the sample grid in the y (a.k.a. row) and x (a.k.a. column) directions, 
-%       in pixels
-%
-%   xx, yy = Vectors, double, world coordinate vectors corresponding to the
-%       locations in rr, cc
+%   sample_spc = Scalar, integer, grid spacing in pixels
+%   img_nr, img_nc = Scalar, dimensions (number of rows and columns) of the
+%       input images.
+%   r_sample, c_sample = 2D matrix, integer, coordinate matrices, as constructed
+%       by meshgrid, for the sample grid in the y (a.k.a. row) and x (a.k.a.
+%       column) directions, in pixels
 % %
 
-% get sample grid in pixel coordinates
-sz = [length(yw), length(xw)];
-footprint = len+ceil((sz-len)/spc)*spc; 
-rem = footprint-sz;
-hlen = (len-1)/2; 
+remainder = mod((img_nr - 1), sample_spc);
+r_sample_vector = (1 + remainder/2):sample_spc:img_nr;
 
-start = 1-floor(rem/2)+hlen; 
-stop = start+footprint-len;
+remainder = mod((img_nc - 1), sample_spc);
+c_sample_vector = (1 + remainder/2):sample_spc:img_nc;
 
-rvec = start(1):spc:stop(1);
-cvec = start(2):spc:stop(2);
+[c_sample, r_sample] = meshgrid(c_sample_vector, r_sample_vector);
 
-[cc, rr] = meshgrid(cvec, rvec);
-
-% interpolate pixel coordinates to world coordinates
-xx = interp1(1:sz(2), xw, cvec, 'linear', 'extrap');
-yy = interp1(1:sz(1), yw, rvec, 'linear', 'extrap');
-
-% % debug: check grid edges {
-% disp(rem(1))
-% disp(1-(rvec(1)-hlen))
-% disp((rvec(end)+hlen)-sz(1))
-% disp(rem(2))
-% disp(1-(cvec(1)-hlen))
-% disp((cvec(end)+hlen)-sz(2))
-% % } debug
+% % <DEBUG>: Check grid edges to confirm it is centered in the domain
+% fprintf('Left edge [pixel]: %f, Right edge [pixel]: %f\n', ...
+%     c_sample_vector(1) - 1, img_nc - c_sample_vector(end));
+% fprintf('Left edge [world]: %f, Right edge [world]: %f\n', ...
+%     x_sample_vector(1) - x_world(1), x_world(end) - x_sample_vector(end));
+% fprintf('Bottom edge [pixel]: %f, Top edge [pixel]: %f\n', ...
+%     r_sample_vector(1) - 1, img_nr - r_sample_vector(end));
+% fprintf('Bottom edge [world]: %f, Top edge [world]: %f\n', ...
+%     y_sample_vector(1) - y_world(1), y_world(end) - y_sample_vector(end));
+% % </DEBUG>

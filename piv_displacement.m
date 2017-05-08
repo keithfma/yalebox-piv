@@ -1,106 +1,121 @@
-
-function [r1, c1, u1, v1, roi] = ...
-    piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, ...
-        min_frac_overlap, verbose)
-% function [r1, c1, u1, v1, roi] = ...
-%     piv_displacement(ini, fin, r0, c0, samplen, intrlen, min_frac_data, ...
-%         min_frac_overlap, verbose)
+function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
+    ini, fin, r_tm_i, c_tm_i, u_tm_i, v_tm_i, samplen, intrlen, ...
+    min_frac_data, min_frac_overlap, high_quality, verbose)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated
-% the sample grid (r0, c0), but are returned at scattered points representing
-% thier position at midpoint time (r1, c1), i.e. offset by half the estimated
-% displacement.
+% at the specified points (r_tm, c_tm), but are returned at (scattered) points
+% representing thier position at midpoint time (an updated r_tm, c_tm), i.e.
+% offset by half the estimated displacement. To allow for an iterative solution,
+% the initial window locations are selected using "guessed" displacements, then
+% these guesses are refined by the PIV calculation.
 %
 % Arguments:
-% 
-% ini, fin = 2D matrix, initial and final images at midpoint time
 %
-% r0, c0 = 2D matrix, row- and column-coordinates for the sample grid
-%
+% ini, fin: 2D matrix, initial and final images at midpoint time
+% r_tm_i, c_tm_i: 2D matrix, row- and column-coordinates for the initial sample grid
+% u_tm_i, v_tm_i: 2D matrix, initial guess for x (column) and y (row)
+%   displacements at points in r_tm_i, c_tm_i.
 % samplen, intrlen = Scalar, size of the sample and interrogation windows in pixels
-%
 % min_frac_data = Scalar, minimum fraction of the sample window that must
 %   contain data (e.g. sand) for the point to be included in the ROI for PIV
 %   analysis
-%
 % min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %   must overlap the interrogation window data for a point in the
 %   cross-correlation to be valid
-%
 % verbose = Scalar, display verbose messages (1) or don't (0)
 %
-% r1, c1 = 2D matrix, row- and column-coordinates for the estimated displacements 
-%   at midpoint time
-%
-% u1, v1 = 2D matrix, estimated displacements in the row (v1) and column (u1) directions 
-%
-% roi = 2D logical matrix, indicates whether points had enough data (e.g. sand) 
-%   to estimated displacement (1) or did not (0)
+% r_tm, c_tm = Vector, row- and column-coordinates for the estimated
+%   displacements at midpoint time
+% u_tm, v_tm = Vector, estimated displacements in the x (column) and y (row)
+%   directions
 % %
 
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
 % allocate outputs, skipped points remain NaN, false
-[nr, nc] = size(r0);
-r1 = nan(nr, nc); 
-c1 = nan(nr, nc); 
-u1 = nan(nr, nc); 
-v1 = nan(nr, nc); 
-roi = true(nr, nc); 
+[nr, nc] = size(r_tm_i);
+u_tm = nan(nr, nc);
+v_tm = nan(nr, nc);
+r_tm = nan(nr, nc);
+c_tm = nan(nr, nc);
 
 for ii = 1:nr
     for jj = 1:nc
    
-        % get sample and interrogation windows, skip if too empty
-        [samp, samp_rll, samp_cll, r_centroid, c_centroid, frac_data] = ...
-            piv_window(ini, r0(ii,jj), c0(ii,jj), samplen);        
+        % TODO: should return the center        
         
-        if frac_data < min_frac_data; 
-            roi(ii,jj) = false;
+        % get sample window, offset to initial time
+        % NOTE: size(samp) may *not* be [samplen, samplen] due to rounding, it
+        %   follows that the true center point may not be r_ti, c_ti, that's OK
+        r_ti = r_tm_i(ii, jj) - 0.5*v_tm_i(ii, jj);
+        c_ti = c_tm_i(ii, jj) - 0.5*u_tm_i(ii, jj);
+        [samp, r_samp, c_samp] = piv_window(ini, r_ti, c_ti, samplen); 
+        
+        % skip if sample window is too empty
+        frac_data = sum(samp(:) ~= 0)/numel(samp);
+        if  frac_data < min_frac_data; 
             continue; 
-        end
+        end        
         
-        [intr, intr_rll, intr_cll] = ...
-            piv_window(fin, r0(ii,jj), c0(ii,jj), intrlen);
+        % get interrogation window, offset to final time
+        % NOTE: size(intr) may *not* be [intrlen, intrlen] due to rounding, it
+        %   follows that the true center point may not be r_ti, c_ti, that's OK
+        r_tf = r_tm_i(ii, jj) + 0.5*v_tm_i(ii, jj);
+        c_tf = c_tm_i(ii, jj) + 0.5*u_tm_i(ii, jj);
+        [intr, r_intr, c_intr] = piv_window(fin, r_tf, c_tf, intrlen);
         
         % compute masked, normalized cross correlation
         [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-        xcr(overlap<min_overlap) = 0;
         
-        % find correlation plane max, subpixel precision (failed pixels -> NaN)
-        if max(xcr(:)) == 0 
-            % skip if the overlap is everywhere too small
-            rpeak = NaN;
-            cpeak = NaN;
-        else
-            [rpeak, cpeak] = piv_peak_interp(xcr, 0.01);
+        % skip if nowhere has enough overlapping sandy pixels
+        if max(overlap(:)) < min_overlap
+            continue
         end
         
-        % convert position of the correlation max to displacement
-        u1(ii,jj) = cpeak-samplen-(samp_cll-intr_cll);
-        v1(ii,jj) = rpeak-samplen-(samp_rll-intr_rll);
+        % crop correlation plane where not enough overlapping sandy pixels
+        xcr(overlap < min_overlap) = 0;
         
-        % compute location of this observation at midpoint time
-        c1(ii,jj) = c_centroid + 0.5*u1(ii,jj);
-        r1(ii,jj) = r_centroid + 0.5*v1(ii,jj);    
+        % find peak with subpixel precision
+        % NOTE: two options below have approx the same accuracy in aggregate,
+        %   the "low-quality" option is faster, but has a multimodal error
+        %   distribution, the "high-quality" option is slower, but yields a
+        %   approx normal error distribution.
+        if high_quality
+            [r_peak, c_peak] = piv_peak_optim_interp(xcr, 1e-6);
+        else
+            [r_peak, c_peak] = piv_peak_gauss2d(xcr);
+        end
         
-        % % DEBUG: line added to pause routine and generate plots, if desired
-        % if all(intr(:)~=0)
-        %     save('piv_dump.mat');
-        %     error('SAVED WINDOW DATA TO piv_dump.mat');
-        % end
-                
+        % compute displacement
+        u_tm(ii, jj) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
+        v_tm(ii, jj) = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
+
+        % get centroid of the sample window
+        [r_idx, c_idx] = find(samp ~= 0);
+        num = length(r_idx);
+        r_samp_cntr = sum(r_samp(r_idx))/num;
+        c_samp_cntr = sum(c_samp(c_idx))/num;
+        
+        % update observation point to midpoint time
+        r_tm(ii, jj) = r_samp_cntr + 0.5*v_tm(ii, jj);
+        c_tm(ii, jj) = c_samp_cntr + 0.5*u_tm(ii, jj);
+        
     end
 end
 
+% convert matrices to vectors of valid measurements only
+roi = ~isnan(u_tm); % same as v_tm, r_tm, c_tm
+u_tm = u_tm(roi);
+v_tm = v_tm(roi);
+r_tm = r_tm(roi);
+c_tm = c_tm(roi);
+
+% report result
 if verbose
+    num_valid = numel(u_tm);
     num_total = numel(roi);
-    num_found = sum(~isnan(u1(:)));
-    num_skipped = sum(~roi(:));
-    num_dropped = sum(roi(:) & isnan(u1(:)));
-    fprintf('%s: found %d (%.1f%%), skipped %d (%.1f%%), dropped %d (%.1f%%)\n', ...
-        mfilename, num_found, num_found/num_total*100, num_skipped, ...
-        num_skipped/num_total*100, num_dropped, num_dropped/num_total*100);
+    fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
+        mfilename, num_valid, num_total, num_valid/num_total*100);
 end
