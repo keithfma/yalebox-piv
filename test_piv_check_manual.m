@@ -1,5 +1,5 @@
-function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
-% function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
+function [] = test_piv_check_manual(image_file, displ_file, step, result_prefix)
+% function [] = test_piv_check_manual(image_file, displ_file, step, result_prefix)
 %
 % Estimate displacements manually by selecting matching points in an image pair.
 % Writes results to a self-documented netCDF file.
@@ -19,6 +19,8 @@ function [] = piv_check_manual(image_file, displ_file, step, result_prefix)
 %   result_prefix = String, prefix for results files, can include the path. The
 %       program will prompt before overwriting 
 % %
+
+% NOTE: *not* updated to use latest PIV algorithm, there are likely bugs
 
 %% init
 

@@ -1,13 +1,12 @@
-% Script. Template script for exploring and selecting image piv parameters. The
-% intended wusage is to make a copy of the script for a given experiment, run it
-% cell by cell, modifying the default parameters to suit the experiment
-% particulars.
+% Script. Explore and save piv parameters for experiment. Template to be copied
+% and modified for specific experiments.
 
 %% Init
 
-image_in_file = '../yalebox-exp-erosion/data/K23_side.image.nc';
-param_out_file = '../yalebox-exp-erosion/data/K23_side_piv_param.mat';
-ini_step = 10;
+image_in_file = '../data/IMAGE_FILE'; %.nc
+param_out_file = 'PARAM_FILE'; %.mat
+ini_step = 350;
+gap = 1;
 
 %% Read in image pair, masks, coordinate vectors
 
@@ -22,13 +21,13 @@ mask_manual = logical(mask_manual);
 ini = ncread(image_in_file, 'img', [1, 1, ini_index],   [inf, inf, 1]); 
 ini = double(ini);
 
-fin = ncread(image_in_file, 'img', [1, 1, ini_index+1], [inf, inf, 1]); 
+fin = ncread(image_in_file, 'img', [1, 1, ini_index+gap], [inf, inf, 1]); 
 fin = double(fin);
 
 ini_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index],   [inf, inf, 1]); 
 ini_mask = logical(ini_mask) & mask_manual;
 
-fin_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index+1],   [inf, inf, 1]); 
+fin_mask = ncread(image_in_file, 'mask_auto', [1, 1, ini_index+gap],   [inf, inf, 1]); 
 fin_mask = logical(fin_mask) & mask_manual;
 
 xw = ncread(image_in_file, 'x');
@@ -37,7 +36,8 @@ xw = double(xw);
 yw = ncread(image_in_file, 'y');
 yw = double(yw);
 
-% display images
+%% Display image and mask data
+
 figure 
 ax = subplot(2,1,1);
 imagesc(xw, yw, ini);
@@ -64,33 +64,43 @@ colormap('gray');
 ax.YDir = 'normal';
 title('fin\_mask');
 
-%% Set parameters, run PIV, compute strain, and plot results
+%% Set parameters, run PIV, and compute strain
 
 % set parameters
-samplen = [30, 20];
-sampspc = [15, 10];
-intrlen = [120, 40];
-npass = [1, 2]; 
+samp_len = 60;
+samp_spc = 30;
+intr_len = 90;
+num_pass = 1;
+valid_radius = 120;
 valid_max = 2;
-valid_eps = 0.1;
-lowess_span_pts = 9;
+valid_eps = 0.01;
 spline_tension = 0.95;
-min_frac_data = 0.33; 
-min_frac_overlap = 0.33;
+min_frac_data = 0.50; 
+min_frac_overlap = 0.20;
 
-% run piv
-[xx, yy, uu, vv, roi] = ...
-    piv(ini, fin, ini_mask, fin_mask, xw, yw, samplen, sampspc, ...
-        intrlen, npass, valid_max, valid_eps, lowess_span_pts, spline_tension, ...
-        min_frac_data, min_frac_overlap, true); 
+piv_result = piv(ini, fin, ini_mask, fin_mask, xw, yw, samp_len, samp_spc, ...
+        intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
+        spline_tension, min_frac_data, min_frac_overlap, true);         
 
-% compute strain    
-[xxg, yyg] = meshgrid(xx, yy);
-mask_uv = ~isnan(uu) & ~isnan(vv);
-[mm, spin, Dv, Dd, D2x, D2y, WkStar, AkStar] = ...
-    deformation(xxg, yyg, uu, vv, mask_uv);
+% extract key variables from the results struct
+xx = piv_result.x_grd(1,:); 
+yy = piv_result.y_grd(:,1);
+uu = piv_result.u_grd;
+vv = piv_result.v_grd;
+roi = piv_result.roi_grd;    
+    
+% compute strain
+strain_result = post_strain(xx, yy, uu, vv, roi, 'nearest');
+
+fprintf('DONE\n');
+
+%% Display results
+
+close all
 
 % get data limits
+mask_uv = ~isnan(uu) & ~isnan(vv);
+[xxg, yyg] = meshgrid(xx, yy);
 uv_xlim = [min(xxg(mask_uv)), max(xxg(mask_uv))];
 uv_ylim = [min(yyg(mask_uv)), max(yyg(mask_uv))];
 
@@ -98,6 +108,7 @@ uv_ylim = [min(yyg(mask_uv)), max(yyg(mask_uv))];
 %... displacement magnitude and direction, [mm/step]
 figure
 subplot(3,1,1);
+mm = sqrt(uu.^2 + vv.^2);
 imagesc(xx, yy, mm*1000, 'AlphaData', ~isnan(mm)); 
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
@@ -120,26 +131,35 @@ title('V');
 %... Dd
 figure
 subplot(3,1,1);
-imagesc(xx, yy, Dd, 'AlphaData', ~isnan(Dd)); 
+imagesc(xx, yy, strain_result.Dd, 'AlphaData', ~isnan(strain_result.Dd)); 
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
 title('Dd');
 %... Dv
 subplot(3,1,2);
-imagesc(xx, yy, Dv, 'AlphaData', ~isnan(Dv)); 
+imagesc(xx, yy, strain_result.Dv, 'AlphaData', ~isnan(strain_result.Dv)); 
 colormap(gca, flipud(colormap)); % flow is in negative x direction
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
 title('Dv');
 %... spin
 subplot(3,1,3);
-imagesc(xx, yy, spin, 'AlphaData', ~isnan(spin)); 
+imagesc(xx, yy, strain_result.spin, 'AlphaData', ~isnan(strain_result.spin)); 
 colorbar;
 set(gca, 'YDir', 'normal', 'XLim', uv_xlim, 'YLim', uv_ylim);
 title('spin');
 
+%% Analyze short series using piv_series()
+
+junk_output_file = 'delete_me.nc';
+step_range = [300, 303];
+
+piv_series(junk_output_file, image_in_file, step_range, gap, samp_len, ...
+    samp_spc, intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
+    spline_tension, min_frac_data, min_frac_overlap, true)
+
 %% Save parameters to mat file
 
-save(param_out_file, 'samplen',  'sampspc', 'intrlen', 'npass', 'valid_max', ...
-    'valid_eps', 'lowess_span_pts', 'spline_tension', 'min_frac_data', ...
-    'min_frac_overlap');
+save(param_out_file, 'samp_len',  'samp_spc', 'intr_len', 'num_pass', ...
+    'valid_radius', 'valid_max', 'valid_eps', 'spline_tension', ...
+    'min_frac_data', 'min_frac_overlap', 'gap');
