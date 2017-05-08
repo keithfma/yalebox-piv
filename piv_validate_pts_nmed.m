@@ -34,6 +34,7 @@ validateattributes(rr, {'numeric'}, {'nonnan', 'size', size(uu)});
 
 % initialize
 valid = true(size(uu));
+num_nbr = zeros(size(uu));
 num_valid_init = numel(uu);
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
@@ -45,7 +46,7 @@ for kk = 1:numel(uu)
     nbr = rangesearch(kdtree, [cc(kk), rr(kk)], radius);
     ind_nbr = cell2mat(nbr);
     ind_nbr(ind_nbr == kk) = [];
-    fprintf('num_nbr: %d\n', length(ind_nbr));
+    num_nbr(kk) = length(ind_nbr);
     unbr = uu(ind_nbr);
     vnbr = vv(ind_nbr);
     
@@ -81,6 +82,6 @@ rr = rr(valid);
 if verbose
     num_invalidated = num_valid_init - numel(uu);
     pct_invalidated = 100*num_invalidated/num_valid_init;
-    fprintf('%s: invalidated %d (%.1f%%)\n', ...
-        mfilename, num_invalidated, pct_invalidated);
+    fprintf('%s: invalidated %d (%.1f%%), mean num neighbors: %.2f\n', ...
+        mfilename, num_invalidated, pct_invalidated, mean(num_nbr));
 end
