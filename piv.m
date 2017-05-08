@@ -58,9 +58,6 @@ function result = piv(...
 %   result.roi_grd_tm: 2D matrix, logical grid with set to "true" for
 %       interpolated points, and "false" for extrapolated points
 %
-%   xx, yy = Vector, double, coordinate vectors for the final output sample
-%       grid, in world coordinate units
-%
 % Notes:
 %   + Sample grid spacing is held constant since our experiments showed
 %     upsampling introduced ugly interpolation artifacts. We found that holding
@@ -136,7 +133,7 @@ end
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
 % init sample grid and solution
-[r_grd_tm, c_grd_tm] = piv_sample_grid(samp_spc, x_img, y_img);
+[r_grd_tm, c_grd_tm] = piv_sample_grid(samp_spc, size(img_ti, 1), size(img_ti, 2));
 
 % initial guess for displacements
 u_grd_tm = zeros(size(r_grd_tm));
