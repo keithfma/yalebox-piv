@@ -1,49 +1,54 @@
-function [xx, yy, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file, index)
+function [xx, yy, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file, ini_step, gap)
+% function [xw, yw, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file, ini_step, gap)
 %
-% Reads pre-processed image pair from netCDF file produced by
-% prep_series(). Useful for parameter testing the piv() routine.
+% Reads pre-processed image pair from netCDF file produced by prep_series().
+% Useful for parameter testing the piv() routine.
 %
 % Arguments:
+%   input_file: String, file name of netCDF data file, as produced by
+%       prep_series().
+%   ini_step: Scalar, integer, step number of initial image frame in the image
+%       pair to be returned.
+%   gap: Scalar, steps between initial and final image in pair, defaults to 1 if
+%       empty or not provided.
 %
-% input_file = String, file name of netCDF data file, as produced by
-%   prep_series().
-%
-% index = Scalar, integer, index of initial image frame in the image
-%   pair to be returned.
-%
-% xx, yy = Vector, world coordinate vectors for image matrices
-%
-% ini, fin = 2D matrix, intensity values for initial and final images 
-%
-% ini_roi, fin_roi = 2D matrix, logical flags for inital and final images,
-%   indicating if a pixel is sand (1) or not (0)
+%   xx, yy = Vector, world coordinate vectors for image matrices
+%   ini, fin = 2D matrix, intensity values for initial and final images 
+%   ini_roi, fin_roi = 2D matrix, logical flags for inital and final images,
+%       indicating if a pixel is sand (1) or not (0)
 % %
 
 %% check inputs
+
+narginchk(2, 3);
+
+if nargin < 3 || isempty(gap)
+    gap = 1;
+end
+
 validateattributes(input_file, {'char'}, {'vector'});
-
-assert(exist(input_file, 'file') == 2);
-info = ncinfo(input_file);
-step_idx = find(strcmp({info.Variables(:).Name}, 'step'));
-assert(~isempty(step_idx));
-num_steps = info.Variables(step_idx).Size;
-
-validateattributes(index, {'numeric'}, {'scalar', 'integer', '>=', 1, '<=', num_steps-1});
+validateattributes(ini_step, {'numeric'}, {'scalar', 'integer', '>=', 0});
+validateattributes(gap, {'numeric'}, {'scalar', 'integer', 'positive'});
 
 %% read data
+
+% get image coordinate vectors
 xx = double(ncread(input_file, 'x'));
 yy = double(ncread(input_file, 'y'));
 
-roi_const = ncread(input_file, 'mask_manual', [1, 1], [inf, inf])';
+% get constant mask
+mask_manual = logical(ncread(input_file, 'mask_manual'));
 
-ini = double( ncread(input_file, 'intensity', ...
-    [1, 1, index], [inf, inf, 1])' );
-fin = double( ncread(input_file, 'intensity', ...
-    [1, 1, index+1], [inf, inf, 1])' );
+% find index of ini and fin
+step = ncread(input_file, 'step');
+ini_index = find(step == ini_step);
+fin_index = ini_index + gap;
 
-ini_roi = ncread(input_file, 'mask_auto', ...
-    [1, 1, index], [inf, inf, 1])' & roi_const;
-fin_roi = ncread(input_file, 'mask_auto', ...
-    [1, 1, index+1], [inf, inf, 1])' & roi_const;
+ini = double(ncread(input_file, 'img', [1, 1, ini_index], [inf, inf, 1]));
+fin = double(ncread(input_file, 'img', [1, 1, fin_index], [inf, inf, 1]));
 
-%% done
+ini_mask = ncread(input_file, 'mask_auto', [1, 1, ini_index], [inf, inf, 1]); 
+ini_roi = logical(ini_mask) & mask_manual;
+
+fin_mask = ncread(input_file, 'mask_auto', [1, 1, fin_index], [inf, inf, 1]); 
+fin_roi = logical(fin_mask) & mask_manual;
