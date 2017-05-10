@@ -11,7 +11,8 @@ function out = post_strain(x, y, uu, vv, roi, pad_method)
 %   roi: Region-of-interest mask matrix (false for no data)
 %   pad_method: (temporary) Select padding method, valid options are 
 %       {'nearest'}
-%   out: Struct containing results, attribures follow.
+%   out: Struct containing results, attributes follow.
+%   out.x, out.y: See x, y above
 %   out.F11: Deformation-gradient tensor, element (1,1), dx/dX, [1]
 %   out.F12: Deformation-gradient tensor, element (1,2), dx/dY, [1]
 %   out.F21: Deformation-gradient tensor, element (2,1), dy/dX, [1]
@@ -126,6 +127,8 @@ Ak_star(isinf(Ak_star)) = NaN;
 
 % prepare outputs
 out = struct();
+out.x = x;
+out.y = y;
 out.F11 = F11;
 out.F12 = F12;
 out.F21 = F21;
