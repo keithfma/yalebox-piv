@@ -1,5 +1,5 @@
-function [] = piv_series_standalone(param_file)
-% function [] = piv_series_standalone(param_file)
+function [] = piv_series_standalone(param_file, version)
+% function [] = piv_series_standalone(param_file, version)
 %
 % Wrapper function to run piv_series() as a compiled standalone executable.
 % Includes special configuration needed to run on the BU SCC cluster batch
@@ -8,7 +8,14 @@ function [] = piv_series_standalone(param_file)
 % Arguments:
 %   param_file: String, .MAT file containing all piv_series() input arguments,
 %       typically produced using a customized version of piv_get_param_template.m
+%   version: String, optional, version hash for yalebox-piv, required as a
+%       work-around for path problems on the SCC
 % % 
+
+% handle optional args
+if nargin < 2 
+    version = [];
+end
 
 % initialize environment for SCC cluster
 if getenv('ENVIRONMENT')
@@ -26,4 +33,4 @@ args = load(param_file);
 piv_series(args.piv_file, args.image_file, args.step_range, args.gap, ...
     args.samp_len, args.samp_spc, args.intr_len, args.num_pass, ...
     args.valid_radius, args.valid_max, args.valid_eps, args.spline_tension, ...
-    args.min_frac_data, args.min_frac_overlap, true);
+    args.min_frac_data, args.min_frac_overlap, true, version);

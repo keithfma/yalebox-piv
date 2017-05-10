@@ -9,7 +9,7 @@ git_dir = fileparts(mfilename('fullpath'));
 git_cmd = sprintf('git --git-dir %s/.git rev-parse HEAD', git_dir);
 
 [stat, out] = system(git_cmd);
-assert(stat == 0, 'Failed to find git revision number');
+assert(stat == 0, sprintf('Failed to find git revision number: %s', out));
 
 out_parts = strsplit(out, '\n');
 hash = out_parts{1};

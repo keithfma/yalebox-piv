@@ -1,7 +1,7 @@
 function [] = piv_series(...
     output_file, input_file, step_range, gap, samp_len, samp_spc, intr_len, ...
     num_pass, valid_radius, valid_max, valid_eps, spline_tension, ...
-    min_frac_data, min_frac_overlap, verbose)
+    min_frac_data, min_frac_overlap, verbose, version)
 % function [] = piv_series(...
 %     output_file, input_file, step_range, gap, samp_len, samp_spc, intr_len, ...
 %     num_pass, valid_radius, valid_max, valid_eps, spline_tension, ...
@@ -34,17 +34,22 @@ function [] = piv_series(...
 %   min_frac_data: see piv() help for details
 %   min_frac_overlap: see piv() help for details
 %   verbose: Scalar, logical, display verbose messages for this function and its
-%       children (1) or don't (0) 
+%       children (1) or don't (0)
+%   version: String, optional, version hash for yalebox-piv, required as a
+%       work-around for path problems on the SCC, attempt to read
+%       automatically if not provided.
 % %
-
-
-% TODO: Also save the scattered points of the last analysis 
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 validateattributes(step_range, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
+
+% parse version hash
+if ~version
+    version = util_git_hash();
+end
 
 % read input dimension values
 x_img = double(ncread(input_file,'x'));
@@ -93,8 +98,8 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'git commit hash', util_git_hash());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'input file MD5 hash', util_md5_hash(input_file));
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox-piv version', version);
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'image file MD5 hash', util_md5_hash(input_file));
 
 % create dimensions
 x_grd_dimid = netcdf.defDim(ncid, 'x_grd', num_x_grd);
