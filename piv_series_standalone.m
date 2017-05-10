@@ -10,21 +10,15 @@ function [] = piv_series_standalone(param_file)
 %       typically produced using a customized version of piv_get_param_template.m
 % % 
 
-% initialize parallel environment
-% NOTE: use existing pool if possible, faster for interactive development
-if isempty(gcp('nocreate')) 
-    if getenv('ENVIRONMENT')
-        % SCC: avoid use of remote disk and use only requested number of cores
-        fprintf('%s: Init parallel environment for SCC\n', mfilename);
-        cluster = parcluster('local');
-        cluster.JobStorageLocation = getenv('TMPDIR');
-        nslots = str2double(getenv('NSLOTS'));
-        parpool(cluster, nslots);
-    else
-        % not SCC: use default settings
-        fprintf('%s: Init default parallel environment\n', mfilename);
-        parpool();
-    end
+% initialize environment for SCC cluster
+if getenv('ENVIRONMENT')
+    % SCC: avoid use of remote disk and use only requested number of cores
+    fprintf('%s: Init parallel environment for SCC\n', mfilename);
+    cluster = parcluster('local');
+    cluster.JobStorageLocation = getenv('TMPDIR');
+    nslots = str2double(getenv('NSLOTS'));
+    parpool(cluster, nslots);
+    maxNumCompThreads(nslots);
 end
 
 % run PIV analysis
