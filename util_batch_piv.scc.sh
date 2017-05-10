@@ -10,10 +10,11 @@
 
 module load mcr/9.0.1_2016a 
 
-version=$(git -C $(dirname $standalone) rev-parse HEAD)
-standalone_dir=/projectnb/glaciermod/yalebox-piv/standalone/$version/
-standalone_file=piv_series_standalone
+yalebox_dir=/projectnb/glaciermod/yalebox-piv/
+version=$(git -C $yalebox_dir rev-parse HEAD)
+standalone_dir=$yalebox_dir/standalone/$version/
+standalone_file=$standalone_dir/piv_series_standalone
 param_dir=/projectnb/glaciermod/faultless_wedge/experiment/proc/
-param_file=XXX_piv_param.mat
+param_file=$param_dir/XXX_piv_param.mat
 
-mcr $standalone_dir/$standalone_file $param_dir/$param_file $version
+mcr /$standalone_file $param_file $version
