@@ -12,9 +12,9 @@ function [xx, yy, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file,
 %   gap: Scalar, steps between initial and final image in pair, defaults to 1 if
 %       empty or not provided.
 %
-%   xx, yy = Vector, world coordinate vectors for image matrices
-%   ini, fin = 2D matrix, intensity values for initial and final images 
-%   ini_roi, fin_roi = 2D matrix, logical flags for inital and final images,
+%   xx, yy: Vector, world coordinate vectors for image matrices
+%   ini, fin: 2D matrix, intensity values for initial and final images 
+%   ini_roi, fin_roi: 2D matrix, logical flags for inital and final images,
 %       indicating if a pixel is sand (1) or not (0)
 % %
 
