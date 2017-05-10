@@ -1,4 +1,4 @@
-function [] = piv_series_standalone(image_file, param_file, piv_file)
+function [] = piv_series_standalone(param_file)
 % function [] = piv_series_standalone(param_file)
 %
 % Wrapper function to run piv_series() as a compiled standalone executable.
@@ -6,12 +6,8 @@ function [] = piv_series_standalone(image_file, param_file, piv_file)
 % system.
 %
 % Arguments:
-%   image_file: String, netCDF file containing pre-processed image series, as
-%       produced by prep_series()
 %   param_file: String, .MAT file containing all piv_series() input arguments,
-%       typically produced using a customized version of
-%       piv_get_param_template.m
-%   piv_file: String, netCDF file to write PIV results, will *not* overwrite
+%       typically produced using a customized version of piv_get_param_template.m
 % % 
 
 % initialize parallel environment
@@ -33,7 +29,7 @@ end
 
 % run PIV analysis
 args = load(param_file);
-piv_series(piv_file, image_file, args.step_range, args.gap, args.samp_len, ...
-    args.samp_spc, args.intr_len, args.num_pass, args.valid_radius, ...
-    args.valid_max, args.valid_eps, args.spline_tension, args.min_frac_data, ...
-    args.min_frac_overlap, true);
+piv_series(args.piv_file, args.image_file, args.step_range, args.gap, ...
+    args.samp_len, args.samp_spc, args.intr_len, args.num_pass, ...
+    args.valid_radius, args.valid_max, args.valid_eps, args.spline_tension, ...
+    args.min_frac_data, args.min_frac_overlap, true);
