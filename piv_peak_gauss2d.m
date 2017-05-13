@@ -85,7 +85,7 @@ function [rr, cc, vv, ss] = fail()
 % Set output values and throw a warning if the main function fails to find the
 % subpixel peak.
 
-    warning('Failed to find subpixel peak');
+    % warning('Failed to find subpixel peak'); % NOTE: this turns out to be more annoying than helpful
     rr = NaN;
     cc = NaN;
     vv = NaN;
