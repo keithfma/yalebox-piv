@@ -20,7 +20,7 @@ function [u_to, v_to] = piv_interp_spline(...
 %
 % References: 
 % [1] Wessel, P., & Bercovici, D. (1998). Interpolation with splines in tension:
-%     A Green’s function approach. Mathematical Geology, 30(1), 77–93.
+%     A Green?s function approach. Mathematical Geology, 30(1), 77?93.
 % %
 
 % parse roi input arguments
@@ -33,6 +33,8 @@ if verbose
     fprintf('%s: source pts = %d, dest pts = %d, tension = %f\n',...
         mfilename, sum(from(:)), sum(roi_to(:)), tension);
 end
+
+
 
 % interpolate as a complex field (~2x faster)
 c_to = zeros(size(roi_to));

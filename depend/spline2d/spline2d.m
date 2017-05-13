@@ -180,7 +180,8 @@ end
 n = n0 + n1;
 A = zeros (n, n);
 if (n_args == 5 || n_args == 10)	% z_data supplied; build data matrix rows
-	for i = 1:n0
+	% for i = 1:n0 % Keith Ma: Original
+    parfor i = 1:n0 % Keith Ma: Parallel array population
 		r = (abs ((xp(i) - xp) + IM * (yp(i) - yp)));
 		A(i,:) = (spline2d_green (r, p))'; %FRAM, was spline2d_green
 	end
@@ -215,7 +216,8 @@ end
 % Now evaluate final solution at output locations
 
 z = zeros (size(x_out));
-for i = 1:length(alpha)
+% for i = 1:length(alpha) % Keith Ma: Original
+parfor i = 1:length(alpha) % Keith Ma: Parallel accumulation
 	r = abs ((x_out - xp(i)) + IM * (y_out - yp(i)));
     z = z + alpha(i) * (spline2d_green (r, p)); %FRAM, was spline2d_green
 end
