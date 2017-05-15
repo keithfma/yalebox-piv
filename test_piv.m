@@ -30,14 +30,14 @@ function [u_piv, v_piv, u_exact_at_piv, v_exact_at_piv] = test_piv(varargin)
 %       edge displacements) as a fraction of image size, default = 0.1
 %   'samp_len': piv() parameter, default [60, 30]
 %   'samp_spc': piv() parameter, default 15
-%   'intr_len': piv() parameter, default [120, 60]
+%   'intr_len': piv() parameter, default [90, 40]
 %   'num_pass': piv() parameter, default [1, 2]
 %   'valid_radius: piv() parameter, default 45
 %   'valid_max': piv() parameter, default 2
 %   'valid_eps': piv() parameter, default 0.1
 %   'spline_tension': piv() parameter, default 0.95
-%   'min_frac_data': piv() parameter, default 0.8
-%   'min_frac_overlap': piv() parameter, default 0.5
+%   'min_frac_data': piv() parameter, default 0.5
+%   'min_frac_overlap': piv() parameter, default 0.25
 %   'verbose': Scalar logical, set true to enable verbose reporting for all
 %       components of the analysis
 % %
@@ -69,14 +69,14 @@ ip.addParameter('pad_width', 0.1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0}));
 ip.addParameter('samp_len', [60, 30]); % validation handled by PIV routines
 ip.addParameter('samp_spc', 15);
-ip.addParameter('intr_len', [120, 60]);
+ip.addParameter('intr_len', [90, 40]);
 ip.addParameter('num_pass', [1, 2]);
 ip.addParameter('valid_radius', 45);
 ip.addParameter('valid_max', 2);
 ip.addParameter('valid_eps', 0.1);
 ip.addParameter('spline_tension', 0.95);
-ip.addParameter('min_frac_data', 0.8);
-ip.addParameter('min_frac_overlap', 0.5);
+ip.addParameter('min_frac_data', 0.5);
+ip.addParameter('min_frac_overlap', 0.25);
 ip.addParameter('verbose', true, ...
     @(x) validateattributes(x, {'numeric', 'logical'}, {'scalar', 'binary'}));
 

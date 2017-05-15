@@ -177,6 +177,12 @@ for pp = 1:np
     v_grd_tm = v_grd_tm + dv_grd_tm;
 
     % deform images to midpoint time
+    if pp < np
+        ini_tm = piv_deform_image(ini_ti, roi_ini_ti, r_grd_tm, c_grd_tm, ...
+            u_grd_tm, v_grd_tm, spline_tension, false, verbose);
+        fin_tm = piv_deform_image(fin_tf, roi_fin_tf, r_grd_tm, c_grd_tm, ...
+            u_grd_tm, v_grd_tm, spline_tension, true, verbose);
+    end
     
 end
 % end multipass loop
