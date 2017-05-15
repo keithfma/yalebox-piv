@@ -54,39 +54,19 @@ end
 [nr_img, nc_img] = size(img_tx);
 [c_img, r_img] = meshgrid(1:nc_img, 1:nr_img); % full-res
 
-% get extended grid that spans the image coordinates
-r_spc = r_grd_tm(2,1)-r_grd_tm(1,1);
-r0 = r_grd_tm(1,1);
-while r0 > 1
-    r0 = r0-r_spc;
-end
-r1 = r_grd_tm(end,1);
-while r1 < nr_img
-    r1 = r1+r_spc;
-end
-
-c_spc = c_grd_tm(1,2)-c_grd_tm(1,1);
-c0 = c_grd_tm(1,1);
-while c0 > 1
-    c0 = c0-c_spc;
-end
-c1 = c_grd_tm(1,end);
-while c1 < nc_img
-    c1 = c1+c_spc;
-end
-
-[c_ext, r_ext] = meshgrid(c0:c_spc:c1, r0:r_spc:r1);
-[nr_ext, nc_ext] = size(c_ext);
-
-% propagate points to target time (half-step forward or back, depending)
+% propagate displacement grid to points to target time (half-step forward or back, depending)
 if is_fwd
     % forward image defm, propagate displacements back from midpoint to initial time
     c_pts_tx = c_grd_tm - 0.5*u_grd_tm;
     r_pts_tx = r_grd_tm - 0.5*v_grd_tm;    
+    u_pts_tx = 0.5*u_grd_tm;
+    v_pts_tx = 0.5*v_grd_tm;
 else
     % backward image defm, propagate displacements fwd from midpoint to final time
     c_pts_tx = c_grd_tm + 0.5*u_grd_tm;
     r_pts_tx = r_grd_tm + 0.5*v_grd_tm;    
+    u_pts_tx = -0.5*u_grd_tm;
+    v_pts_tx = -0.5*v_grd_tm;
 end
 
 % interpolate scattered to low-res grid using expensive tension splines
@@ -96,24 +76,23 @@ u_ext_tx = reshape(u_ext_tx, nr_ext, nc_ext);
 v_ext_tx = reshape(v_ext_tx, nr_ext, nc_ext);
 
 % interpolate on low-res to full-res grid using cheap linear interpolation
-interp = griddedInterpolant(r_ext, c_ext, u_ext_tx, 'linear');
-u_img_tx = interp(r_img, c_img);
-interp.Values = v_ext_tx;
-v_img_tx = interp(r_img, c_img);
+% NOTE: using cheap triangulation-based interpolant
+% NOTE: interpolate vector as a complex number
+si = scatteredInterpolant(r_pts_tx, c_pts_tx, u_pts_tx + 1i*v_pts_tx, 'natural', 'nearest');
+tmp = si(r_img, c_img);
+u_img_tx = real(tmp);
+v_img_tx = imag(tmp);
 
 % prep displacement matrix for image deformation 
 if is_fwd
-    displacement = -0.5*cat(3, u_img_tx, v_img_tx);
 else
     displacement = 0.5*cat(3, u_img_tx, v_img_tx);
 end
 
-% deform image to midpoint time
+% deform image and its roi to midpoint time
+displacement = cat(3, u_img_tx, v_img_tx);
 img_tm = imwarp(img_tx, displacement, 'cubic', 'FillValues', 0);
-
-% deform roi to midpoint time
 tmp = imwarp(double(img_roi_tx), displacement, 'cubic', 'FillValues', 0);
 img_roi_tm = abs(tmp-1) < roi_epsilon;
+img_tm(~img_roi_tm) = 0; % re-apply roi
 
-% re-apply roi
-img_tm(~img_roi_tm) = 0;
