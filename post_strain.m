@@ -39,7 +39,7 @@ function out = post_strain(x, y, uu, vv, roi, pad_method)
 %       Velocity Field. Unpublished Technical Report.
 %   (2) Brandon, M. T. (1995). Analysis of geologic strain data in
 %       strain-magnitude space. Journal of Structural Geology, 17(10),
-%       1375–1385. http://doi.org/10.1016/0191-8141(95)00032-9
+%       1375?1385. http://doi.org/10.1016/0191-8141(95)00032-9
 %   (3) Ring, U., & Brandon, M. T. (1999). Ductile deformation and mass
 %       loss in the Franciscan Subduction Complex: implications for
 %       exhumation processes in accretionary wedges. Exhumation Processes:
@@ -83,7 +83,10 @@ S2y = nan(ny, nx);
 spin = nan(ny, nx);
 
 % calculate derived strain parameters
-for kk = find(roi)'
+roi_idx = find(roi);
+% for kk = find(roi)'
+for ii = 1:length(roi_idx)
+    kk = roi_idx(ii);
     F = [F11(kk), F12(kk); F21(kk), F22(kk)];
     % polar decomposition, F = VR, B = V^2 = FF', and R = (V^-1)F,
     % %     where B is the Left Cauchy-Green tensor.
@@ -164,7 +167,7 @@ function [dzdx, dzdy] = spatial_gradient(x, y, zz, pad_method)
 % References:
 %   (1) Farid, H., & Simoncelli, E. P. (2004). Differentiation of discrete
 %       multidimensional signals. IEEE Transactions on Image Processing,
-%       13(4), 496–508. http://doi.org/10.1109/TIP.2004.823819
+%       13(4), 496?508. http://doi.org/10.1109/TIP.2004.823819
 % 
 % Dependencies:
 %   derivativesByFilter 
