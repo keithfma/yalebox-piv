@@ -125,10 +125,6 @@ if verbose
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 end
 
-% TODO: it would make a LOT of sense to trim then restore the domain to its
-% minimum size, this would reduce the cost of the full-image interpolations
-% significantly
-
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
