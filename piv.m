@@ -163,20 +163,14 @@ for pp = 1:np
     [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, valid_radius, valid_max, ...
         valid_eps, verbose);
-    
-    % interpolate valid vectors to full sample grid (expensive)
-    [u_grd_tm, v_grd_tm] = piv_interp_spline(...
+        
+    % interpolate valid vectors to full sample grid
+    [u_grd_tm, v_grd_tm, roi_grd_tm] = piv_interp_alpha(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, ...
-        c_grd_tm, r_grd_tm, true, spline_tension, verbose);
-    
+        c_grd_tm, r_grd_tm, 5*samp_spc, [], [], verbose);
+   
 end
 % end multipass loop
-
-% estimate final ROI from alpha hull of final pass sample points
-% NOTE: any "mistakes" here are recoverable from original data, which is saved
-alpha = 5*samp_spc; % want a single ROI without holes
-shp = alphaShape(c_pts_tm, r_pts_tm, alpha);
-roi_grd_tm = inShape(shp, c_grd_tm, r_grd_tm);
 
 % convert all output variables to world coordinate system
 [x_pts_tm, y_pts_tm] = coord_intrinsic_to_world(r_pts_tm, c_pts_tm, x_img, y_img);
