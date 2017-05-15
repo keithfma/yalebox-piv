@@ -132,7 +132,7 @@ end
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
-% init sample grid and solution
+% create sample grid
 [r_grd_tm, c_grd_tm] = piv_sample_grid(samp_spc, size(img_ti, 1), size(img_ti, 2));
 
 % initial guess for displacements
@@ -160,7 +160,6 @@ for pp = 1:np
         verbose);
     
     % validate displacement vectors
-    % TODO: make neighborhood radius (as multiple of samp_spc) and input argument
     [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, valid_radius, valid_max, ...
         valid_eps, verbose);

@@ -34,8 +34,6 @@ if verbose
         mfilename, sum(from(:)), sum(roi_to(:)), tension);
 end
 
-
-
 % interpolate as a complex field (~2x faster)
 c_to = zeros(size(roi_to));
 c_to(roi_to) = spline2d(x_to(roi_to), y_to(roi_to), ...
