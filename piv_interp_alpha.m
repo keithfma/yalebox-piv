@@ -49,9 +49,26 @@ if nargin <10 || isempty(verbose)
     verbose = true;
 end
     
+% allocate outputs
+u_to = nan(size(x_to));
+v_to = nan(size(x_to));
 
-% % estimate final ROI from alpha hull of final pass sample points
-% % NOTE: any "mistakes" here are recoverable from original data, which is saved
-% alpha = 5*samp_spc; % want a single ROI without holes
-% shp = alphaShape(c_pts_tm, r_pts_tm, alpha);
-% roi_grd_tm = inShape(shp, c_grd_tm, r_grd_tm);
+% estimate ROI for interpolation from alpha hull of input points
+shp = alphaShape(x_from(:), y_from(:), alpha);
+roi_to = inShape(shp, x_to, y_to);
+
+% interpolate within ROI
+% NOTE: convert displacement vector to single complex number
+% NOTE: extrapolation disabled - ROI points are all in convex hull
+si = scatteredInterpolant(...
+    x_from(:), y_from(:), u_from + 1i*v_from, interp_method);
+tmp = si(x_to(roi_to), y_to(roi_to));
+u_to(roi_to) = real(tmp);
+v_to(roi_to) = imag(tmp);
+
+% extrapolate outside ROI
+si.Method = extrap_method;
+si.ExtrapolationMethod = extrap_method;
+tmp = si(x_to(~roi_to), y_to(~roi_to));
+u_to(~roi_to) = real(tmp);
+v_to(~roi_to) = imag(tmp);
