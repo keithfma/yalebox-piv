@@ -1,12 +1,12 @@
 function result = piv(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
-    samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-    spline_tension, min_frac_data, min_frac_overlap, verbose)
+    samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
+    valid_eps, min_frac_data, min_frac_overlap, verbose)
 %
 % function result = piv(...
 %     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
-%     samp_len, samp_spc, intr_len, num_pass, valid_max, valid_eps, ...
-%     spline_tension, min_frac_data, min_frac_overlap, verbose)
+%     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
+%     valid_eps, min_frac_data, min_frac_overlap, verbose)
 %
 % PIV analysis for Yalebox image data. Returns results at scattered (raw) and
 % gridded (interpolated) points, evaluated at the midpoint time between the two
@@ -35,8 +35,6 @@ function result = piv(...
 %       as invalid. Ref [3] reccomends a value of 2.
 %   valid_eps = Scalar, double, minimum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
-%   spline_tension = Scalar, tension parameter for the spline interpolation
-%       routine in ref [4]
 %   min_frac_data = Scalar, minimum fraction of the sample window that must
 %       contain data (e.g. sand) for the point to be included in the ROI for PIV
 %       analysis
@@ -75,9 +73,7 @@ function result = piv(...
 % [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 %
-% [4] Wessel, P., & Bercovici, D. (1998). Interpolation with splines in tension:
-%   A Green's function approach. Mathematical Geology, 30(1), 77-93. Retrieved
-%   from http://link.springer.com/article/10.1023/A:1021713421882
+% %
 
 % NOTE: special suffixes describe the time and space grids, these are:
 %   ti -> time of the initial image
@@ -103,7 +99,6 @@ validateattributes(intr_len, {'numeric'}, {'vector', 'numel', ng, 'integer', 'po
 validateattributes(num_pass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
 validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
-validateattributes(spline_tension, {'numeric'}, {'scalar', '>=', 0, '<', 1});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
@@ -114,13 +109,13 @@ if verbose
     fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
     fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
     fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
-    fprintf('%s: samp_len = ', mfilename); fprintf('%d ', samp_len); fprintf('\n');
+    fprintf('%s: samp_len = %d \n', mfilename, samp_len);
     fprintf('%s: samp_spc = ', mfilename); fprintf('%d ', samp_spc); fprintf('\n');
     fprintf('%s: intr_len = ', mfilename); fprintf('%d ', intr_len); fprintf('\n');
     fprintf('%s: num_pass = ', mfilename); fprintf('%d ', num_pass); fprintf('\n');
+    fprintf('%s: valid_radius = %.2e\n', mfilename, valid_radius);
     fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
     fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
-    fprintf('%s: spline_tension = %.3f\n', mfilename, spline_tension);
     fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
     fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 end

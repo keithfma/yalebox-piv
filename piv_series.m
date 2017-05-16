@@ -1,15 +1,16 @@
 function [] = piv_series(...
-    output_file, input_file, step_range, gap, samp_len, samp_spc, intr_len, ...
-    num_pass, valid_radius, valid_max, valid_eps, spline_tension, ...
+    output_file, input_file, step_range, gap, samp_len, samp_spc, ...
+    intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
     min_frac_data, min_frac_overlap, verbose, version)
-% function [] = piv_series(...
-%     output_file, input_file, step_range, gap, samp_len, samp_spc, intr_len, ...
-%     num_pass, valid_radius, valid_max, valid_eps, spline_tension, ...
-%     min_frac_data, min_frac_overlap, verbose)
 %
-% Run PIV analysis for a given input series. Input is expected to be a netCDF
-% file as created by prep_series(). Results are saved in a new netCDF file which
-% includes all relevant metadata.
+% function [] = piv_series(...
+%     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
+%     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
+%     min_frac_data, min_frac_overlap, verbose, version)
+%
+% Run PIV analysis for a given input series. Input image data  expected to
+% be a netCDF file as created by prep_series(). Results are saved in a new
+% netCDF file which includes all relevant metadata.
 %
 % Arguments:
 %   output_file: String, name of the output netCDF file containing PIV results
@@ -18,11 +19,11 @@ function [] = piv_series(...
 %   step_range: 2-element vector, [initial, final] steps of input images series
 %       to include in PIV analysis. Either element can be set to NaN to use the
 %       full range.
-%   gap = Scalar, integer, gap between analyzed images in steps, for example,
-%       for an initial image at step 3, setting gap -> 1 would use a final image
-%       at step 4 and yield PIV results at step 3.5, or alternatively, setting
-%       gap -> 2 would use a final image at step 5 and yield PIV results at
-%       step 4.
+%   gap : Scalar, integer, gap between analyzed images in steps, for
+%       example, for an initial image at step 3, setting gap -> 1 would use
+%       a final image at step 4 and yield PIV results at step 3.5, or
+%       alternatively, setting gap -> 2 would use a final image at step 5
+%       and yield PIV results at step 4.
 %   samp_len: see piv() help for details
 %   samp_spc: see piv() help for details
 %   intr_len: see piv() help for details
@@ -30,7 +31,6 @@ function [] = piv_series(...
 %   valid_radius: see piv() help for details
 %   valid_max: see piv() help for details
 %   valid_eps: see piv() help for details
-%   spline_tension: see piv() help for details
 %   min_frac_data: see piv() help for details
 %   min_frac_overlap: see piv() help for details
 %   verbose: Scalar, logical, display verbose messages for this function and its
@@ -95,7 +95,6 @@ netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv num_pass', num_pass);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_radius', valid_radius);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_max', valid_max);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv spline_tension', spline_tension);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox-piv version', version);
@@ -207,7 +206,7 @@ for ii = 1:num_step
     % perform piv analysis
     result = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-        spline_tension, min_frac_data, min_frac_overlap, verbose); 
+        min_frac_data, min_frac_overlap, verbose); 
     
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');

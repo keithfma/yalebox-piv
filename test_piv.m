@@ -35,7 +35,6 @@ function [u_piv, v_piv, u_exact_at_piv, v_exact_at_piv] = test_piv(varargin)
 %   'valid_radius: piv() parameter, default 45
 %   'valid_max': piv() parameter, default 2
 %   'valid_eps': piv() parameter, default 0.1
-%   'spline_tension': piv() parameter, default 0.95
 %   'min_frac_data': piv() parameter, default 0.5
 %   'min_frac_overlap': piv() parameter, default 0.25
 %   'verbose': Scalar logical, set true to enable verbose reporting for all
@@ -74,7 +73,6 @@ ip.addParameter('num_pass', [1, 2]);
 ip.addParameter('valid_radius', 45);
 ip.addParameter('valid_max', 2);
 ip.addParameter('valid_eps', 0.1);
-ip.addParameter('spline_tension', 0.95);
 ip.addParameter('min_frac_data', 0.5);
 ip.addParameter('min_frac_overlap', 0.25);
 ip.addParameter('verbose', true, ...
@@ -200,8 +198,8 @@ end
 
 result = piv(...     
     ini, fin, ini_roi, fin_roi, x_img, y_img, args.samp_len, args.samp_spc, ...
-    args.intr_len, args.num_pass, args.valid_radius, args.valid_max, args.valid_eps, ...
-    args.spline_tension, args.min_frac_data, args.min_frac_overlap, ...
+    args.intr_len, args.num_pass, args.valid_radius, args.valid_max, ...
+    args.valid_eps, args.min_frac_data, args.min_frac_overlap, ...
     args.verbose);
 
 % extract key results from struct
