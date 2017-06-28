@@ -10,15 +10,12 @@ function [r_peak, c_peak, val_peak] = piv_peak_optim_interp(zz, precision)
 %   zz = 2D matrix, data set for which to estimate peak
 %
 %   precision = Scalar, grid spacing in fine (high-res) grid, which gives the
-%       precision of the subplixel peak location estimate, must divide evenly
-%       into 1 (e.g 0.1 is OK, 0.3 is not) so that the fine grid is aligned with
-%       the coarse.
+%       precision of the subplixel peak location estimate
 % %
 
 % check for sane inputs
 validateattributes(zz, {'numeric'}, {'2d', 'real'});
 validateattributes(precision, {'numeric'}, {'scalar', '<', 1});
-% assert(mod(1/precision, 1) == 0); % WHY?
 
 % initial guess at maximum
 % TODO: use max to get index, then convert to subscript
