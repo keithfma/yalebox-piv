@@ -14,9 +14,9 @@ function [xx, yy, uu_piv, vv_piv, uu_exact, vv_exact] = test_piv_v2(varargin)
 %       extract and deform. Must contain only sand (all within the ROI),
 %       in meters, default = [-0.12, 0.005, 0.092, 0.07]
 %   'u1': 2-element vector specifying first end-member translation in pixels,
-%       default = 20*[cosd(45), sind(45)]
+%       default = 10*[cosd(45), -sind(45)]
 %   'u2': 2-element vector specifying second end-member translation in pixels,
-%       default = 10*[cosd(45), sind(45)]
+%       default = -10*[cosd(45), -sind(45)]
 %   'theta': Scalar, orientation of shear band specified as
 %       counter-clockwise angle to the positive x-axis, in degrees, limited to
 %       range 0 - 90, default = 45
@@ -50,9 +50,9 @@ ip.addParameter('image_index', 1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
 ip.addParameter('image_pos', [-0.12, 0.005, 0.092, 0.07], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
-ip.addParameter('velocity_a', 10*[cosd(45), sind(45)], ...
+ip.addParameter('velocity_a',  10*[cosd(45), -sind(45)], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
-ip.addParameter('velocity_b', 20*[cosd(45), sind(45)], ...
+ip.addParameter('velocity_b', -10*[cosd(45), -sind(45)], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
 ip.addParameter('theta', 45, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=' 90}));
@@ -101,25 +101,91 @@ max_row = find(yw <= args.image_pos(2) + args.image_pos(4), 1, 'last');
 
 img = img(min_row:max_row, min_col:max_col);
 roi = roi(min_row:max_row, min_col:max_col);
-[xx, yy] = meshgrid(1:size(img, 2), 1:size(img, 1));
-xx = xx - mean(xx(:));
-yy = yy - mean(yy(:));
+
 
 if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
 end
 
-%% DEBUG
+% pad image boundaries (and coordinates) to accomodate edge displacements
+if args.verbose
+    fprintf('%s: pad image to accomodate edge displacements\n', mfilename);
+end
 
-[uu, vv] = exact_velocity(...
-    xx, yy, args.defm_width/2*size(img, 2), args.theta, args.velocity_a, ...
-    args.velocity_b);
+pad_dim = ceil(args.pad_width*size(img));
+img = padarray(img, pad_dim, 0, 'both');
+roi = padarray(roi, pad_dim, 0, 'both');
 
-[dudx, dudy, dvdx, dvdy] = exact_gradient(...
-    xx, yy, args.defm_width/2*size(img, 2), args.theta, args.velocity_a, ...
-    args.velocity_b);
+% create new coordinate vectors, pixel units with origin at padded image center
+[x_img, y_img] = meshgrid(1:size(img, 2), 1:size(img, 1));
+x_img = x_img - mean(x_img(:));
+y_img = y_img - mean(y_img(:));
 
-strain = exact_strain(dudx, dudy, dvdx, dvdy);
+%% generate synthetic images
+
+% compute exact displacement field for specified displacements and boundary
+if args.verbose
+    fprintf('%s: compute exact displacement field\n', mfilename);
+end
+
+[u_img, v_img] = exact_velocity(...
+    x_img, y_img, args.defm_width/2*size(img, 2), args.theta, ...
+    args.velocity_a, args.velocity_b);
+
+if args.verbose
+    fprintf('%s: generate synthetic images\n', mfilename);
+end
+
+% deform images
+ini = imwarp(img, 0.5*cat(3, u_img, v_img), 'cubic'); % dir is ok
+fin = imwarp(img, -0.5*cat(3, u_img, v_img), 'cubic');
+
+% deform masks
+ini_roi = imwarp(double(roi), 0.5*cat(3, u_img, v_img), 'cubic');
+ini_roi = logical(round(ini_roi));
+fin_roi = imwarp(double(roi), -0.5*cat(3, u_img, v_img), 'cubic');
+fin_roi = logical(round(fin_roi));
+
+% enforce limits by threshold
+% NOTE: could stretch limits instead, unclear if this matters
+% NOTE: add a tiny offset so that no sand pixels are exactly zero
+tiny = 1e-5;
+ini(ini < 0) = tiny;
+ini(ini > 1) = 1;
+fin(fin < 0) = tiny;
+fin(fin > 1) = 1;
+
+% reapply mask
+ini(~ini_roi) = 0;
+fin(~fin_roi) = 0;
+
+% display initial and final synthetic images
+figure('Position', get(0, 'ScreenSize'))
+
+subplot(1,2,1)
+imagesc([x_img(1), x_img(end)], [y_img(1), y_img(end)], ini);
+set(gca, 'YDir', 'normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
+axis equal tight
+title('Initial Synthetic Image')
+
+subplot(1,2,2)
+imagesc([x_img(1), x_img(end)], [y_img(1), y_img(end)], fin);
+set(gca, 'YDir', 'normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
+axis equal tight
+title('Final Synthetic Image')
+
+
+% %% DEBUG
+% 
+% [uu, vv] = exact_velocity(...
+%     xx, yy, args.defm_width/2*size(img, 2), args.theta, args.velocity_a, ...
+%     args.velocity_b);
+% 
+% [dudx, dudy, dvdx, dvdy] = exact_gradient(...
+%     xx, yy, args.defm_width/2*size(img, 2), args.theta, args.velocity_a, ...
+%     args.velocity_b);
+% 
+% strain = exact_strain(dudx, dudy, dvdx, dvdy);
 
 keyboard
 
