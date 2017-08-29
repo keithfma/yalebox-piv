@@ -119,7 +119,7 @@ end
     xx, yy, args.defm_width/2*size(img, 2), args.theta, args.velocity_a, ...
     args.velocity_b);
 
-% TODO: compute exact strain parameters
+strain = exact_strain(dudx, dudy, dvdx, dvdy);
 
 keyboard
 
@@ -177,4 +177,67 @@ dvdy(defm) = (uv_b(2) - uv_a(2))*cosd(theta)/(2*hh);
 
 return
 
-% TODO: compute strain parameters
+
+function strain = exact_strain(dudx, dudy, dvdx, dvdy)
+
+% compute deformation gradient tensor: F = dx/dX = d/dX( X+u ) = I + du/dX
+F11 = 1 + dudx;
+F12 = dudy;
+F21 = dvdx;
+F22 = 1 + dvdy;
+
+% preallocate derived strain parameters
+[ny, nx] = size(dudx);
+S1 = nan(ny, nx);
+S2 = nan(ny, nx);
+S1x = nan(ny, nx);
+S1y = nan(ny, nx);
+S2x = nan(ny, nx);
+S2y = nan(ny, nx);
+spin = nan(ny, nx);
+
+% calculate derived strain parameters
+for kk = 1:(nx*ny)
+    F = [F11(kk), F12(kk); F21(kk), F22(kk)];
+    % polar decomposition, F = VR, B = V^2 = FF', and R = (V^-1)F,
+    % %     where B is the Left Cauchy-Green tensor.
+    B = F*F';
+    % % eigen solution sorted with eigenvalues in descending order
+    [T, lambda] = eig(B);
+    [lambda, order] = sort(diag(lambda),'descend');
+    S1(kk) = sqrt(lambda(1));
+    S2(kk) = sqrt(lambda(2));
+    T = T(:, order);
+    % store unit vectors for maximum and minimum extension rate direction
+    S1x(kk) = T(1,1);
+    S1y(kk) = T(2,1);
+    S2x(kk) = T(1,2);
+    S2y(kk) = T(2,2);
+    % rotation matrix and spin
+    V_inverse = T*diag(lambda.^(-1/2))*T';
+    R = V_inverse*F;
+    spin(kk) = atan2(R(2,1), R(1,1));
+end
+% equivalent steady rate-of-deformation / stretching tensor components
+%   NOTE: D = logm(S), which is trivial for S in principle form
+D1 = log(S1);
+D2 = log(S2);
+
+% calculate invariants, assuming plane strain (D3=0)
+Dt = sqrt(D1.^2 + D2.^2);
+Dd = sqrt(((D1-D2).^2 + D1.^2 + D2.^2)/3);
+Dv = sqrt(1/3)*(D1 + D2); 
+ 
+% calculate kinematic numbers
+Wk      = 2*spin./(sqrt(2)*Dt);
+Wk_star = 2*spin./(sqrt(2)*Dd);
+Ak      = Dv./(sqrt(2)*Dt);
+Ak_star = Dv./(sqrt(2)*Dd);
+
+% copy output values to struct
+strain = struct('F11', F11, 'F12', F12, 'F21', F21, 'F22', F22, 'S1', S1, ...
+    'S2', S2, 'S1x', S1x, 'S1y', S1y, 'S2x', S2x, 'S2y', S2y, 'spin', spin, ...
+    'D1', D1, 'D2', D2, 'Dt', Dt, 'Dd', Dd, 'Dv', Dv, 'Wk', Wk, 'Ak', Ak, ...
+    'Wk_star', Wk_star, 'Ak_star', Ak_star);
+
+return
