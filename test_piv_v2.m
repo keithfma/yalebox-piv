@@ -233,6 +233,11 @@ for ii = 1:numel(strain_fields)
 end
 strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
+%% IMPORTANT
+
+% It looks like there is a sign error somewhere spin observed and exact are off
+% by factor of -1
+
 %% START DEBUG
 
 keyboard
@@ -244,14 +249,16 @@ keyboard
 num_clusters = 3;
 num_replicates = 25;
 
-velocity_cluster = cluster_errors(velocity_error_abs, {'u', 'v', 'm', 'theta'}, ...
-    coord_obs.roi, num_clusters, num_replicates, false);
+% DEBUG: add coordinates to clustering
+velocity_error.x = coord_obs.x;
+velocity_error.y = coord_obs.y;
+velocity_error.d = coord_obs.x*sind(args.theta) + coord_obs.y*cosd(args.theta);
 
-subplot(1,2,1)
-imagesc(velocity_obs.m);
-subplot(1,2,2)
-imagesc(velocity_cluster);
+% DEBUG: add distance to shear zone center to clustering
 
+
+velocity_cluster = cluster_errors(velocity_error, {'u', 'v', 'd'}, ...
+    coord_obs.roi, num_clusters, num_replicates, true);
  
 % % cluster select velocity fields
 % velocity_cluster_fields = {'u', 'v', 'm'};
@@ -262,7 +269,13 @@ imagesc(velocity_cluster);
 % end
 % velocity_cluster = nan(size(coord_obs.roi));
 % velocity_cluster(coord_obs.roi) = kmeans(velocity_features, num_clusters, ...
-%     'Replicates', 25);
+%     'Replicates', num_replicates);
+
+subplot(1,2,1)
+imagesc(velocity_error.m);
+subplot(1,2,2)
+imagesc(velocity_cluster);
+
 
 function clusters = cluster_errors(err, fields, roi, num_clusters, num_replicates, whiten)
 %
@@ -513,10 +526,10 @@ dvdx = zeros(size(xx));
 dudy = zeros(size(xx));
 dvdy = zeros(size(xx));
 
-dudx(defm) = (uv_b(1) - uv_a(1))*sind(theta)/(2*hh);
-dvdx(defm) = (uv_b(2) - uv_a(2))*sind(theta)/(2*hh);
-dudy(defm) = (uv_b(1) - uv_a(1))*cosd(theta)/(2*hh);
-dvdy(defm) = (uv_b(2) - uv_a(2))*cosd(theta)/(2*hh);
+dudx(defm) = (uv_a(1) - uv_b(1))*sind(theta)/(2*hh);
+dvdx(defm) = (uv_a(2) - uv_b(2))*sind(theta)/(2*hh);
+dudy(defm) = (uv_a(1) - uv_b(1))*cosd(theta)/(2*hh);
+dvdy(defm) = (uv_a(2) - uv_b(2))*cosd(theta)/(2*hh);
 
 return
 
