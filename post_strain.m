@@ -1,7 +1,7 @@
 function out = post_strain(x, y, uu, vv, roi, pad_method)
 % function out = post_strain(x, y, uu, vv, roi, pad_method)
 %
-% Compute strain deformation parameters for input velocity fields.
+% Compute strain parameters for input velocity fields.
 %
 % NOTE: Assumes x and y are regularly spaced (i.e. dx and dy are constant)
 %
