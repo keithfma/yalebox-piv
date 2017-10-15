@@ -187,7 +187,8 @@ result = piv(...
     args.verbose);
 
 % repackage key results
-coord_obs = struct('x', result.x_grd, 'y', result.y_grd, 'roi', result.roi_grd);
+coord_obs = struct('x', result.x_grd, 'y', result.y_grd, 'roi', result.roi_grd, ...
+    'd', abs(result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta)));
 velocity_obs = struct('u', result.u_grd, 'v', result.v_grd, ...
     'm', sqrt(result.u_grd.^2 + result.v_grd.^2), ...
     'theta', atan2d(result.v_grd, result.u_grd));
@@ -233,251 +234,121 @@ for ii = 1:numel(strain_fields)
 end
 strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
-%% IMPORTANT
+%% cluster error variables into distinct populations 
 
-% It looks like there is a sign error somewhere spin observed and exact are off
-% by factor of -1
+velocity_cluster = cluster_errors(...
+    coord_obs, velocity_error_abs, {'u', 'v'}, 2);
 
-%% START DEBUG
+strain_cluster = cluster_errors(...
+    coord_obs, strain_error_abs, {'F11', 'F12', 'F21', 'F22'}, 3);
+
+%% TODO: plot errors map and histogram for each cluster for each variable...
 
 keyboard
 
-%% try clustering to split error variables
-
-% TODO: explore k-medoid clustering with Mahalnobis distance, if needed
-
-num_clusters = 3;
-num_replicates = 25;
-
-% DEBUG: add coordinates to clustering
-velocity_error.x = coord_obs.x;
-velocity_error.y = coord_obs.y;
-velocity_error.d = coord_obs.x*sind(args.theta) + coord_obs.y*cosd(args.theta);
-
-% DEBUG: add distance to shear zone center to clustering
+return
 
 
-velocity_cluster = cluster_errors(velocity_error, {'u', 'v', 'd'}, ...
-    coord_obs.roi, num_clusters, num_replicates, true);
- 
-% % cluster select velocity fields
-% velocity_cluster_fields = {'u', 'v', 'm'};
-% velocity_features = nan(sum(coord_obs.roi(:)), numel(velocity_cluster_fields));
-% for ii = 1:numel(velocity_cluster_fields)
-%     fn = velocity_cluster_fields{ii};
-%     velocity_features(:,ii) = velocity_error_abs.(fn)(coord_obs.roi);
-% end
-% velocity_cluster = nan(size(coord_obs.roi));
-% velocity_cluster(coord_obs.roi) = kmeans(velocity_features, num_clusters, ...
-%     'Replicates', num_replicates);
-
-subplot(1,2,1)
-imagesc(velocity_error.m);
-subplot(1,2,2)
-imagesc(velocity_cluster);
-
-
-function clusters = cluster_errors(err, fields, roi, num_clusters, num_replicates, whiten)
+function clusters = cluster_errors(coords, errors, fields, nclust)
+% Return cluster ID for each point
 %
-% Cluster error data using all specified fields as features
+% Clustering uses a custom objective function that solves for the position of
+% boundary lines between clusters in terms of distance from the shear zone
+% center. This model reflects my observation that the shear band, its edges, and
+% the undeformed area have different error populations.
 %
 % Arguments:
-%   err: Struct, error data to be clustered, only specified fields are used
-%   fields: Cell vector, fieldnames to include as features, set to
-%       fieldnames(err) to use all available fields
-%   roi: 2D matrix, logical array indicating data footprint
-%   num_clusters: Scalar integer, number of clusters to fit
-%   num_replicates: Scalar integer, number of replicate clustering attempts,
-%       helps avoid local minima
-%   whiten: Scalar logical, set true to apply PCA whitening transform
+%   coords: coordinates struct, as produced in the main function
+%   errors: error struct, as produced in the main function
+%   fields: cell array containing fields in errors and/or coords to be included
+%       in the clustering calculations
+%   nclust: Scalar integer, number of clusters to assign
 %
 % Returns:
-%   2D matrix of cluster ids at each point
-%
-% NOTE: PCA whitening transforms data such that they have covariance matrix ==
-%   identity matrix, meaning variable variances are 1 and variables do not
-%   covary. This is analagous to the Mahalnobis distance metric. Sounds good,
-%   but does not always improve performance.
+%   Matrix of cluster IDs for each point in the domain
 % %
 
 % build feature matrix
-features = nan(sum(roi(:)), numel(fields));
+features = nan(sum(coords.roi(:)), numel(fields));
 for ii = 1:size(features, 2)
-    features(:,ii) = err.(fields{ii})(roi);
+    field = fields{ii};
+    if ismember(field, fieldnames(errors))
+        features(:,ii) = errors.(field)(coords.roi);
+    elseif ismember(field, fieldnames(coords))
+        features(:,ii) = coords.(field)(coords.roi);
+    else
+        error('Field "%s" not found', field)
+    end
 end
+features_d = coords.d(coords.roi);
 
-% apply PCA whitening transform
-if whiten
-    [~, score, latent] = pca(features);
-    features = score./repmat(sqrt(latent)' + 0.1, size(score, 1), 1);
-end
+% apply PCA whitening transform to features
+[~, score, latent] = pca(features);
+features = score./repmat(sqrt(latent)' + 0.1, size(score, 1), 1);
 
-% find clusters and store in correct positions
-clusters = nan(size(roi));
-clusters(roi) = kmeans(features, num_clusters, 'Replicates', num_replicates);
+% define objective function for optimization
+objective = @(b) get_cluster_misfit(features, features_d, b);
+
+% find optimal clusters by derivative free global optimization
+bnd_guess = linspace(min(features_d), max(features_d), nclust+1);
+bnd_guess = bnd_guess(2:end-1);
+bnd_optim = patternsearch(objective, bnd_guess);
+
+features_id = get_cluster_id(features_d, bnd_optim);
+clusters = nan(size(coords.roi));
+clusters(coords.roi) = features_id;
 
 return
 
-% % cluster all error fields, add results to the struct
-% fields = fieldnames(err); % err_abs has same fields
-% for ii = 1:numel(fields)
-%     fn = fields{ii};
-    
 
-% % get cluster IDs
-% num_clusters = 2;
-% roi = ~isnan(abs_err.Dd); % is this the same for all variables?
-% var = abs_err.Dd(roi);
-% cluster_id = nan(size(roi));
-% cluster_id(roi) = kmeans(var, num_clusters);
+function id = get_cluster_id(dist, bnd)
+% Return cluster ID for each point
+%
+% Arguments:
+%   dist: Distance to shear zone center for all points 
+%   bnd: Vector, limiting values separating clusters, same units as "dist",
+%       there will be length(bnd)+1 clusters.
+%
+% Returns:
+%   id: Cluster ID for each point, same size as dist
+% %
 
-% % plot each cluster and its histogram
-% for cc = 1:num_clusters
-%     figure;
-%     
-%     rng = [min(
-%     subplot(2, 1, 1);
-%     imagesc(
+num_bnd = length(bnd);
+bnd = sort(bnd);
+
+id = nan(size(dist));
+id(dist < bnd(1)) = 0;
+for jj = 1:(num_bnd-1)
+    id(dist >= bnd(jj) & dist < bnd(jj+1)) = jj;
+end
+id(dist > bnd(end)) = num_bnd;
+
+return
 
 
-% %% display exact and measured displacement fields
-% 
-% figure('Position', get(0, 'ScreenSize'))
-% 
-% num_vec = 25; % desired num quiver vectors along largest dim, for downsampling
-% dfact = floor(max(size(x_piv))/num_vec);
-% 
-% subplot(1, 2, 1)
-% m_piv_ext = sqrt(u_piv_ext.^2 + v_piv_ext.^2);
-% imagesc(x_piv(1,:), y_piv(:,1), m_piv_ext, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
-% hold on;
-% quiver(x_piv(1:dfact:end, 1:dfact:end), ...
-%     y_piv(1:dfact:end, 1:dfact:end), ...
-%     u_piv_ext(1:dfact:end, 1:dfact:end), ...
-%     v_piv_ext(1:dfact:end, 1:dfact:end), '-k');
-% cb = colorbar;
-% cb.Label.String = 'Displacement Magnitude [pixels]';
-% axis equal tight
-% title('Exact Displacement Magnitude and Direction')
-% 
-% subplot(1, 2, 2)
-% m_piv_obs = sqrt(u_piv_obs.^2 + v_piv_obs.^2);
-% imagesc(x_piv(1,:), y_piv(:,1), m_piv_obs, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'Normal', 'XGrid', 'on', 'YGrid', 'on', 'GridColor', 'w');
-% hold on;
-% quiver(x_piv(1:dfact:end, 1:dfact:end), ...
-%     y_piv(1:dfact:end, 1:dfact:end), ...
-%     u_piv_obs(1:dfact:end, 1:dfact:end), ...
-%     v_piv_obs(1:dfact:end, 1:dfact:end), '-k');
-% cb = colorbar;
-% cb.Label.String = 'Displacement Magnitude [pixels]';
-% axis equal tight
-% title('PIV Displacement Magnitude and Direction')
-% 
-% %% Analyze veocity errors
-% 
-% if args.verbose
-%     fprintf('%s: error analysis\n', mfilename);
-% end
-% 
-% u_error = u_piv_ext - u_piv_obs;
-% v_error = v_piv_ext - v_piv_obs;
-% m_error = sqrt(u_error.^2 + v_error.^2);
-% theta_error = atan2d(v_piv_ext, u_piv_ext) - atan2d(v_piv_obs, u_piv_obs);
-% 
-% % print error quantiles
-% qnt = 0 : 0.10 : 1;
-% u_abs_error_qnt = quantile(abs(u_error(:)), qnt);
-% v_abs_error_qnt = quantile(abs(v_error(:)), qnt);
-% m_error_qnt = quantile(sqrt(u_error(:).^2 + v_error(:).^2), qnt);
-% 
-% fprintf('\n---- \n');
-% fprintf('Displacement Vector Error Quantiles\n\n');
-% fprintf('Quantile\t| U Abs Error\t| V Abs Error\t| Mag Error\n'); 
-% for i = 1:length(qnt)
-%     fprintf('%.2f\t| %.2e\t| %.2e\t| %.2e\n', ...
-%         qnt(i), u_abs_error_qnt(i), v_abs_error_qnt(i), m_error_qnt(i));
-% end
-% fprintf('---- \n\n');
-% 
-% % plot error maps
-% figure('Position', get(0, 'ScreenSize'));
-% 
-% subplot(2, 2, 1);
-% imagesc(x_piv(1,:), y_piv(:,1), u_error, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'normal');
-% axis equal tight
-% cb = colorbar;
-% cb.Label.String = 'Error [pixels]';
-% title('U Error')
-% 
-% subplot(2, 2, 2);
-% imagesc(x_piv(1,:), y_piv(:,1), v_error, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'normal');
-% axis equal tight
-% cb = colorbar;
-% cb.Label.String = 'Error [pixels]';
-% title('V Error')
-% 
-% subplot(2, 2, 3);
-% imagesc(x_piv(1,:), y_piv(:,1), m_error, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'normal');
-% axis equal tight
-% cb = colorbar;
-% cb.Label.String = 'Error [pixels]';
-% title('Magnitude Error')
-% 
-% subplot(2, 2, 4);
-% imagesc(x_piv(1,:), y_piv(:,1), theta_error, 'AlphaData', roi_piv_obs);
-% set(gca, 'YDir', 'normal');
-% axis equal tight
-% cb = colorbar;
-% cb.Label.String = 'Error [degrees]';
-% title('Theta Error')
-% 
-% % plot error histograms
-% num_bins = 50;
-% 
-% figure('Position', get(0, 'ScreenSize'))
-% 
-% subplot(2, 2, 1)
-% hist(u_error(~isnan(u_error)), num_bins);
-% set(gca, 'XLim', [min(u_error(:)), max(u_error(:))]);
-% hh = findobj(gca, 'Type', 'patch');
-% hh.LineStyle = 'none';
-% title('U Error')
-% xlabel('Error [pixels]');
-% ylabel('Count [pixels]');
-% 
-% subplot(2, 2, 2)
-% hist(v_error(~isnan(v_error)), num_bins);
-% set(gca, 'XLim', [min(v_error(:)), max(v_error(:))]);
-% hh = findobj(gca, 'Type', 'patch');
-% hh.LineStyle = 'none';
-% title('V Error')
-% xlabel('Error [pixels]');
-% ylabel('Count [pixels]');
-% 
-% subplot(2, 2, 3)
-% hist(m_error(~isnan(m_error)), num_bins);
-% set(gca, 'XLim', [min(m_error(:)), max(m_error(:))]);
-% hh = findobj(gca, 'Type', 'patch');
-% hh.LineStyle = 'none';
-% title('Magnitude Error')
-% xlabel('Error [pixels]');
-% ylabel('Count [pixels]');
-% 
-% subplot(2, 2, 4)
-% hist(theta_error(~isnan(theta_error)), num_bins);
-% set(gca, 'XLim', [min(theta_error(:)), max(theta_error(:))]);
-% hh = findobj(gca, 'Type', 'patch');
-% hh.LineStyle = 'none';
-% title('Theta Error')
-% xlabel('Error [degrees]');
-% ylabel('Count [pixels]');
+function misfit = get_cluster_misfit(feat, dist, bnd)
+% Return sum-of-squared distances from all points to cluster means
+%
+% Arguments:
+%   feat: Feature values at each point (one row per point)
+%   dist: Distance to shear zone center for all points 
+%   bnd: Vector, limiting values separating clusters, same units as "dist",
+%       there will be length(bnd)+1 clusters.
+%
+% Returns:
+%   misfit: Sum-of-squared distances from all points to cluster means
+% %
 
-%% DEBUG 
+id = get_cluster_id(dist, bnd);
+misfit = 0;
+for ii = 0:length(bnd)
+    clust_feat = feat(id==ii, :);
+    clust_err = bsxfun(@minus, clust_feat, mean(clust_feat));
+    misfit = misfit + sum(clust_err(:).^2);
+end
+
+return
+
 
 function [uu, vv] = exact_velocity(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical velocity at points in xx, yy
@@ -502,7 +373,6 @@ uu = uv_a(1)*ww + uv_b(1)*(1 - ww);
 vv = uv_a(2)*ww + uv_b(2)*(1 - ww);
 
 return
-
 
 function [dudx, dudy, dvdx, dvdy] = exact_gradient(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical deformation quantities at points in xx, yy
