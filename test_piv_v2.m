@@ -247,28 +247,45 @@ strain_fields = {'F11', 'F12', 'F21', 'F22'};
 strain_cluster = cluster_errors(...
     coord_obs, strain_error_abs, strain_fields, strain_num_cluster);
 
-keyboard
-
 %% plot errors map and histogram for select variables
 
-velocity_plot_vars = {'u', 'v', 'm'};
-for ii = 1:length(velocity_plot_vars)
-    var_name = velocity_plot_vars{ii};
-    var = velocity_error.(var_name);
+plot_clustered_errors(...
+    coord_obs, velocity_error, velocity_cluster, {'u', 'v', 'm'});
+
+plot_clustered_errors(...
+    coord_obs, strain_error, strain_cluster, {'Dd', 'Dv', 'spin'});
+
+
+%% done
+
+return
+
+
+function plot_clustered_errors(coords, errors, clusters, fields)
+
+num_clusters = length(unique(clusters(~isnan(clusters))));
+num_fields = length(fields);
+
+for ii = 1:num_fields
+    var_name = fields{ii};
+    var = errors.(var_name);
+    
     figure
-    for jj = 1:velocity_num_cluster        
+    
+    for jj = 1:num_clusters
+    
         cluster_var = var;
-        cluster_var(velocity_cluster ~= jj-1) = NaN;
+        cluster_var(clusters ~= jj-1) = NaN;
         
-        subplot(2, velocity_num_cluster, jj)
+        subplot(2, num_clusters, jj)
         him = imagesc(cluster_var);  % TODO: add coordinates
         him.AlphaData = ~isnan(cluster_var);
         xlabel('X'); % TODO: add units
         ylabel('Y'); 
         title(sprintf('%s Error Map - Cluster %i', var_name, jj));
         
-        subplot(2, velocity_num_cluster, jj+velocity_num_cluster)
-        hist(cluster_var(:), sum(coord_obs.roi(:))/10)
+        subplot(2, num_clusters, jj + num_clusters)
+        hist(cluster_var(:), sum(coords.roi(:))/10)
         xlabel('Error');
         ylabel('Count');
         title(sprintf('%s Error Histogram - Cluster %i', var_name, jj));
@@ -276,7 +293,6 @@ for ii = 1:length(velocity_plot_vars)
     end
 end
 
-%%
 return
 
 
