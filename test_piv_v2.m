@@ -196,6 +196,7 @@ velocity_obs = struct('u', result.u_grd, 'v', result.v_grd, ...
 % apply roi mask to velocity fields
 velocity_obs.u(~coord_obs.roi) = NaN;
 velocity_obs.v(~coord_obs.roi) = NaN;
+velocity_obs.m(~coord_obs.roi) = NaN;
 
 % compute exact velocities and package results
 [u_ext, v_ext] = exact_velocity(...
@@ -236,16 +237,46 @@ strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
 %% cluster error variables into distinct populations 
 
+velocity_num_cluster = 2;
+velocity_fields = {'u', 'v'};
 velocity_cluster = cluster_errors(...
-    coord_obs, velocity_error_abs, {'u', 'v'}, 2);
+    coord_obs, velocity_error_abs, velocity_fields, velocity_num_cluster);
 
+strain_num_cluster = 3;
+strain_fields = {'F11', 'F12', 'F21', 'F22'};
 strain_cluster = cluster_errors(...
-    coord_obs, strain_error_abs, {'F11', 'F12', 'F21', 'F22'}, 3);
-
-%% TODO: plot errors map and histogram for each cluster for each variable...
+    coord_obs, strain_error_abs, strain_fields, strain_num_cluster);
 
 keyboard
 
+%% plot errors map and histogram for select variables
+
+velocity_plot_vars = {'u', 'v', 'm'};
+for ii = 1:length(velocity_plot_vars)
+    var_name = velocity_plot_vars{ii};
+    var = velocity_error.(var_name);
+    figure
+    for jj = 1:velocity_num_cluster        
+        cluster_var = var;
+        cluster_var(velocity_cluster ~= jj-1) = NaN;
+        
+        subplot(2, velocity_num_cluster, jj)
+        him = imagesc(cluster_var);  % TODO: add coordinates
+        him.AlphaData = ~isnan(cluster_var);
+        xlabel('X'); % TODO: add units
+        ylabel('Y'); 
+        title(sprintf('%s Error Map - Cluster %i', var_name, jj));
+        
+        subplot(2, velocity_num_cluster, jj+velocity_num_cluster)
+        hist(cluster_var(:), sum(coord_obs.roi(:))/10)
+        xlabel('Error');
+        ylabel('Count');
+        title(sprintf('%s Error Histogram - Cluster %i', var_name, jj));
+        
+    end
+end
+
+%%
 return
 
 
