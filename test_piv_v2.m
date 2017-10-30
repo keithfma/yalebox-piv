@@ -236,6 +236,77 @@ for ii = 1:numel(strain_fields)
 end
 strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
+%% DEBUG
+
+keyboard
+
+
+%% Experiment: try brute-force segmentation
+
+% constants -- will be func inputs
+dist = coord_obs.d;
+errors = velocity_error_abs;
+fields = {'u', 'v'};
+roi = coord_obs.roi;
+nseg = 2;
+whiten = true;
+
+% build feature matrix and corresponding distance matrix
+features = nan(sum(roi(:)), numel(fields));
+for ii = 1:size(features, 2)
+    features(:,ii) = errors.(fields{ii})(roi);
+end
+features_dist = dist(roi);
+
+% apply PCA whitening transform to features (makes cov(features) == identity) 
+if whiten
+    [~, score, latent] = pca(features);
+    for ii = 1:size(features, 2)
+        features(:, ii) = score(:, ii)/sqrt(latent(ii));
+    end
+end
+
+% enumerate possible boundary combinations
+dist_unq = uniquetol(features_dist(:), 10*eps);
+bnd_unq = dist_unq(1:end-1) + 0.5*diff(dist_unq);
+bnd_opts = nchoosek(bnd_unq, nseg-1);  % note: columns are in ascending order 
+nopts = size(bnd_opts, 1);
+bnd_opts = [zeros(nopts, 1), bnd_opts, inf(nopts, 1)];
+
+% compute a misfit for all selected boundaries
+% note: model errors as a separate gaussian distribution within each segment
+bnd_best = NaN;
+misfit_best = inf;
+
+for ii = 1:nopts
+    bnd_this = bnd_opts(ii, :);
+    misfit_this = 0;
+    for jj = 1:nseg
+        dist_min = bnd_this(jj);
+        dist_max = bnd_this(jj+1);
+        features_subset = features(features_dist >= dist_min & features_dist < dist_max, :);
+        [muhat, sigmahat] = normfit(features_subset);
+        nloglik = ecmnobj(features_subset, muhat, diag(sigmahat));
+        misfit_this = misfit_this + nloglik;
+    end
+    if misfit_this < misfit_best
+        misfit_best = misfit_this;
+        bnd_best = bnd_this;
+    end
+end
+
+% note: works for velocity...
+
+% assign points to clusters and populate output matrix
+clusters = nan(size(roi));
+for jj = 1:nseg
+    dist_min = bnd_best(jj);
+    dist_max = bnd_best(jj+1);
+    clusters(dist >= dist_min & dist <= dist_max) = jj;
+end
+clusters(~roi) = NaN;
+    
+
 %% cluster error variables into distinct populations 
 
 % velocity_fields = {'u', 'v'}; % only measured vars
