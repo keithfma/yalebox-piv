@@ -236,20 +236,100 @@ for ii = 1:numel(strain_fields)
 end
 strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
-%% DEBUG
+%% segment error variables into distinct populations 
+
+velocity_fields = {'u', 'v'}; % only measured vars
+velocity_segment = segment_errors(...
+    velocity_error_abs, velocity_fields, coord_obs.d, coord_obs.roi, 2, true);
+
+strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
+strain_segment = segment_errors(...
+    strain_error_abs, strain_fields, coord_obs.d, coord_obs.roi, 3);
+
+%% plot errors map and histogram for select variables
+
+plot_clustered_errors(...
+    coord_obs, velocity_error, velocity_segment, fieldnames(velocity_error));
+
+plot_clustered_errors(...
+    coord_obs, strain_error, strain_segment, {'F11', 'F12', 'F21', 'F22'});
+
+%% done
 
 keyboard
 
+return
 
-%% Experiment: try brute-force segmentation
 
-% constants -- will be func inputs
-dist = coord_obs.d;
-errors = velocity_error_abs;
-fields = {'u', 'v'};
-roi = coord_obs.roi;
-nseg = 2;
-whiten = true;
+function plot_segmented_errors(coords, errors, segments, fields)
+%
+% Generate heatmaps and histograms for segmented errors
+%
+% Arguments:
+%   coords: Coordinate struct, as produced by the main function
+%   errors: Error struct, as produced in the main function
+%   segments: Integer matrix, segment IDs for all points
+%   fields: Cell array containing fields in errors and/or coords to be plotted
+% %
+
+num_segments = length(unique(segments(~isnan(segments))));
+num_fields = length(fields);
+
+for ii = 1:num_fields
+    var_name = fields{ii};
+    var = errors.(var_name);
+    
+    figure
+    
+    for jj = 1:num_segments
+    
+        cluster_var = var;
+        cluster_var(segments ~= jj) = NaN;
+        
+        subplot(2, num_segments, jj)
+        him = imagesc(cluster_var);  % TODO: add coordinates
+        him.AlphaData = ~isnan(cluster_var);
+        xlabel('X'); % TODO: add units
+        ylabel('Y'); 
+        title(sprintf('%s Error Map - Cluster %i', var_name, jj));
+        
+        subplot(2, num_segments, jj + num_segments)
+        hist(cluster_var(:), sum(coords.roi(:))/20)
+        xlabel('Error');
+        ylabel('Count');
+        title(sprintf('%s Error Histogram - Cluster %i', var_name, jj));
+        
+    end
+end
+
+return
+
+
+% TODO: model errors as folded normal, fit is better for absolute errors
+function [seg_id] = segment_errors(errors, fields, dist, roi, nseg, whiten)
+% Return segment ID for each point
+%
+% Model errors as a Gaussian distributions in banded "segments" oriented
+% parallel to the deformation band
+%
+% Arguments:
+%   errors: Error struct, as produced in the main function
+%   fields: Cell array containing fields in errors and/or coords to be included
+%       in the clustering calculations
+%   dist: Double matrix, distance to the deformation band centerline
+%   roi: Logical matrix, indicates where observed data exist
+%   nseg: Scalar integer, number of segments (i.e., bands) to assign
+%   whiten: Logical, optional, apply PCA whitening transform to features,
+%       default is true.
+%
+% Returns:
+%   Matrix of segment IDs for each point in the domain
+% %
+
+% set defaults
+if nargin < 6
+    whiten = true;
+end
 
 % build feature matrix and corresponding distance matrix
 features = nan(sum(roi(:)), numel(fields));
@@ -274,14 +354,15 @@ nopts = size(bnd_opts, 1);
 bnd_opts = [zeros(nopts, 1), bnd_opts, inf(nopts, 1)];
 
 % compute a misfit for all selected boundaries
-% note: model errors as a separate gaussian distribution within each segment
-bnd_best = NaN;
+% init best
+bnd_best = NaN; 
 misfit_best = inf;
-
-for ii = 1:nopts
+% test all options
+for ii = 1:nopts 
     bnd_this = bnd_opts(ii, :);
     misfit_this = 0;
     for jj = 1:nseg
+        % accumulate neg. log-likelihood of best fit uncorr. multivar. normal
         dist_min = bnd_this(jj);
         dist_max = bnd_this(jj+1);
         features_subset = features(features_dist >= dist_min & features_dist < dist_max, :);
@@ -290,262 +371,22 @@ for ii = 1:nopts
         misfit_this = misfit_this + nloglik;
     end
     if misfit_this < misfit_best
+        % update best
         misfit_best = misfit_this;
         bnd_best = bnd_this;
     end
 end
 
-% note: works for velocity...
-
-% assign points to clusters and populate output matrix
-clusters = nan(size(roi));
+% assign points to segments and populate output matrix
+seg_id = nan(size(roi));
 for jj = 1:nseg
     dist_min = bnd_best(jj);
     dist_max = bnd_best(jj+1);
-    clusters(dist >= dist_min & dist <= dist_max) = jj;
+    seg_id(dist >= dist_min & dist <= dist_max) = jj;
 end
-clusters(~roi) = NaN;
-    
-
-%% cluster error variables into distinct populations 
-
-% velocity_fields = {'u', 'v'}; % only measured vars
-% velocity_cluster = cluster_errors(...
-%     velocity_error, velocity_fields, coord_obs.roi, 2);
-
-%velocity_error_abs.d = abs(coord_obs.d);
-
-velocity_fields = {'u', 'v', 'm'}; % only measured vars
-velocity_cluster = cluster_errors(...
-    velocity_error_abs, velocity_fields, coord_obs.roi, 2);
-
-% strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
-% strain_cluster = cluster_errors(...
-%     strain_error, strain_fields, coord_obs.roi, 3);
-
-% strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
-% strain_cluster = cluster_errors(...
-%     strain_error_abs, strain_fields, coord_obs.roi, 3);
-
-strain_fields = {'Dd'}; % only measured vars
-strain_cluster = cluster_errors(...
-    strain_error_abs, strain_fields, coord_obs.roi, 3);
-
-%% plot errors map and histogram for select variables
-
-plot_clustered_errors(...
-    coord_obs, velocity_error, velocity_cluster, fieldnames(velocity_error));
-
-% plot_clustered_errors(...
-%     coord_obs, strain_error, strain_cluster, {'F11', 'F12', 'F21', 'F22'});
-
-plot_clustered_errors(...
-    coord_obs, strain_error, velocity_cluster, {'Dd'});
-
-keyboard
-
-%% STATUS
-%
-% Gaussian mixture model works quite well, but I am not quite satisfied with
-% where the cluster boundaries get drawn. These seems to include some "wrong"
-% points at the region boundaries, which appear to better fit in with adjacent
-% region distributions.
-% 
-% Perhaps there are clustering parameters I could explore?
-%
-% Might work better if I can model the absolute value of the error. This should
-% better extract the edges, which have negative errors on one side and positive
-% on the other. The reason for a non-gaussian mixture model is that errors wrap
-% around zero will not be gaussian when I take the absolute value.
-%
-% A "cludge" might be to add an offset that pushes all errors away from zero...
-%
-% Also, how does whitening affect this process? Should I drop it?
-% 
-
-%% done
+seg_id(~roi) = NaN;
 
 return
-
-
-function plot_clustered_errors(coords, errors, clusters, fields)
-
-num_clusters = length(unique(clusters(~isnan(clusters))));
-num_fields = length(fields);
-
-for ii = 1:num_fields
-    var_name = fields{ii};
-    var = errors.(var_name);
-    
-    figure
-    
-    for jj = 1:num_clusters
-    
-        cluster_var = var;
-        cluster_var(clusters ~= jj) = NaN;
-        
-        subplot(2, num_clusters, jj)
-        him = imagesc(cluster_var);  % TODO: add coordinates
-        him.AlphaData = ~isnan(cluster_var);
-        xlabel('X'); % TODO: add units
-        ylabel('Y'); 
-        title(sprintf('%s Error Map - Cluster %i', var_name, jj));
-        
-        subplot(2, num_clusters, jj + num_clusters)
-        hist(cluster_var(:), sum(coords.roi(:))/20)
-        xlabel('Error');
-        ylabel('Count');
-        title(sprintf('%s Error Histogram - Cluster %i', var_name, jj));
-        
-    end
-end
-
-return
-
-function [clusters, features, norm_features] = cluster_errors(errors, fields, roi, nclust)
-% Return cluster ID for each point
-%
-% Model errors as a Gaussian mixture model with nclust components, and assign
-% each point to one component (a.k.a. cluster)
-%
-% Arguments:
-%   errors: Error struct, as produced in the main function
-%   fields: Cell array containing fields in errors and/or coords to be included
-%       in the clustering calculations
-%   roi: Logical matrix, indicates where observed data exist
-%   nclust: Scalar integer, number of clusters to assign
-%
-% Returns:
-%   Matrix of cluster IDs for each point in the domain
-% %
-
-% build feature matrix
-features = nan(sum(roi(:)), numel(fields));
-for ii = 1:size(features, 2)
-    features(:,ii) = errors.(fields{ii})(roi);
-end
-
-% apply PCA whitening transform to features (makes cov(features) == identity) 
-[~, score, latent] = pca(features);
-norm_features = nan(size(features));
-for ii = 1:size(features, 2)
-    norm_features(:, ii) = score(:, ii)/sqrt(latent(ii));
-end
-
-% fit Gaussian mixture model with nclust components
-warning('off', 'all'); % fit fails for some replicates, that is OK
-% gmm = fitgmdist(norm_features, nclust, 'Replicates', 100, 'Start', 'plus', ...
-%     'CovarianceType', 'diagonal', 'RegularizationValue', 0.001);
-gmm = fitgmdist(norm_features, nclust, 'Replicates', 100, 'Start', 'plus', ...
-    'CovarianceType', 'diagonal');
-warning('on', 'all');
-
-% assign points to clusters and populate output matrix
-clusters = nan(size(roi));
-clusters(roi) = gmm.cluster(norm_features);
-
-return
-
-
-% function clusters = cluster_errors(coords, errors, fields, nclust)
-% % Return cluster ID for each point
-% %
-% % Clustering uses a custom objective function that solves for the position of
-% % boundary lines between clusters in terms of distance from the shear zone
-% % center. This model reflects my observation that the shear band, its edges, and
-% % the undeformed area have different error populations.
-% %
-% % Arguments:
-% %   coords: coordinates struct, as produced in the main function
-% %   errors: error struct, as produced in the main function
-% %   fields: cell array containing fields in errors and/or coords to be included
-% %       in the clustering calculations
-% %   nclust: Scalar integer, number of clusters to assign
-% %
-% % Returns:
-% %   Matrix of cluster IDs for each point in the domain
-% % %
-% 
-% % build feature matrix
-% features = nan(sum(coords.roi(:)), numel(fields));
-% for ii = 1:size(features, 2)
-%     field = fields{ii};
-%     if ismember(field, fieldnames(errors))
-%         features(:,ii) = errors.(field)(coords.roi);
-%     elseif ismember(field, fieldnames(coords))
-%         features(:,ii) = coords.(field)(coords.roi);
-%     else
-%         error('Field "%s" not found', field)
-%     end
-% end
-% features_d = coords.d(coords.roi);
-% 
-% % apply PCA whitening transform to features
-% [~, score, latent] = pca(features);
-% features = score./repmat(sqrt(latent)' + 0.1, size(score, 1), 1);
-% 
-% % define objective function for optimization
-% objective = @(b) get_cluster_misfit(features, features_d, b);
-% 
-% % find optimal clusters by derivative free global optimization
-% bnd_guess = linspace(min(features_d), max(features_d), nclust+1);
-% bnd_guess = bnd_guess(2:end-1);
-% bnd_optim = patternsearch(objective, bnd_guess);
-% 
-% features_id = get_cluster_id(features_d, bnd_optim);
-% clusters = nan(size(coords.roi));
-% clusters(coords.roi) = features_id;
-% 
-% return
-% 
-% 
-% function id = get_cluster_id(dist, bnd)
-% % Return cluster ID for each point
-% %
-% % Arguments:
-% %   dist: Distance to shear zone center for all points 
-% %   bnd: Vector, limiting values separating clusters, same units as "dist",
-% %       there will be length(bnd)+1 clusters.
-% %
-% % Returns:
-% %   id: Cluster ID for each point, same size as dist
-% % %
-% 
-% num_bnd = length(bnd);
-% bnd = sort(bnd);
-% 
-% id = nan(size(dist));
-% id(dist < bnd(1)) = 0;
-% for jj = 1:(num_bnd-1)
-%     id(dist >= bnd(jj) & dist < bnd(jj+1)) = jj;
-% end
-% id(dist > bnd(end)) = num_bnd;
-% 
-% return
-% 
-% 
-% function misfit = get_cluster_misfit(feat, dist, bnd)
-% % Return sum-of-squared distances from all points to cluster means
-% %
-% % Arguments:
-% %   feat: Feature values at each point (one row per point)
-% %   dist: Distance to shear zone center for all points 
-% %   bnd: Vector, limiting values separating clusters, same units as "dist",
-% %       there will be length(bnd)+1 clusters.
-% %
-% % Returns:
-% %   misfit: Sum-of-squared distances from all points to cluster means
-% % %
-% 
-% id = get_cluster_id(dist, bnd);
-% misfit = 0;
-% for ii = 0:length(bnd)
-%     clust_feat = feat(id==ii, :);
-%     clust_err = bsxfun(@minus, clust_feat, mean(clust_feat));
-%     misfit = misfit + sum(clust_err(:).^2);
-% end
-% 
-% return
 
 
 function [uu, vv] = exact_velocity(xx, yy, hh, theta, uv_a, uv_b)
