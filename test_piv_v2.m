@@ -242,6 +242,7 @@ strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
 sym = @(x) x.*sign(coord_obs.y_prime);
 velocity_error_sym = structfun(sym, velocity_error, 'UniformOutput', false);
+strain_error_sym = structfun(sym, strain_error, 'UniformOutput', false);
 
 keyboard
 
@@ -257,7 +258,7 @@ velocity_segment = segment_errors(...
 
 strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
 strain_segment = segment_errors(...
-    strain_error_abs, strain_fields, coord_obs.d, coord_obs.roi, 3);
+    strain_error_sym, strain_fields, coord_obs.d, coord_obs.roi, 3);
 
 %% plot errors map and histogram for select variables
 
