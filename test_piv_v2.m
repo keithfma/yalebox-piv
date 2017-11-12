@@ -188,8 +188,9 @@ result = piv(...
     args.verbose);
 
 % repackage key results
+y_prime = result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta);
 coord_obs = struct('x', result.x_grd, 'y', result.y_grd, 'roi', result.roi_grd, ...
-    'd', abs(result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta)));
+    'y_prime', y_prime, 'd', abs(y_prime));
 velocity_obs = struct('u', result.u_grd, 'v', result.v_grd, ...
     'm', sqrt(result.u_grd.^2 + result.v_grd.^2), ...
     'theta', atand(result.v_grd./result.u_grd));
@@ -238,9 +239,21 @@ strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
 %% segment error variables into distinct populations 
 
+
+sym = @(x) x.*sign(coord_obs.y_prime);
+velocity_error_sym = structfun(sym, velocity_error, 'UniformOutput', false);
+
+keyboard
+
+% TODO: try transforming the errors based on the assumption that they are
+% symmetric, i.e., take the negative of points below the shear zone before
+% fitting...
+
 velocity_fields = {'u', 'v'}; % only measured vars
 velocity_segment = segment_errors(...
-    velocity_error_abs, velocity_fields, coord_obs.d, coord_obs.roi, 2, true);
+    velocity_error_sym, velocity_fields, coord_obs.d, coord_obs.roi, 2, true);
+
+
 
 strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
 strain_segment = segment_errors(...
@@ -248,10 +261,10 @@ strain_segment = segment_errors(...
 
 %% plot errors map and histogram for select variables
 
-plot_clustered_errors(...
+plot_segmented_errors(...
     coord_obs, velocity_error, velocity_segment, fieldnames(velocity_error));
 
-plot_clustered_errors(...
+plot_segmented_errors(...
     coord_obs, strain_error, strain_segment, {'F11', 'F12', 'F21', 'F22'});
 
 %% done
@@ -305,7 +318,10 @@ end
 return
 
 
-% TODO: model errors as folded normal, fit is better for absolute errors
+% TODO: model errors as folded normal, fit is better for absolute errors (too hard)
+
+% TODO: model errors on either side of the midline separately???
+
 function [seg_id] = segment_errors(errors, fields, dist, roi, nseg, whiten)
 % Return segment ID for each point
 %
