@@ -241,25 +241,106 @@ keyboard
 
 %% summarize error distributions
 
-% TODO: convert to a function: plot error map next to the quantiles
+% TODO: make it easier to loop through by passing variable names and units, and
+%   automating the rest.
+% TODO: having done the above, wrap up all the plotting into one function --
+%   which is all that is needed.
 
-% copy relevant variables (debug only)
-y_label = 'Velocity Error, X-Direction [pixels/step]';
-x = coord_obs.y_prime;
-y = velocity_error.u;
-% y = strain_error.F11;
-roi  = coord_obs.roi;
+hf = figure;
+plot_error_map(subplot(1, 2, 1), coord_obs.x, coord_obs.y, velocity_error.u, ...
+    'X-Position [pixels]', 'Y-Position [pixels]', ...
+    'u_{ext} - u_{obs} [pixels/step]', 'U Error Map');
+plot_error_dist(subplot(1, 2, 2), coord_obs.y_prime, velocity_error.u, ...
+    'Distance to Shear-Zone Center [pixels]', ...
+    'u_{ext} - u_{obs} [pixels/step]', 'U Error Distribution');
+format_figure(hf);
+
+hf = figure;
+plot_error_map(subplot(1, 2, 1), coord_obs.x, coord_obs.y, velocity_error.v, ...
+    'X-Position [pixels]', 'Y-Position [pixels]', ...
+    'v_{ext} - v_{obs} [pixels/step]', 'V Error Map');
+plot_error_dist(subplot(1, 2, 2), coord_obs.y_prime, velocity_error.v, ...
+    'Distance to Shear-Zone Center [pixels]', ...
+    'v_{ext} - v_{obs} [pixels/step]', 'V Error Distribution');
+format_figure(hf);
+
+
+%% save test inputs and outputs to file
+
+% TODO
+
+return
+
+
+function format_figure(hfig)
+%
+% Apply common formatting to error summary figure
+% 
+% Arguments:
+%   hfig: Figure handle
+% %
 
 % set constants
+screen_position = get(0, 'screensize');
+fig_color = [1, 1, 1];
 font_size = 10;
+
+% apply formatting
+hfig.Color = fig_color;
+hfig.Position(1) = 1;
+hfig.Position(3) = screen_position(3); 
+for ii = 1:length(hfig.Children)
+    hobj = hfig.Children(ii);    
+    hobj.FontSize = font_size;
+end
+
+
+function plot_error_map(hax, xx, yy, ee, xlbl, ylbl, clbl, ttl)
+%
+% Plot "heatmap" of errors and apply standard formatting
+%
+% Arguments:
+%   hax: Handle, axis to plot in
+%   xx, yy: 2D coordinate matrices
+%   ee: 2D error field
+%   xlbl, ylbl, clbl: Label strings for x, y, and color axis
+%   ttl: Axis title string
+% %
+
+% plot and format
+imagesc(hax, [min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
+    'AlphaData', ~isnan(ee));
+hcb = colorbar(hax, 'EastOutside');
+xlabel(hax, xlbl);
+ylabel(hax, ylbl);
+title(hax, ttl);
+hcb.Label.String = clbl;
+axis(hax, 'equal', 'tight');
+
+return
+
+
+function plot_error_dist(hax, xx, ee, xlbl, elbl, ttl)
+%
+% Plot "functional boxplot" of errors and applot standard formatting
+%
+% Arguments:
+%   xx: 2D coordinate matrix along direction to summarize errors
+%   ee: 2D error field
+%   xlbl, elbl: Label strings for x and y axis 
+%   ttl: Axis title string
+% %
+
+% set constants
 light_gray = 0.80*ones(1, 3);
 dark_gray = 0.55*ones(1, 3);
 min_ns = 20;
 
-% prepare data
-x = x(roi);
-y = y(roi);
-
+% mask out NaNs
+roi = ~isnan(ee);
+x = xx(roi);
+y = ee(roi);
+ 
 % gather quantiles, windowed to ensure at least n_min samples in population
 qq = [0.05, 0.25, 0.50, 0.75, 0.95];
 [qx, ~, idx] = uniquetol(x, 1e-6);
@@ -278,23 +359,21 @@ for ii = 1:length(qx)
 end
 
 % plot quantiles
-patch([qx; qx(end:-1:1)], [qv(:, 1); qv(end:-1:1, 5)], light_gray, 'LineStyle', 'none');
+patch(hax, [qx; qx(end:-1:1)], [qv(:, 1); qv(end:-1:1, 5)], light_gray, ...
+    'LineStyle', 'none');
 hold on
-patch([qx; qx(end:-1:1)], [qv(:, 2); qv(end:-1:1, 4)], dark_gray, 'LineStyle', 'none');
+patch([qx; qx(end:-1:1)], [qv(:, 2); qv(end:-1:1, 4)], dark_gray, ...
+    'LineStyle', 'none');
 plot(qx, qv(:, 3), 'k');
-legend({'95%', '50%', 'median'}, 'Location', 'NorthEast');
 
-% update formatting
-hf = gcf;
-hf.Color = [1, 1, 1];
-ha = gca;
-ha.FontSize = font_size;
-ha.XLim = [min(qx), max(qx)];
-xlabel('Distance to Shear-Zone Center [phaixels]');
-ylabel(y_label);
+% format
+legend({'5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
+hax.XLim = [min(qx), max(qx)];
+xlabel(hax, xlbl);
+ylabel(hax, elbl);
+title(hax, ttl);
 grid on
-
-%%
+box on
 
 return
 
