@@ -241,21 +241,43 @@ keyboard
 
 %% summarize error distributions
 
-% TODO: loop over desired fields
+fields = {'u', 'v', 'm', 'theta'};
+names = {'u', 'v', 'velocity magnitude', '\theta'};
+units = {'pixels/step', 'pixels/step', 'pixels/step', 'degrees'};
+for ii = 1:length(names)
+    plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
+        velocity_error.(fields{ii}), names{ii}, units{ii});
+end
 
-plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, velocity_error.u, 'u', 'pixels/step');
+fields = {'Dd', 'spin'};
+names = fields;
+units = {'???', '???'};
+for ii = 1:length(names)
+    plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
+        strain_error.(fields{ii}), names{ii}, units{ii});
+end
 
 
 %% save test inputs and outputs to file
 
-% TODO
+% TODO: make this an optional input
 
 return
 
 function plot_error_summary(xx, yy, zz, ee, name, units)
 % 
-% TODO: add docs
+% Plot figure summarizing spatial distributions of absolute and relative errors
+%
+% Arguments: 
+%   xx, yy: 2D coordinate matrices for error map
+%   zz: 2D coordinate matrix for functional boxplot
+%   ee: 2D error matrix (observed - exact)
+%   name: String, variable name
+%   units: String, variable units
 % %
+
+% TODO: pass exact and observed in directly, also plot relative errors, better
+%   adjust the functional boxplot to use fixed bins for this to work
 
 % define constants
 screen_position = get(0, 'screensize');
