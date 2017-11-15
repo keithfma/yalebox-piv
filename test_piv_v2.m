@@ -241,28 +241,9 @@ keyboard
 
 %% summarize error distributions
 
-% TODO: make it easier to loop through by passing variable names and units, and
-%   automating the rest.
-% TODO: having done the above, wrap up all the plotting into one function --
-%   which is all that is needed.
+% TODO: loop over desired fields
 
-hf = figure;
-plot_error_map(subplot(1, 2, 1), coord_obs.x, coord_obs.y, velocity_error.u, ...
-    'X-Position [pixels]', 'Y-Position [pixels]', ...
-    'u_{ext} - u_{obs} [pixels/step]', 'U Error Map');
-plot_error_dist(subplot(1, 2, 2), coord_obs.y_prime, velocity_error.u, ...
-    'Distance to Shear-Zone Center [pixels]', ...
-    'u_{ext} - u_{obs} [pixels/step]', 'U Error Distribution');
-format_figure(hf);
-
-hf = figure;
-plot_error_map(subplot(1, 2, 1), coord_obs.x, coord_obs.y, velocity_error.v, ...
-    'X-Position [pixels]', 'Y-Position [pixels]', ...
-    'v_{ext} - v_{obs} [pixels/step]', 'V Error Map');
-plot_error_dist(subplot(1, 2, 2), coord_obs.y_prime, velocity_error.v, ...
-    'Distance to Shear-Zone Center [pixels]', ...
-    'v_{ext} - v_{obs} [pixels/step]', 'V Error Distribution');
-format_figure(hf);
+plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, velocity_error.u, 'u', 'pixels/step');
 
 
 %% save test inputs and outputs to file
@@ -271,111 +252,91 @@ format_figure(hf);
 
 return
 
-
-function format_figure(hfig)
-%
-% Apply common formatting to error summary figure
+function plot_error_summary(xx, yy, zz, ee, name, units)
 % 
-% Arguments:
-%   hfig: Figure handle
+% TODO: add docs
 % %
 
-% set constants
+% define constants
 screen_position = get(0, 'screensize');
 fig_color = [1, 1, 1];
 font_size = 10;
-
-% apply formatting
-hfig.Color = fig_color;
-hfig.Position(1) = 1;
-hfig.Position(3) = screen_position(3); 
-for ii = 1:length(hfig.Children)
-    hobj = hfig.Children(ii);    
-    hobj.FontSize = font_size;
-end
-
-
-function plot_error_map(hax, xx, yy, ee, xlbl, ylbl, clbl, ttl)
-%
-% Plot "heatmap" of errors and apply standard formatting
-%
-% Arguments:
-%   hax: Handle, axis to plot in
-%   xx, yy: 2D coordinate matrices
-%   ee: 2D error field
-%   xlbl, ylbl, clbl: Label strings for x, y, and color axis
-%   ttl: Axis title string
-% %
-
-% plot and format
-imagesc(hax, [min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
-    'AlphaData', ~isnan(ee));
-hcb = colorbar(hax, 'EastOutside');
-xlabel(hax, xlbl);
-ylabel(hax, ylbl);
-title(hax, ttl);
-hcb.Label.String = clbl;
-axis(hax, 'equal', 'tight');
-
-return
-
-
-function plot_error_dist(hax, xx, ee, xlbl, elbl, ttl)
-%
-% Plot "functional boxplot" of errors and applot standard formatting
-%
-% Arguments:
-%   xx: 2D coordinate matrix along direction to summarize errors
-%   ee: 2D error field
-%   xlbl, elbl: Label strings for x and y axis 
-%   ttl: Axis title string
-% %
-
-% set constants
 light_gray = 0.80*ones(1, 3);
-dark_gray = 0.55*ones(1, 3);
-min_ns = 20;
+med_gray = 0.65*ones(1, 3);
+dark_gray = 0.50*ones(1, 3);
+min_num_samp = 20;
+xlbl = 'X Position [pixels]';
+ylbl = 'Y Position [pixels]';
+zlbl = 'Distance to Shear Zone Center [pixels]';
+elbl = sprintf('%s_{ext}-%s_{obs} [%s]', name, name, units);
+map_ttl = sprintf('%s Error Map', name);
+dist_ttl = sprintf('%s Error Distribution', name);
 
-% mask out NaNs
+% create new figure
+hf = figure;
+hf.Color = fig_color;
+hf.Position(1) = 1;
+hf.Position(3) = screen_position(3); 
+
+% plot error map
+subplot(1, 2, 1);
+imagesc([min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
+    'AlphaData', ~isnan(ee));
+hcb = colorbar('EastOutside');
+xlabel(xlbl);
+ylabel(ylbl);
+title(map_ttl);
+hcb.Label.String = elbl;
+axis('equal', 'tight');
+
+% plot error distributions as "functional boxplot"
+% % mask out NaNs
 roi = ~isnan(ee);
-x = xx(roi);
-y = ee(roi);
- 
-% gather quantiles, windowed to ensure at least n_min samples in population
-qq = [0.05, 0.25, 0.50, 0.75, 0.95];
-[qx, ~, idx] = uniquetol(x, 1e-6);
-qv = nan(length(qx), length(qq));
-for ii = 1:length(qx)
+z = zz(roi);
+e = ee(roi);
+% % gather quantiles, windowed to ensure at least min # samples in population
+qq = [0, 0.05, 0.25, 0.50, 0.75, 0.95, 1];
+[qz, ~, idx] = uniquetol(z, 1e-6);
+qv = nan(length(qz), length(qq));
+for ii = 1:length(qz)
     for jj = 0:length(idx)/2
         min_idx = max(1, ii-jj);
-        max_idx = min(length(qx), ii+jj);
-        ys = y(idx >= min_idx & idx <= max_idx);
-        ns = length(ys);
-        if ns > min_ns
-            qv(ii, :) = quantile(ys, qq);
+        max_idx = min(length(qz), ii+jj);
+        es = e(idx >= min_idx & idx <= max_idx);
+        ns = length(es);
+        if ns > min_num_samp
+            qv(ii, :) = quantile(es, qq);
             break
         end
     end
 end
-
-% plot quantiles
-patch(hax, [qx; qx(end:-1:1)], [qv(:, 1); qv(end:-1:1, 5)], light_gray, ...
+% % plot quantiles
+subplot(1, 2, 2)
+patch([qz; qz(end:-1:1)], [qv(:, 1); qv(end:-1:1, 7)], light_gray, ...
     'LineStyle', 'none');
 hold on
-patch([qx; qx(end:-1:1)], [qv(:, 2); qv(end:-1:1, 4)], dark_gray, ...
+patch([qz; qz(end:-1:1)], [qv(:, 2); qv(end:-1:1, 6)], med_gray, ...
     'LineStyle', 'none');
-plot(qx, qv(:, 3), 'k');
-
-% format
-legend({'5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
-hax.XLim = [min(qx), max(qx)];
-xlabel(hax, xlbl);
-ylabel(hax, elbl);
-title(hax, ttl);
+patch([qz; qz(end:-1:1)], [qv(:, 3); qv(end:-1:1, 5)], dark_gray, ...
+    'LineStyle', 'none');
+plot(qz, qv(:, 4), 'k');
+% % format
+legend({'0-100%', '5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
+set(gca, 'XLim', [min(qz), max(qz)]);
+xlabel(zlbl);
+ylabel(elbl);
+title(dist_ttl);
 grid on
 box on
 
+% apply additional formatting
+for ii = 1:length(hf.Children)
+    hobj = hf.Children(ii);    
+    hobj.FontSize = font_size;
+end
+
 return
+
 
 function [uu, vv] = exact_velocity(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical velocity at points in xx, yy
