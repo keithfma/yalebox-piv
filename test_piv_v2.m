@@ -243,24 +243,27 @@ keyboard
 
 % TODO: cleanup botev code, make print statements optional
 
-% inputs / constants
+% hard-coded input arguments
 ee = velocity_error.u(coord_obs.roi);
 zz = coord_obs.y_prime(coord_obs.roi);
+
+% define constants
 e_num_grd = 1000;
 z_num_grd = 100;
+light_gray = 0.8;
+dark_gray = 0.5;
 fracpad = 0.3;
+quant_rng = [0.99, 0.95, 0.5];
 
 % estimate distributions
 % % coordinates for densities with padded edges to account for kernel smearing
 zpad = fracpad*range(zz(:)); 
 zvec = linspace(min(zz(:)) - zpad, max(zz(:)) + zpad, z_num_grd);
-zspc = zvec(2) - zvec(1);
 epad = fracpad*range(ee(:)); 
 evec = linspace(min(ee(:)) - epad, max(ee(:)) + epad, e_num_grd);
 espc = evec(2) - evec(1);
 [zgrd, egrd] = meshgrid(zvec, evec);
 % % adaptive kernel for joint, integrated and normalized for conditional
-
 joint_pdf = akde([zz(:), ee(:)], [zgrd(:), egrd(:)], numel(zz));   
 joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
 marg_pdf = trapz(joint_pdf)*espc;
@@ -268,40 +271,45 @@ cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
 cond_cdf = cumtrapz(cond_pdf)*espc;
 
 % interpolate quantiles
-quant = [0.005, 0.025, 0.25, 0.50, 0.75, 0.975, 0.995];
-cond_quant = nan(numel(zvec), numel(quant));
+quant_bot = 0.5 - 0.5*quant_rng;
+quant_top = 0.5 + 0.5*quant_rng;
+cond_quant_bot = nan(numel(zvec), numel(quant_bot));
+cond_quant_top = nan(numel(zvec), numel(quant_top));
+cond_median = nan(numel(zvec), 1);
 for ii = 1:numel(zvec)
     [uniq_cdf, uniq_idx] = unique(cond_cdf(:, ii));
     uniq_err = evec(uniq_idx);
-    cond_quant(ii, :) = interp1(uniq_cdf, uniq_err, quant);
+    cond_quant_bot(ii, :) = interp1(uniq_cdf, uniq_err, quant_bot);
+    cond_quant_top(ii, :) = interp1(uniq_cdf, uniq_err, quant_top);
+    cond_median(ii) = interp1(uniq_cdf, uniq_err, 0.50);
 end
 
 % plot inter-quantile ranges
-lgnd_txt = {'99% (0.005 - 0.995)', '95% (0.025 - 0.975)', '50% (0.25 - 0.75)'};
-grays = linspace(0.3, 0.6, 3)'*ones(1, 3); 
+lgnd_txt = {};
+grays = linspace(light_gray, dark_gray, 3)'*ones(1, 3); 
 x_patch = [zvec, zvec(end:-1:1)];
 for ii = 1:3
-    y_patch = [cond_quant(:, ii); cond_quant(end:-1:1, length(quant) - ii + 1)]';
+    lgnd_txt{end + 1} = sprintf('%.0f%% (%.3f-%.3f)', 100*quant_rng(ii), ...
+        quant_bot(ii), quant_top(ii));  
+    y_patch = [cond_quant_top(:, ii); cond_quant_bot(end:-1:1, ii)]';
     patch(x_patch, y_patch, grays(ii,:), 'LineStyle', 'none');
 end
+
+% plot median
+hold on
+lgnd_txt{end + 1} = 'Median';
+plot(zvec, cond_median, 'k', 'LineWidth', 1); 
+
+% format axes
 legend(lgnd_txt);
+hax = gca;
+hax.XLim = [min(zz(:)), max(zz(:))];
+grid on
 
 % NOTE: also would be good to connect the coordinates in the two subplots, do
 % this by superimposing a y_prime grid on top of the map image
 
 % NOTE: don't forget to do relative errors too.
-
-% % trim padded edges to observed spatial range (done integrating)
-% zroi= zvec >= (min(zz(:)) - zspc) & zvec <= (max(zz(:)) + zspc);
-% zvec = zvec(zroi);
-% zgrd = zgrd(:, zroi);
-% egrd = egrd(:, zroi);
-% joint_pdf = joint_pdf(:, zroi);
-% marg_pdf = marg_pdf(zroi);
-% cond_pdf = cond_pdf(:, zroi);
-% cond_cdf = cond_cdf(:, zroi);
-
-
 
 %% summarize error distributions
 
