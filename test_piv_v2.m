@@ -263,34 +263,45 @@ espc = evec(2) - evec(1);
 
 joint_pdf = akde([zz(:), ee(:)], [zgrd(:), egrd(:)], numel(zz));   
 joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
-
-% [joint_pdf, ~, bw] = ksdensity([zz(:), ee(:)], [zgrd(:), egrd(:)]);
-% [joint_pdf] = ksdensity([zz(:), ee(:)], [zgrd(:), egrd(:)], 'Bandwidth', bw/2);
-% joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
-
 marg_pdf = trapz(joint_pdf)*espc;
 cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
 cond_cdf = cumtrapz(cond_pdf)*espc;
-% trim padded edges to observed spatial range (done integrating)
-zroi= zvec >= (min(zz(:)) - zspc) & zvec <= (max(zz(:)) + zspc);
-zvec = zvec(zroi);
-zgrd = zgrd(:, zroi);
-egrd = egrd(:, zroi);
-joint_pdf = joint_pdf(:, zroi);
-marg_pdf = marg_pdf(zroi);
-cond_pdf = cond_pdf(:, zroi);
-cond_cdf = cond_cdf(:, zroi);
-
-% plot like before...
 
 % interpolate quantiles
+quant = [0.005, 0.025, 0.25, 0.50, 0.75, 0.975, 0.995];
+cond_quant = nan(numel(zvec), numel(quant));
+for ii = 1:numel(zvec)
+    [uniq_cdf, uniq_idx] = unique(cond_cdf(:, ii));
+    uniq_err = evec(uniq_idx);
+    cond_quant(ii, :) = interp1(uniq_cdf, uniq_err, quant);
+end
 
-% plot quantile range
+% plot inter-quantile ranges
+lgnd_txt = {'99% (0.005 - 0.995)', '95% (0.025 - 0.975)', '50% (0.25 - 0.75)'};
+grays = linspace(0.3, 0.6, 3)'*ones(1, 3); 
+x_patch = [zvec, zvec(end:-1:1)];
+for ii = 1:3
+    y_patch = [cond_quant(:, ii); cond_quant(end:-1:1, length(quant) - ii + 1)]';
+    patch(x_patch, y_patch, grays(ii,:), 'LineStyle', 'none');
+end
+legend(lgnd_txt);
 
 % NOTE: also would be good to connect the coordinates in the two subplots, do
 % this by superimposing a y_prime grid on top of the map image
 
 % NOTE: don't forget to do relative errors too.
+
+% % trim padded edges to observed spatial range (done integrating)
+% zroi= zvec >= (min(zz(:)) - zspc) & zvec <= (max(zz(:)) + zspc);
+% zvec = zvec(zroi);
+% zgrd = zgrd(:, zroi);
+% egrd = egrd(:, zroi);
+% joint_pdf = joint_pdf(:, zroi);
+% marg_pdf = marg_pdf(zroi);
+% cond_pdf = cond_pdf(:, zroi);
+% cond_cdf = cond_cdf(:, zroi);
+
+
 
 %% summarize error distributions
 
