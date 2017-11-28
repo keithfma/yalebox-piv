@@ -239,6 +239,59 @@ end
 
 keyboard
 
+%% DEBUG: try new error summary once
+
+% TODO: cleanup botev code, make print statements optional
+
+% inputs / constants
+ee = velocity_error.u(coord_obs.roi);
+zz = coord_obs.y_prime(coord_obs.roi);
+e_num_grd = 1000;
+z_num_grd = 100;
+fracpad = 0.3;
+
+% estimate distributions
+% % coordinates for densities with padded edges to account for kernel smearing
+zpad = fracpad*range(zz(:)); 
+zvec = linspace(min(zz(:)) - zpad, max(zz(:)) + zpad, z_num_grd);
+zspc = zvec(2) - zvec(1);
+epad = fracpad*range(ee(:)); 
+evec = linspace(min(ee(:)) - epad, max(ee(:)) + epad, e_num_grd);
+espc = evec(2) - evec(1);
+[zgrd, egrd] = meshgrid(zvec, evec);
+% % adaptive kernel for joint, integrated and normalized for conditional
+
+joint_pdf = akde([zz(:), ee(:)], [zgrd(:), egrd(:)], numel(zz));   
+joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
+
+% [joint_pdf, ~, bw] = ksdensity([zz(:), ee(:)], [zgrd(:), egrd(:)]);
+% [joint_pdf] = ksdensity([zz(:), ee(:)], [zgrd(:), egrd(:)], 'Bandwidth', bw/2);
+% joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
+
+marg_pdf = trapz(joint_pdf)*espc;
+cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
+cond_cdf = cumtrapz(cond_pdf)*espc;
+% trim padded edges to observed spatial range (done integrating)
+zroi= zvec >= (min(zz(:)) - zspc) & zvec <= (max(zz(:)) + zspc);
+zvec = zvec(zroi);
+zgrd = zgrd(:, zroi);
+egrd = egrd(:, zroi);
+joint_pdf = joint_pdf(:, zroi);
+marg_pdf = marg_pdf(zroi);
+cond_pdf = cond_pdf(:, zroi);
+cond_cdf = cond_cdf(:, zroi);
+
+% plot like before...
+
+% interpolate quantiles
+
+% plot quantile range
+
+% NOTE: also would be good to connect the coordinates in the two subplots, do
+% this by superimposing a y_prime grid on top of the map image
+
+% NOTE: don't forget to do relative errors too.
+
 %% summarize error distributions
 
 fields = {'u', 'v', 'm', 'theta'};
@@ -246,16 +299,18 @@ names = {'u', 'v', 'velocity magnitude', '\theta'};
 units = {'pixels/step', 'pixels/step', 'pixels/step', 'degrees'};
 for ii = 1:length(names)
     plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
-        velocity_error.(fields{ii}), names{ii}, units{ii});
+        velocity_ext.(fields{ii}), velocity_obs.(fields{ii}), ...
+        names{ii}, units{ii});
 end
 
-fields = {'Dd', 'spin'};
-names = fields;
-units = {'???', '???'};
-for ii = 1:length(names)
-    plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
-        strain_error.(fields{ii}), names{ii}, units{ii});
-end
+
+% fields = {'Dd', 'spin'};
+% names = fields;
+% units = {'???', '???'};
+% for ii = 1:length(names)
+%     plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
+%         strain_error.(fields{ii}), names{ii}, units{ii});
+% end
 
 
 %% save test inputs and outputs to file
@@ -264,14 +319,15 @@ end
 
 return
 
-function plot_error_summary(xx, yy, zz, ee, name, units)
+function plot_error_summary(xx, yy, zz, ext, obs, name, units)
 % 
 % Plot figure summarizing spatial distributions of absolute and relative errors
 %
 % Arguments: 
 %   xx, yy: 2D coordinate matrices for error map
 %   zz: 2D coordinate matrix for functional boxplot
-%   ee: 2D error matrix (observed - exact)
+%   ext: 2D matrix, Exact value of measured quantity
+%   obs: 2D matrix, Observed value of measured quantity
 %   name: String, variable name
 %   units: String, variable units
 % %
@@ -287,12 +343,6 @@ light_gray = 0.80*ones(1, 3);
 med_gray = 0.65*ones(1, 3);
 dark_gray = 0.50*ones(1, 3);
 min_num_samp = 20;
-xlbl = 'X Position [pixels]';
-ylbl = 'Y Position [pixels]';
-zlbl = 'Distance to Shear Zone Center [pixels]';
-elbl = sprintf('%s_{ext}-%s_{obs} [%s]', name, name, units);
-map_ttl = sprintf('%s Error Map', name);
-dist_ttl = sprintf('%s Error Distribution', name);
 
 % create new figure
 hf = figure;
@@ -300,18 +350,85 @@ hf.Color = fig_color;
 hf.Position(1) = 1;
 hf.Position(3) = screen_position(3); 
 
-% plot error map
-subplot(1, 2, 1);
-imagesc([min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
-    'AlphaData', ~isnan(ee));
-hcb = colorbar('EastOutside');
-xlabel(xlbl);
-ylabel(ylbl);
-title(map_ttl);
-hcb.Label.String = elbl;
-axis('equal', 'tight');
+% compute errors
+absolute = obs - ext;
+relative = absolute./ext;  % may contain inf
 
+subplot(2, 2, 1);
+plot_error_map(xx, yy, absolute, 'X Position [pixels]', 'Y Position [pixels]', ...
+    sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
+    sprintf('%s Absolute Error Map', name));
+subplot(2, 2, 2);
+plot_error_dist(zz, absolute, 'Distance to Shear Zone Center [pixels]', ...
+    sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
+    sprintf('%s Absolute Error Distribution Quantiles', name));
+
+
+% % plot error distributions as "functional boxplot"
+% % % mask out NaNs
+% roi = ~isnan(ee);
+% z = zz(roi);
+% e = ee(roi);
+% % % gather quantiles, windowed to ensure at least min # samples in population
+% qq = [0, 0.05, 0.25, 0.50, 0.75, 0.95, 1];
+% [qz, ~, idx] = uniquetol(z, 1e-6);
+% qv = nan(length(qz), length(qq));
+% for ii = 1:length(qz)
+%     for jj = 0:length(idx)/2
+%         min_idx = max(1, ii-jj);
+%         max_idx = min(length(qz), ii+jj);
+%         es = e(idx >= min_idx & idx <= max_idx);
+%         ns = length(es);
+%         if ns > min_num_samp
+%             qv(ii, :) = quantile(es, qq);
+%             break
+%         end
+%     end
+% end
+% % % plot quantiles
+% subplot(1, 2, 2)
+% patch([qz; qz(end:-1:1)], [qv(:, 1); qv(end:-1:1, 7)], light_gray, ...
+%     'LineStyle', 'none');
+% hold on
+% patch([qz; qz(end:-1:1)], [qv(:, 2); qv(end:-1:1, 6)], med_gray, ...
+%     'LineStyle', 'none');
+% patch([qz; qz(end:-1:1)], [qv(:, 3); qv(end:-1:1, 5)], dark_gray, ...
+%     'LineStyle', 'none');
+% plot(qz, qv(:, 4), 'k');
+% % % format
+% legend({'0-100%', '5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
+% set(gca, 'XLim', [min(qz), max(qz)]);
+% xlabel(zlbl);
+% ylabel(elbl);
+% title(dist_ttl);
+% grid on
+% box on
+% 
+% % apply additional formatting
+% for ii = 1:length(hf.Children)
+%     hobj = hf.Children(ii);    
+%     hobj.FontSize = font_size;
+% end
+
+return
+
+
+% TODO: document this utility function
+function [him, hcb] = plot_error_map(xx, yy, ee, xlbl, ylbl, elbl, ttl)
+    him = imagesc([min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
+        'AlphaData', ~isnan(ee));
+    hcb = colorbar('EastOutside');
+    xlabel(xlbl);
+    ylabel(ylbl);
+    hcb.Label.String = elbl;
+    title(ttl);
+    axis('equal', 'tight');
+return
+
+
+% TODO: document this utility function
 % plot error distributions as "functional boxplot"
+function plot_error_dist(zz, ee, zlbl, elbl, ttl)
 % % mask out NaNs
 roi = ~isnan(ee);
 z = zz(roi);
@@ -320,42 +437,36 @@ e = ee(roi);
 qq = [0, 0.05, 0.25, 0.50, 0.75, 0.95, 1];
 [qz, ~, idx] = uniquetol(z, 1e-6);
 qv = nan(length(qz), length(qq));
-for ii = 1:length(qz)
-    for jj = 0:length(idx)/2
-        min_idx = max(1, ii-jj);
-        max_idx = min(length(qz), ii+jj);
-        es = e(idx >= min_idx & idx <= max_idx);
-        ns = length(es);
-        if ns > min_num_samp
-            qv(ii, :) = quantile(es, qq);
-            break
-        end
-    end
-end
-% % plot quantiles
-subplot(1, 2, 2)
-patch([qz; qz(end:-1:1)], [qv(:, 1); qv(end:-1:1, 7)], light_gray, ...
-    'LineStyle', 'none');
-hold on
-patch([qz; qz(end:-1:1)], [qv(:, 2); qv(end:-1:1, 6)], med_gray, ...
-    'LineStyle', 'none');
-patch([qz; qz(end:-1:1)], [qv(:, 3); qv(end:-1:1, 5)], dark_gray, ...
-    'LineStyle', 'none');
-plot(qz, qv(:, 4), 'k');
-% % format
-legend({'0-100%', '5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
-set(gca, 'XLim', [min(qz), max(qz)]);
-xlabel(zlbl);
-ylabel(elbl);
-title(dist_ttl);
-grid on
-box on
+% TODO: simplify this approach, fixed window size perhaps?
+keyboard
+% for ii = 1:length(qz)
+%     
+%     for jj = 0:length(idx)/2
+%         min_idx = max(1, ii-jj);
+%         max_idx = min(length(qz), ii+jj);
+%         es = e(idx >= min_idx & idx <= max_idx);
+%         ns = length(es);
+%         if ns > min_num_samp
+%             qv(ii, :) = quantile(es, qq);
+%             break
+%         end
+%     end
+% end
 
-% apply additional formatting
-for ii = 1:length(hf.Children)
-    hobj = hf.Children(ii);    
-    hobj.FontSize = font_size;
-end
+return
+
+% WANT: conditional PDF f(e|z) as "heat map" (really filled contour)
+% WANT: confidence intervals (e.g., 95%, etc) as lines on top
+function plot_error_quantiles(zz, ee, zlbl, elbl, ttl)
+
+% compute conditional density using cross-validation to select bandwidth
+%   NOTE: following Shalizi 2017 on methodology
+
+% numerically integrate to get cumulative conditional distribution
+
+% interpolate desired confidence intervals
+
+% plot the whole cassarole
 
 return
 
