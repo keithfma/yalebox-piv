@@ -242,9 +242,12 @@ keyboard
 %% DEBUG: try new error summary once
 
 % TODO: cleanup botev code, make print statements optional
+% TODO: convert to a function
 
 % hard-coded input arguments
-ee = velocity_error.u(coord_obs.roi);
+obs = velocity_obs.u;
+ext = velocity_ext.u;
+err = ext - obs;
 zz = coord_obs.y_prime(coord_obs.roi);
 
 % define constants
@@ -259,12 +262,12 @@ quant_rng = [0.99, 0.95, 0.5];
 % % coordinates for densities with padded edges to account for kernel smearing
 zpad = fracpad*range(zz(:)); 
 zvec = linspace(min(zz(:)) - zpad, max(zz(:)) + zpad, z_num_grd);
-epad = fracpad*range(ee(:)); 
-evec = linspace(min(ee(:)) - epad, max(ee(:)) + epad, e_num_grd);
+epad = fracpad*range(err(:)); 
+evec = linspace(min(err(:)) - epad, max(err(:)) + epad, e_num_grd);
 espc = evec(2) - evec(1);
 [zgrd, egrd] = meshgrid(zvec, evec);
 % % adaptive kernel for joint, integrated and normalized for conditional
-joint_pdf = akde([zz(:), ee(:)], [zgrd(:), egrd(:)], numel(zz));   
+joint_pdf = akde([zz(:), err(:)], [zgrd(:), egrd(:)], numel(zz));   
 joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
 marg_pdf = trapz(joint_pdf)*espc;
 cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
@@ -322,15 +325,7 @@ for ii = 1:length(names)
         names{ii}, units{ii});
 end
 
-
-% fields = {'Dd', 'spin'};
-% names = fields;
-% units = {'???', '???'};
-% for ii = 1:length(names)
-%     plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
-%         strain_error.(fields{ii}), names{ii}, units{ii});
-% end
-
+% TODO: add plots for deformation parameters
 
 %% save test inputs and outputs to file
 
@@ -377,57 +372,14 @@ subplot(2, 2, 1);
 plot_error_map(xx, yy, absolute, 'X Position [pixels]', 'Y Position [pixels]', ...
     sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
     sprintf('%s Absolute Error Map', name));
-subplot(2, 2, 2);
-plot_error_dist(zz, absolute, 'Distance to Shear Zone Center [pixels]', ...
-    sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
-    sprintf('%s Absolute Error Distribution Quantiles', name));
 
+% % TODO: Fix call to plot error distro
+% subplot(2, 2, 2);
+% plot_error_dist(zz, absolute, 'Distance to Shear Zone Center [pixels]', ...
+%     sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
+%     sprintf('%s Absolute Error Distribution Quantiles', name));
 
-% % plot error distributions as "functional boxplot"
-% % % mask out NaNs
-% roi = ~isnan(ee);
-% z = zz(roi);
-% e = ee(roi);
-% % % gather quantiles, windowed to ensure at least min # samples in population
-% qq = [0, 0.05, 0.25, 0.50, 0.75, 0.95, 1];
-% [qz, ~, idx] = uniquetol(z, 1e-6);
-% qv = nan(length(qz), length(qq));
-% for ii = 1:length(qz)
-%     for jj = 0:length(idx)/2
-%         min_idx = max(1, ii-jj);
-%         max_idx = min(length(qz), ii+jj);
-%         es = e(idx >= min_idx & idx <= max_idx);
-%         ns = length(es);
-%         if ns > min_num_samp
-%             qv(ii, :) = quantile(es, qq);
-%             break
-%         end
-%     end
-% end
-% % % plot quantiles
-% subplot(1, 2, 2)
-% patch([qz; qz(end:-1:1)], [qv(:, 1); qv(end:-1:1, 7)], light_gray, ...
-%     'LineStyle', 'none');
-% hold on
-% patch([qz; qz(end:-1:1)], [qv(:, 2); qv(end:-1:1, 6)], med_gray, ...
-%     'LineStyle', 'none');
-% patch([qz; qz(end:-1:1)], [qv(:, 3); qv(end:-1:1, 5)], dark_gray, ...
-%     'LineStyle', 'none');
-% plot(qz, qv(:, 4), 'k');
-% % % format
-% legend({'0-100%', '5-95%', '25-75%', '50% (median)'}, 'Location', 'NorthEast');
-% set(gca, 'XLim', [min(qz), max(qz)]);
-% xlabel(zlbl);
-% ylabel(elbl);
-% title(dist_ttl);
-% grid on
-% box on
-% 
-% % apply additional formatting
-% for ii = 1:length(hf.Children)
-%     hobj = hf.Children(ii);    
-%     hobj.FontSize = font_size;
-% end
+% TODO: include relative error plots
 
 return
 
@@ -444,51 +396,80 @@ function [him, hcb] = plot_error_map(xx, yy, ee, xlbl, ylbl, elbl, ttl)
     axis('equal', 'tight');
 return
 
+% TODO: START HERE
 
-% TODO: document this utility function
-% plot error distributions as "functional boxplot"
-function plot_error_dist(zz, ee, zlbl, elbl, ttl)
-% % mask out NaNs
-roi = ~isnan(ee);
-z = zz(roi);
-e = ee(roi);
-% % gather quantiles, windowed to ensure at least min # samples in population
-qq = [0, 0.05, 0.25, 0.50, 0.75, 0.95, 1];
-[qz, ~, idx] = uniquetol(z, 1e-6);
-qv = nan(length(qz), length(qq));
-% TODO: simplify this approach, fixed window size perhaps?
-keyboard
-% for ii = 1:length(qz)
-%     
-%     for jj = 0:length(idx)/2
-%         min_idx = max(1, ii-jj);
-%         max_idx = min(length(qz), ii+jj);
-%         es = e(idx >= min_idx & idx <= max_idx);
-%         ns = length(es);
-%         if ns > min_num_samp
-%             qv(ii, :) = quantile(es, qq);
-%             break
-%         end
-%     end
-% end
+% plot conditional error distribution
+function plot_cond_error_dist(zz, ee, zlbl, elbl, ttl)
+
+% TODO: cleanup botev code, make print statements optional
+% TODO: convert to a function
+
+% hard-coded input arguments
+obs = velocity_obs.u;
+ext = velocity_ext.u;
+err = ext - obs;
+zz = coord_obs.y_prime(coord_obs.roi);
+
+% define constants
+e_num_grd = 1000;
+z_num_grd = 100;
+light_gray = 0.8;
+dark_gray = 0.5;
+fracpad = 0.3;
+quant_rng = [0.99, 0.95, 0.5];
+
+% estimate distributions
+% % coordinates for densities with padded edges to account for kernel smearing
+zpad = fracpad*range(zz(:)); 
+zvec = linspace(min(zz(:)) - zpad, max(zz(:)) + zpad, z_num_grd);
+epad = fracpad*range(err(:)); 
+evec = linspace(min(err(:)) - epad, max(err(:)) + epad, e_num_grd);
+espc = evec(2) - evec(1);
+[zgrd, egrd] = meshgrid(zvec, evec);
+% % adaptive kernel for joint, integrated and normalized for conditional
+joint_pdf = akde([zz(:), err(:)], [zgrd(:), egrd(:)], numel(zz));   
+joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
+marg_pdf = trapz(joint_pdf)*espc;
+cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
+cond_cdf = cumtrapz(cond_pdf)*espc;
+
+% interpolate quantiles
+quant_bot = 0.5 - 0.5*quant_rng;
+quant_top = 0.5 + 0.5*quant_rng;
+cond_quant_bot = nan(numel(zvec), numel(quant_bot));
+cond_quant_top = nan(numel(zvec), numel(quant_top));
+cond_median = nan(numel(zvec), 1);
+for ii = 1:numel(zvec)
+    [uniq_cdf, uniq_idx] = unique(cond_cdf(:, ii));
+    uniq_err = evec(uniq_idx);
+    cond_quant_bot(ii, :) = interp1(uniq_cdf, uniq_err, quant_bot);
+    cond_quant_top(ii, :) = interp1(uniq_cdf, uniq_err, quant_top);
+    cond_median(ii) = interp1(uniq_cdf, uniq_err, 0.50);
+end
+
+% plot inter-quantile ranges
+lgnd_txt = {};
+grays = linspace(light_gray, dark_gray, 3)'*ones(1, 3); 
+x_patch = [zvec, zvec(end:-1:1)];
+for ii = 1:3
+    lgnd_txt{end + 1} = sprintf('%.0f%% (%.3f-%.3f)', 100*quant_rng(ii), ...
+        quant_bot(ii), quant_top(ii));  
+    y_patch = [cond_quant_top(:, ii); cond_quant_bot(end:-1:1, ii)]';
+    patch(x_patch, y_patch, grays(ii,:), 'LineStyle', 'none');
+end
+
+% plot median
+hold on
+lgnd_txt{end + 1} = 'Median';
+plot(zvec, cond_median, 'k', 'LineWidth', 1); 
+
+% format axes
+legend(lgnd_txt);
+hax = gca;
+hax.XLim = [min(zz(:)), max(zz(:))];
+grid on
 
 return
-
-% WANT: conditional PDF f(e|z) as "heat map" (really filled contour)
-% WANT: confidence intervals (e.g., 95%, etc) as lines on top
-function plot_error_quantiles(zz, ee, zlbl, elbl, ttl)
-
-% compute conditional density using cross-validation to select bandwidth
-%   NOTE: following Shalizi 2017 on methodology
-
-% numerically integrate to get cumulative conditional distribution
-
-% interpolate desired confidence intervals
-
-% plot the whole cassarole
-
-return
-
 
 function [uu, vv] = exact_velocity(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical velocity at points in xx, yy
