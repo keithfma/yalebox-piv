@@ -23,3 +23,7 @@ equation (by John D'Errico, by way of the MATLAB file exchange).
 inpaint_nans.m
 
 (4) spline2d from Wessel & Bercovici 1998 tspline MATLAB package
+
+(5) akde from Botev, Z. I., Grotowski, J. F., & Kroese, D. P. (2010). Kernel
+density estimation via diffusion. Annals of Statistics, 38(5), 2916–2957.
+http://doi.org/10.1214/10-AOS799. Downloaded from Mathworks FileExchange.

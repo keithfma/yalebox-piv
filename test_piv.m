@@ -37,10 +37,6 @@ function [xx, yy, uu_piv, vv_piv, uu_exact, vv_exact] = test_piv_v2(varargin)
 %       components of the analysis
 % %
 
-% TODO: Give up on automated population splitting - it is totally unecessary.
-% Instead, you can simply show the error distributions for a few test cases and
-% label the various components (i.e., translate only, uniform strain, edge).
-
 %% parse arguments
 
 % constants
@@ -192,8 +188,9 @@ result = piv(...
     args.verbose);
 
 % repackage key results
+y_prime = result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta);
 coord_obs = struct('x', result.x_grd, 'y', result.y_grd, 'roi', result.roi_grd, ...
-    'd', abs(result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta)));
+    'y_prime', y_prime);
 velocity_obs = struct('u', result.u_grd, 'v', result.v_grd, ...
     'm', sqrt(result.u_grd.^2 + result.v_grd.^2), ...
     'theta', atand(result.v_grd./result.u_grd));
@@ -219,7 +216,6 @@ for ii = 1:numel(velocity_fields)
     fn = velocity_fields{ii};
     velocity_error.(fn) = velocity_ext.(fn) - velocity_obs.(fn);
 end
-velocity_error_abs = structfun(@abs, velocity_error, 'UniformOutput', false);
 
 %% run deformation analysis, get exact deformation parameters on same grid
 
@@ -238,160 +234,169 @@ for ii = 1:numel(strain_fields)
     fn = strain_fields{ii};
     strain_error.(fn) = strain_ext.(fn) - strain_obs.(fn);
 end
-strain_error_abs = structfun(@abs, strain_error, 'UniformOutput', false);
 
-%% segment error variables into distinct populations 
+%% summarize error distributions
 
-velocity_fields = {'u', 'v'}; % only measured vars
-velocity_segment = segment_errors(...
-    velocity_error_abs, velocity_fields, coord_obs.d, coord_obs.roi, 2, true);
+fields = {'u', 'v', 'm', 'theta'};
+names = {'u', 'v', 'velocity magnitude', '\theta'};
+units = {'pixels/step', 'pixels/step', 'pixels/step', 'degrees'};
+for ii = 1:length(names)
+    plot_error_summary(coord_obs.x, coord_obs.y, coord_obs.y_prime, ...
+        velocity_ext.(fields{ii}), velocity_obs.(fields{ii}), ...
+        names{ii}, units{ii});
+end
 
-strain_fields = {'F11', 'F12', 'F21', 'F22'}; % only measured vars
-strain_segment = segment_errors(...
-    strain_error_abs, strain_fields, coord_obs.d, coord_obs.roi, 3);
+% TODO: add plots for deformation parameters
 
-%% plot errors map and histogram for select variables
+%% save test inputs and outputs to file
 
-plot_clustered_errors(...
-    coord_obs, velocity_error, velocity_segment, fieldnames(velocity_error));
+% TODO: make this an optional input
 
-plot_clustered_errors(...
-    coord_obs, strain_error, strain_segment, {'F11', 'F12', 'F21', 'F22'});
+return
 
-%% done
+function plot_error_summary(xx, yy, zz, ext, obs, name, units)
+% 
+% Plot figure summarizing spatial distributions of absolute and relative errors
+%
+% Arguments: 
+%   xx, yy: 2D coordinate matrices for error map
+%   zz: 2D coordinate matrix for functional boxplot
+%   ext: 2D matrix, Exact value of measured quantity
+%   obs: 2D matrix, Observed value of measured quantity
+%   name: String, variable name
+%   units: String, variable units
+% %
+
+% define constants
+screen_position = get(0, 'screensize');
+fig_color = [1, 1, 1];
+font_size = 10;
+
+% create new figure
+hf = figure;
+hf.Color = fig_color;
+hf.Position(1) = 1;
+hf.Position(3) = screen_position(3); 
+
+% compute errors
+absolute = obs - ext;
+relative = absolute./ext;  % may contain inf
+
+subplot(2, 2, 1);
+plot_error_map(xx, yy, absolute, 'X Position [pixels]', 'Y Position [pixels]', ...
+    sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
+    sprintf('%s Absolute Error Map', name));
+
+subplot(2, 2, 2);
+plot_error_dist(zz, absolute, 'Distance to Shear Zone Center [pixels]', ...
+    sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
+    sprintf('%s Absolute Error Distribution', name));
 
 keyboard
+% TODO: include relative error plots
 
 return
 
 
-function plot_segmented_errors(coords, errors, segments, fields)
-%
-% Generate heatmaps and histograms for segmented errors
+function plot_error_map(xx, yy, ee, xlbl, ylbl, elbl, ttl)
+% Create a spatial map of observed errors
 %
 % Arguments:
-%   coords: Coordinate struct, as produced by the main function
-%   errors: Error struct, as produced in the main function
-%   segments: Integer matrix, segment IDs for all points
-%   fields: Cell array containing fields in errors and/or coords to be plotted
+%   xx, yy: 2D coordinate matrices
+%   ee: 2D error matrix, NaN where not observed
+%   xlbl, ylbl: Strings, coordinate axis labels
+%   elbl: String, colorbar label
+%   ttl: String, plot title
 % %
-
-num_segments = length(unique(segments(~isnan(segments))));
-num_fields = length(fields);
-
-for ii = 1:num_fields
-    var_name = fields{ii};
-    var = errors.(var_name);
-    
-    figure
-    
-    for jj = 1:num_segments
-    
-        cluster_var = var;
-        cluster_var(segments ~= jj) = NaN;
-        
-        subplot(2, num_segments, jj)
-        him = imagesc(cluster_var);  % TODO: add coordinates
-        him.AlphaData = ~isnan(cluster_var);
-        xlabel('X'); % TODO: add units
-        ylabel('Y'); 
-        title(sprintf('%s Error Map - Cluster %i', var_name, jj));
-        
-        subplot(2, num_segments, jj + num_segments)
-        hist(cluster_var(:), sum(coords.roi(:))/20)
-        xlabel('Error');
-        ylabel('Count');
-        title(sprintf('%s Error Histogram - Cluster %i', var_name, jj));
-        
-    end
-end
-
+    imagesc([min(xx(:)), max(xx(:))], [min(yy(:)), max(yy(:))], ee, ...
+        'AlphaData', ~isnan(ee));
+    hcb = colorbar('EastOutside');
+    xlabel(xlbl);
+    ylabel(ylbl);
+    hcb.Label.String = elbl;
+    title(ttl);
+    axis('equal', 'tight');
 return
 
 
-% TODO: model errors as folded normal, fit is better for absolute errors
-function [seg_id] = segment_errors(errors, fields, dist, roi, nseg, whiten)
-% Return segment ID for each point
-%
-% Model errors as a Gaussian distributions in banded "segments" oriented
-% parallel to the deformation band
+% TODO: cleanup botev code, make print statements optional
+function plot_error_dist(zz, err, zlbl, elbl, ttl)
+% Plot quantile ranges of the conditional distribution: P(err | zz)
 %
 % Arguments:
-%   errors: Error struct, as produced in the main function
-%   fields: Cell array containing fields in errors and/or coords to be included
-%       in the clustering calculations
-%   dist: Double matrix, distance to the deformation band centerline
-%   roi: Logical matrix, indicates where observed data exist
-%   nseg: Scalar integer, number of segments (i.e., bands) to assign
-%   whiten: Logical, optional, apply PCA whitening transform to features,
-%       default is true.
-%
-% Returns:
-%   Matrix of segment IDs for each point in the domain
+%   zz: 2D matrix, conditioning variable, typically some position value
+%   err: 2D error matrix, NaN where not observed
+%   zlbl, elbl: Strings, coordinate axis labels for zz and err respectively
+%   ttl: String, plot title
 % %
 
-% set defaults
-if nargin < 6
-    whiten = true;
+% define constants
+e_num_grd = 1000;
+z_num_grd = 100;
+light_gray = 0.8;
+dark_gray = 0.5;
+fracpad = 0.3;
+quant_rng = [0.99, 0.95, 0.5];
+
+% crop data to roi
+roi = ~isnan(err);
+zz = zz(roi);
+err = err(roi);
+
+% make coords, padded edges allow for kernel smearing beyond data range
+zpad = fracpad*range(zz(:)); 
+zvec = linspace(min(zz(:)) - zpad, max(zz(:)) + zpad, z_num_grd);
+epad = fracpad*range(err(:)); 
+evec = linspace(min(err(:)) - epad, max(err(:)) + epad, e_num_grd);
+espc = evec(2) - evec(1);
+[zgrd, egrd] = meshgrid(zvec, evec);
+
+% estimate distributions using adaptive kernel
+joint_pdf = akde([zz(:), err(:)], [zgrd(:), egrd(:)], numel(zz));   
+joint_pdf = reshape(joint_pdf, e_num_grd, z_num_grd);
+marg_pdf = trapz(joint_pdf)*espc;
+cond_pdf = bsxfun(@rdivide, joint_pdf, marg_pdf);
+cond_cdf = cumtrapz(cond_pdf)*espc;
+
+% interpolate quantiles
+quant_bot = 0.5 - 0.5*quant_rng;
+quant_top = 0.5 + 0.5*quant_rng;
+cond_quant_bot = nan(numel(zvec), numel(quant_bot));
+cond_quant_top = nan(numel(zvec), numel(quant_top));
+cond_median = nan(numel(zvec), 1);
+for ii = 1:numel(zvec)
+    [uniq_cdf, uniq_idx] = unique(cond_cdf(:, ii)); % x must be unique to interp
+    uniq_err = evec(uniq_idx);
+    cond_quant_bot(ii, :) = interp1(uniq_cdf, uniq_err, quant_bot);
+    cond_quant_top(ii, :) = interp1(uniq_cdf, uniq_err, quant_top);
+    cond_median(ii) = interp1(uniq_cdf, uniq_err, 0.50);
 end
 
-% build feature matrix and corresponding distance matrix
-features = nan(sum(roi(:)), numel(fields));
-for ii = 1:size(features, 2)
-    features(:,ii) = errors.(fields{ii})(roi);
-end
-features_dist = dist(roi);
-
-% apply PCA whitening transform to features (makes cov(features) == identity) 
-if whiten
-    [~, score, latent] = pca(features);
-    for ii = 1:size(features, 2)
-        features(:, ii) = score(:, ii)/sqrt(latent(ii));
-    end
+% plot inter-quantile ranges
+lgnd_txt = cell(numel(quant_rng) + 1 , 1);
+grays = linspace(light_gray, dark_gray, 3)'*ones(1, 3); 
+x_patch = [zvec, zvec(end:-1:1)];
+for ii = 1:numel(quant_rng)
+    lgnd_txt{ii} = sprintf('%.0f%% (%.3f-%.3f)', 100*quant_rng(ii), ...
+        quant_bot(ii), quant_top(ii));  
+    y_patch = [cond_quant_top(:, ii); cond_quant_bot(end:-1:1, ii)]';
+    patch(x_patch, y_patch, grays(ii,:), 'LineStyle', 'none');
 end
 
-% enumerate possible boundary combinations
-dist_unq = uniquetol(features_dist(:), 10*eps);
-bnd_unq = dist_unq(1:end-1) + 0.5*diff(dist_unq);
-bnd_opts = nchoosek(bnd_unq, nseg-1);  % note: columns are in ascending order 
-nopts = size(bnd_opts, 1);
-bnd_opts = [zeros(nopts, 1), bnd_opts, inf(nopts, 1)];
+% plot median
+hold on
+lgnd_txt{end} = 'Median';
+plot(zvec, cond_median, 'k', 'LineWidth', 1); 
 
-% compute a misfit for all selected boundaries
-% init best
-bnd_best = NaN; 
-misfit_best = inf;
-% test all options
-for ii = 1:nopts 
-    bnd_this = bnd_opts(ii, :);
-    misfit_this = 0;
-    for jj = 1:nseg
-        % accumulate neg. log-likelihood of best fit uncorr. multivar. normal
-        dist_min = bnd_this(jj);
-        dist_max = bnd_this(jj+1);
-        features_subset = features(features_dist >= dist_min & features_dist < dist_max, :);
-        [muhat, sigmahat] = normfit(features_subset);
-        nloglik = ecmnobj(features_subset, muhat, diag(sigmahat));
-        misfit_this = misfit_this + nloglik;
-    end
-    if misfit_this < misfit_best
-        % update best
-        misfit_best = misfit_this;
-        bnd_best = bnd_this;
-    end
-end
-
-% assign points to segments and populate output matrix
-seg_id = nan(size(roi));
-for jj = 1:nseg
-    dist_min = bnd_best(jj);
-    dist_max = bnd_best(jj+1);
-    seg_id(dist >= dist_min & dist <= dist_max) = jj;
-end
-seg_id(~roi) = NaN;
+% format axes
+legend(lgnd_txt);
+xlabel(zlbl);
+ylabel(elbl);
+title(ttl);
+set(gca, 'XLim', [min(zz(:)), max(zz(:))]);
+grid on
 
 return
-
 
 function [uu, vv] = exact_velocity(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical velocity at points in xx, yy
@@ -449,8 +454,6 @@ return
 
 function strain = exact_strain(xx, yy, hh, theta, uv_a, uv_b)
 % Compute analytical strain parameters at points in xx, yy
-%
-
 % 
 % Arguments:
 %   xx, yy: Matrices, coordinates at which to compute velocity
