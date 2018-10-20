@@ -1,0 +1,72 @@
+{
+    "image_files": {
+        "woco_image_file": {
+            "help":  "string, path to world coordinate image",
+            "value": ""
+            },
+        "step_image_file": {
+            "help": "string, path to step image to use for testing",
+            "value": ""
+            }
+        },
+
+    "world_coord_control_points": {
+        "ctrl_pts_action": {
+            "help": "string, select action to perform for control points, choose from 'try', 'retry', 'load'",
+            "value": ""
+            },
+        "ctrl_pts_mat_file": {
+            "help": "string, path to MAT file to load/save world coordinate control points (depending on selected action)",
+            "value": ""
+            }
+        },
+
+    "rectify_and_crop": {
+        "crop_xw": {
+            "help": "2-element array, minimum and maximum x coordinates for crop in world coordinate units (m)",
+            "value": []
+            },
+        "crop_yw": {
+            "help": "2-element array, minimum and maximum y coordinates for crop in world coordinate units (m)",
+            "value": []
+            }
+        },
+    
+    "manual_image_mask": {
+        "mask_manual_action": {
+            "help": "string, select action to perform for manual mask, choose from 'create', 'load'",
+            "value": ""
+            },
+        "mask_manual_mat_file": {
+            "help": "string, path to MAT file to load/save manual mask",
+            "value": ""
+            }
+        },
+
+    "automatic_image_mask": {
+        "hue_lim": {
+            "help": "2-element vector, double, range [0, 1]. [minimum, maximum] HSV 'hue' included as sand in the mask",
+            "value": []
+            },
+        "value_lim":  {
+            "help": "2-element vector, double, range [0,1]. [minimum, maximum] HSV 'value' included as sand in the mask",
+            "value": []
+            },
+        "entropy_lim": {
+            "help": "2-element vector, double, range [0, 1]. [minimum, maximum] entropy included as sand in the mask",
+            "value": []
+            },
+        "entropy_len": {
+            "help": "scalar, integer, window size in pixels for entropy filter",
+            "value": 0
+            },
+        "morph_open_rad": {
+            "help": "scalar, double, radius of disk structuring element used in mophological opening filter",
+            "value": 0
+            },
+        "morph_erode_rad": {
+            "help": "scalar, double, radius of disk structuring element used in mophological erosion filter",
+            "value": 0
+            }
+        }
+    }
