@@ -41,7 +41,7 @@ function [rgb_r, coord_x, coord_y] = ...
 % % Keith Ma
 
 % sanity check
-if nargin < 8 || isempty(fit_npts); lwm_n = 10; end
+if nargin < 8 || isempty(fit_npts); fit_npts = 10; end
 if nargin < 9 || isempty(show); show = false; end
 if nargin < 10 || isempty(verbose); verbose = false; end
 
@@ -125,6 +125,7 @@ if show
    hf.Name = 'prep_rectify_and_crop: results';
    imagesc(coord_x, coord_y, rgb_r)
    set(gca, 'YDir', 'normal');
+   daspect([1, 1, 1]);
    xlabel('x-position [m]');
    ylabel('y-position [m]');
 end
