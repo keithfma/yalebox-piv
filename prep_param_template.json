@@ -1,24 +1,36 @@
 {
-    "image_files": {
-        "woco_image_file": {
+    "images": {
+        "woco_file": {
             "help":  "string, path to world coordinate image",
             "value": ""
             },
-        "step_image_file": {
+        "test_file": {
             "help": "string, path to step image to use for testing",
+            "value": ""
+            }
+        "glob": {
+            "help": "string, glob pattern matching all experiment images",
             "value": ""
             }
         },
 
     "world_coord_control_points": {
-        "ctrl_pts_action": {
-            "help": "string, select action to perform for control points, choose from 'try', 'retry', 'load'",
-            "value": ""
+        "ctrl_xw": {
+            "help": "1D vector, x-position of control points in world coordinates",
+            "value": []
             },
-        "ctrl_pts_mat_file": {
-            "help": "string, path to MAT file to load/save world coordinate control points (depending on selected action)",
-            "value": ""
-            }
+        "ctrl_yw": {
+            "help": "1D vector, x-position of control points in world coordinates",
+            "value": []
+            },
+        "ctrl_xp": {
+            "help": "1D vector, x-position of control points in pixel coordinates",
+            "value": []
+            },
+        "ctrl_yp": {
+            "help": "1D vector, x-position of control points in pixel coordinates",
+            "value": []
+            },
         },
 
     "rectify_and_crop": {

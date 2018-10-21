@@ -15,9 +15,9 @@ function [xw, yw, xp, yp, done] = ...
 %
 % Arguments:
 %   image_file: String, filename of the world coordinate grid image
-%   xw, yw: Optional input, 1D vectors, control point world coordinate x- and y-
+%   xw, yw: Optional input, 1D row vectors, control point world coordinate x- and y-
 %       position, [m]
-%   xp, yp: Optional input, 1D vectors, control point image coordinate x- and y-
+%   xp, yp: Optional input, 1D row vectors, control point image coordinate x- and y-
 %       position, [pixels]
 %   done: Optional input, 1D vector, logical flag indicating whether point
 %       definition is final (true) or not (false)
@@ -120,13 +120,11 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', large, ...
     'Callback', @(~,~) msgbox(instruct));
 
-% TODO
-
 % set initial data (empty or from provided data)
 if nargin == 1
     restore_state();
 else
-    restore_state(xw, yw, xp, yp, done);
+    restore_state(xw', yw', xp', yp', done');
 end
 
 update_all();
@@ -137,11 +135,11 @@ update_all();
 uiwait(findobj('Tag', 'ctrl_gui')); % waits here until the do_done() callback triggers uiresume
 [data, ~] = get_table_data();
 last = find(data(:, 5)==1, 1, 'last');
-xw = data(1:last, 1);
-yw = data(1:last, 2);
-xp = data(1:last, 3);
-yp = data(1:last, 4);
-done = data(1:last, 5);
+xw = data(1:last, 1)';
+yw = data(1:last, 2)';
+xp = data(1:last, 3)';
+yp = data(1:last, 4)';
+done = data(1:last, 5)';
 close(gcf);
 
 
