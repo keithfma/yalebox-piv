@@ -1,13 +1,23 @@
-function mask = prep_mask_manual(img)
-% function mask = prep_mask_manual(img)
+function polygons = prep_mask_manual(img, polygons)
+% function polygons = prep_mask_manual(img, polygons) % TODO: accept existing
+% polygons
 %
 % Interactive GUI to define a mask to black out region(s) of an image.
 %
 % Arguments:
-%   img = Matrix, image data that can be displayed by imshow
-%   mask = 2D matrix, logical, true where there is sand and false elsewhere.
+%   img = Matrix, image data that can be displayed by imshow polygons =
+%   polygons: optional 2D array, vertices of mask polygons, x-coords in row 1 and
+%       y-coords in row 2, polygons separated by NaN
 %
 % % Keith Ma
+
+% set defaults
+if nargin < 2; polygons = []; end
+
+% sanity check
+narginchk(1,2);
+validateattributes(img, {'numeric'}, {'3d'});
+validateattributes(polygons, {'numeric'}, {'2d'});
 
 %% constants
 
@@ -48,14 +58,17 @@ help_width = done_width;
 help_height = done_height;
 help_pos = [help_left, help_bot, help_width, help_height];
 
+
 %% create GUI
 
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'mask_gui');
 
-data = struct('img', img, 'mask', true(size(img, 1), size(img, 2)), 'layer', {{}});
+data = struct(...
+    'img', img, ...
+    'polygons', {unpack_polygons(polygons)});
+
 axes('Units', 'Normalized', 'Position', img_pos, 'NextPlot', 'add', ...
     'Tag', 'mask_img', 'UserData', data);
-update_mask();
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', add_pos, 'String', 'Add New Mask', 'FontSize', font, ...
@@ -73,14 +86,43 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', font, ...
     'Callback', @(~,~)msgbox(instruct));
 
+update_mask();
 uiwait(findobj('Tag', 'mask_gui'));
 
 %% return results
 
 hi = findobj('Tag', 'mask_img'); 
 data = hi.UserData;
-mask = data.mask;
+polygons = pack_polygons(data.polygons);
 close(findobj('Tag', 'mask_gui'));
+
+
+function packed = pack_polygons(unpacked)
+% Pack polygon vertices as 2d array with points in columns and NaNs
+% separating each polygon
+% % 
+packed = [];
+for ii = 1:length(unpacked)
+   this_poly = unpacked{ii};
+   packed = [packed, this_poly', nan(2,1)]; %#ok!
+end
+
+
+function unpacked = unpack_polygons(packed)
+% Pack polygon vertices as 2d array with points in columns and NaNs
+% separating each polygon
+% % 
+unpacked = {};    
+ini = 1;
+while ini < size(packed, 2)
+    fin = find(isnan(packed(1, ini:end)), 1, 'first') + ini - 1;
+    disp([packed(1,ini), packed(1,fin)]);
+    unpacked{end+1} = packed(:, ini:(fin-1))'; %#ok!
+    ini = fin + 1;
+    if ini >= size(packed, 2)
+        break
+    end
+end
 
 
 function do_add(~, ~)
@@ -88,19 +130,18 @@ function do_add(~, ~)
 % %
 
 % get new mask polygon interactively
-p = impoly('Closed', true);
+this_poly = impoly(gca, 'Closed', true);
 set(findobj('Tag', 'mask_gui'), 'WaitStatus', 'waiting'); % hack for uiwait
-if isempty(p)
+if isempty(this_poly)
     return % aborted
 end
-this_layer = ~createMask(p); % invert
-delete(p);
 
 % store data and update GUI
 hi = findobj('Tag', 'mask_img');
 data = hi.UserData;
-data.layer{end+1} = this_layer;
+data.polygons{end+1} = getPosition(this_poly);
 hi.UserData = data;
+delete(this_poly);
 update_mask();
 
 
@@ -112,21 +153,29 @@ function update_mask()
 hi = findobj('Tag', 'mask_img');
 data = hi.UserData;
 
-% compose mask 
-mask = true(size(data.mask));
-for ii = 1:length(data.layer)
-    mask = mask & data.layer{ii};
+% ensure the image is displayed so mask can be created
+if isempty(hi.Children)
+    image(data.img);
 end
-data.mask = mask;
-hi.UserData = data;
+
+% compose mask 
+mask = true(size(data.img,1), size(data.img, 2));
+for ii = 1:length(data.polygons)
+    this_poly = impoly(gca, data.polygons{ii}, 'Closed', true);
+    mask = mask & ~createMask(this_poly);
+    delete(this_poly);
+end
 
 % replot masked image
+delete(hi.Children);
 masked_img = data.img;
-masked_img(repmat(~data.mask, 1, 1, 3)) = 0;
+masked_img(repmat(~mask, 1, 1, 3)) = 0;
 axes(hi);
 delete(findobj('Type', 'Image', 'Parent', hi));
 image(masked_img);
 axis equal off
+
+hi.UserData = data;
 
 
 function do_del(~, ~)
@@ -134,8 +183,8 @@ function do_del(~, ~)
 % %
 hi = findobj('Tag', 'mask_img');
 data = hi.UserData;
-if ~isempty(data.layer)
-    data.layer = data.layer(1:end-1);
+if ~isempty(data.polygons)
+    data.polygons = data.polygons(1:end-1);    
 end
 hi.UserData = data;
 update_mask();

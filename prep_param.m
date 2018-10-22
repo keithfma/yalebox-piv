@@ -59,7 +59,7 @@ if strcmp(button, 'Yes')
     savejson('', param, 'Filename', PREP_PARAM_FILE, 'SingletArray', 0);
     fprintf('"woco" parameters written to file: %s\n', PREP_PARAM_FILE);
 else
-    fprintf('"woco" parameters NOT written to file');
+    fprintf('"woco" parameters NOT written to fileopt.SimplifyCell\n');
 end
 
 
@@ -68,7 +68,7 @@ end
 % parameters, then display the results
 % % 
 
-param = loadjson(PREP_PARAM_FILE);
+param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
 images = param.images;
 woco = param.woco;
 crop = param.crop;
@@ -89,30 +89,25 @@ fprintf('Displaying rectifed & cropped test image using current parameters\n');
     
 
 %% Manual image mask 
-% Either create or load manual image mask
-% % 
+% Interactively edit manual image mask
+% %
 
-if strcmp(mask_manual_action, 'create')
-    % define mask interactively
-    mask_manual = prep_mask_manual(rgb);
-    % decide whether to save, task care to avoid accidental overwriting
-    save_mask_manual = true;
-    if exist(mask_manual_mat_file, 'file') ~= 2
-        button = questdlg('Manual mask file exists! Overwrite it?', 'WARNING', 'Yes', 'No', 'No');
-        if strcmp(button, 'No'); save_mask_manual = false; end
-    end
-    % save mask to MAT file
-    if save_mask_manual
-        save(mask_manual_mat_file, 'mask_manual');
-    end
+% load parameters
+param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
+mask = param.mask_manual;
 
-elseif strcmp(mask_manual_action, 'load')
-    % load mask from previous results
-    load(mask_manual_mat_file)
+% interactive mask creation
+poly = prep_mask_manual(rgb, mask.poly.value);
 
+% save results, take care to avoid accidental overwriting
+prompt = sprintf('Write "mask_manual" parameters to %s?', PREP_PARAM_FILE);
+button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
+if strcmp(button, 'Yes')
+    param.mask_manual.poly.value = poly;
+    savejson('', param, 'Filename', PREP_PARAM_FILE, 'SingletArray', 0);
+    fprintf('"mask_manual" parameters written to file: %s\n', PREP_PARAM_FILE);
 else
-    error('Invalid choice for parameter "mask_manual_action"');
-
+    fprintf('"mask_manual" parameters NOT written to file\n');
 end
 
 % % Automatic image mask ---------------------------------------------------
