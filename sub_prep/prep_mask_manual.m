@@ -11,6 +11,8 @@ function polygons = prep_mask_manual(img, polygons)
 %
 % % Keith Ma
 
+% TODO: also store and return the mask, needed for series processing
+
 % set defaults
 if nargin < 2; polygons = []; end
 

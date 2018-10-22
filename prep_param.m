@@ -24,7 +24,7 @@ load_dependencies('prep', 'jsonlab');
 % completion.
 % %
 
-param = loadjson(PREP_PARAM_FILE);
+param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
 woco = param.woco;
 woco_file = param.images.woco_file.value;
 
@@ -94,10 +94,11 @@ fprintf('Displaying rectifed & cropped test image using current parameters\n');
 
 % load parameters
 param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
-mask = param.mask_manual;
 
 % interactive mask creation
-poly = prep_mask_manual(rgb, mask.poly.value);
+poly = prep_mask_manual(rgb, param.manual_mask.poly.value);
+
+% TODO: create masked image for next step
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write "mask_manual" parameters to %s?', PREP_PARAM_FILE);
@@ -110,12 +111,23 @@ else
     fprintf('"mask_manual" parameters NOT written to file\n');
 end
 
-% % Automatic image mask ---------------------------------------------------
-% % apply automatic image masking routine given specified parameters
-% % % 
-% 
-% mask_auto = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                     morph_open_rad, morph_erode_rad, true, true);
+
+%% Automatic image mask 
+% apply automatic image masking routine given specified parameters
+% % 
+
+% TODO: start with masked RGB image here.
+
+% load parameters
+param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
+mask = param.mask_auto;
+
+% apply auto masking and display results
+mask_auto = prep_mask_auto(...
+    rgb, mask.hue_lim.value, mask.value_lim.value, ...
+    mask.entropy_lim.value, mask.entropy_len.value, ...
+    mask.morph_open_rad.value, mask.morph_erode_rad.value, ...
+    true, true);
 
 
 %% TODO; run prep for several images in the series
