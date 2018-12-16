@@ -8,9 +8,9 @@
 			"help": "string, path to step image to use for testing",
 			"value": ""
 		},
-		"glob": {
-			"help": "string, glob pattern matching all experiment images",
-			"value": ""
+		"exp_images": {
+			"help": "list of strings, paths to all experiment images, assumed to be ordered by time",
+			"value": []
 		}
 	},
 	"woco": {

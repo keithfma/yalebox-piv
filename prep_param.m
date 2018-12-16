@@ -18,6 +18,37 @@
 load_dependencies('prep', 'jsonlab');
 
 
+%% Define paths to experiment images
+
+param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
+
+% world coordinate image
+woco_file = uigetfile(...
+    '*.*', 'Select World Coordinate Image', param.images.woco_file.value);
+
+% test image to use for parameter definition in this script
+test_file = uigetfile(...
+    '*.*', 'Select Test Image', param.images.woco_file.value);
+
+% all experiment images
+exp_files = uigetfile(...
+    '*.*', 'Select All Experiment Images', 'MultiSelect', 'on');
+
+% save results, take care to avoid accidental overwriting
+prompt = sprintf('Write "images" parameters to %s?', PREP_PARAM_FILE);
+button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
+if strcmp(button, 'Yes')
+    param.images.woco_file.value = woco_file;
+    param.images.test_file.value = test_file;
+    param.images.exp_files.value = exp_files;
+    savejson('', param, 'Filename', PREP_PARAM_FILE, 'SingletArray', 0);
+    fprintf('"images" parameters written to file: %s\n', PREP_PARAM_FILE);
+else
+    fprintf('"images" parameters NOT written to fileopt.SimplifyCell\n');
+end
+
+
+
 %% Define coordinate system control points ---------------------------------
 % Create or edit world coordinate control points interactively. You will be
 % prompted to save the results by updating the param JSON file upon
@@ -118,8 +149,6 @@ end
 %% Automatic image mask 
 % apply automatic image masking routine given specified parameters
 % % 
-
-% TODO: start with masked RGB image here.
 
 % load parameters
 param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
