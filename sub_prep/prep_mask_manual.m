@@ -1,28 +1,64 @@
-function polygons = prep_mask_manual(img, polygons)
-% function polygons = prep_mask_manual(img, polygons) % TODO: accept existing
-% polygons
+function [mask, polygons] = prep_mask_manual(img, polygons, interactive)
+% function [mask, polygons] = prep_mask_manual(img, polygons, interactive) 
 %
-% Interactive GUI to define a mask to black out region(s) of an image.
+% Define a binary mask to black out region(s) of an image.
 %
 % Arguments:
 %   img = Matrix, image data that can be displayed by imshow polygons =
 %   polygons: optional 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
+%   interactive: boolean, set true to interactively define new polygon(s), or
+%       false to simply build a mask array from the input polygons.
+%
+% Returns:
+%   mask: boolean matrix, true where there is data, and false where there
+%       is no data (masked out)
+%   polygons: 2D array, vertices of mask polygons, x-coords in row 1 and
+%       y-coords in row 2, polygons separated by NaN
 %
 % % Keith Ma
 
-% TODO: also store and return the mask, needed for series processing
-
 % set defaults
 if nargin < 2; polygons = []; end
+if nargin < 3; interactive = false; end
 
 % sanity check
-narginchk(1,2);
+narginchk(1,3);
 validateattributes(img, {'numeric'}, {'3d'});
 validateattributes(polygons, {'numeric'}, {'2d'});
 
-%% constants
+if interactive
+    % interactive mode for mask creation
+    [mask, polygons] = interactive_get_mask(img, polygons);
+else
+    % non-interactive mode for mask retrieval
+    mask = get_mask(img, polygons);
+end
 
+
+function mask = get_mask(img, polygons)
+% create mask matrix from packed polygon array
+% %
+
+% unpack array to cell matrix, if needed
+if ~iscell(polygons)
+    polygons = unpack_polygons(polygons);
+end
+
+% create mask from all polygons
+mask = true(size(img, 1), size(img, 2));
+for ii = 1:length(polygons)
+    x_pts = polygons{ii}(:, 1);
+    y_pts = polygons{ii}(:, 2);
+    mask = mask & ~poly2mask(x_pts, y_pts, size(img, 1), size(img, 2));
+end 
+
+
+function [mask, poly] = interactive_get_mask(img, polygons)
+% Start GUI for interactive mask creation
+% %
+
+% constants
 margin = 0.025; % norm
 buffer = 0.01; % norm
 font = 14; % pt
@@ -60,9 +96,7 @@ help_width = done_width;
 help_height = done_height;
 help_pos = [help_left, help_bot, help_width, help_height];
 
-
-%% create GUI
-
+% create GUI
 figure('Units', 'Normalized', 'Outerposition', [0 0 1 1], 'Tag', 'mask_gui');
 
 data = struct(...
@@ -91,11 +125,11 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
 update_mask();
 uiwait(findobj('Tag', 'mask_gui'));
 
-%% return results
-
+% return results
 hi = findobj('Tag', 'mask_img'); 
 data = hi.UserData;
-polygons = pack_polygons(data.polygons);
+poly = pack_polygons(data.polygons);
+mask = get_mask(img, poly);
 close(findobj('Tag', 'mask_gui'));
 
 
@@ -111,14 +145,13 @@ end
 
 
 function unpacked = unpack_polygons(packed)
-% Pack polygon vertices as 2d array with points in columns and NaNs
-% separating each polygon
+% Unpack polygon vertices from 2d array with points in columns and NaNs
+% separating each polygon to cell array of individual polygons
 % % 
 unpacked = {};    
 ini = 1;
 while ini < size(packed, 2)
     fin = find(isnan(packed(1, ini:end)), 1, 'first') + ini - 1;
-    disp([packed(1,ini), packed(1,fin)]);
     unpacked{end+1} = packed(:, ini:(fin-1))'; %#ok!
     ini = fin + 1;
     if ini >= size(packed, 2)
@@ -132,7 +165,7 @@ function do_add(~, ~)
 % %
 
 % get new mask polygon interactively
-this_poly = impoly(gca, 'Closed', true);
+this_poly = impoly(gca, 'Closed', true); %#ok!
 set(findobj('Tag', 'mask_gui'), 'WaitStatus', 'waiting'); % hack for uiwait
 if isempty(this_poly)
     return % aborted
@@ -161,12 +194,7 @@ if isempty(hi.Children)
 end
 
 % compose mask 
-mask = true(size(data.img,1), size(data.img, 2));
-for ii = 1:length(data.polygons)
-    this_poly = impoly(gca, data.polygons{ii}, 'Closed', true);
-    mask = mask & ~createMask(this_poly);
-    delete(this_poly);
-end
+mask = get_mask(data.img, data.polygons); 
 
 % replot masked image
 delete(hi.Children);

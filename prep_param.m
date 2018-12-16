@@ -96,9 +96,12 @@ fprintf('Displaying rectifed & cropped test image using current parameters\n');
 param = loadjson(PREP_PARAM_FILE, 'SimplifyCell', 1);
 
 % interactive mask creation
-poly = prep_mask_manual(rgb, param.manual_mask.poly.value);
+[mask_manual, poly] = prep_mask_manual(...
+    rgb, param.mask_manual.poly.value, true);
 
-% TODO: create masked image for next step
+% create masked image for next step
+mrgb = rgb;
+mrgb(repmat(~mask_manual, 1, 1, 3)) = 0;
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write "mask_manual" parameters to %s?', PREP_PARAM_FILE);
