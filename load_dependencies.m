@@ -16,17 +16,24 @@ function [] = add_dep(dep_path)
 end
 
 for ii = 1:length(varargin)
-    dep_name = varargin{ii};
     
-    if strcmp(dep_name, 'jsonlab')
-        add_dep(fullfile(base_path, 'depend', 'jsonlab-1.8'));
+    switch varargin{ii}
         
-    elseif strcmp(dep_name, 'prep')
-        add_dep(fullfile(base_path, 'sub_prep'));
+        % third-party libraries
+        case 'jsonlab'
+            add_dep(fullfile(base_path, 'depend', 'jsonlab-1.8'));
+    
+        % subroutines
+        case 'prep'
+            add_dep(fullfile(base_path, 'sub_prep'));
         
+        % parameter definition
+        case 'define_prep'
+            add_dep(fullfile(base_path, 'def_prep'));
         
-    else
-        error('Invalid dependency name: "%s"', dep_name);
+        % bad name, fail
+        otherwise
+            error('Invalid dependency name: "%s"', dep_name);
         
     end
 end
