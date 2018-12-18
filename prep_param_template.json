@@ -72,5 +72,11 @@
 			"help": "scalar, double, radius of disk structuring element used in mophological erosion filter",
 			"value": 0
 		}
-	}
+	},
+    "intensity": {
+        "eql_len": {
+            "help": "scalar, integer, odd. Side length (in pixels) for the local neighborhood used to compute the transform for each pixel",
+            "value": 0
+        }
+    }
 }

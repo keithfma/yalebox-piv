@@ -1,5 +1,5 @@
-function mrgb = define_mask_manual(param_file, rgb)
-% function mrgb = define_mask_manual(param_file, rgb)
+function [mrgb, mask] = define_mask_manual(param_file, rgb)
+% function [mrgb, mask] = define_mask_manual(param_file, rgb)
 % 
 % Define parameters in "mask_manual" section by interactively editing
 % 
@@ -8,20 +8,21 @@ function mrgb = define_mask_manual(param_file, rgb)
 %   param_file: string, path to parameter definition JSON file
 % 
 % Returns:
-%   mrgb: N x M x 3 matrix, RGB image with manual mask applied to it
+%   mrgb: N x M x 3 matrix, Rmrgb, GB image with manual mask applied to it
+%   mask: N x M logical matrix
 % % 
 
 param = loadjson(param_file, 'SimplifyCell', 1);
 
 % interactive mask creation
-[mask_manual, poly] = prep_mask_manual(...
+[mask, poly] = prep_mask_manual(...
     rgb, ...
     param.mask_manual.poly.value, ...
     true);
 
 % create masked image for next step
 mrgb = rgb;
-mrgb(repmat(~mask_manual, 1, 1, 3)) = 0;
+mrgb(repmat(~mask, 1, 1, 3)) = 0;
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write "mask_manual" parameters to %s?', param_file);

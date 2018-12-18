@@ -26,11 +26,15 @@ rgb = apply_crop(PREP_PARAM_FILE);
 
 %% define "mask_manual" section parameters -- interactive
 
-mrgb = define_mask_manual(PREP_PARAM_FILE, rgb);
+[mrgb, mask_manual] = define_mask_manual(PREP_PARAM_FILE, rgb);
 
 %% apply "mask_auto" section parameters -- edit param file to update
 
-apply_mask_auto(PREP_PARAM_FILE, mrgb);
+mask_auto = apply_mask_auto(PREP_PARAM_FILE, mrgb);
+
+%% apply histogram equalization
+
+apply_intensity(PREP_PARAM_FILE, mrgb, mask_manual & mask_auto);
 
 %% run small-scale test case
 
