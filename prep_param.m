@@ -10,7 +10,7 @@
 % that some cells depend on the results of previous cells.
 % %
 
-load_dependencies('prep', 'define_prep', 'jsonlab');
+load_dependencies('prep', 'define_prep', 'jsonlab', 'util');
 
 %% define "images" section parameters -- interactive
 
@@ -38,5 +38,5 @@ apply_intensity(PREP_PARAM_FILE, mrgb, mask_manual & mask_auto);
 
 %% run small-scale test case
 
-num_images = 20;
-test_run(PREP_PARAM_FILE, num_images);
+test_run(PREP_PARAM_FILE);
+ 

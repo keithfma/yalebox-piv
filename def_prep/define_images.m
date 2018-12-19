@@ -15,20 +15,20 @@ path = uigetdir(...
 path = strip(path, 'right', filesep);
 
 % world coordinate image
-[woco_file, woco_path] = uigetfile(...
-    '*.*', 'Select world coordinate image', param.images.woco_file.value);
+[woco_file, woco_path] = uigetfile('*.*', 'Select world coordinate image', ...
+    fullfile(param.images.path.value, param.images.woco_file.value));
 woco_path = strip(woco_path, 'right', filesep);
 assert(strcmp(woco_path, path), 'Expect image to be in image directory');
 
 % test image to use for parameter definition in this script
-[test_file, test_path] = uigetfile(...
-    '*.*', 'Select Test Image', param.images.test_file.value);
+[test_file, test_path] = uigetfile('*.*', 'Select test image', ...
+    fullfile(param.images.path.value, param.images.test_file.value));
 test_path = strip(test_path, 'right', filesep);
 assert(strcmp(test_path, path), 'Expect image to be in selected image directory');
 
 % all experiment images
 [exp_files, exp_path] = uigetfile(...
-    '*.*', 'Select All Experiment Images', path, 'MultiSelect', 'on');
+    '*.*', 'Select all experiment images', path, 'MultiSelect', 'on');
 exp_path = strip(exp_path, 'right', filesep);
 assert(strcmp(exp_path, path), 'Expect images to be in selected image directory');
 

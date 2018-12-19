@@ -45,6 +45,9 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 %
 % % Keith Ma
 
+% load dependencies
+load_dependencies('prep', 'util');
+
 % check for sane arguments (pass-through arguments are checked in subroutines)
 assert(nargin == 20);
 validateattributes(result_file, {'char'}, {'vector'});
@@ -57,12 +60,12 @@ ny = numel(yw);
 num_image = numel(image_names);
 
 % check that all images exist and have the expected size and type
-info = imfinfo([image_path filesep image_names{1}]);
+info = imfinfo(fullfile(image_path, image_names{1}));
 raw_nrow = info.Height;
 raw_ncol = info.Width;
 for i = 1:num_image
     try
-        this_file = [image_path filesep image_names{i}];
+        this_file = fullfile(image_path, image_names{i});
         info = imfinfo(this_file);
         assert(info.Width == raw_ncol && info.Height == raw_nrow, ...
             sprintf('incorrect dimensions in image %s', this_file));
@@ -77,7 +80,7 @@ end
 ncid = netcdf.create(result_file, 'NETCDF4');
 
 % add global attributes 
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox git_hash', util_git_hash());
+netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox version', get_version());
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xw', ctrl_xw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yw', ctrl_yw);
 netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp', ctrl_xp);
@@ -156,7 +159,7 @@ netcdf.close(ncid);
 for i = 1:num_image
     
     % read in original image
-    this_file = [image_path filesep image_names{i}];
+    this_file = fullfile(image_path, image_names{i});
     raw = imread(this_file);
      
     % update user (always verbose)

@@ -26,6 +26,8 @@ for ii = 1:length(varargin)
         % subroutines
         case 'prep'
             add_dep(fullfile(base_path, 'sub_prep'));
+        case 'util'
+            add_dep(fullfile(base_path, 'sub_util'));
         
         % parameter definition
         case 'define_prep'

@@ -87,5 +87,11 @@
             "help": "scalar, integer, odd. Side length (in pixels) for the local neighborhood used to compute the transform for each pixel",
             "value": 0
         }
+    },
+    "test_run": {
+        "num_images": {
+            "help": "int, number of images to include for test run",
+            "value": 0
+        }
     }
 }
