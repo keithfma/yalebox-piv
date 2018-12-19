@@ -25,13 +25,13 @@ for ii = 1:length(varargin)
     
         % subroutines
         case 'prep'
-            add_dep(fullfile(base_path, 'sub_prep'));
+            add_dep(fullfile(base_path, 'sub', 'prep'));
         case 'util'
-            add_dep(fullfile(base_path, 'sub_util'));
+            add_dep(fullfile(base_path, 'sub', 'util'));
         
         % parameter definition
-        case 'define_prep'
-            add_dep(fullfile(base_path, 'def_prep'));
+        case 'prep_param'
+            add_dep(fullfile(base_path, 'sub', 'prep_param'));
         
         % bad name, fail
         otherwise

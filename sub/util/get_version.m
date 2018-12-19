@@ -6,7 +6,7 @@ function version_string = get_version()
 
 % get version file path, taking care in case called from a weird place
 [base_path, ~, ~] = fileparts(mfilename('fullpath'));
-version_file = fullfile(base_path, '..', 'VERSION.txt');
+version_file = fullfile(base_path, '..', '..',  'VERSION');
 
 % read version string
 fid = fopen(version_file);

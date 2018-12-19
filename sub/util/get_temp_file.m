@@ -8,5 +8,5 @@ function filename = get_temp_file(extension)
 % %
 
 [base_path, ~, ~] = fileparts(mfilename('fullpath'));
-tmp_dir = fullfile(base_path, '..', 'tmp');
+tmp_dir = fullfile(base_path, '..', '..', 'tmp');
 filename = [tempname(tmp_dir), '.', strip(extension, 'left', '.')];
