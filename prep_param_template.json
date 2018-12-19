@@ -1,15 +1,20 @@
 {
 	"images": {
+		   "path": {
+            "help": "string, directory containing all image files",
+            "value": ""
+        },
 		"woco_file": {
-			"help": "string, path to world coordinate image",
+			"help": "string, world coordinate image filename (without directory)",
 			"value": ""
 		},
 		"test_file": {
-			"help": "string, path to step image to use for testing",
+			"help": "string, step image filename (without directory) to use for testing",
 			"value": ""
 		},
-		"exp_images": {
-			"help": "list of strings, paths to all experiment images, assumed to be ordered by time",
+		"exp_files": {
+			"help": "list of strings, all experiment image filenames (without directory), assumed to be ordered by time",
+
 			"value": []
 		}
 	},
@@ -39,7 +44,11 @@
 		"ylim": {
 			"help": "2-element array, minimum and maximum y coordinates for crop in world coordinate units (m)",
 			"value": []
-		}
+		},
+        "npts": {
+            "help": "int, number of points to use in local weighted mean calculation for image warping",
+            "value": 10
+        }
 	},
 	"mask_manual": {
 		"poly": {

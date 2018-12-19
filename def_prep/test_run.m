@@ -19,11 +19,9 @@ clean_param = onCleanup(@() delete(temp_param_file));
 savejson('', param, 'Filename', temp_param_file, 'SingletArray', 0);
 
 % call prep series
-temp_result_file = tempname;
-clean_result = onCleanup(@() delete(temp_result_file));
-% TODO: implement this wrapper function - make any changes needed to
-%   preserve backward compatibility.
-prep_series_from_file(temp_param_file, temp_result_file);
+result_file = fullfile(pwd, 'test.nc');
+fprintf('Image prep test run - saving results to %s\n', result_file);
+prep_series_from_file(result_file, temp_param_file);
 
 % plot results for each image in sequence
 test_img = ncread(temp_result_file, 'img');

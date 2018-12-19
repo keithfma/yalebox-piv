@@ -8,3 +8,4 @@ temp/*
 **/html
 *.asv
 standalone/*
+test.nc

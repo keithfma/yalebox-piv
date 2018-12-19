@@ -7,9 +7,9 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 %                   hue_lim, value_lim, entropy_lim, entropy_len, ...
 %                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
 % 
-% Create PIV input file for a given image series. Reads in the images, rectifies
-% and crops, masks, corrects illuination, and saves the results and metadata in
-% a netCDF file.
+% Create PIV input file for a given image series. Reads in the images,
+% rectifies and crops, masks, corrects illumination, and saves the results
+% and metadata in a netCDF file.
 %
 % Arguments:
 % 

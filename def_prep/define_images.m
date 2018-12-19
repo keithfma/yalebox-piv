@@ -9,31 +9,34 @@ function [] = define_images(param_file)
 
 param = loadjson(param_file, 'SimplifyCell', 1);
 
+% path to images directory
+path = uigetdir(...
+    param.images.path.value, 'Select directory containing image files');
+path = strip(path, 'right', filesep);
+
 % world coordinate image
-[woco_file_name, woco_file_path] = uigetfile(...
-    '*.*', 'Select World Coordinate Image', param.images.woco_file.value);
-woco_file = fullfile(woco_file_path, woco_file_name);
+[woco_file, woco_path] = uigetfile(...
+    '*.*', 'Select world coordinate image', param.images.woco_file.value);
+woco_path = strip(woco_path, 'right', filesep);
+assert(strcmp(woco_path, path), 'Expect image to be in image directory');
 
 % test image to use for parameter definition in this script
-[test_file_name, test_file_path] = uigetfile(...
+[test_file, test_path] = uigetfile(...
     '*.*', 'Select Test Image', param.images.test_file.value);
-test_file = fullfile(test_file_path, test_file_name);
+test_path = strip(test_path, 'right', filesep);
+assert(strcmp(test_path, path), 'Expect image to be in selected image directory');
 
 % all experiment images
-ini_exp_file = '';
-if ~isempty(param.images.exp_files.value)
-    ini_exp_file = param.images.exp_files.value{1};
-end
-[exp_files, exp_files_path] = uigetfile(...
-    '*.*', 'Select All Experiment Images', ini_exp_file, 'MultiSelect', 'on');
-for ii = 1:length(exp_files)
-    exp_files{ii} = fullfile(exp_files_path, exp_files{ii});
-end
+[exp_files, exp_path] = uigetfile(...
+    '*.*', 'Select All Experiment Images', path, 'MultiSelect', 'on');
+exp_path = strip(exp_path, 'right', filesep);
+assert(strcmp(exp_path, path), 'Expect images to be in selected image directory');
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write "images" parameters to %s?', param_file);
 button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
+    param.images.path.value = path;
     param.images.woco_file.value = woco_file;
     param.images.test_file.value = test_file;
     param.images.exp_files.value = exp_files;
