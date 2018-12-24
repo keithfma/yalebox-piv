@@ -10,7 +10,8 @@
 % that some cells depend on the results of previous cells.
 % %
 
-load_dependencies('prep', 'prep_param', 'jsonlab', 'util');
+addpath(fullfile(pwd, '..'));
+update_path('prep', 'check_prep', 'jsonlab', 'util');
 
 %% define "images" section parameters -- interactive
 

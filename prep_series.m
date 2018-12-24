@@ -46,7 +46,7 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 % % Keith Ma
 
 % load dependencies
-load_dependencies('prep', 'util');
+update_path('prep', 'util');
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 assert(nargin == 20);

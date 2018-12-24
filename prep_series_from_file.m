@@ -14,7 +14,7 @@ function [] = prep_series_from_file(result_file, param_file)
 % %
 
 % load dependencies
-load_dependencies('jsonlab', 'prep');
+update_path('jsonlab', 'prep');
 
 % load parameters struct
 param = loadjson(param_file, 'SimplifyCell', 1);
