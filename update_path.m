@@ -26,6 +26,8 @@ for ii = 1:length(varargin)
         % subroutines
         case 'prep'
             add_dep(fullfile(base_path, 'subroutines', 'prep'));
+        case 'piv'
+            add_dep(fullfile(base_path, 'subroutines', 'piv'));
         case 'util'
             add_dep(fullfile(base_path, 'subroutines', 'util'));
         
