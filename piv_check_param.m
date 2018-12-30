@@ -14,7 +14,9 @@
 % %
 
 addpath(fullfile(pwd, '..'));
-update_path('piv');
+update_path('piv', 'util');
+
+
 
 
  
