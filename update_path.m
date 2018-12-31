@@ -3,7 +3,8 @@ function [] = update_path(varargin)
 % 
 % Load specified dependencies to the matlab path
 %
-% Arguments:
+% Arguments: string(s), specific named packages to add to path, invalid
+%   names raise an error
 %
 % Returns: Nothing
 % % 
@@ -30,10 +31,6 @@ for ii = 1:length(varargin)
             add_dep(fullfile(base_path, 'subroutines', 'piv'));
         case 'util'
             add_dep(fullfile(base_path, 'subroutines', 'util'));
-        
-        % parameter definition
-        case 'check_prep'
-            add_dep(fullfile(base_path, 'subroutines', 'check_prep'));
         
         % bad name, fail
         otherwise
