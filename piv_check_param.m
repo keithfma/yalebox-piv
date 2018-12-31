@@ -13,7 +13,7 @@
 % that some cells depend on the results of previous cells.
 % %
 
-update_path('jsonlab', 'xcorr', 'piv', 'util');
+update_path('jsonlab', 'xcorr', 'spline', 'deriv', 'piv', 'post', 'util');
 
 %% PIV analysis for single image pair -- edit parameter file to change
 
@@ -42,11 +42,15 @@ piv_result = piv(...
     param.piv.min_frac_overlap.value, ...
     true);
 
-% strain analysis for single image pair -- uses generic parameters
-%     
-% strain_result = post_strain(piv_result.x_grd(1,:), piv_result.y_grd(:,1), ...
-%     piv_result.u_grd, piv_result.v_grd, piv_result.roi_grd, 'nearest');
-% 
+%% strain analysis for single image pair -- uses generic parameters    
+
+strain_result = post_strain(...
+    piv_result.x_grd(1,:), ...
+    piv_result.y_grd(:,1), ... 
+    piv_result.u_grd, ...
+    piv_result.v_grd, ...
+    piv_result.roi_grd, ...
+    'nearest'); 
 
 %% display results for user validation
 
