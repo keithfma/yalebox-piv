@@ -1,5 +1,5 @@
-function quick_plot_piv(piv_result, prefix)
-% function quick_plot_piv(piv_result, prefix)
+function display_piv(piv_result, prefix)
+% function display_piv(piv_result, prefix)
 %
 % Simple plot of PIV displacement fields, intended for rapid inspection of
 % results
