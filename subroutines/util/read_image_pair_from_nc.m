@@ -1,5 +1,5 @@
-function [xx, yy, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file, ini_step, gap)
-% function [xw, yw, ini, ini_roi, fin, fin_roi] = util_read_input_pair(input_file, ini_step, gap)
+function [xx, yy, ini, ini_roi, fin, fin_roi] = read_image_pair_from_nc(input_file, ini_step, gap)
+% function [xw, yw, ini, ini_roi, fin, fin_roi] = read_image_pair_from_nc(input_file, ini_step, gap)
 %
 % Reads pre-processed image pair from netCDF file produced by prep_series().
 % Useful for parameter testing the piv() routine.

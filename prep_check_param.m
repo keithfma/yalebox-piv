@@ -45,7 +45,7 @@ button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.images.path.value = path;
     param.images.woco_file.value = woco_file;
-    param.images.test_file.value = test_file;
+    param.test.file.value = test_file;
     param.images.exp_files.value = exp_files;
     save_param(param, PREP_PARAM_FILE);
     fprintf('Saved parameter file: %s\n', PREP_PARAM_FILE);
@@ -120,7 +120,7 @@ fprintf('Displaying rectifed & cropped test image\n');
         param.woco.yw.value, ...
         param.crop.xlim.value, ...
         param.crop.ylim.value, ...
-        imread(fullfile(param.images.path.value, param.images.test_file.value)), ...,
+        imread(fullfile(param.images.path.value, param.test.file.value)), ...,
         [], ...
         true);
 
@@ -183,7 +183,7 @@ param = load_param(PREP_PARAM_FILE);
 idx = round(linspace(...
     1, ...
     length(param.images.exp_files.value), ...
-    param.test_run.num_images.value));
+    param.test.num_images.value));
 param.images.exp_files.value = param.images.exp_files.value(idx);
 
 % save temporary param file, register for cleanup on function completion
@@ -203,7 +203,7 @@ test_mask_auto = ncread(result_file, 'mask_auto');
 test_mask_manual = ncread(result_file, 'mask_manual');
 
 hf = figure;
-for ii = 1:param.test_run.num_images.value
+for ii = 1:param.test.num_images.value
     hf.Name = sprintf('Test Analysis Results: %s', ...
         param.images.exp_files.value{ii});
     subplot(3,1,1)

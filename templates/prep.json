@@ -1,4 +1,14 @@
 {
+    "test": {
+		"file": {
+			"help": "string, step image filename (without directory) to use for testing",
+			"value": ""
+		},
+        "num_images": {
+            "help": "int, number of images to include for test run",
+            "value": 0
+        }
+    },
 	"images": {
 		   "path": {
             "help": "string, directory containing all image files",
@@ -6,10 +16,6 @@
         },
 		"woco_file": {
 			"help": "string, world coordinate image filename (without directory)",
-			"value": ""
-		},
-		"test_file": {
-			"help": "string, step image filename (without directory) to use for testing",
 			"value": ""
 		},
 		"exp_files": {
@@ -85,12 +91,6 @@
     "intensity": {
         "eql_len": {
             "help": "scalar, integer, odd. Side length (in pixels) for the local neighborhood used to compute the transform for each pixel",
-            "value": 0
-        }
-    },
-    "test_run": {
-        "num_images": {
-            "help": "int, number of images to include for test run",
             "value": 0
         }
     }
