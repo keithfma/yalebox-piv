@@ -1,5 +1,5 @@
-function quick_plot_strain(strain_result, prefix)
-% function quick_plot_strain(strain_result, prefix)
+function display_strain(strain_result, prefix)
+% function display_strain(strain_result, prefix)
 %
 % Simple plot of strain parameters derived from PIV displacement fields,
 % intended for rapid inspection of results
@@ -9,7 +9,7 @@ function quick_plot_strain(strain_result, prefix)
 %   prefix: String, optional prefix for subplot titles
 % %
 
-if nargin < 5
+if nargin < 2
     prefix = '';
 end
 
@@ -18,6 +18,9 @@ end
 roi = ~isnan(strain_result.Dd);
 xlim = [min(xx(roi)), max(xx(roi))] + range(xx(roi))*[-0.05, 0.05];
 ylim = [min(yy(roi)), max(yy(roi))] + range(yy(roi))*[-0.15, 0.15];
+Ddlim = prctile(strain_result.Dd(:), [5, 95]);
+Dvlim = prctile(strain_result.Dv(:), [5, 95]);
+spinlim = prctile(strain_result.spin(:), [5, 95]);
 
 % plot Dd
 figure
@@ -28,6 +31,7 @@ imagesc(strain_result.x, strain_result.y, strain_result.Dd, ...
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
+caxis(Ddlim);
 title([prefix, 'Dd']);
 
 % plot Dv
@@ -37,6 +41,7 @@ imagesc(strain_result.x, strain_result.y, strain_result.Dv, ...
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
+caxis(Dvlim);
 title([prefix, 'Dv']);
 
 % plot spin
@@ -46,6 +51,7 @@ imagesc(strain_result.x, strain_result.y, strain_result.spin, ...
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
+caxis(spinlim);
 title([prefix, 'spin']);
 
 linkaxes([a1, a2, a3]);
