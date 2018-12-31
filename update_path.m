@@ -10,6 +10,9 @@ function [] = update_path(varargin)
 % % 
 
 [base_path, ~, ~] = fileparts(mfilename('fullpath'));
+dependencies = fullfile(base_path, 'dependencies');
+subroutines = fullfile(base_path, 'subroutines');
+
 
 function [] = add_dep(dep_path)
     addpath(dep_path);
@@ -22,15 +25,17 @@ for ii = 1:length(varargin)
         
         % third-party libraries
         case 'jsonlab'
-            add_dep(fullfile(base_path, 'dependencies', 'jsonlab-1.8'));
+            add_dep(fullfile(dependencies, 'jsonlab-1.8'));
+        case 'xcorr'
+            add_dep(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
     
         % subroutines
         case 'prep'
-            add_dep(fullfile(base_path, 'subroutines', 'prep'));
+            add_dep(fullfile(subroutines, 'prep'));
         case 'piv'
-            add_dep(fullfile(base_path, 'subroutines', 'piv'));
+            add_dep(fullfile(subroutines, 'piv'));
         case 'util'
-            add_dep(fullfile(base_path, 'subroutines', 'util'));
+            add_dep(fullfile(subroutines, 'util'));
         
         % bad name, fail
         otherwise

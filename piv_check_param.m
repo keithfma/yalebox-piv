@@ -13,7 +13,7 @@
 % that some cells depend on the results of previous cells.
 % %
 
-update_path('jsonlab', 'piv', 'util');
+update_path('jsonlab', 'xcorr', 'piv', 'util');
 
 %% PIV analysis for single image pair -- edit parameter file to change
 
