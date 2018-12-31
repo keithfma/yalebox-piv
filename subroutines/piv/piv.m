@@ -97,6 +97,7 @@ validateattributes(samp_len, {'numeric'}, {'vector', 'integer', 'positive', 'non
 validateattributes(samp_spc, {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'});
 validateattributes(intr_len, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive', 'nonnan'});
 validateattributes(num_pass, {'numeric'}, {'vector', 'numel', ng, 'integer', 'positive'});
+validateattributes(valid_radius, {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'});
 validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
