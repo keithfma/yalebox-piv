@@ -1,9 +1,9 @@
-function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
-                  ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+function [] = prep_series(result_file, image_path, image_names, image_view, ...
+                  ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
                   hue_lim, value_lim, entropy_lim, entropy_len, ...
                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
-% function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
-%                   ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+% function [] = prep_series(result_file, image_path, image_names, image_view, ...
+%                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
 %                   hue_lim, value_lim, entropy_lim, entropy_len, ...
 %                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
 % 
@@ -14,11 +14,13 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 % Arguments:
 % 
 %   result_file = String, filename of the MAT file to be created. 
-%
+%   
 %   image_path = String, path to folder containing the images.
 %
 %   image_names = Cell array of strings, cells must contain filenames for
 %       successive images in the experiment image series. 
+% 
+%   image_view = String, specify 'top' or 'side' view of experiment
 %
 %   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp = Control points, as defined by
 %       prep_world_coord_control_pts()
@@ -49,10 +51,11 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 update_path('prep', 'util');
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-assert(nargin == 20);
+assert(nargin == 21);
 validateattributes(result_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
+assert(any(strcmp(image_view, {'side', 'top'})), 'Invalid value for "image_view"');
 
 [~, ~, result_file_ext] = fileparts(result_file);
 assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
@@ -91,7 +94,7 @@ meta = struct();
 
 meta.version = get_version();
 
-meta.view = 'side'; % TODO: make view an input arg so it can be recorded here
+meta.view = image_view;
 
 meta.input.ctrl_xw = ctrl_xw;
 meta.input.ctrl_yw = ctrl_yw;

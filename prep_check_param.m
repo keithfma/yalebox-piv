@@ -1,8 +1,9 @@
 % Define and/or test pre-processing parameters
 %
 % Expects path to the prep parameters definition file defined in a variable
-% PREP_PARAM_FILE. Use the template prep_param_template.json as a starting
-% point, and populate the variables therein to suit your experiment.
+% PREP_PARAM_FILE. To get started, call prep_default_param to create a 
+% template JSON file with default parameter values, then edit the variables
+% therein to suit your experiment.
 %
 % This script is designed to be run cell-by-cell. Each cell runs one step
 % of the image preparation process. Run a cell, inspect the results, and

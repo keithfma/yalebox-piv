@@ -19,6 +19,9 @@ pp.test.test_file.value = "";
 
 % images ---------
 
+pp.images.view.help = "string, specify 'side' or 'top' image view";
+pp.images.view.value = 'side';
+
 pp.images.path.help = "string, directory containing all image files";
 pp.images.path.value = ""; 
 
