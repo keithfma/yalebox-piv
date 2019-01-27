@@ -9,11 +9,11 @@ function [] = prep_series(result_file, image_path, image_names, ctrl_xw, ...
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
-% and metadata in a netCDF file.
+% and metadata in a MAT file.
 %
 % Arguments:
 % 
-%   result_file = String, filename of the netCDF input file to be created. 
+%   result_file = String, filename of the MAT file to be created. 
 %
 %   image_path = String, path to folder containing the images.
 %
@@ -54,6 +54,9 @@ validateattributes(result_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
 
+[~, ~, result_file_ext] = fileparts(result_file);
+assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
+
 % get some size parameters
 nx = numel(xw);
 ny = numel(yw);
@@ -76,90 +79,95 @@ for i = 1:num_image
     end
 end
 
-% create netcdf file
-ncid = netcdf.create(result_file, 'NETCDF4');
+% initialize output file -------------------------------------------------
 
-% add global attributes 
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox version', get_version());
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xw', ctrl_xw);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yw', ctrl_yw);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_xp', ctrl_xp);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop ctrl_yp', ctrl_yp);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_xw', crop_xw);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop crop_yw', crop_yw);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_rectify_and_crop fit_npts', fit_npts);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto hue_lim', hue_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto value_lim', value_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_lim', entropy_lim);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto entropy_len', entropy_len);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_open_rad', morph_open_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_mask_auto morph_erode_rad', morph_erode_rad);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'prep_intensity eql_len', eql_len);
-     
-% create dimensions
-x_dimid = netcdf.defDim(ncid, 'x', nx);
-y_dimid = netcdf.defDim(ncid, 'y', ny);
-step_dimid = netcdf.defDim(ncid, 'step', numel(image_names));
-rgb_dimid = netcdf.defDim(ncid, 'rgb', 3);
- 
-% define variables 
-x_varid = netcdf.defVar(ncid, 'x', 'NC_FLOAT', x_dimid);
-netcdf.putAtt(ncid, x_varid, 'long_name', 'horizontal position');
-netcdf.putAtt(ncid, x_varid, 'units', 'meters');
- 
-y_varid = netcdf.defVar(ncid, 'y', 'NC_FLOAT', y_dimid);
-netcdf.putAtt(ncid, y_varid, 'long_name', 'vertical position');
-netcdf.putAtt(ncid, y_varid, 'units', 'meters');
- 
-step_varid = netcdf.defVar(ncid, 'step', 'NC_SHORT', step_dimid);
-netcdf.putAtt(ncid, step_varid, 'long_name', 'step number');
-netcdf.putAtt(ncid, step_varid, 'units', '1');
- 
-rgb_varid = netcdf.defVar(ncid, 'rgb', 'NC_CHAR', rgb_dimid);
-netcdf.putAtt(ncid, rgb_varid, 'long_name', 'color band');
-netcdf.putAtt(ncid, rgb_varid, 'units', 'char');
+% create file, fail if exists
+assert(exist(result_file, 'file') == 0, ...
+    'Output file exists, either make space or choose another filename');
+result = matfile(result_file, 'Writable', true);
 
-raw_varid = netcdf.defVar(ncid, 'img_rgb', 'NC_UBYTE', [y_dimid, x_dimid, rgb_dimid, step_dimid]);
-netcdf.putAtt(ncid, raw_varid, 'long_name', 'rectified rgb image');
-netcdf.putAtt(ncid, raw_varid, 'units', '24-bit color');
-netcdf.defVarDeflate(ncid, raw_varid, true, true, 1);
-netcdf.defVarChunking(ncid, raw_varid, 'CHUNKED', [ny, nx, 3, 1]);
+% define metadata
+meta = struct();
 
-img_varid = netcdf.defVar(ncid, 'img', 'NC_FLOAT', [y_dimid, x_dimid, step_dimid]);
-netcdf.putAtt(ncid, img_varid, 'long_name', 'rectified normalized grayscale image');
-netcdf.putAtt(ncid, img_varid, 'units', '1');
-netcdf.defVarDeflate(ncid, img_varid, true, true, 1);
-netcdf.defVarChunking(ncid, img_varid, 'CHUNKED', [ny, nx, 1]);
+meta.version = get_version();
 
-maska_varid = netcdf.defVar(ncid, 'mask_auto', 'NC_BYTE', [y_dimid, x_dimid, step_dimid]);
-netcdf.putAtt(ncid, maska_varid, 'long_name', 'sand mask, automatic');
-netcdf.putAtt(ncid, maska_varid, 'units', 'boolean');
-netcdf.defVarDeflate(ncid, maska_varid, true, true, 1);
-netcdf.defVarChunking(ncid, maska_varid, 'CHUNKED', [ny, nx, 1]);
- 
-maskm_varid = netcdf.defVar(ncid, 'mask_manual', 'NC_BYTE', [y_dimid, x_dimid]);
-netcdf.putAtt(ncid, maskm_varid, 'long_name', 'sand mask, manual');
-netcdf.putAtt(ncid, maskm_varid, 'units', 'boolean');
-netcdf.defVarDeflate(ncid, maskm_varid, true, true, 1);
+meta.view = 'side'; % TODO: make view an input arg so it can be recorded here
 
-% finish netcdf creation
-netcdf.endDef(ncid);
-netcdf.close(ncid);
+meta.input.ctrl_xw = ctrl_xw;
+meta.input.ctrl_yw = ctrl_yw;
+meta.input.ctrl_xp = ctrl_xp;
+meta.input.ctrl_yp = ctrl_yp;
+meta.input.crop_xw = crop_xw;
+meta.input.crop_yw = crop_yw;
+meta.input.fit_npts = fit_npts;
+meta.input.hue_lim = hue_lim;
+meta.input.value_lim = value_lim;
+meta.input.entropy_lim = entropy_lim;
+meta.input.entropy_len = entropy_len;
+meta.input.morph_open_rad = morph_open_rad;
+meta.input.morph_erode_rad = morph_erode_rad;
+meta.input.eql_len = eql_len;
 
-% populate constant variables
-ncid = netcdf.open(result_file, 'WRITE');
-netcdf.putVar(ncid, x_varid, xw);
-netcdf.putVar(ncid, y_varid, yw);
-netcdf.putVar(ncid, rgb_varid, 'rgb');
-netcdf.putVar(ncid, step_varid, 0:num_image-1);
-netcdf.putVar(ncid, maskm_varid, uint8(mask_manual));
-netcdf.close(ncid);
- 
+meta.x.name = 'x';
+meta.x.long_name = 'horizontal position';
+meta.x.dimensions = {'x'};
+meta.x.units = 'meters';
+
+meta.y.name = 'y';
+meta.y.long_name = 'vertical position';
+meta.y.dimensions = {'y'};
+meta.y.units = 'meters';
+
+meta.step.name = 'step';
+meta.step.long_name = 'step number';
+meta.step.dimensions = {'step'};
+meta.step.units = '1';
+
+meta.img_rgb.name = 'img_rgb'; 
+meta.img_rgb.long_name = 'rectified rgb image';
+meta.img_rgb.dimensions = {'y', 'x', 'rgb', 'step'};
+meta.img_rgb.units = '24-bit color';
+
+meta.img.name = 'img';
+meta.img.long_name = 'rectified normalized grayscale image';
+meta.img.dimensions = {'y', 'x', 'step'};
+meta.img.units = '1';
+
+meta.mask_auto.name = 'mask_auto';
+meta.mask_auto.long_name = 'sand mask, automatic';
+meta.mask_auto.dimensions = {'y', 'x', 'step'};
+meta.mask_auto.units = 'boolean';
+
+meta.mask_manual.name = 'mask_manual';
+meta.mask_manual.long_name = 'sand mask, manual';
+meta.mask_manual.dimensions = {'y', 'x'};
+meta.mask_manual.units = 'boolean';
+
+result.meta = meta;
+
+% write constant variables
+result.x = xw;
+
+result.y = yw;
+
+result.step = 0:(num_image - 1);
+
+result.img_rgb = uint8.empty(0, 0, 0, 0);
+result.img_rgb(ny, nx, 3, num_image) = uint8(0);
+
+result.img = single.empty(0, 0, 0);
+result.img(ny, nx, num_image) = single(0); 
+
+result.mask_auto = logical.empty(0, 0, 0);
+result.mask_auto(ny, nx, num_image) = false;
+
+result.mask_manual = mask_manual;
+
 % loop over all images
-for i = 1:num_image
+for ii = 1:num_image
     
     % read in original image
-    this_file = fullfile(image_path, image_names{i});
+    this_file = fullfile(image_path, image_names{ii});
     raw = imread(this_file);
      
     % update user (always verbose)
@@ -177,10 +185,8 @@ for i = 1:num_image
     img = prep_intensity(raw, mask_manual & mask_auto, eql_len, false, true);
      
     % save results   
-    ncid = netcdf.open(result_file, 'WRITE');
-    netcdf.putVar(ncid, maska_varid, [0, 0, i-1], [ny, nx, 1], uint8(mask_auto));
-    netcdf.putVar(ncid, img_varid, [0, 0, i-1], [ny, nx, 1], img);
-    netcdf.putVar(ncid, raw_varid, [0, 0, 0, i-1], [ny, nx, 3, 1], raw);
-    netcdf.close(ncid);
-     
+    result.mask_auto(:, :, ii) = logical(mask_auto);
+    result.img(:, :, ii) = single(img);
+    result.img_rgb(:, :, :, ii) = uint8(raw);
+    
 end
