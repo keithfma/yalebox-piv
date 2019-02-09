@@ -9,12 +9,12 @@ function [] = piv_series(...
 %     min_frac_data, min_frac_overlap, verbose, version)
 %
 % Run PIV analysis for a given input series. Input image data  expected to
-% be a netCDF file as created by prep_series(). Results are saved in a new
-% netCDF file which includes all relevant metadata.
+% be a MAT file as created by prep_series(). Results are saved in a new
+% MAT file which includes all relevant metadata.
 %
 % Arguments:
-%   output_file: String, name of the output netCDF file containing PIV results
-%   input_file: String, name of the input netCDF file containing pre-processed
+%   output_file: String, name of the output MAT file containing PIV results
+%   input_file: String, name of the input MAT file containing pre-processed
 %       image data
 %   step_range: 2-element vector, [initial, final] steps of input images series
 %       to include in PIV analysis. Either element can be set to NaN to use the
@@ -40,16 +40,15 @@ function [] = piv_series(...
 %       automatically if not provided.
 % %
 
+update_path('prep', 'util');
+
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 validateattributes(step_range, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
-
-% parse version hash
-if ~version
-    version = util_git_hash();
-end
+[~, ~, result_file_ext] = fileparts(result_file);
+assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
 
 % read input dimension values
 x_img = double(ncread(input_file,'x'));

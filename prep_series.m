@@ -14,35 +14,23 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 % Arguments:
 % 
 %   result_file = String, filename of the MAT file to be created. 
-%   
 %   image_path = String, path to folder containing the images.
-%
 %   image_names = Cell array of strings, cells must contain filenames for
 %       successive images in the experiment image series. 
-% 
 %   image_view = String, specify 'top' or 'side' view of experiment
-%
 %   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp = Control points, as defined by
 %       prep_world_coord_control_pts()
-%
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
-%
 %   fit_npts = Local neighborhood for image rectification, see prep_rectify_and_crop()
-% 
 %   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
 %       prep_mask_auto()
-%
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
-%
 %   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
 %       radius for morphological filters in prep_mask_auto()
-%
 %   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
-%
 %   xw, yw = Coordinate vectors for rectified/cropped image, in meters, see
 %       prep_rectify_and_crop()
-%
 %   mask_manual = Output argument from prep_mask_manual()
 %
 % % Keith Ma
