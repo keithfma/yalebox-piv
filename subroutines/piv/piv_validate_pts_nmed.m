@@ -1,5 +1,5 @@
 function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
-    cc, rr, uu, vv, radius, max_norm_res, epsilon, verbose)
+    cc, rr, uu, vv, radius, max_norm_res, epsilon)
 %
 % Validate the displacement vector field on a scattered grid using a
 % normalized median test including all neighbors within a fixed radius.
@@ -18,7 +18,6 @@ function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
 %       value of 2.
 %   epsilon = Scalar, double, minumum value of the normalization factor.
 %       Reference [1] recommends a value of 0.1.
-%   verbose = Enable (1) or disable (2) verbose output
 %
 % References:
 %   [1] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for
@@ -79,9 +78,7 @@ vv = vv(valid);
 cc = cc(valid);
 rr = rr(valid);
 
-if verbose
-    num_invalidated = num_valid_init - numel(uu);
-    pct_invalidated = 100*num_invalidated/num_valid_init;
-    fprintf('%s: invalidated %d (%.1f%%), mean num neighbors: %.2f\n', ...
-        mfilename, num_invalidated, pct_invalidated, mean(num_nbr));
-end
+num_invalidated = num_valid_init - numel(uu);
+pct_invalidated = 100*num_invalidated/num_valid_init;
+fprintf('%s: invalidated %d (%.1f%%), mean num neighbors: %.2f\n', ...
+    mfilename, num_invalidated, pct_invalidated, mean(num_nbr));

@@ -1,10 +1,10 @@
 function [u_to, v_to, roi_to] = piv_interp_alpha(...
     x_from, y_from, u_from, v_from, x_to, y_to, alpha, interp_method, ...
-    extrap_method, verbose)
+    extrap_method)
 %
 % function [u_to, v_to, roi_to] = piv_interp_alpha(...
 %     x_from, y_from, u_from, v_from, x_to, y_to, alpha, interp_method, ...
-%     extrap_method, verbose)
+%     extrap_method)
 %
 % Interpolate scattered points to regular grid using triangulation-based
 % interpolant. Avoid known problems with "skinny" triangles along the data
@@ -27,8 +27,6 @@ function [u_to, v_to, roi_to] = piv_interp_alpha(...
 %   extrap_method: Extrapolation method applied outside the data alpha
 %       hull, see scatteredInterpolant help for options, default is
 %       'nearest' if empty or not set
-%   verbose = Scalar, logical, display verbose messages (1) or don't (0),
-%       default is 1 if empty or not set
 %
 %   u_to, v_to = Interpolated output vectors where roi_to==1, NaNs elsewhere
 %   roi_to = Region-of-interest mask for output, true elements are output. If a
@@ -44,9 +42,6 @@ if nargin < 8 || isempty(interp_method)
 end
 if nargin < 9 || isempty(extrap_method)
     extrap_method = 'nearest';
-end
-if nargin <10 || isempty(verbose)
-    verbose = true;
 end
     
 % allocate outputs

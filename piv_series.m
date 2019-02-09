@@ -1,12 +1,12 @@
 function [] = piv_series(...
     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-    min_frac_data, min_frac_overlap, verbose, version)
+    min_frac_data, min_frac_overlap)
 %
 % function [] = piv_series(...
 %     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
 %     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-%     min_frac_data, min_frac_overlap, verbose, version)
+%     min_frac_data, min_frac_overlap)
 %
 % Run PIV analysis for a given input series. Input image data  expected to
 % be a MAT file as created by prep_series(). Results are saved in a new
@@ -33,11 +33,6 @@ function [] = piv_series(...
 %   valid_eps: see piv() help for details
 %   min_frac_data: see piv() help for details
 %   min_frac_overlap: see piv() help for details
-%   verbose: Scalar, logical, display verbose messages for this function and its
-%       children (1) or don't (0)
-%   version: String, optional, version hash for yalebox-piv, required as a
-%       work-around for path problems on the SCC, attempt to read
-%       automatically if not provided.
 % %
 
 update_path('prep', 'util');
@@ -189,11 +184,9 @@ roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));
 % analyse all steps
 for ii = 1:num_step
     
-    if verbose
-        fprintf('\n%s: begin step = %.1f\n', mfilename, step(ii));
-        fprintf('%s: ini_step = %.1f\n', mfilename, step_img(ini_idx(ii)));
-        fprintf('%s: fin_step = %.1f\n', mfilename, step_img(fin_idx(ii)));
-    end
+    fprintf('\n%s: begin step = %.1f\n', mfilename, step(ii));
+    fprintf('%s: ini_step = %.1f\n', mfilename, step_img(ini_idx(ii)));
+    fprintf('%s: fin_step = %.1f\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and roi pair
     img0 = double(ncread(input_file, 'img', [1, 1, ini_idx(ii)], [inf, inf, 1]));
@@ -205,7 +198,7 @@ for ii = 1:num_step
     % perform piv analysis
     result = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-        min_frac_data, min_frac_overlap, verbose); 
+        min_frac_data, min_frac_overlap); 
     
     % write results to output file
     ncid = netcdf.open(output_file, 'WRITE');
@@ -226,9 +219,7 @@ for ii = 1:num_step
     netcdf.putVar(ncid, v_pts_varid, pts_start, pts_count, result.v_pts);
     netcdf.close(ncid);
     
-    if verbose
-        fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
-    end
+    fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
     
 end
 

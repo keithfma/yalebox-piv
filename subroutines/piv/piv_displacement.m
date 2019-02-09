@@ -1,6 +1,6 @@
 function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
     ini, fin, r_tm_i, c_tm_i, u_tm_i, v_tm_i, samplen, intrlen, ...
-    min_frac_data, min_frac_overlap, high_quality, verbose)
+    min_frac_data, min_frac_overlap, high_quality)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated
@@ -23,7 +23,6 @@ function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
 % min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %   must overlap the interrogation window data for a point in the
 %   cross-correlation to be valid
-% verbose = Scalar, display verbose messages (1) or don't (0)
 %
 % r_tm, c_tm = Vector, row- and column-coordinates for the estimated
 %   displacements at midpoint time
@@ -109,9 +108,7 @@ r_tm = r_tm(roi);
 c_tm = c_tm(roi);
 
 % report result
-if verbose
-    num_valid = numel(u_tm);
-    num_total = numel(roi);
-    fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
-        mfilename, num_valid, num_total, num_valid/num_total*100);
-end
+num_valid = numel(u_tm);
+num_total = numel(roi);
+fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
+    mfilename, num_valid, num_total, num_valid/num_total*100);
