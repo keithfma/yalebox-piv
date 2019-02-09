@@ -11,4 +11,3 @@ function [] = save_param(param, param_file)
 update_path('jsonlab');
 
 savejson('', param, 'Filename', param_file, 'SingletArray', 0);
-

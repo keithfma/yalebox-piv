@@ -13,37 +13,29 @@ function [] = update_path(varargin)
 dependencies = fullfile(base_path, 'dependencies');
 subroutines = fullfile(base_path, 'subroutines');
 
-
-function [] = add_dep(dep_path)
-    addpath(dep_path);
-    fprintf('Added %s to MATLAB path\n', dep_path);
-end
-
-% TODO: bundle dependencies and subroutines together - asking for prep
-% should load everything needed by prep
 for ii = 1:length(varargin)
     
     switch varargin{ii}
         
         % third-party libraries
         case 'jsonlab'
-            add_dep(fullfile(dependencies, 'jsonlab-1.8'));
+            addpath(fullfile(dependencies, 'jsonlab-1.8'));
         case 'xcorr'
-            add_dep(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
+            addpath(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
         case 'spline'
-            add_dep(fullfile(dependencies, 'spline2d'));
+            addpath(fullfile(dependencies, 'spline2d'));
         case 'deriv'
-            add_dep(fullfile(dependencies, 'derivatives'));
+            addpath(fullfile(dependencies, 'derivatives'));
     
         % subroutines
         case 'prep'
-            add_dep(fullfile(subroutines, 'prep'));
+            addpath(fullfile(subroutines, 'prep'));
         case 'piv'
-            add_dep(fullfile(subroutines, 'piv'));
+            addpath(fullfile(subroutines, 'piv'));
         case 'post'
-            add_dep(fullfile(subroutines, 'post'));
+            addpath(fullfile(subroutines, 'post'));
         case 'util'
-            add_dep(fullfile(subroutines, 'util'));
+            addpath(fullfile(subroutines, 'util'));
         
         % bad name, fail
         otherwise
