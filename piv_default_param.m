@@ -30,9 +30,9 @@ pp.samp_len.help = "Vector, length == number of grid resolutions, integer, side 
 pp.samp_len.value = [30, 30];
 
 pp.samp_spc.help = "Scalar, integer, spacing between adjacent sample points in the (square) sample grid, [pixels].";
-pp.samp_spc.value = [30, 15];
+pp.samp_spc.value = 30;
 
-pp.intr_len.help = "Scalar, integer, spacing between adjacent sample points in the (square) sample grid, [pixels].";            
+pp.intr_len.help = "Vector, length == number of grid resolutions, integer, side length of the square interrogation window";            
 pp.intr_len.value = [120, 40];
         
 pp.num_pass.help = "Vector, length == number of grid resolutions, integer, number of image deformation passes";

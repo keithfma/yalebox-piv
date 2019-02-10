@@ -178,7 +178,7 @@ result.u_pts = cell(num_step, 1);
 result.v_pts = cell(num_step, 1);
 
 % read constants
-roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));
+roi_const = input_data.mask_manual;
 
 % analyse all steps
 for ii = 1:num_step
@@ -188,14 +188,14 @@ for ii = 1:num_step
     fprintf('%s: fin_step = %.1f\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and roi pair
-    img0 = double(ncread(input_file, 'img', [1, 1, ini_idx(ii)], [inf, inf, 1]));
-    roi0 = logical(ncread(input_file, 'mask_auto', [1, 1, ini_idx(ii)], [inf, inf, 1])) & roi_const;
+    img0 = double(input_data.img(:, :, ini_idx(ii)));
+    roi0 = input_data.mask_auto(:, :, ini_idx(ii)) & roi_const;
     
-    img1 = double(ncread(input_file, 'img', [1, 1, fin_idx(ii)], [inf, inf, 1]));
-    roi1 = logical(ncread(input_file, 'mask_auto', [1, 1, fin_idx(ii)], [inf, inf, 1])) & roi_const;
+    img1 = double(input_data.img(:, :, fin_idx(ii)));
+    roi1 = input_data.mask_auto(:, :, fin_idx(ii)) & roi_const;
     
     % perform piv analysis
-    result = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
+    piv_result = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
         min_frac_data, min_frac_overlap); 
     
