@@ -30,7 +30,7 @@ assert(strcmp(woco_path, path), 'Expect image to be in image directory');
 
 % test image to use for parameter definition in this script
 [test_file, test_path] = uigetfile('*.*', 'Select test image', ...
-    fullfile(param.images.path.value, param.images.test_file.value));
+    fullfile(param.images.path.value, param.test.test_file.value));
 test_path = strip(test_path, 'right', filesep);
 assert(strcmp(test_path, path), 'Expect image to be in selected image directory');
 
@@ -193,26 +193,22 @@ clean_param = onCleanup(@() delete(temp_param_file));
 savejson('', param, 'Filename', temp_param_file, 'SingletArray', 0);
 
 % call prep series
-result_file = get_temp_file('nc');
+result_file = get_temp_file('mat');
 fprintf('Test run results: %s\n', result_file);
 prep_series_from_file(result_file, temp_param_file);
 
 % plot results for each image in sequence
-test_img = ncread(result_file, 'img');
-test_img_rgb = ncread(result_file, 'img_rgb');
-test_mask_auto = ncread(result_file, 'mask_auto');
-test_mask_manual = ncread(result_file, 'mask_manual');
-
+result_data = matfile(result_file, 'Writable', false);
 hf = figure;
 for ii = 1:param.test.num_images.value
     hf.Name = sprintf('Test Analysis Results: %s', ...
         param.images.exp_files.value{ii});
     subplot(3,1,1)
-    imshow(test_img_rgb(:,:,:,ii));
+    imshow(result_data.img_rgb(:,:,:,ii));
     subplot(3,1,2)
-    imshow(test_mask_manual & test_mask_auto(:,:,ii))
+    imshow(result_data.mask_manual & result_data.mask_auto(:,:,ii))
     subplot(3,1,3)
-    imshow(test_img(:,:,ii));
+    imshow(result_data.img(:,:,ii));
     pause
 end
  
