@@ -22,7 +22,7 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'jsonlab-1.8'));
         case 'datahash'
             addpath(fullfile(dependencies, 'DataHash_20181113'));
-        case 'xcorr'
+        case 'normxcorr2_masked'
             addpath(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
         case 'spline'
             addpath(fullfile(dependencies, 'spline2d'));

@@ -80,7 +80,9 @@ function result = piv(...
 %   grd -> regular sample grid
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
-% % 
+% %
+
+update_path('normxcorr2_masked');
 
 % check for sane inputs
 [nr, nc] = size(img_ti); % image size

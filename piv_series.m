@@ -45,86 +45,14 @@ validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 [~, ~, output_file_ext] = fileparts(output_file);
 assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
 
-% define metadata
-meta = struct();
-
-meta.args.input_file = input_file;
-meta.args.output_file = output_file;
-meta.args.step_range = step_range;
-meta.args.gap = gap;
-meta.args.samp_len = samp_len;
-meta.args.samp_spc = samp_spc;
-meta.args.intr_len = intr_len;
-meta.args.num_pass = num_pass;
-meta.args.valid_radius = valid_radius;
-meta.args.valid_max = valid_max;
-meta.args.valid_eps = valid_eps;
-meta.args.min_frac_data = min_frac_data;
-meta.args.min_frac_overlap = min_frac_overlap;
-
-meta.version = get_version();
-meta.image_file_md5 = md5_hash(input_file);
-
-meta.x_grd.name = 'x_grd';
-meta.x_grd.long_name = 'horizontal position, regular grid';
-meta.x_grd.dimensions = {};  % is coordinate axis
-meta.x_grd.units = 'meters';
-
-meta.y_grd.name = 'y_grd';
-meta.y_grd.long_name = 'vertical position, regular grid';
-meta.y_grd.dimensions = {};  % is coordinate axis
-meta.y_grd.units = '';
-
-meta.step.name = 'step';
-meta.step.long_name = 'step number';
-meta.step.dimensions = {}; % is coordinate axis
-meta.step.units = '1';
-
-meta.u_grd.name = 'u_grd';
-meta.u_grd.long_name = 'displacement vector, x-component, interpolated to regular grid';
-meta.u_grd.dimensions = {'y_grd', 'x_grd', 'step'};
-meta.u_grd.units = 'meters/step';
-
-meta.v_grd.name = 'v_grd';
-meta.v_grd.long_name = 'displacement vector, y-component, interpolated to regular grid';
-meta.v_grd.dimensions = {'y_grd', 'x_grd', 'step'};
-meta.v_grd.units = 'meters/step';
-
-% TODO: consider renaming to mask
-meta.roi_grd.name = 'roi_grd';
-meta.roi_grd.long_name = 'displacement vector mask, regular grid';
-meta.roi_grd.dimensions = {'y_grd', 'x_grd', 'step'};
-meta.roi_grd.units = 'boolean';
-
-meta.x_pts.name = 'x_pts';
-meta.x_pts.long_name = 'horizontal position for raw measurements at scattered points';
-meta.x_pts.dimensions = {'step'}; % 1D cell array
-meta.x_pts.units = 'meters';
-
-meta.y_pts.name = 'y_pts';
-meta.y_pts.long_name = 'vertical position for raw measurements at scattered points';
-meta.y_pts.dimensions = {'step'}; % 1D cell array
-meta.y_pts.units = 'meters';
-
-meta.u_pts.name = 'u_pts';
-meta.u_pts.long_name = 'displacement vector, x-component, raw measurements at scattered points';
-meta.u_pts.dimensions = {'step'}; % 1D cell array
-meta.u_pts.units = 'meters/step';
-
-meta.v_pts.name = 'v_pts';
-meta.v_pts.long_name = 'displacement vector, y-component, raw measurements at scattered points';
-meta.v_pts.dimensions = {'step'}; % 1D cell array
-meta.v_pts.units = 'meters/step';
-
-result.meta = meta;
-
 % open the input data file for reading
 input_data = matfile(input_file, 'Writable', false);
 
-% read input dimension values
+% read constants (input coordinate vectors, constant mask)
 x_img = double(input_data.x);
 y_img = double(input_data.y);
 step_img = double(input_data.step);
+roi_const = input_data.mask_manual;
 
 % compute indices for image pairs
 if isnan(step_range(1))
@@ -150,35 +78,82 @@ step = 0.5*(step_img(ini_idx) + step_img(fin_idx));
 num_x_grd = size(c_grd, 2);
 num_y_grd = size(r_grd, 1);
 num_step = length(step);
+max_num_pts = num_x_grd*num_y_grd;
 
-% populate / allocate space for output arrays variables
-result.x_grd = double.empty(0);
-result.x_grd(num_x_grd) = NaN;
+% create output file, fail if exists
+assert(exist(output_file, 'file') == 0, ...
+    'Output file exists, either make space or choose another filename');
+output_data = matfile(output_file, 'Writable', true);
 
-result.y_grd = double.empty(0);
-result.y_grd(num_y_grd) = NaN;
+% define metadata
+meta = struct();
+meta.args.input_file = input_file;
+meta.args.output_file = output_file;
+meta.args.step_range = step_range;
+meta.args.gap = gap;
+meta.args.samp_len = samp_len;
+meta.args.samp_spc = samp_spc;
+meta.args.intr_len = intr_len;
+meta.args.num_pass = num_pass;
+meta.args.valid_radius = valid_radius;
+meta.args.valid_max = valid_max;
+meta.args.valid_eps = valid_eps;
+meta.args.min_frac_data = min_frac_data;
+meta.args.min_frac_overlap = min_frac_overlap;
+meta.version = get_version();
+meta.image_file_md5 = md5_hash(input_file);
+meta.x_grd.name = 'x_grd';
+meta.x_grd.long_name = 'horizontal position, regular grid';
+meta.x_grd.dimensions = {};  % is coordinate axis
+meta.x_grd.units = 'meters';
+meta.y_grd.name = 'y_grd';
+meta.y_grd.long_name = 'vertical position, regular grid';
+meta.y_grd.dimensions = {};  % is coordinate axis
+meta.y_grd.units = '';
+meta.step.name = 'step';
+meta.step.long_name = 'step number';
+meta.step.dimensions = {}; % is coordinate axis
+meta.step.units = '1';
+meta.u_grd.name = 'u_grd';
+meta.u_grd.long_name = 'displacement vector, x-component, interpolated to regular grid';
+meta.u_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.u_grd.units = 'meters/step';
+meta.v_grd.name = 'v_grd';
+meta.v_grd.long_name = 'displacement vector, y-component, interpolated to regular grid';
+meta.v_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.v_grd.units = 'meters/step';
+meta.roi_grd.name = 'roi_grd';
+meta.roi_grd.long_name = 'displacement vector mask, regular grid';
+meta.roi_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.roi_grd.units = 'boolean';
+meta.x_pts.name = 'x_pts';
+meta.x_pts.long_name = 'horizontal position for raw measurements at scattered points';
+meta.x_pts.dimensions = {'variable', 'step'};
+meta.x_pts.units = 'meters';
+meta.y_pts.name = 'y_pts';
+meta.y_pts.long_name = 'vertical position for raw measurements at scattered points';
+meta.y_pts.dimensions = {'variable', 'step'};
+meta.y_pts.units = 'meters';
+meta.u_pts.name = 'u_pts';
+meta.u_pts.long_name = 'displacement vector, x-component, raw measurements at scattered points';
+meta.u_pts.dimensions = {'variable', 'step'};
+meta.u_pts.units = 'meters/step';
+meta.v_pts.name = 'v_pts';
+meta.v_pts.long_name = 'displacement vector, y-component, raw measurements at scattered points';
+meta.v_pts.dimensions = {'variable', 'step'};
+meta.v_pts.units = 'meters/step';
+output_data.meta = meta;
 
-result.step = step;
-
-result.u_grd = double.empty(0, 0, 0);
-result.u_grd(num_y_grd, num_x_grd, num_step) = NaN;
-
-result.v_grd = double.empty(0, 0, 0);
-result.v_grd(num_y_grd, num_x_grd, num_step) = NaN;
-
-result.roi_grd = logical.empty(0, 0, 0);
-result.roi_grd(num_y_grd, num_x_grd, num_step) = false;
-
-result.x_pts = cell(num_step, 1);
-
-result.y_pts = cell(num_step, 1);
-
-result.u_pts = cell(num_step, 1);
-
-result.v_pts = cell(num_step, 1);
-
-% read constants
-roi_const = input_data.mask_manual;
+% allocate output variables
+% note: matfile does not allow indexing into cell arrays, so we have to
+%   store the variable-length output in a fixed dimension grid
+output_data.u_grd = nan(num_y_grd, num_x_grd, num_step);
+output_data.v_grd = nan(num_y_grd, num_x_grd, num_step);
+output_data.roi_grd = false(num_y_grd, num_x_grd, num_step);
+output_data.x_pts = nan(max_num_pts, num_step);
+output_data.y_pts = nan(max_num_pts, num_step);
+output_data.u_pts = nan(max_num_pts, num_step);
+output_data.v_pts = nan(max_num_pts, num_step);
 
 % analyse all steps
 for ii = 1:num_step
@@ -195,36 +170,27 @@ for ii = 1:num_step
     roi1 = input_data.mask_auto(:, :, fin_idx(ii)) & roi_const;
     
     % perform piv analysis
-    piv_result = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
+    piv_data = piv(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
         min_frac_data, min_frac_overlap); 
     
     % write results to output file
-    ncid = netcdf.open(output_file, 'WRITE');
-    
-    grd_start = [0, 0, ii-1];
-    grd_count = [num_y_grd, num_x_grd, 1];
-    
-    netcdf.putVar(ncid, u_grd_varid, grd_start, grd_count, result.u_grd);
-    netcdf.putVar(ncid, v_grd_varid, grd_start, grd_count, result.v_grd); 
-    netcdf.putVar(ncid, r_grd_varid, grd_start, grd_count, int8(result.roi_grd));
-    
-    pts_start = [0, ii-1];
-    pts_count = [length(result.x_pts), 1];
-    
-    netcdf.putVar(ncid, x_pts_varid, pts_start, pts_count, result.x_pts);
-    netcdf.putVar(ncid, y_pts_varid, pts_start, pts_count, result.y_pts);
-    netcdf.putVar(ncid, u_pts_varid, pts_start, pts_count, result.u_pts);
-    netcdf.putVar(ncid, v_pts_varid, pts_start, pts_count, result.v_pts);
-    netcdf.close(ncid);
+    % note: spatial coordinate vectors are created during PIV
+    if ii == 1      
+        output_data.x_grd = reshape(piv_data.x_grd(1, :), size(piv_data.x_grd, 2), 1);
+        output_data.y_grd = reshape(piv_data.y_grd(:, 1), size(piv_data.y_grd, 1), 1);
+        output_data.step = step(:);
+    end
+    output_data.u_grd(:, :, ii) = piv_data.u_grd;
+    output_data.v_grd(:, :, ii) = piv_data.v_grd;
+    output_data.roi_grd(:, :, ii) = piv_data.roi_grd;
+    output_data.x_pts(1:numel(piv_data.x_pts), ii) = piv_data.x_pts(:);
+    output_data.y_pts(1:numel(piv_data.y_pts), ii) = piv_data.y_pts(:);
+    output_data.u_pts(1:numel(piv_data.u_pts), ii) = piv_data.u_pts(:);
+    output_data.v_pts(1:numel(piv_data.v_pts), ii) = piv_data.v_pts(:);
     
     fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
-    
 end
 
-% populate dimension values
-ncid = netcdf.open(output_file, 'WRITE');
-netcdf.putVar(ncid, x_grd_varid, result.x_grd(1,:));
-netcdf.putVar(ncid, y_grd_varid, result.y_grd(:,1));
-netcdf.putVar(ncid, s_varid, step);
-netcdf.close(ncid);
+fprintf('%s: end series\n', mfilename);
+fprintf('%s: output data saved to %s\n', mfilename, output_file);
