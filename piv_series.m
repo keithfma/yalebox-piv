@@ -82,20 +82,22 @@ max_num_pts = num_x_grd*num_y_grd;
 % define metadata
 meta = struct();
 
-meta.version = get_version();
+meta.args.input_file = input_file;
+meta.args.output_file = output_file;
+meta.args.step_range = step_range;
+meta.args.gap = gap;
+meta.args.samp_len = samp_len;
+meta.args.samp_spc = samp_spc;
+meta.args.intr_len = intr_len;
+meta.args.num_pass = num_pass;
+meta.args.valid_radius = valid_radius;
+meta.args.valid_max = valid_max;
+meta.args.valid_eps = valid_eps;
+meta.args.min_frac_data = min_frac_data;
+meta.args.min_frac_overlap = min_frac_overlap;
 
-meta.input.step_range = step_range;
-meta.input.gap = gap;
-meta.input.samp_len = samp_len;
-meta.input.samp_spc = samp_spc;
-meta.input.intr_len = intr_len;
-meta.input.num_pass = num_pass;
-meta.input.valid_radius = valid_radius;
-meta.input.valid_max = valid_max;
-meta.input.valid_eps = valid_eps;
-meta.input.min_frac_data = min_frac_data;
-meta.input.min_frac_overlap = min_frac_overlap;
-meta.input.image_file_md5 = util_md5_hash(input_file);
+meta.version = get_version();
+meta.image_file_md5 = md5_hash(input_file);
 
 result.meta = meta;
 

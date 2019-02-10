@@ -20,6 +20,8 @@ for ii = 1:length(varargin)
         % third-party libraries
         case 'jsonlab'
             addpath(fullfile(dependencies, 'jsonlab-1.8'));
+        case 'datahash'
+            addpath(fullfile(dependencies, 'DataHash_20181113'));
         case 'xcorr'
             addpath(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
         case 'spline'
