@@ -102,44 +102,64 @@ meta.args.min_frac_data = min_frac_data;
 meta.args.min_frac_overlap = min_frac_overlap;
 meta.version = get_version();
 meta.image_file_md5 = md5_hash(input_file);
+
 meta.x_grd.name = 'x_grd';
 meta.x_grd.long_name = 'horizontal position, regular grid';
+meta.x_grd.notes = 'coordinate axis';
 meta.x_grd.dimensions = {};  % is coordinate axis
 meta.x_grd.units = 'meters';
+
 meta.y_grd.name = 'y_grd';
 meta.y_grd.long_name = 'vertical position, regular grid';
+meta.y_grd.notes = 'coordinate axis';
 meta.y_grd.dimensions = {};  % is coordinate axis
 meta.y_grd.units = '';
+
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
+meta.step.notes = 'coordinate axis';
 meta.step.dimensions = {}; % is coordinate axis
 meta.step.units = '1';
+
 meta.u_grd.name = 'u_grd';
 meta.u_grd.long_name = 'displacement vector, x-component, interpolated to regular grid';
+meta.u_grd.notes = '';
 meta.u_grd.dimensions = {'y_grd', 'x_grd', 'step'};
 meta.u_grd.units = 'meters/step';
+
 meta.v_grd.name = 'v_grd';
 meta.v_grd.long_name = 'displacement vector, y-component, interpolated to regular grid';
+meta.v_grd.notes = '';
 meta.v_grd.dimensions = {'y_grd', 'x_grd', 'step'};
 meta.v_grd.units = 'meters/step';
+
 meta.roi_grd.name = 'roi_grd';
 meta.roi_grd.long_name = 'displacement vector mask, regular grid';
+meta.roi_grd.notes = '';
 meta.roi_grd.dimensions = {'y_grd', 'x_grd', 'step'};
 meta.roi_grd.units = 'boolean';
+
 meta.x_pts.name = 'x_pts';
 meta.x_pts.long_name = 'horizontal position for raw measurements at scattered points';
+meta.x_pts.notes = 'variable-length data stored as a fixed-size array, ignore NaNs';
 meta.x_pts.dimensions = {'variable', 'step'};
 meta.x_pts.units = 'meters';
+
 meta.y_pts.name = 'y_pts';
 meta.y_pts.long_name = 'vertical position for raw measurements at scattered points';
+meta.y_pts.notes = 'variable-length data stored as a fixed-size array, ignore NaNs';
 meta.y_pts.dimensions = {'variable', 'step'};
 meta.y_pts.units = 'meters';
+
 meta.u_pts.name = 'u_pts';
 meta.u_pts.long_name = 'displacement vector, x-component, raw measurements at scattered points';
+meta.u_pts.notes = 'variable-length data stored as a fixed-size array, ignore NaNs';
 meta.u_pts.dimensions = {'variable', 'step'};
 meta.u_pts.units = 'meters/step';
+
 meta.v_pts.name = 'v_pts';
 meta.v_pts.long_name = 'displacement vector, y-component, raw measurements at scattered points';
+meta.v_pts.notes = 'variable-length data stored as a fixed-size array, ignore NaNs';
 meta.v_pts.dimensions = {'variable', 'step'};
 meta.v_pts.units = 'meters/step';
 output_data.meta = meta;

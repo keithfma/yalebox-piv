@@ -102,35 +102,42 @@ meta.input.eql_len = eql_len;
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
 meta.x.dimensions = {};  % is coordinate axis
+meta.x.notes = 'coordinate axis';
 meta.x.units = 'meters';
 
 meta.y.name = 'y';
 meta.y.long_name = 'vertical position';
+meta.y.notes = 'coordinate axis';
 meta.y.dimensions = {};  % is coordinate axis
 meta.y.units = 'meters';
 
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
+meta.step.notes = 'coordinate axis';
 meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
 meta.img_rgb.name = 'img_rgb'; 
 meta.img_rgb.long_name = 'rectified rgb image';
+meta.img_rgb.notes = '';
 meta.img_rgb.dimensions = {'y', 'x', 'rgb', 'step'};
 meta.img_rgb.units = '24-bit color';
 
 meta.img.name = 'img';
 meta.img.long_name = 'rectified normalized grayscale image';
+meta.img.notes = '';
 meta.img.dimensions = {'y', 'x', 'step'};
 meta.img.units = '1';
 
 meta.mask_auto.name = 'mask_auto';
 meta.mask_auto.long_name = 'sand mask, automatic';
+meta.mask_auto.notes = '';
 meta.mask_auto.dimensions = {'y', 'x', 'step'};
 meta.mask_auto.units = 'boolean';
 
 meta.mask_manual.name = 'mask_manual';
 meta.mask_manual.long_name = 'sand mask, manual';
+meta.mask_manual.notes = 'user-defined, constant in time';
 meta.mask_manual.dimensions = {'y', 'x'};
 meta.mask_manual.units = 'boolean';
 
