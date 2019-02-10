@@ -21,7 +21,7 @@ pp.test.num_stemps.value = 0;
 % piv -----------
 
 pp.step_range.help = "2-element vector, [initial, final] steps of input images series to include in PIV analysis. Either element can be set to NaN to use the full range.";
-pp.step_range.value = [];
+pp.step_range.value = [NaN, NaN];
 
 pp.gap.help = "Scalar, integer, gap between analyzed images in steps, for example, for an initial image at step 3, setting gap -> 1 would use a final image at step 4 and yield PIV results at step 3.5, or alternatively, setting gap -> 2 would use a final image at step 5 and yield PIV results at step 4.";
 pp.gap.value = 1;

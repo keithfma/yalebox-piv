@@ -180,4 +180,9 @@ for ii = 1:num_image
     result.img(:, :, ii) = single(img);
     result.img_rgb(:, :, :, ii) = uint8(raw);
     
+    % DEBUG: get a quick file to use
+    if ii > 2
+        break
+    end
+    
 end

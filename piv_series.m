@@ -35,20 +35,23 @@ function [] = piv_series(...
 %   min_frac_overlap: see piv() help for details
 % %
 
-update_path('prep', 'util');
+update_path('piv', 'util');
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
 validateattributes(input_file, {'char'}, {'vector'});
 validateattributes(step_range, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
-[~, ~, result_file_ext] = fileparts(result_file);
-assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
+[~, ~, output_file_ext] = fileparts(output_file);
+assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
+
+% open the input data file for reading
+input_data = matfile(input_file, 'Writable', false);
 
 % read input dimension values
-x_img = double(ncread(input_file,'x'));
-y_img = double(ncread(input_file,'y'));
-step_img = double(ncread(input_file, 'step'));
+x_img = double(input_data.x);
+y_img = double(input_data.y);
+step_img = double(input_data.step);
 
 % compute indices for image pairs
 if isnan(step_range(1))
@@ -76,23 +79,27 @@ num_y_grd = size(r_grd, 1);
 num_step = length(step);
 max_num_pts = num_x_grd*num_y_grd;
 
-% create netcdf file
-ncid = netcdf.create(output_file, 'NETCDF4');
+% define metadata
+meta = struct();
 
-% add global attributes
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_series step_range', step_range);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv_series gap', gap);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv samp_len', samp_len);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv samp_spc', samp_spc);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv intr_len', intr_len);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv num_pass', num_pass);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_radius', valid_radius);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_max', valid_max);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv valid_eps', valid_eps);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_data', min_frac_data);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'piv min_frac_overlap', min_frac_overlap);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'yalebox-piv version', version);
-netcdf.putAtt(ncid, netcdf.getConstant('GLOBAL'), 'image file MD5 hash', util_md5_hash(input_file));
+meta.version = get_version();
+
+meta.input.step_range = step_range;
+meta.input.gap = gap;
+meta.input.samp_len = samp_len;
+meta.input.samp_spc = samp_spc;
+meta.input.intr_len = intr_len;
+meta.input.num_pass = num_pass;
+meta.input.valid_radius = valid_radius;
+meta.input.valid_max = valid_max;
+meta.input.valid_eps = valid_eps;
+meta.input.min_frac_data = min_frac_data;
+meta.input.min_frac_overlap = min_frac_overlap;
+meta.input.image_file_md5 = util_md5_hash(input_file);
+
+result.meta = meta;
+
+disp('DEBUG');
 
 % create dimensions
 x_grd_dimid = netcdf.defDim(ncid, 'x_grd', num_x_grd);
