@@ -45,40 +45,6 @@ validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 [~, ~, output_file_ext] = fileparts(output_file);
 assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
 
-% open the input data file for reading
-input_data = matfile(input_file, 'Writable', false);
-
-% read input dimension values
-x_img = double(input_data.x);
-y_img = double(input_data.y);
-step_img = double(input_data.step);
-
-% compute indices for image pairs
-if isnan(step_range(1))
-    min_idx = 1;
-else
-    min_idx = find(step_img >= step_range(1), 1, 'first');
-end
-if isnan(step_range(2))
-    max_idx = length(step_img);
-else
-    max_idx = find(step_img <= step_range(2), 1, 'last');
-end
-ini_idx = 1:length(step_img);
-fin_idx = ini_idx + gap;
-in_range = ini_idx >= min_idx & ini_idx <= max_idx ...
-         & fin_idx >= min_idx & fin_idx <= max_idx;
-ini_idx = ini_idx(in_range);
-fin_idx = fin_idx(in_range);
-
-% compute size of gridded output dimensions
-[r_grd, c_grd] = piv_sample_grid(samp_spc, length(y_img), length(x_img));
-step = 0.5*(step_img(ini_idx) + step_img(fin_idx));
-num_x_grd = size(c_grd, 2);
-num_y_grd = size(r_grd, 1);
-num_step = length(step);
-max_num_pts = num_x_grd*num_y_grd;
-
 % define metadata
 meta = struct();
 
@@ -152,11 +118,64 @@ meta.v_pts.units = 'meters/step';
 
 result.meta = meta;
 
-disp('DEBUG');
+% open the input data file for reading
+input_data = matfile(input_file, 'Writable', false);
 
-% finish netcdf creation
-netcdf.endDef(ncid);
-netcdf.close(ncid);
+% read input dimension values
+x_img = double(input_data.x);
+y_img = double(input_data.y);
+step_img = double(input_data.step);
+
+% compute indices for image pairs
+if isnan(step_range(1))
+    min_idx = 1;
+else
+    min_idx = find(step_img >= step_range(1), 1, 'first');
+end
+if isnan(step_range(2))
+    max_idx = length(step_img);
+else
+    max_idx = find(step_img <= step_range(2), 1, 'last');
+end
+ini_idx = 1:length(step_img);
+fin_idx = ini_idx + gap;
+in_range = ini_idx >= min_idx & ini_idx <= max_idx ...
+         & fin_idx >= min_idx & fin_idx <= max_idx;
+ini_idx = ini_idx(in_range);
+fin_idx = fin_idx(in_range);
+
+% compute size of gridded output dimensions
+[r_grd, c_grd] = piv_sample_grid(samp_spc, length(y_img), length(x_img));
+step = 0.5*(step_img(ini_idx) + step_img(fin_idx));
+num_x_grd = size(c_grd, 2);
+num_y_grd = size(r_grd, 1);
+num_step = length(step);
+
+% populate / allocate space for output arrays variables
+result.x_grd = double.empty(0);
+result.x_grd(num_x_grd) = NaN;
+
+result.y_grd = double.empty(0);
+result.y_grd(num_y_grd) = NaN;
+
+result.step = step;
+
+result.u_grd = double.empty(0, 0, 0);
+result.u_grd(num_y_grd, num_x_grd, num_step) = NaN;
+
+result.v_grd = double.empty(0, 0, 0);
+result.v_grd(num_y_grd, num_x_grd, num_step) = NaN;
+
+result.roi_grd = logical.empty(0, 0, 0);
+result.roi_grd(num_y_grd, num_x_grd, num_step) = false;
+
+result.x_pts = cell(num_step, 1);
+
+result.y_pts = cell(num_step, 1);
+
+result.u_pts = cell(num_step, 1);
+
+result.v_pts = cell(num_step, 1);
 
 % read constants
 roi_const = logical(ncread(input_file, 'mask_manual', [1, 1], [inf, inf]));

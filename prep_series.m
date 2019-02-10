@@ -136,7 +136,7 @@ meta.mask_manual.units = 'boolean';
 
 result.meta = meta;
 
-% write constant variables
+% write constant variables, allocate space for other variables
 result.x = xw;
 
 result.y = yw;
