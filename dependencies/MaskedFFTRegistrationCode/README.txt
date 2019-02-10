@@ -18,6 +18,3 @@ g. Detailed Run Instructions:
 h. Output Description: The test will print the computed translation, the correlation score, and the transformation error for three pairs of images.  It will also display an overlay of each of the registered pairs.
 
 i. Contact Information: Dirk Padfield, GE Global Research, padfield@research.ge.com
-
-
-NOTE: minor modification by Keith Ma to remove deprecated function usage in normxcorr2_masked (12/31/2018)

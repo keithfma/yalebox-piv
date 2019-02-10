@@ -1,12 +1,12 @@
 function result = piv(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-    valid_eps, min_frac_data, min_frac_overlap, verbose)
+    valid_eps, min_frac_data, min_frac_overlap)
 %
 % function result = piv(...
 %     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-%     valid_eps, min_frac_data, min_frac_overlap, verbose)
+%     valid_eps, min_frac_data, min_frac_overlap)
 %
 % PIV analysis for Yalebox image data. Returns results at scattered (raw) and
 % gridded (interpolated) points, evaluated at the midpoint time between the two
@@ -41,8 +41,6 @@ function result = piv(...
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
-%   verbose = Scalar, integer, flag to enable (1) or diasable (0) verbose text
-%       output messages
 %
 %   result.x_pts_tm, result.y_pts_tm: Vector, x- and y-coordinates for sample
 %       points on scattered grid, the "raw" result from the PIV algorithm
@@ -82,7 +80,9 @@ function result = piv(...
 %   grd -> regular sample grid
 %   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
-% % 
+% %
+
+update_path('normxcorr2_masked');
 
 % check for sane inputs
 [nr, nc] = size(img_ti); % image size
@@ -102,24 +102,20 @@ validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar', 'binary'});
 
-% verbose output
-if verbose
-    fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
-    fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
-    fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
-    fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
-    fprintf('%s: samp_len = %d \n', mfilename, samp_len);
-    fprintf('%s: samp_spc = ', mfilename); fprintf('%d ', samp_spc); fprintf('\n');
-    fprintf('%s: intr_len = ', mfilename); fprintf('%d ', intr_len); fprintf('\n');
-    fprintf('%s: num_pass = ', mfilename); fprintf('%d ', num_pass); fprintf('\n');
-    fprintf('%s: valid_radius = %.2e\n', mfilename, valid_radius);
-    fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
-    fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
-    fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
-    fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
-end
+fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
+fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
+fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
+fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
+fprintf('%s: samp_len = %d \n', mfilename, samp_len);
+fprintf('%s: samp_spc = ', mfilename); fprintf('%d ', samp_spc); fprintf('\n');
+fprintf('%s: intr_len = ', mfilename); fprintf('%d ', intr_len); fprintf('\n');
+fprintf('%s: num_pass = ', mfilename); fprintf('%d ', num_pass); fprintf('\n');
+fprintf('%s: valid_radius = %.2e\n', mfilename, valid_radius);
+fprintf('%s: valid_max = %.2f\n', mfilename, valid_max);
+fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
+fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
+fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
@@ -135,10 +131,8 @@ v_grd_tm = zeros(size(c_grd_tm));
 np = length(samp_len);
 for pp = 1:np
     
-    if verbose
-        fprintf('%s: pass %d of %d: samp_len = %d, intr_len = %d\n', ...
-            mfilename, pp, np, samp_len(pp), intr_len(pp));
-    end
+    fprintf('%s: pass %d of %d: samp_len = %d, intr_len = %d\n', ...
+        mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
     if pp == np
@@ -148,18 +142,17 @@ for pp = 1:np
     end
     [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm] = piv_displacement(...
         img_ti, img_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
-        samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality, ...
-        verbose);
+        samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality);
     
     % validate displacement vectors
     [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, valid_radius, valid_max, ...
-        valid_eps, verbose);
+        valid_eps);
         
     % interpolate valid vectors to full sample grid
     [u_grd_tm, v_grd_tm, roi_grd_tm] = piv_interp_alpha(...
         c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, ...
-        c_grd_tm, r_grd_tm, 5*samp_spc, [], [], verbose);
+        c_grd_tm, r_grd_tm, 5*samp_spc, [], []);
    
 end
 % end multipass loop

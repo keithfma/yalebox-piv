@@ -14,35 +14,23 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 % Arguments:
 % 
 %   result_file = String, filename of the MAT file to be created. 
-%   
 %   image_path = String, path to folder containing the images.
-%
 %   image_names = Cell array of strings, cells must contain filenames for
 %       successive images in the experiment image series. 
-% 
 %   image_view = String, specify 'top' or 'side' view of experiment
-%
 %   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp = Control points, as defined by
 %       prep_world_coord_control_pts()
-%
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
-%
 %   fit_npts = Local neighborhood for image rectification, see prep_rectify_and_crop()
-% 
 %   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
 %       prep_mask_auto()
-%
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
-%
 %   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
 %       radius for morphological filters in prep_mask_auto()
-%
 %   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
-%
 %   xw, yw = Coordinate vectors for rectified/cropped image, in meters, see
 %       prep_rectify_and_crop()
-%
 %   mask_manual = Output argument from prep_mask_manual()
 %
 % % Keith Ma
@@ -113,42 +101,49 @@ meta.input.eql_len = eql_len;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
-meta.x.dimensions = {'x'};
+meta.x.dimensions = {};  % is coordinate axis
+meta.x.notes = 'coordinate axis';
 meta.x.units = 'meters';
 
 meta.y.name = 'y';
 meta.y.long_name = 'vertical position';
-meta.y.dimensions = {'y'};
+meta.y.notes = 'coordinate axis';
+meta.y.dimensions = {};  % is coordinate axis
 meta.y.units = 'meters';
 
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
-meta.step.dimensions = {'step'};
+meta.step.notes = 'coordinate axis';
+meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
 meta.img_rgb.name = 'img_rgb'; 
 meta.img_rgb.long_name = 'rectified rgb image';
+meta.img_rgb.notes = '';
 meta.img_rgb.dimensions = {'y', 'x', 'rgb', 'step'};
 meta.img_rgb.units = '24-bit color';
 
 meta.img.name = 'img';
 meta.img.long_name = 'rectified normalized grayscale image';
+meta.img.notes = '';
 meta.img.dimensions = {'y', 'x', 'step'};
 meta.img.units = '1';
 
 meta.mask_auto.name = 'mask_auto';
 meta.mask_auto.long_name = 'sand mask, automatic';
+meta.mask_auto.notes = '';
 meta.mask_auto.dimensions = {'y', 'x', 'step'};
 meta.mask_auto.units = 'boolean';
 
 meta.mask_manual.name = 'mask_manual';
 meta.mask_manual.long_name = 'sand mask, manual';
+meta.mask_manual.notes = 'user-defined, constant in time';
 meta.mask_manual.dimensions = {'y', 'x'};
 meta.mask_manual.units = 'boolean';
 
 result.meta = meta;
 
-% write constant variables
+% write constant variables, allocate space for other variables
 result.x = xw;
 
 result.y = yw;
@@ -191,5 +186,10 @@ for ii = 1:num_image
     result.mask_auto(:, :, ii) = logical(mask_auto);
     result.img(:, :, ii) = single(img);
     result.img_rgb(:, :, :, ii) = uint8(raw);
+    
+    % DEBUG: get a quick file to use
+    if ii > 2
+        break
+    end
     
 end

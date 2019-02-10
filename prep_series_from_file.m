@@ -9,7 +9,7 @@ function [] = prep_series_from_file(result_file, param_file)
 % parameters from the standard JSON file rather than as arguments.
 %
 % Arguments:
-%   result_file = String, filename of the netCDF input file to be created. 
+%   result_file = String, filename of the MAT input file to be created. 
 %   param_file: JSON file containing all input parameters
 % %
 

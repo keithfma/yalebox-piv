@@ -1,5 +1,5 @@
-function hash = util_md5_hash(file)
-% function hash = util_md5_hash(file)
+function hash = md5_hash(file)
+% function hash = md5_hash(file)
 %
 % Compute MD5 hash of the input file, otherwise fail with an error. Simple
 % wrapper around the FileExchange submission DataHash by Jan Simon.
@@ -9,6 +9,8 @@ function hash = util_md5_hash(file)
 %   file = String, input file to hash
 %   hash = String, MD5 hash of input file
 % %
+
+update_path('datahash');
 
 opt = struct('Method', 'MD5', 'Format', 'hex', 'Input', 'file');
 hash = DataHash(file, opt);

@@ -8,5 +8,6 @@ function [] = save_param(param, param_file)
 %   param_file: string, path to save parameters as JSON
 % %
 
-savejson('', param, 'Filename', param_file, 'SingletArray', 0);
+update_path('jsonlab');
 
+savejson('', param, 'Filename', param_file, 'SingletArray', 0);
