@@ -101,17 +101,17 @@ meta.input.eql_len = eql_len;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
-meta.x.dimensions = {'x'};
+meta.x.dimensions = {};  % is coordinate axis
 meta.x.units = 'meters';
 
 meta.y.name = 'y';
 meta.y.long_name = 'vertical position';
-meta.y.dimensions = {'y'};
+meta.y.dimensions = {};  % is coordinate axis
 meta.y.units = 'meters';
 
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
-meta.step.dimensions = {'step'};
+meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
 meta.img_rgb.name = 'img_rgb'; 

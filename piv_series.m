@@ -99,89 +99,60 @@ meta.args.min_frac_overlap = min_frac_overlap;
 meta.version = get_version();
 meta.image_file_md5 = md5_hash(input_file);
 
+meta.x_grd.name = 'x_grd';
+meta.x_grd.long_name = 'horizontal position, regular grid';
+meta.x_grd.dimensions = {};  % is coordinate axis
+meta.x_grd.units = 'meters';
+
+meta.y_grd.name = 'y_grd';
+meta.y_grd.long_name = 'vertical position, regular grid';
+meta.y_grd.dimensions = {};  % is coordinate axis
+meta.y_grd.units = '';
+
+meta.step.name = 'step';
+meta.step.long_name = 'step number';
+meta.step.dimensions = {}; % is coordinate axis
+meta.step.units = '1';
+
+meta.u_grd.name = 'u_grd';
+meta.u_grd.long_name = 'displacement vector, x-component, interpolated to regular grid';
+meta.u_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.u_grd.units = 'meters/step';
+
+meta.v_grd.name = 'v_grd';
+meta.v_grd.long_name = 'displacement vector, y-component, interpolated to regular grid';
+meta.v_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.v_grd.units = 'meters/step';
+
+% TODO: consider renaming to mask
+meta.roi_grd.name = 'roi_grd';
+meta.roi_grd.long_name = 'displacement vector mask, regular grid';
+meta.roi_grd.dimensions = {'y_grd', 'x_grd', 'step'};
+meta.roi_grd.units = 'boolean';
+
+meta.x_pts.name = 'x_pts';
+meta.x_pts.long_name = 'horizontal position for raw measurements at scattered points';
+meta.x_pts.dimensions = {'step'}; % 1D cell array
+meta.x_pts.units = 'meters';
+
+meta.y_pts.name = 'y_pts';
+meta.y_pts.long_name = 'vertical position for raw measurements at scattered points';
+meta.y_pts.dimensions = {'step'}; % 1D cell array
+meta.y_pts.units = 'meters';
+
+meta.u_pts.name = 'u_pts';
+meta.u_pts.long_name = 'displacement vector, x-component, raw measurements at scattered points';
+meta.u_pts.dimensions = {'step'}; % 1D cell array
+meta.u_pts.units = 'meters/step';
+
+meta.v_pts.name = 'v_pts';
+meta.v_pts.long_name = 'displacement vector, y-component, raw measurements at scattered points';
+meta.v_pts.dimensions = {'step'}; % 1D cell array
+meta.v_pts.units = 'meters/step';
+
 result.meta = meta;
 
 disp('DEBUG');
-
-% create dimensions
-x_grd_dimid = netcdf.defDim(ncid, 'x_grd', num_x_grd);
-y_grd_dimid = netcdf.defDim(ncid, 'y_grd', num_y_grd);
-s_dimid = netcdf.defDim(ncid, 'step', num_step);
-p_dimid = netcdf.defDim(ncid, 'pts', netcdf.getConstant('NC_UNLIMITED'));
-
-% define gridded dimensions and variables
-grd_dims = [y_grd_dimid, x_grd_dimid, s_dimid];
-grd_chunks = [num_y_grd, num_x_grd, 1];
-
-x_grd_varid = netcdf.defVar(ncid, 'x_grd', 'NC_DOUBLE', x_grd_dimid);
-netcdf.putAtt(ncid, x_grd_varid, 'long_name', 'horizontal position, regular grid');
-netcdf.putAtt(ncid, x_grd_varid, 'units', 'meters');
-
-y_grd_varid = netcdf.defVar(ncid, 'y_grd', 'NC_DOUBLE', y_grd_dimid);
-netcdf.putAtt(ncid, y_grd_varid, 'long_name', 'vertical position, regular grid');
-netcdf.putAtt(ncid, y_grd_varid, 'units', 'meters');
-
-s_varid = netcdf.defVar(ncid, 'step', 'NC_DOUBLE', s_dimid);
-netcdf.putAtt(ncid, s_varid, 'long_name', 'step number');
-netcdf.putAtt(ncid, s_varid, 'units', '1');
-
-u_grd_varid = netcdf.defVar(ncid, 'u_grd', 'NC_DOUBLE', grd_dims);
-netcdf.putAtt(ncid, u_grd_varid, 'long_name', ...
-    'displacement vector, x-component, interpolated to regular grid');
-netcdf.putAtt(ncid, u_grd_varid, 'units', 'meters/step');
-netcdf.defVarDeflate(ncid, u_grd_varid, true, true, 1);
-netcdf.defVarChunking(ncid, u_grd_varid, 'CHUNKED', grd_chunks);
-
-v_grd_varid = netcdf.defVar(ncid, 'v_grd', 'NC_DOUBLE', grd_dims);
-netcdf.putAtt(ncid, v_grd_varid, 'long_name', ...
-    'displacement vector, y-component, interpolated to regular grid');
-netcdf.putAtt(ncid, v_grd_varid, 'units', 'meters/step');
-netcdf.defVarDeflate(ncid, v_grd_varid, true, true, 1);
-netcdf.defVarChunking(ncid, v_grd_varid, 'CHUNKED', grd_chunks);
-
-r_grd_varid = netcdf.defVar(ncid, 'roi_grd', 'NC_BYTE', grd_dims);
-netcdf.putAtt(ncid, r_grd_varid, 'long_name', ...
-    'displacement vector mask, regular grid');
-netcdf.putAtt(ncid, r_grd_varid, 'units', 'boolean');
-netcdf.defVarDeflate(ncid, r_grd_varid, true, true, 1);
-netcdf.defVarChunking(ncid, r_grd_varid, 'CHUNKED', grd_chunks);
-
-% define scattered-point variables, thier attributes, compression, and chunking
-pts_dims = [p_dimid, s_dimid];
-pts_chunks = [max_num_pts, 1];
-pts_fill = NaN;
-
-x_pts_varid = netcdf.defVar(ncid, 'x_pts', 'NC_DOUBLE', pts_dims);
-netcdf.putAtt(ncid, x_pts_varid, 'long_name', ...
-    'horizontal position for raw measurements at scattered points');
-netcdf.putAtt(ncid, x_pts_varid, 'units', 'meters');
-netcdf.defVarDeflate(ncid, x_pts_varid, true, true, 1);
-netcdf.defVarChunking(ncid, x_pts_varid, 'CHUNKED', pts_chunks);
-netcdf.defVarFill(ncid, x_pts_varid, false, pts_fill); 
-
-y_pts_varid = netcdf.defVar(ncid, 'y_pts', 'NC_DOUBLE', pts_dims);
-netcdf.putAtt(ncid, y_pts_varid, 'long_name', ...
-    'horizontal position for raw measurements at scattered points');
-netcdf.putAtt(ncid, y_pts_varid, 'units', 'meters');
-netcdf.defVarDeflate(ncid, y_pts_varid, true, true, 1);
-netcdf.defVarChunking(ncid, y_pts_varid, 'CHUNKED', pts_chunks);
-netcdf.defVarFill(ncid, y_pts_varid, false, pts_fill);
-
-u_pts_varid = netcdf.defVar(ncid, 'u_pts', 'NC_DOUBLE', pts_dims);
-netcdf.putAtt(ncid, u_pts_varid, 'long_name', ...
-    'displacement vector, x-component, raw measurements at scattered points');
-netcdf.putAtt(ncid, u_pts_varid, 'units', 'meters');
-netcdf.defVarDeflate(ncid, u_pts_varid, true, true, 1);
-netcdf.defVarChunking(ncid, u_pts_varid, 'CHUNKED', pts_chunks);
-netcdf.defVarFill(ncid, u_pts_varid, false, pts_fill);
-
-v_pts_varid = netcdf.defVar(ncid, 'v_pts', 'NC_DOUBLE', pts_dims);
-netcdf.putAtt(ncid, v_pts_varid, 'long_name', ...
-    'displacement vector, y-component, raw measurements at scattered points');
-netcdf.putAtt(ncid, v_pts_varid, 'units', 'meters');
-netcdf.defVarDeflate(ncid, v_pts_varid, true, true, 1);
-netcdf.defVarChunking(ncid, v_pts_varid, 'CHUNKED', pts_chunks);
-netcdf.defVarFill(ncid, v_pts_varid, false, pts_fill);
 
 % finish netcdf creation
 netcdf.endDef(ncid);
