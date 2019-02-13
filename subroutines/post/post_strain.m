@@ -47,6 +47,9 @@ function out = post_strain(x, y, uu, vv, roi, pad_method)
 %       http://doi.org/10.1144/gsl.sp.1999.154.01.03
 % %
 
+% add dependencies
+update_path('spline', 'deriv');
+
 % check inputs
 narginchk(6,7);
 validateattributes(x, {'numeric'}, {'vector','real'}, mfilename, 'x');

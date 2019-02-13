@@ -1,0 +1,18 @@
+Copyright (c) 2010 Peter Kovesi
+Centre for Exploration Targeting
+The University of Western Australia
+http://www.csse.uwa.edu.au/~pk/research/matlabfns/
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+The Software is provided "as is", without warranty of any kind.
+
+April 2010, Peter Kovesi (original code is available at web link above)
+August 2012, Mark Brandon: minor modifications, including arguments for
+hx and hy, and consolidation of the original functions derivative5.m
+and derivative7.m into a single function, derivativesByFilter.m.

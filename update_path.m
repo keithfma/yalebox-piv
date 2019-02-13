@@ -41,7 +41,7 @@ for ii = 1:length(varargin)
         
         % bad name, fail
         otherwise
-            error('Invalid dependency name: "%s"', dep_name);
+            error('Invalid dependency name: "%s"', varargin{ii});
         
     end
 end

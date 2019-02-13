@@ -9,17 +9,6 @@ update_path('util');
 [~, ~, ext] = fileparts(filename);
 assert(strcmp(ext, '.json'), 'Filename must have extension .json');
 
-
-% test ----------
-
-pp.test.ini.help = "int, index of initial image to use for single step test";
-pp.test.ini.value =  0;
-
-pp.test.num_steps.help =  "int, number of steps to include for test run";
-pp.test.num_stemps.value = 0;
-
-% piv -----------
-
 pp.step_range.help = "2-element vector, [initial, final] steps of input images series to include in PIV analysis. Either element can be set to NaN to use the full range.";
 pp.step_range.value = [NaN, NaN];
 
@@ -52,7 +41,5 @@ pp.min_frac_data.value = 0.8;
             
 pp.min_frac_overlap.help = "Scalar, minimum fraction of the sample window data that must overlap the interrogation window data for a point in the cross-correlation to be valid"; 
 pp.min_frac_overlap.value = 0.5;
-
-% save as file ---
 
 save_param(pp, filename);

@@ -1,6 +1,7 @@
-+ refresh piv check param
++ remove silly and complicated series test from prep check param
 + find a way to remove the 'test' section from the prep input file (one option is to use "environment vars" in the workspace)
 + flatten all input parameter files
+
 + all parameter files and output files should contain a global notes field
 + find decent parameters for 01 siden (and testcase 00)
 + create/update post series check script
