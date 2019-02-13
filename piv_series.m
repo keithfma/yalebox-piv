@@ -106,19 +106,19 @@ meta.image_file_md5 = md5_hash(input_file);
 meta.x_grd.name = 'x_grd';
 meta.x_grd.long_name = 'horizontal position, regular grid';
 meta.x_grd.notes = 'coordinate axis';
-meta.x_grd.dimensions = {};  % is coordinate axis
+meta.x_grd.dimensions = {};
 meta.x_grd.units = 'meters';
 
 meta.y_grd.name = 'y_grd';
 meta.y_grd.long_name = 'vertical position, regular grid';
 meta.y_grd.notes = 'coordinate axis';
-meta.y_grd.dimensions = {};  % is coordinate axis
+meta.y_grd.dimensions = {};
 meta.y_grd.units = '';
 
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
 meta.step.notes = 'coordinate axis';
-meta.step.dimensions = {}; % is coordinate axis
+meta.step.dimensions = {};
 meta.step.units = '1';
 
 meta.u_grd.name = 'u_grd';
