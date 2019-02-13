@@ -1,6 +1,30 @@
-+ spline2 requires MEX file be built, how to make this easier?
-+ update testing function
++ refresh piv check param
++ find a way to remove the 'test' section from the prep input file (one option is to use "environment vars" in the workspace)
++ flatten all input parameter files
 + all parameter files and output files should contain a global notes field
++ find decent parameters for 01 siden (and testcase 00)
++ create/update post series check script
++ release new version
+
+---
+
++ update testing function
+
+---
+
++ branch off to test multiband xcorr
++ if improves results, then drop adaptive equalization and update accordingly
+
+---
+
++ test Mark's padding routine
++ test my padding routine
++ prepare a nice results script he can run
++ this to be sent to him.
+
+---
+
++ spline2 requires MEX file be built, how to make this easier?
 
 
 
