@@ -1,9 +1,9 @@
 function [rgb_r, coord_x, coord_y] = ...
     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
-                          rgb, fit_npts, show, verbose)
+                          rgb, fit_npts, show)
 % function [rgb_r, coord_x, coord_y] = ...
 %     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
-%                           rgb, fit_npts, show, verbose)
+%                           rgb, fit_npts, show)
 % 
 % Use manually defined world-coordinate control points to project image
 % into a regular coordinate system, and crop this image to the desired
@@ -32,19 +32,15 @@ function [rgb_r, coord_x, coord_y] = ...
 %
 % show = Logical flag, plot the rectified image, default = false 
 %
-% verbose = Logical flag, print verbose messages, default = false
-%
 % rgb_r = 3D matrix, rectified and cropped image
 %
 % coord_x, coord_y = Vectors, world coordinate vectors for rgb_r
 %
-% % Keith Ma
+% %
 
 % sanity check
 if nargin < 8 || isempty(fit_npts); fit_npts = 10; end
 if nargin < 9 || isempty(show); show = false; end
-if nargin < 10 || isempty(verbose); verbose = false; end
-
 
 validateattributes(ctrl_xp, {'numeric'}, {'vector'});
 validateattributes(ctrl_yp, {'numeric'}, {'vector', 'numel', numel(ctrl_xp)});
@@ -56,10 +52,8 @@ assert(crop_xw(2)>crop_xw(1));
 assert(crop_yw(2)>crop_yw(1));
 validateattributes(fit_npts', {'numeric'}, {'scalar', 'integer', 'positive'});
 
-if verbose
-    fprintf('%s: input image size = %d x %d x %d\n', ...
-        mfilename, size(rgb, 1), size(rgb, 2), size(rgb, 3));
-end
+fprintf('%s: input image size = %d x %d x %d\n', ...
+    mfilename, size(rgb, 1), size(rgb, 2), size(rgb, 3));
 
 % ensure control points are column vectors
 ctrl_xw = ctrl_xw(:);
@@ -114,10 +108,8 @@ origin_col = 1+origin_col-crop_col(1);
 coord_x = ((1:size(rgb_r, 2))-origin_col)*delta_meter_per_pixel;
 coord_y = ((1:size(rgb_r, 1))-origin_row)*delta_meter_per_pixel;
 
-if verbose
-    fprintf('%s: output image size = %d x %d x %d\n', ...
-        mfilename, size(rgb_r, 1), size(rgb_r, 2), size(rgb_r, 3));
-end
+fprintf('%s: output image size = %d x %d x %d\n', ...
+    mfilename, size(rgb_r, 1), size(rgb_r, 2), size(rgb_r, 3));
 
 % optional: show results
 if show
