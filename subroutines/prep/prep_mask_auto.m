@@ -1,7 +1,7 @@
 function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                    morph_open_rad, morph_erode_rad, show, verbose)
+                    morph_open_rad, morph_erode_rad, show)
 % function mask = prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                     morph_open_rad, morph_erode_rad, show, verbose)
+%                     morph_open_rad, morph_erode_rad, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -32,19 +32,15 @@ function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
 % 
-%   verbose = Logical flag, display verbose messages (1) or don't (0)
-%
 %   mask = 2D matrix, logical, true where there is sand and false
 %       elsewhere.
-%
-% Keith Ma
+% % 
 
 % set default values
-if nargin < 7; show = false; end
-if nargin < 8; verbose = false; end
+if nargin < 8; show = false; end
 
 % check for sane arguments, set default values
-narginchk(7,9);
+narginchk(7, 8);
 validateattributes(rgb, {'numeric'}, {'3d'});
 validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(value_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
@@ -53,7 +49,6 @@ validateattributes(entropy_len, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(morph_open_rad, {'numeric'}, {'scalar', '>=', 0});
 validateattributes(morph_erode_rad, {'numeric'}, {'scalar', '>=', 0});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
 % get hue, value, and entropy, normalized to the range [0, 1]
 hsv = rgb2hsv(rgb);
@@ -117,7 +112,5 @@ if show
 end
 
 % (optional) report percentage masked
-if verbose
-    pct_sand = 100*sum(mask(:))/numel(mask);
-    fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
-end
+pct_sand = 100*sum(mask(:))/numel(mask);
+fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);

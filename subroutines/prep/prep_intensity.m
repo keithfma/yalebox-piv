@@ -1,5 +1,5 @@
-function eql = prep_intensity(img, mask, eql_len, show, verbose)
-% function eql = prep_intensity(img, mask, eql_len, show, verbose)
+function eql = prep_intensity(img, mask, eql_len, show)
+% function eql = prep_intensity(img, mask, eql_len, show)
 %
 % Convert masked color image to "equalized" grayscale image. 
 %
@@ -11,32 +11,34 @@ function eql = prep_intensity(img, mask, eql_len, show, verbose)
 % compute the CDF to convert just one pixel.
 %
 % Arguments:
+%
 %   img: 3D matrix, RGB color image OR 2D matrix, grayscale image
+% 
 %   mask: 2D matrix, double, TRUE where there is sand, FALSE elsewhere
+%
 %   eql_len: Scalar, integer, odd. Side length (in pixels) for the local
 %       neighborhood used to compute the transform for each pixel.
+%
 %   show: Optional, scalar, logical flag, set to True to plot the original and
 %       equalized intensity images and some simple comparison statistics,
 %       default = false
-%   verbose: Optional, logical flag, display verbose messages (1) or don't (0)
 %
 % Returns:
+%
 %   eql: 2D matrix, size(mask), double, normalized intensity image with uniform
 %       distribution in the range [0, 1].
 %
-% % Keith Ma
+% %
 
 % set defaults
-narginchk(3, 5)
+narginchk(3, 4)
 if nargin < 4; show = false; end
-if nargin < 5; verbose = false; end
 
 % check for sane inputs
 validateattributes(img, {'numeric'}, {'3d'}); % 3 or fewer dims
 validateattributes(mask, {'logical'}, {'2d', 'size', [size(img,1), size(img, 2)]});
 validateattributes(eql_len, {'numeric'}, {'integer', 'positive', 'odd'});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
-validateattributes(verbose, {'numeric', 'logical'}, {'scalar'});
 
 % convert rgb to grayscale
 if ndims(img) == 3
@@ -52,11 +54,9 @@ img(~mask) = 0;
 eql = zeros(nr, nc);
 nhalfwin = floor(eql_len/2);
 
-% (optional) report basic stats on intial image
-if verbose
-    fprintf('%s: input image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
-        mfilename, min(img(mask)), mean(img(mask)), max(img(mask)), std(img(mask)));
-end
+% report basic stats on intial image
+fprintf('%s: input image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
+    mfilename, min(img(mask)), mean(img(mask)), max(img(mask)), std(img(mask)));
 
 % local histogram equalization 
 for i = 1:nr 
@@ -125,10 +125,8 @@ if show
 end
 
 
-% (optional) report basic stats on final image
-if verbose
-    fprintf('%s: output image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
-        mfilename, min(eql(mask)), mean(eql(mask)), max(eql(mask)), std(eql(mask)));
-end
+% report basic stats on final image
+fprintf('%s: output image: min = %.1e, mean = %.1e, max = %.1e. std = %.1e\n', ...
+    mfilename, min(eql(mask)), mean(eql(mask)), max(eql(mask)), std(eql(mask)));
 
 
