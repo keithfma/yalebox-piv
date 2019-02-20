@@ -1,11 +1,13 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
                   hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
+                  morph_open_rad, morph_erode_rad, eql_len, xw, yw, ...
+                  mask_manual, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
 %                   hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, mask_manual)
+%                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, ...
+%                   mask_manual, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -44,10 +46,17 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %       prep_rectify_and_crop()
 %
 %   mask_manual = Output argument from prep_mask_manual()
+%
+%   notes: String, notes to be included in output MAT-file as a global
+%       attribute. default = ''
 % %
 
 % load dependencies
 update_path('prep', 'util');
+
+% set defaults
+narginchk(21, 22);
+if nargin < 22; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 assert(nargin == 21);
@@ -90,9 +99,8 @@ result = matfile(result_file, 'Writable', true);
 
 % define metadata
 meta = struct();
-
+meta.notes = notes;
 meta.version = get_version();
-
 meta.view = image_view;
 
 meta.input.ctrl_xw = ctrl_xw;
@@ -156,9 +164,7 @@ result.meta = meta;
 
 % write constant variables, allocate space for other variables
 result.x = xw;
-
 result.y = yw;
-
 result.step = 0:(num_image - 1);
 
 result.img_rgb = uint8.empty(0, 0, 0, 0);
@@ -175,26 +181,20 @@ result.mask_manual = mask_manual;
 % loop over all images
 for ii = 1:num_image
     
-    % read in original image
     this_file = fullfile(image_path, image_names{ii});
     raw = imread(this_file);
      
-    % update user
     fprintf('\n%s: %s\n', mfilename, this_file);
     
-    % rectify and crop
     raw = prep_rectify_and_crop(...
         ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw, fit_npts);
      
-    % compute automatic mask
     mask_auto = prep_mask_auto(...
         raw, hue_lim, value_lim, entropy_lim, entropy_len, ...
         morph_open_rad, morph_erode_rad);
     
-    % equalize intensity
     img = prep_intensity(raw, mask_manual & mask_auto, eql_len);
      
-    % save results   
     result.mask_auto(:, :, ii) = logical(mask_auto);
     result.img(:, :, ii) = single(img);
     result.img_rgb(:, :, :, ii) = uint8(raw);
