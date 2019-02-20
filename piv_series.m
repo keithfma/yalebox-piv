@@ -1,11 +1,11 @@
 function [] = piv_series(...
     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-    min_frac_data, min_frac_overlap)
+    min_frac_data, min_frac_overlap, notes)
 % function [] = piv_series(...
 %     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
 %     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-%     min_frac_data, min_frac_overlap)
+%     min_frac_data, min_frac_overlap, notes)
 %
 % Run PIV analysis for a given input series. Input image data  expected to
 % be a MAT file as created by prep_series(). Results are saved in a new
@@ -45,9 +45,16 @@ function [] = piv_series(...
 %   min_frac_data: see piv() help for details
 %
 %   min_frac_overlap: see piv() help for details
+%
+%   notes: String, notes to be included in output MAT-file as a global
+%       attribute. default = ''
 % %
 
 update_path('piv', 'util');
+
+% set defaults
+narginchk(13, 14);
+if nargin < 14; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
@@ -99,6 +106,9 @@ output_data = matfile(output_file, 'Writable', true);
 
 % define metadata
 meta = struct();
+meta.notes = notes;
+meta.version = get_version();
+meta.image_file_md5 = md5_hash(input_file);
 meta.args.input_file = input_file;
 meta.args.output_file = output_file;
 meta.args.step_range = step_range;
@@ -112,8 +122,6 @@ meta.args.valid_max = valid_max;
 meta.args.valid_eps = valid_eps;
 meta.args.min_frac_data = min_frac_data;
 meta.args.min_frac_overlap = min_frac_overlap;
-meta.version = get_version();
-meta.image_file_md5 = md5_hash(input_file);
 
 meta.x_grd.name = 'x_grd';
 meta.x_grd.long_name = 'horizontal position, regular grid';

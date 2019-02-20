@@ -9,6 +9,9 @@ update_path('util');
 [~, ~, ext] = fileparts(filename);
 assert(strcmp(ext, '.json'), 'Filename must have extension .json');
 
+pp.notes.help = 'string, any notes to be included in the results file for posterity';
+pp.notes.value = '';
+
 pp.step_range.help = "2-element vector, [initial, final] steps of input images series to include in PIV analysis. Either element can be set to NaN to use the full range.";
 pp.step_range.value = [NaN, NaN];
 

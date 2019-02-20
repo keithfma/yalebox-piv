@@ -9,6 +9,11 @@ update_path('util');
 [~, ~, ext] = fileparts(filename);
 assert(strcmp(ext, '.json'), 'Filename must have extension .json');
 
+% general --------
+
+pp.notes.help = 'string, any notes to be included in the results file for posterity';
+pp.notes.value = '';
+
 % images ---------
 
 pp.view.help = "string, specify 'side' or 'top' image view";

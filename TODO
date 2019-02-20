@@ -1,8 +1,5 @@
 + use allocate() utility when creating output files...
 + update prep_series interface to use new manual masking input
-+ all parameter files and output files should contain a global notes field
-+ find decent parameters for 01 siden (and testcase 00)
-+ create/update post series check script
 + release new version
 
 ---
@@ -11,6 +8,7 @@
 
 ---
 
++ find decent parameters for 01 siden (and testcase 00)
 + branch off to test multiband xcorr
 + if improves results, then drop adaptive equalization and update accordingly
 
