@@ -1,14 +1,17 @@
-+ use allocate() utility when creating output files...
 + update prep_series interface to use new manual masking input
++ make using parameter files the default method for series processing
++ move the old series processing functions to subrouties
++ rename _check_param and _default_param to something more useful
++ update the readme to reflect usage
++ release new version
+---
+
++ update testing function
++ find decent parameters for 01 siden (and testcase 00)
 + release new version
 
 ---
 
-+ update testing function
-
----
-
-+ find decent parameters for 01 siden (and testcase 00)
 + branch off to test multiband xcorr
 + if improves results, then drop adaptive equalization and update accordingly
 
@@ -22,6 +25,4 @@
 ---
 
 + spline2 requires MEX file be built, how to make this easier?
-
-
 
