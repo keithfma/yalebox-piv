@@ -187,13 +187,13 @@ output_data.meta = meta;
 % allocate output variables
 % note: matfile does not allow indexing into cell arrays, so we have to
 %   store the variable-length output in a fixed dimension grid
-output_data.u_grd = nan(num_y_grd, num_x_grd, num_step);
-output_data.v_grd = nan(num_y_grd, num_x_grd, num_step);
-output_data.roi_grd = false(num_y_grd, num_x_grd, num_step);
-output_data.x_pts = nan(max_num_pts, num_step);
-output_data.y_pts = nan(max_num_pts, num_step);
-output_data.u_pts = nan(max_num_pts, num_step);
-output_data.v_pts = nan(max_num_pts, num_step);
+allocate(output_data, 'u_grd', 'double', [num_y_grd, num_x_grd, num_step]);
+allocate(output_data, 'v_grd', 'double', [num_y_grd, num_x_grd, num_step]);
+allocate(output_data, 'roi_grd', 'double', [num_y_grd, num_x_grd, num_step]);
+allocate(output_data, 'x_pts', 'double', [max_num_pts, num_step]);
+allocate(output_data, 'y_pts', 'double', [max_num_pts, num_step]);
+allocate(output_data, 'u_pts', 'double', [max_num_pts, num_step]);
+allocate(output_data, 'v_pts', 'double', [max_num_pts, num_step]);
 
 % analyse all steps
 for ii = 1:num_step
