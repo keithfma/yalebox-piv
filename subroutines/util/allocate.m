@@ -11,9 +11,23 @@ function allocate(file_obj, var_name, data_type, dimensions)
 % %
 
 switch data_type
+    
     case 'double'
         empty = @double.empty;
         last = NaN;
+
+    case 'single'
+        empty = @single.empty;
+        last = NaN;
+        
+    case 'uint8'
+        empty = @uint8.empty;
+        last = 0;
+    
+    case 'logical'
+        empty = @logical.empty;
+        last = false;
+        
     otherwise
         error('Bad value for data_type: %s', data_type);
 end

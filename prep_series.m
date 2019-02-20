@@ -166,16 +166,9 @@ result.meta = meta;
 result.x = xw;
 result.y = yw;
 result.step = 0:(num_image - 1);
-
-result.img_rgb = uint8.empty(0, 0, 0, 0);
-result.img_rgb(ny, nx, 3, num_image) = uint8(0);
-
-result.img = single.empty(0, 0, 0);
-result.img(ny, nx, num_image) = single(0); 
-
-result.mask_auto = logical.empty(0, 0, 0);
-result.mask_auto(ny, nx, num_image) = false;
-
+allocate(result, 'img_rgb', 'uint8', [ny, nx, 3, num_image]);
+allocate(result, 'img', 'single', [ny, nx, num_image]); 
+allocate(result, 'mask_auto', 'logical', [ny, nx, num_image]);
 result.mask_manual = mask_manual;
 
 % loop over all images
