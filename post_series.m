@@ -9,19 +9,20 @@ function [] = post_series(input_file, output_file, pro_bbox, ...
 % Arguments:
 %   input_file: string, file name of MAT-file containing PIV results as
 %       produced by piv_series.m
+% 
 %   output_file: string, file name of MAT-file to create for post-processing
 %       results data and metadata. Overwriting is not allowed to prevent
 %       unhappy accidents
+%
 %   pro_bbox, retro_bbox: 4-element position vectors [xmin, ymin, width,
 %       height] for the bounding boxes used to estimate pro- and retro-
 %       plate displacements from PIV data.
+%
 %   pad_method: String, ...
+%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
-%
-% % Keith Ma
-
-% TODO: include notes field in the input parameters file
+% %
 
 update_path('post', 'util');
 
@@ -218,12 +219,12 @@ output_data.step = step;
 % allocate remaining output variables
 vars_1d = {'u_pro', 'v_pro', 'u_retro', 'v_retro'};
 for ii = 1:length(vars_1d)
-    allocate(output_file, vars_1d{ii}, @double, [num_steps, 1]);
+    allocate(output_data, vars_1d{ii}, 'double', [num_steps, 1]);
 end
 vars_3d = {'F11', 'F12', 'F21', 'F22', 'S1', 'S1x', 'S1y', 'S2', ...
     'S2x', 'S2y', 'spin', 'D1', 'D2', 'Dd', 'Dv', 'Wk_star', 'Ak_star'};
 for ii = 1:length(vars_3d)
-    alocate(output_file, vars_3d{ii}, @double, [num_y, num_x, num_steps]);
+    allocate(output_data, vars_3d{ii}, 'double', [num_y, num_x, num_steps]);
 end
 
 % run analyses for each timestep and save results
@@ -234,16 +235,16 @@ for ii = 1:num_steps
     roi = input_data.roi_grd(:,:,ii);
     
     uv_pro   = post_displ_rect(xx, yy, uu, vv, pro_bbox);
-    output_file.u_pro(ii) = uv_pro(1);
-    output_file.v_pro(ii) = uv_pro(2);
+    output_data.u_pro(ii, 1) = uv_pro(1);
+    output_data.v_pro(ii, 1) = uv_pro(2);
     
     uv_retro = post_displ_rect(xx, yy, uu, vv, retro_bbox);
-    output_file.u_retro(ii) = uv_retro(1);
-    output_file.v_retro(ii) = uv_retro(2);
+    output_data.u_retro(ii, 1) = uv_retro(1);
+    output_data.v_retro(ii, 1) = uv_retro(2);
     
     strain = post_strain(xx, yy, uu, vv, roi, pad_method);
     for jj = 1:length(vars_3d)
-        output_file.(vars_3d{jj})(:, :, ii) = strain.(vars_3d{jj});
+        output_data.(vars_3d{jj})(:, :, ii) = strain.(vars_3d{jj});
     end
     
     fprintf('%s: %d of %d\n', mfilename, ii, num_steps);

@@ -179,7 +179,7 @@ for ii = 1:num_image
     this_file = fullfile(image_path, image_names{ii});
     raw = imread(this_file);
      
-    % update user (always verbose)
+    % update user
     fprintf('\n%s: %s\n', mfilename, this_file);
     
     % rectify and crop
