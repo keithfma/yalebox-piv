@@ -9,17 +9,21 @@ function [] = post_series(input_file, output_file, pro_bbox, ...
 % Arguments:
 %   input_file: string, file name of MAT-file containing PIV results as
 %       produced by piv_series.m
+% 
 %   output_file: string, file name of MAT-file to create for post-processing
 %       results data and metadata. Overwriting is not allowed to prevent
 %       unhappy accidents
+%
 %   pro_bbox, retro_bbox: 4-element position vectors [xmin, ymin, width,
 %       height] for the bounding boxes used to estimate pro- and retro-
 %       plate displacements from PIV data.
+%
 %   pad_method: String, ...
+%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 %
-% % Keith Ma
+% %
 
 % TODO: include notes field in the input parameters file
 

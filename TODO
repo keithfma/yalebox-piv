@@ -1,5 +1,4 @@
 + flatten post parameter file
-+ remove verbose argument, everything is verbose (PIV, POST)
 
 + update prep_series interface to use new manual masking input
 

@@ -7,8 +7,10 @@ function [] = piv_series_from_file(result_file, image_file, param_file)
 %
 % Arguments:
 %   result_file = String, filename of the MAT file to be created.
+% 
 %   image_file = String, filename of the MAT file containing pre-processed
 %       experiment images
+%
 %   param_file: JSON file containing all input parameters
 % %
 
