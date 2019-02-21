@@ -1,13 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
-                  hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  morph_open_rad, morph_erode_rad, eql_len, xw, yw, ...
-                  mask_manual, notes)
+                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
+                  morph_open_rad, morph_erode_rad, eql_len, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
-%                   hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                   morph_open_rad, morph_erode_rad, eql_len, xw, yw, ...
-%                   mask_manual, notes)
+%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
+%                   morph_open_rad, morph_erode_rad, eql_len, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -32,6 +30,9 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   fit_npts = Local neighborhood for image rectification, see prep_rectify_and_crop()
 %
+%   mask_poly = 2D array, vertices of mask polygons, x-coords in row 1 and
+%       y-coords in row 2, polygons separated by NaN
+% 
 %   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
 %       prep_mask_auto()
 %
@@ -42,11 +43,6 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
 %
-%   xw, yw = Coordinate vectors for rectified/cropped image, in meters, see
-%       prep_rectify_and_crop()
-%
-%   mask_manual = Output argument from prep_mask_manual()
-%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -55,29 +51,22 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 update_path('prep', 'util');
 
 % set defaults
-narginchk(21, 22);
-if nargin < 22; notes = ''; end
+narginchk(19, 20);
+if nargin < 20; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
-assert(nargin == 21);
 validateattributes(result_file, {'char'}, {'vector'});
 validateattributes(image_path, {'char'}, {'vector'});
 validateattributes(image_names, {'cell'}, {'vector'});
 assert(any(strcmp(image_view, {'side', 'top'})), 'Invalid value for "image_view"');
-
 [~, ~, result_file_ext] = fileparts(result_file);
 assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
-
-% get some size parameters
-nx = numel(xw);
-ny = numel(yw);
-num_image = numel(image_names);
 
 % check that all images exist and have the expected size and type
 info = imfinfo(fullfile(image_path, image_names{1}));
 raw_nrow = info.Height;
 raw_ncol = info.Width;
-for i = 1:num_image
+for i = 1:numel(image_names)
     try
         this_file = fullfile(image_path, image_names{i});
         info = imfinfo(this_file);
@@ -90,33 +79,43 @@ for i = 1:num_image
     end
 end
 
-% initialize output file -------------------------------------------------
-
 % create file, fail if exists
 assert(exist(result_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
 result = matfile(result_file, 'Writable', true);
 
-% define metadata
+% get coordinate vectors and manual mask array
+% note: created during prep steps, so prep a fake image)
+raw = zeros(raw_nrow, raw_ncol, 3, 'uint8'); 
+[img, xw, yw] = prep_rectify_and_crop(...
+    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw, fit_npts);
+[mask_manual, ~] = prep_mask_manual(img, mask_poly);
+
+% get some size parameters
+nx = numel(xw);
+ny = numel(yw);
+num_image = numel(image_names);
+
+% define output metadata
 meta = struct();
 meta.notes = notes;
 meta.version = get_version();
 meta.view = image_view;
 
-meta.input.ctrl_xw = ctrl_xw;
-meta.input.ctrl_yw = ctrl_yw;
-meta.input.ctrl_xp = ctrl_xp;
-meta.input.ctrl_yp = ctrl_yp;
-meta.input.crop_xw = crop_xw;
-meta.input.crop_yw = crop_yw;
-meta.input.fit_npts = fit_npts;
-meta.input.hue_lim = hue_lim;
-meta.input.value_lim = value_lim;
-meta.input.entropy_lim = entropy_lim;
-meta.input.entropy_len = entropy_len;
-meta.input.morph_open_rad = morph_open_rad;
-meta.input.morph_erode_rad = morph_erode_rad;
-meta.input.eql_len = eql_len;
+meta.args.ctrl_xw = ctrl_xw;
+meta.args.ctrl_yw = ctrl_yw;
+meta.args.ctrl_xp = ctrl_xp;
+meta.args.ctrl_yp = ctrl_yp;
+meta.args.crop_xw = crop_xw;
+meta.args.crop_yw = crop_yw;
+meta.args.fit_npts = fit_npts;
+meta.args.hue_lim = hue_lim;
+meta.args.value_lim = value_lim;
+meta.args.entropy_lim = entropy_lim;
+meta.args.entropy_len = entropy_len;
+meta.args.morph_open_rad = morph_open_rad;
+meta.args.morph_erode_rad = morph_erode_rad;
+meta.args.eql_len = eql_len;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';

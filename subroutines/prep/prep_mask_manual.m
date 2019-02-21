@@ -4,26 +4,31 @@ function [mask, polygons] = prep_mask_manual(img, polygons, interactive)
 % Define a binary mask to black out region(s) of an image.
 %
 % Arguments:
-%   img = Matrix, image data that can be displayed by imshow polygons =
+%
+%   img: Matrix, image data that can be displayed by imshow polygons =
+% 
 %   polygons: optional 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
+% 
 %   interactive: boolean, set true to interactively define new polygon(s), or
 %       false to simply build a mask array from the input polygons.
 %
 % Returns:
+% 
 %   mask: boolean matrix, true where there is data, and false where there
 %       is no data (masked out)
+% 
 %   polygons: 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
 %
-% % Keith Ma
+% % 
 
 % set defaults
+narginchk(1,3);
 if nargin < 2; polygons = []; end
 if nargin < 3; interactive = false; end
 
 % sanity check
-narginchk(1,3);
 validateattributes(img, {'numeric'}, {'3d'});
 validateattributes(polygons, {'numeric'}, {'2d'});
 
