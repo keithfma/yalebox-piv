@@ -1,7 +1,11 @@
-function pp = piv_default_param(filename)
-% function pp = piv_default_param(filename)
+function pp = piv_template(filename)
+% function pp = piv_template(filename)
 %
-% Save PIV parameter file to specified path
+% Save template PIV parameter file to specified path
+% 
+% Arguments:
+% 
+%   filename: string, path to output JSON file 
 % %
 
 update_path('util');

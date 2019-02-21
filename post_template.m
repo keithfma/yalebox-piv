@@ -1,7 +1,11 @@
-function pp = post_default_param(filename)
-% function pp = post_default_param(filename)
+function pp = post_template(filename)
+% function pp = post_template(filename)
 %
-% Save PIV post-processing parameter file to specified path
+% Save template PIV post-processing parameter file to specified path
+% 
+% Arguments:
+% 
+%   filename: string, path to output JSON file 
 % %
 
 update_path('util');

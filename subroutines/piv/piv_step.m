@@ -1,9 +1,8 @@
-function result = piv(...
+function result = piv_step(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
     valid_eps, min_frac_data, min_frac_overlap)
-%
-% function result = piv(...
+% function result = piv_step(...
 %     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
 %     valid_eps, min_frac_data, min_frac_overlap)
@@ -15,50 +14,68 @@ function result = piv(...
 % Arguments:
 %   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale image
 %       from the start and end of the step to be analyzed.
+% 
 %   roi_img_ti, roi_img_tf = 2D matrix, logical, mask indicating pixels where
 %       there is sand (1) and background (0) that should be ignored.
+%  
 %   x_img, y_img = Vector, double, increasing, x- and y-direction
 %       coordinate vectors, length must match the cols and rows, respectively,
 %       in both image grids.
+% 
 %   samp_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square sample window, [pixels]
+% 
 %   samp_spc = Scalar, integer, spacing between adjacent sample points in the
 %       (square) sample grid, [pixels].
+% 
 %   intr_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square interrogation window
+% 
 %   num_pass = Vector, length == number of grid resolutions, integer, number of
 %       image deformation passes
+% 
 %   valid_radius: Scalar, radius around each sample point to include in vector
 %       validation, recommended to use ~4*samp_spc, [pixel] units
+% 
 %   valid_max = Scalar, double, maximum value for the normalized residual
 %       in the vector validation function, above which a vector is flagged
 %       as invalid. Ref [3] reccomends a value of 2.
+% 
 %   valid_eps = Scalar, double, minimum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
+% 
 %   min_frac_data = Scalar, minimum fraction of the sample window that must
 %       contain data (e.g. sand) for the point to be included in the ROI for PIV
 %       analysis
+% 
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
 %
+%  Returns:
+% 
 %   result.x_pts_tm, result.y_pts_tm: Vector, x- and y-coordinates for sample
 %       points on scattered grid, the "raw" result from the PIV algorithm
+% 
 %   result.u_pts_tm, result.v_pts_tm: Vector, x- and y-direction displacements
 %       at sample points on scattered grid, the "raw" result from the PIV
 %       algorithm
+% 
 %   result.x_grd_tm, result.y_grd_tm: 2D matrix, x- and y-coordinates for
 %       gridded sample points, the interpolated/extrapolated PIV results
+% 
 %   result.u_grd_tm, result.v_grd_tm: 2D matrix, x- and y-direction displacements
 %       for gridded sample points, the interpolated/extrapolated PIV results
+% 
 %   result.roi_grd_tm: 2D matrix, logical grid with set to "true" for
 %       interpolated points, and "false" for extrapolated points
 %
 % Notes:
 %   + Sample grid spacing is held constant since our experiments showed
-%     upsampling introduced ugly interpolation artifacts. We found that holding
-%     grid spacing constant and reducing sample window size is an effective way
-%     to increase spatial resolution while avoiding this issue.
+%     upsampling introduced ugly interpolation artifacts. We found that
+%     holding grid spacing constant and reducing sample window size is an
+%     effective way to increase spatial resolution while avoiding this
+%     issue.
 %
 % References:
 %

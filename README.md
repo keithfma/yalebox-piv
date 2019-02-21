@@ -1,35 +1,65 @@
 # Yalebox-PIV
 
-*Woefully out of date - do not believe anything you read here*
-
 Tools for sandbox image series analysis developed for the Yale University
 Department of Geology &amp; Geophysics "Yalebox". Includes:
 
-- Preprocessing: distortion correction, masking, adaptive histogram equalization 
-- Particle Image velocimetry (PIV): iterative image-deformation method using masked cross-correlation
-- Strain analysis
-- Movie composition
+- `prep`: image pre-processing, e.g.,rectify, crop, mask, etc.
+- `piv`: particle image velocimetry
+- `post`: displacement vector post-processing, e.g., velocity and strain
+- `movie`: image, velocity, strain, etc
 
-## Usage
+Processing steps are dependent, a typical workflow is:
 
-A typical workflow is to make use of the "helper" scripts `prep_get_param.m`
-and `piv_get_param.m` to experiment with free parameters for a particular
-experiment image series. Once a satisfactory set of parameters is found, the
-`prep_series()` and `piv_series()` functions can be used to process the whole
-experiment. Results are saved in as internally documented netCDF files. 
+ `prep` &#9658; `piv` &#9658; `post`
 
-## To Do
+_TODO: replace the above with a simple DAG_
 
-1. Boundary treatment for derivatives:
+For all the details, see *Ma et al 2019 (in prep)*.
 
-Read up on how spline-in-tension interpolation treats boundaries, and on the
-details of the derivative filter. It may make sense to do some extrapolation
-to prepare for gradient estimation.
+_TODO: add proper reference when ready_
 
-1. Explore using vector median (Liu) for rejection filter
+This package is available under the MIT license. We ask only that you cite the
+reference above if you use this in your research. 
 
-1. Explore finite strain analysis
+## Usage: prep
 
-I strongly suspect that treating the displacements as infinitesimal strain is
-not valid. More importantly, I suspect that integrating finite strain over a
-few time steps will greatly reduce the noise in the resulting figures.
++ _in_: Experiment images, world-coordinate image, and a bunch of parameters as
+  a single JSON file.
++ _out_: Single MAT file with data arrays ready for PIV analysis, self-documenting.
+
+1. Run `prep_template` to generate an initial parameter file. The file is JSON
+   and includes help text defining each of the variables.
+1. Open the `prep_check` script and run it cell-by-cell. Each cell defines
+   and/or test parameters for one pre-processing step. Edit the parameter file
+   as needed. We know this is wierd, but it works well. 
+1. Run `prep` to execute the pre-processing run you have prepared. This will
+   take a while.
+
+## Usage: piv 
+
++ _in_: output file from prep step, and a bunch of parameters as a single JSON file.
++ _out_: Single MAT file with PIV results, self-documenting.
+
+1. Run `piv_template` to generate an initial parameter file. The file is JSON
+   and includes help text defining each of the variables.
+1. Open the `piv_check` script and run it cell-by-cell. Each cell defines
+   and/or test parameters for one PIV step. Edit the parameter file as
+    needed.We know this is wierd, but it works well. 
+1. Run `piv` to execute the PIV run you have prepared. This will take a while.
+
+## Usage: post
+
++ _in_: output file from piv step, and a bunch of parameters as a single JSON file.
++ _out_: Single MAT file with post-processing results, self-documenting.
+
+1. Run `post_template` to generate an initial parameter file. The file is JSON
+   and includes help text defining each of the variables.
+1. Open the `post_check` script and run it cell-by-cell. Each cell defines
+   and/or test parameters for one post-processing step. We know this is wierd,
+   but it works well. 
+1. Run `post` to execute the post-processing run you have prepared. This will
+   take a while.
+
+## Usage: movie
+
+_TODO: movie code needs to be updated_
