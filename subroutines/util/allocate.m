@@ -18,11 +18,11 @@ switch data_type
 
     case 'single'
         empty = @single.empty;
-        last = NaN;
+        last = single(NaN);
         
     case 'uint8'
         empty = @uint8.empty;
-        last = 0;
+        last = uint8(0);
     
     case 'logical'
         empty = @logical.empty;
