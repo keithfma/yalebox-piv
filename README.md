@@ -29,7 +29,7 @@ reference above if you use this in your research.
 
 1. Run `prep_template` to generate an initial parameter file. The file is JSON
    and includes help text defining each of the variables.
-1. Open the `prep_check` script and run it cell-by-cell. Each cell defines
+1. Open the `prep_param` script and run it cell-by-cell. Each cell defines
    and/or test parameters for one pre-processing step. Edit the parameter file
    as needed. We know this is wierd, but it works well. 
 1. Run `prep` to execute the pre-processing run you have prepared. This will
@@ -42,7 +42,7 @@ reference above if you use this in your research.
 
 1. Run `piv_template` to generate an initial parameter file. The file is JSON
    and includes help text defining each of the variables.
-1. Open the `piv_check` script and run it cell-by-cell. Each cell defines
+1. Open the `piv_param` script and run it cell-by-cell. Each cell defines
    and/or test parameters for one PIV step. Edit the parameter file as
     needed.We know this is wierd, but it works well. 
 1. Run `piv` to execute the PIV run you have prepared. This will take a while.
@@ -54,7 +54,7 @@ reference above if you use this in your research.
 
 1. Run `post_template` to generate an initial parameter file. The file is JSON
    and includes help text defining each of the variables.
-1. Open the `post_check` script and run it cell-by-cell. Each cell defines
+1. Open the `post_param` script and run it cell-by-cell. Each cell defines
    and/or test parameters for one post-processing step. We know this is wierd,
    but it works well. 
 1. Run `post` to execute the post-processing run you have prepared. This will
