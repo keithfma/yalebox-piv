@@ -1,7 +1,11 @@
-function pp = prep_default_param(filename)
-% function pp = prep_default_param(filename)
+function pp = prep_template(filename)
+% function pp = prep_template(filename)
 %
-% Save image pre-processing parameter file to specified path
+% Save template for image pre-processing parameter file to specified path
+% 
+% Arguments:
+% 
+%   filename: string, path to output JSON file 
 % %
 
 update_path('util');
