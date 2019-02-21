@@ -1,10 +1,3 @@
-+ make using parameter files the default method for series processing
-+ move the old series processing functions to subrouties
-+ rename _check_param and _default_param to something more useful
-+ update the readme to reflect usage
-+ release new version
----
-
 + update testing function
 + find decent parameters for 01 siden (and testcase 00)
 + release new version
