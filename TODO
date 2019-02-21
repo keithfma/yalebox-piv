@@ -1,4 +1,3 @@
-+ update prep_series interface to use new manual masking input
 + make using parameter files the default method for series processing
 + move the old series processing functions to subrouties
 + rename _check_param and _default_param to something more useful
