@@ -1,5 +1,5 @@
-function [] = prep(output_mat, param_json)
-% function [] = prep(output_mat, param_json)
+function [] = prep(param_json, prep_mat)
+% function [] = prep(param_json, prep_mat)
 % 
 % Pre-process image series for PIV analysis. Reads in the images, rectifies
 % and crops, masks, corrects illumination, and saves the results and
@@ -9,16 +9,16 @@ function [] = prep(output_mat, param_json)
 % parameters from the standard JSON file rather than as arguments.
 %
 % Arguments:
-%
-%   output_mat = String, filename of the MAT input file to be created. 
 % 
 %   param_json: JSON file containing all input parameters
+% 
+%   prep_mat = String, filename of the MAT input file to be created. 
 % %
 
 update_path('jsonlab', 'prep');
 pp = loadjson(param_json, 'SimplifyCell', 1);
 prep_series(...
-    output_mat, ...
+    prep_mat, ...
     pp.image_dir.value, ...
     pp.exp_files.value, ...
     pp.view.value, ...

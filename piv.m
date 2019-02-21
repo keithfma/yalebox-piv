@@ -1,29 +1,25 @@
-function [] = piv_series_from_file(result_file, image_file, param_file)
-% function [] = piv_series_from_file(result_file, param_file)
+function [] = piv(param_json, prep_mat, piv_mat)
+% function [] = piv(param_json, prep_mat, piv_mat)
 % 
 % Run PIV analysis for a given image series. Simple wrapper around
 % piv_series() that reads the (many) input parameters from the standard
 % JSON file rather than as arguments.
 %
 % Arguments:
-%   result_file = String, filename of the MAT file to be created.
 % 
-%   image_file = String, filename of the MAT file containing pre-processed
+%   param_json: JSON file containing all input parameters
+% 
+%   prep_mat = String, filename of the MAT file containing pre-processed
 %       experiment images
-%
-%   param_file: JSON file containing all input parameters
+% 
+%   piv_mat = String, filename of the MAT file to be created.
 % %
 
-% load dependencies
-update_path('jsonlab');
-
-% load parameters struct
-param = loadjson(param_file, 'SimplifyCell', 1);
-
-% run PIV with specified parameters
+update_path('jsonlab', 'piv');
+param = loadjson(param_json, 'SimplifyCell', 1);
 piv_series(...
-    result_file, ...
-    image_file, ...
+    piv_mat, ...
+    prep_mat, ...
     param.step_range.value, ...
     param.gap.value, ...
     param.samp_len.value, ...
