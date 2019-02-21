@@ -1,43 +1,57 @@
-function [xx, yy, uu_piv, vv_piv, uu_exact, vv_exact] = test_piv_v2(varargin)
-% function [] = test_piv(varargin)
+function [] = piv_test(varargin)
+% function [] = piv_test(varargin)
 %
-% Test PIV performance using case using synthetic image pair
-%
-% NOTE: This is a "high-level" test that covers all of the PIV subsystems.
+% Test PIV performance using case using synthetic image pair. This is a
+% "high-level" test that covers all of the PIV subsystems.
 %
 % Optional Arguments ('Name', Value):
+% 
 %   'image_file': String, name of pre-processed image file, as produced by
 %       prep_series(), to read for raw image, default = ./test/default_image.nc
+% 
 %   'image_index': Integer, (1-based) index of image in image file to use for
 %       raw image, default = 1
+% 
 %   'image_pos': 4-element position vector indicating the limits of the image to
 %       extract and deform. Must contain only sand (all within the ROI),
 %       in meters, default = [-0.12, 0.005, 0.092, 0.07]
+% 
 %   'u1': 2-element vector specifying first end-member translation in pixels,
 %       default = 20*[cosd(45), -sind(45)]
+% 
 %   'u2': 2-element vector specifying second end-member translation in pixels,
 %       default = -20*[cosd(45), -sind(45)]
+% 
 %   'theta': Scalar, orientation of shear band specified as
 %       counter-clockwise angle to the positive x-axis, in degrees, limited to
 %       range 0 - 90, default = 45
+% 
 %   'shear_width': Scalar, width of shear band, as fraction of image width,
 %       default = 0.25   
+% 
 %   'pad_width': Scalar, width of edge padding to add to image (to accomodate
 %       edge displacements) as a fraction of image size, default = 0.1
+% 
 %   'samp_len': piv() parameter, default [60, 30]
+% 
 %   'samp_spc': piv() parameter, default 15
+% 
 %   'intr_len': piv() parameter, default [90, 40]
+% 
 %   'num_pass': piv() parameter, default [1, 2]
+% 
 %   'valid_radius: piv() parameter, default 45
+% 
 %   'valid_max': piv() parameter, default 2
+% 
 %   'valid_eps': piv() parameter, default 0.1
+% 
 %   'min_frac_data': piv() parameter, default 0.5
+% 
 %   'min_frac_overlap': piv() parameter, default 0.25
-%   'verbose': Scalar logical, set true to enable verbose reporting for all
-%       components of the analysis
 % %
 
-%% parse arguments
+% parse arguments  ----------
 
 % constants
 src_dir = fileparts(mfilename('fullpath'));
@@ -69,23 +83,17 @@ ip.addParameter('valid_max', 2);
 ip.addParameter('valid_eps', 0.1);
 ip.addParameter('min_frac_data', 0.5);
 ip.addParameter('min_frac_overlap', 0.25);
-ip.addParameter('verbose', true, ...
-    @(x) validateattributes(x, {'numeric', 'logical'}, {'scalar', 'binary'}));
 
 ip.parse(varargin{:});
 args = ip.Results;
 
-if args.verbose
-    fprintf('%s: arguments:\n', mfilename);
-    disp(args)
-end
+fprintf('%s: arguments:\n', mfilename);
+disp(args)
 
 
-%% read and crop raw image
+% read and crop raw image  ----------
 
-if args.verbose
-    fprintf('%s: read and crop raw image\n', mfilename);
-end
+fprintf('%s: read and crop raw image\n', mfilename);
 
 xw = double(ncread(args.image_file, 'x'));
 yw = double(ncread(args.image_file, 'y'));
@@ -108,9 +116,7 @@ if any(~roi(:))
 end
 
 % pad image boundaries (and coordinates) to accomodate edge displacements
-if args.verbose
-    fprintf('%s: pad image to accomodate edge displacements\n', mfilename);
-end
+fprintf('%s: pad image to accomodate edge displacements\n', mfilename);
 
 pad_dim = ceil(args.pad_width*size(img));
 img = padarray(img, pad_dim, 0, 'both');
@@ -121,20 +127,16 @@ roi = padarray(roi, pad_dim, 0, 'both');
 x_img = x_img - mean(x_img(:));
 y_img = y_img - mean(y_img(:));
 
-%% generate synthetic images
+% generate synthetic images  ----------
 
 % compute exact displacement field for specified displacements and boundary
-if args.verbose
-    fprintf('%s: compute exact displacement field\n', mfilename);
-end
+fprintf('%s: compute exact displacement field\n', mfilename);
 
 [u_img, v_img] = exact_velocity(...
     x_img, y_img, args.defm_width/2*size(img, 2), args.theta, ...
     args.velocity_a, args.velocity_b);
 
-if args.verbose
-    fprintf('%s: generate synthetic images\n', mfilename);
-end
+fprintf('%s: generate synthetic images\n', mfilename);
 
 % deform images
 ini = imwarp(img, 0.5*cat(3, u_img, v_img), 'cubic'); % dir is ok
@@ -175,17 +177,14 @@ fin(~fin_roi) = 0;
 % axis equal tight
 % title('Final Synthetic Image')
 
-%% run PIV analysis on synthetic images, get exact solution on same grid
+% run PIV analysis on synthetic images, get exact solution on same grid  ----------
 
-if args.verbose
-    fprintf('%s: run PIV analysis\n', mfilename);
-end
+fprintf('%s: run PIV analysis\n', mfilename);
 
 result = piv(...     
     ini, fin, ini_roi, fin_roi, x_img(1,:), y_img(:,1), args.samp_len, args.samp_spc, ...
     args.intr_len, args.num_pass, args.valid_radius, args.valid_max, ...
-    args.valid_eps, args.min_frac_data, args.min_frac_overlap, ...
-    args.verbose);
+    args.valid_eps, args.min_frac_data, args.min_frac_overlap);
 
 % repackage key results
 y_prime = result.x_grd*sind(args.theta) + result.y_grd*cosd(args.theta);
@@ -208,7 +207,7 @@ velocity_ext = struct('u', u_ext, 'v', v_ext, ...
     'm', sqrt(u_ext.^2 + v_ext.^2), ...
     'theta', atand(v_ext./u_ext));
 
-%% compute velocity errors and store in struct
+% compute velocity errors and store in struct  ----------
 
 velocity_error = struct();
 velocity_fields = fieldnames(velocity_ext);
@@ -217,7 +216,7 @@ for ii = 1:numel(velocity_fields)
     velocity_error.(fn) = velocity_ext.(fn) - velocity_obs.(fn);
 end
 
-%% run deformation analysis, get exact deformation parameters on same grid
+% run deformation analysis, get exact deformation parameters on same grid  ----------
 
 strain_obs = post_strain(coord_obs.x(1,:), coord_obs.y(:,1), velocity_obs.u, ...
                          velocity_obs.v, coord_obs.roi, 'nearest');
@@ -226,7 +225,7 @@ strain_ext = exact_strain(...
     coord_obs.x, coord_obs.y, args.defm_width/2*size(img, 2), args.theta, ...
     args.velocity_a, args.velocity_b);
 
-%% compute strain errors and store in struct
+% compute strain errors and store in struct ----------
 
 strain_error = struct();
 strain_fields = fieldnames(strain_ext);
@@ -235,7 +234,7 @@ for ii = 1:numel(strain_fields)
     strain_error.(fn) = strain_ext.(fn) - strain_obs.(fn);
 end
 
-%% summarize error distributions
+% summarize error distributions ----------
 
 fields = {'u', 'v', 'm', 'theta'};
 names = {'u', 'v', 'velocity magnitude', '\theta'};
@@ -248,7 +247,7 @@ end
 
 % TODO: add plots for deformation parameters
 
-%% save test inputs and outputs to file
+% save test inputs and outputs to file ----------
 
 % TODO: make this an optional input
 
@@ -377,7 +376,7 @@ lgnd_txt = cell(numel(quant_rng) + 1 , 1);
 grays = linspace(light_gray, dark_gray, 3)'*ones(1, 3); 
 x_patch = [zvec, zvec(end:-1:1)];
 for ii = 1:numel(quant_rng)
-    lgnd_txt{ii} = sprintf('%.0f%% (%.3f-%.3f)', 100*quant_rng(ii), ...
+    lgnd_txt{ii} = sprintf('%.0f% (%.3f-%.3f)', 100*quant_rng(ii), ...
         quant_bot(ii), quant_top(ii));  
     y_patch = [cond_quant_top(:, ii); cond_quant_bot(end:-1:1, ii)]';
     patch(x_patch, y_patch, grays(ii,:), 'LineStyle', 'none');
