@@ -1,9 +1,7 @@
-function [rgb_out, coord_x, coord_y] = ...
-    prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
-                          rgb, fit_npts, show)
-% function [rgb_r, coord_x, coord_y] = ...
-%     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
-%                           rgb, fit_npts, show)
+function [rgb_out, coord_x, coord_y] = prep_rectify_and_crop(...
+    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show)
+% function [rgb_out, coord_x, coord_y] = prep_rectify_and_crop(...
+%     ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, rgb, show)
 % 
 % Use manually defined world-coordinate control points to project image
 % into a regular coordinate system, and crop this image to the desired
@@ -25,11 +23,6 @@ function [rgb_out, coord_x, coord_y] = ...
 %
 % rgb = 3D matrix, rgb image to be rectified and cropped
 %
-% fit_npts = Integer, parameter to fitgeotrans "Number of points to use in local
-%   weighted mean calculation". The default value usually works well, but
-%   occasionally leads to ill-conditioned arrays (throws a misleading "co-linear
-%   points" error), default = 10
-%
 % show = Logical flag, plot the rectified image, default = false 
 %
 % rgb_r = 3D matrix, rectified and cropped image
@@ -40,12 +33,13 @@ function [rgb_out, coord_x, coord_y] = ...
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('off', 'images:geotrans:estimateOutputBoundsFailed');
 
-% TODO: drop fit npts as argument, it is efectively a constant
+% constants
+FIT_NPTS = 10; 
+
+% set defaults
+if nargin < 8 || isempty(show); show = false; end
 
 % sanity check
-if nargin < 8 || isempty(fit_npts); fit_npts = 10; end
-if nargin < 9 || isempty(show); show = false; end
-
 validateattributes(ctrl_xp, {'numeric'}, {'vector'});
 validateattributes(ctrl_yp, {'numeric'}, {'vector', 'numel', numel(ctrl_xp)});
 validateattributes(ctrl_xw, {'numeric'}, {'vector', 'numel', numel(ctrl_xp)});
@@ -54,7 +48,6 @@ validateattributes(crop_xw, {'numeric'}, {'vector', 'numel', 2});
 validateattributes(crop_yw, {'numeric'}, {'vector', 'numel', 2});
 assert(crop_xw(2)>crop_xw(1));
 assert(crop_yw(2)>crop_yw(1));
-validateattributes(fit_npts', {'numeric'}, {'scalar', 'integer', 'positive'});
 
 fprintf('%s: input image size = %d x %d x %d\n', ...
     mfilename, size(rgb, 1), size(rgb, 2), size(rgb, 3));
@@ -71,7 +64,7 @@ Dp = pdist([ctrl_xp, ctrl_yp]);
 delta_pixel_per_meter = median(Dp./Dw);
 
 % transform image to rectified pixel coordinates
-tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xw, ctrl_yw], 'lwm', fit_npts);
+tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xw, ctrl_yw], 'lwm', FIT_NPTS);
 in_ref = imref2d([size(rgb,1), size(rgb,2)]);
 out_size = round([diff(crop_yw), diff(crop_xw)]*delta_pixel_per_meter);
 out_ref = imref2d(out_size, crop_xw, crop_yw);

@@ -54,9 +54,6 @@ pp.crop_xlim.value = [-0.6, 0.6];
 pp.crop_ylim.help = "2-element array, minimum and maximum y coordinates for crop in world coordinate units (m)";
 pp.crop_ylim.value = [0.0, 0.2];
 
-pp.crop_npts.help = "int, number of points to use in local weighted mean calculation for image warping";
-pp.crop_npts.value = 10;
-
 % masking ----------
 
 pp.mask_poly.help = "2D array, vertices of mask polygons, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";

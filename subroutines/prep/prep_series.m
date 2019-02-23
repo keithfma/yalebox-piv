@@ -1,9 +1,9 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
-                  ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+                  ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
                   morph_open_rad, morph_erode_rad, eql_len, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
-%                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, fit_npts, ...
+%                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
 %                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
 %                   morph_open_rad, morph_erode_rad, eql_len, notes)
 % 
@@ -27,8 +27,6 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop()
-%
-%   fit_npts = Local neighborhood for image rectification, see prep_rectify_and_crop()
 %
 %   mask_poly = 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
@@ -88,7 +86,7 @@ result = matfile(result_file, 'Writable', true);
 % note: created during prep steps, so prep a fake image)
 raw = zeros(raw_nrow, raw_ncol, 3, 'uint8'); 
 [img, xw, yw] = prep_rectify_and_crop(...
-    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw, fit_npts);
+    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
 [mask_manual, ~] = prep_mask_manual(img, mask_poly);
 
 % get some size parameters
@@ -108,7 +106,6 @@ meta.args.ctrl_xp = ctrl_xp;
 meta.args.ctrl_yp = ctrl_yp;
 meta.args.crop_xw = crop_xw;
 meta.args.crop_yw = crop_yw;
-meta.args.fit_npts = fit_npts;
 meta.args.hue_lim = hue_lim;
 meta.args.value_lim = value_lim;
 meta.args.entropy_lim = entropy_lim;
@@ -179,7 +176,7 @@ for ii = 1:num_image
     fprintf('\n%s: %s\n', mfilename, this_file);
     
     raw = prep_rectify_and_crop(...
-        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw, fit_npts);
+        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
      
     mask_auto = prep_mask_auto(...
         raw, hue_lim, value_lim, entropy_lim, entropy_len, ...
