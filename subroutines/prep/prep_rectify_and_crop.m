@@ -1,4 +1,4 @@
-function [rgb_r, coord_x, coord_y] = ...
+function [rgb_out, coord_x, coord_y] = ...
     prep_rectify_and_crop(ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, ...
                           rgb, fit_npts, show)
 % function [rgb_r, coord_x, coord_y] = ...
@@ -37,6 +37,10 @@ function [rgb_r, coord_x, coord_y] = ...
 % coord_x, coord_y = Vectors, world coordinate vectors for rgb_r
 %
 % %
+warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
+warning('off', 'images:geotrans:estimateOutputBoundsFailed');
+
+% TODO: drop fit npts as argument, it is efectively a constant
 
 % sanity check
 if nargin < 8 || isempty(fit_npts); fit_npts = 10; end
@@ -65,59 +69,27 @@ ctrl_yp = ctrl_yp(:);
 Dw = pdist([ctrl_xw, ctrl_yw]);
 Dp = pdist([ctrl_xp, ctrl_yp]);
 delta_pixel_per_meter = median(Dp./Dw);
-delta_meter_per_pixel = median(Dw./Dp);
-
-% convert parameters to rectified pixel coordinates 
-% ...origin at world (0,0), regular pixel size
-ctrl_xr = ctrl_xw*delta_pixel_per_meter;
-ctrl_yr = ctrl_yw*delta_pixel_per_meter;
-crop_xr = crop_xw*delta_pixel_per_meter;
-crop_yr = crop_yw*delta_pixel_per_meter;
-origin_xr = 0;
-origin_yr = 0;
 
 % transform image to rectified pixel coordinates
-% BUG: rectified image cannot include any negative Y coordinates, negative
-%   X coordinates seem to work just fine though
-warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
-warning('off', 'images:geotrans:estimateOutputBoundsFailed');
-tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', fit_npts);
-imref = imref2d([size(rgb,1), size(rgb,2)]);
-[rgb_r, imref_r] = imwarp(rgb, imref, tform, 'cubic');
-warning('on', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
-warning('on', 'images:geotrans:estimateOutputBoundsFailed');
-
-% get subscripts for origin and crop limits in rectified image
-[origin_col, origin_row] = imref_r.worldToIntrinsic(origin_xr, origin_yr);
-
-[crop_col, crop_row] = imref_r.worldToIntrinsic(crop_xr, crop_yr);
-
-crop_row(1) = max(1, floor(crop_row(1)));
-crop_row(2) = min(size(rgb_r,1), ceil(crop_row(2)));
-
-crop_col(1) = max(1, floor(crop_col(1)));
-crop_col(2) = min(size(rgb_r,2), ceil(crop_col(2)));
-
-crop_rect = [crop_col(1), crop_row(1), diff(crop_col), diff(crop_row)];
-
-% crop rectified image, adjust origin location
-rgb_r = imcrop(rgb_r, crop_rect);
-origin_row = 1+origin_row-crop_row(1);
-origin_col = 1+origin_col-crop_col(1);
+tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xw, ctrl_yw], 'lwm', fit_npts);
+in_ref = imref2d([size(rgb,1), size(rgb,2)]);
+out_size = round([diff(crop_yw), diff(crop_xw)]*delta_pixel_per_meter);
+out_ref = imref2d(out_size, crop_xw, crop_yw);
+rgb_out = imwarp(rgb, in_ref, tform, 'cubic', 'OutputView', out_ref);
 
 % generate world coordinate vectors for rectified, cropped image
-% ... convert pixel distance to origin to meters
-coord_x = ((1:size(rgb_r, 2))-origin_col)*delta_meter_per_pixel;
-coord_y = ((1:size(rgb_r, 1))-origin_row)*delta_meter_per_pixel;
+[coord_x0, coord_y0] = out_ref.intrinsicToWorld(0, 0);  % intentionally not 1,1
+coord_x = coord_x0 + out_ref.PixelExtentInWorldX*(1:size(rgb_out, 2));
+coord_y = coord_y0 + out_ref.PixelExtentInWorldY*(1:size(rgb_out, 1));
 
 fprintf('%s: output image size = %d x %d x %d\n', ...
-    mfilename, size(rgb_r, 1), size(rgb_r, 2), size(rgb_r, 3));
+    mfilename, size(rgb_out, 1), size(rgb_out, 2), size(rgb_out, 3));
 
 % optional: show results
 if show
    hf = figure;
    hf.Name = 'prep_rectify_and_crop: results';
-   imagesc(coord_x, coord_y, rgb_r)
+   imagesc(coord_x, coord_y, rgb_out)
    set(gca, 'YDir', 'normal');
    daspect([1, 1, 1]);
    xlabel('x-position [m]');

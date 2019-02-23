@@ -1,3 +1,13 @@
+Mask bottom as well as top
+
++ enable cropping below zero
++ test existing method
++ try a decision tree
++ try a RF
++ if model-based works better, then store params as MAT?
+
+---
+
 + find decent parameters for 01 siden (and testcase 00)
 + branch off to test multiband xcorr
 + if improves results, then drop adaptive equalization and update accordingly
