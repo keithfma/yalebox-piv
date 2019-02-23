@@ -2,12 +2,13 @@ function [] = piv_test(varargin)
 % function [] = piv_test(varargin)
 %
 % Test PIV performance using case using synthetic image pair. This is a
-% "high-level" test that covers all of the PIV subsystems.
+% high-level test that covers all of the PIV subsystems.
 %
 % Optional Arguments ('Name', Value):
 % 
 %   'image_file': String, name of pre-processed image file, as produced by
-%       prep_series(), to read for raw image, default = ./test/default_image.nc
+%       prep_series(), to read for raw image,
+%       default = ./data/prep_testcase_0.mat
 % 
 %   'image_index': Integer, (1-based) index of image in image file to use for
 %       raw image, default = 1
@@ -51,6 +52,8 @@ function [] = piv_test(varargin)
 %   'min_frac_overlap': piv() parameter, default 0.25
 % %
 
+update_path('piv', 'post', 'akde');
+
 % parse arguments  ----------
 
 % constants
@@ -58,11 +61,11 @@ src_dir = fileparts(mfilename('fullpath'));
 
 ip = inputParser();
 
-ip.addParameter('image_file', fullfile(src_dir, 'test', 'default_image.nc'), ...
+ip.addParameter('image_file', fullfile(src_dir, 'data', 'prep_testcase_0.mat'), ...
     @(x) exist(x, 'file') == 2);
 ip.addParameter('image_index', 1, ...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'integer', 'positive'}));
-ip.addParameter('image_pos', [-0.12, 0.005, 0.092, 0.07], ...
+ip.addParameter('image_pos', [-0.1, 0.01, 0.1, 0.07], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 4}));
 ip.addParameter('velocity_a',  20*[cosd(45), -sind(45)], ...
     @(x) validateattributes(x, {'numeric'}, {'vector', 'numel', 2}));
@@ -95,11 +98,12 @@ disp(args)
 
 fprintf('%s: read and crop raw image\n', mfilename);
 
-xw = double(ncread(args.image_file, 'x'));
-yw = double(ncread(args.image_file, 'y'));
-img = double(ncread(args.image_file, 'img', [1, 1, args.image_index], [inf, inf, 1]));
-mask_auto = ncread(args.image_file, 'mask_auto', [1, 1, args.image_index], [inf, inf, 1]);
-mask_manu = ncread(args.image_file, 'mask_manual');
+image_data = matfile(args.image_file, 'Writable', false);
+xw = image_data.x;
+yw = image_data.y;
+img = double(image_data.img(:, :, args.image_index));
+mask_auto = image_data.mask_auto(:, :, args.image_index);
+mask_manu = image_data.mask_manual;
 roi = mask_auto & mask_manu;
 
 min_col = find(xw >= args.image_pos(1), 1, 'first');
@@ -109,7 +113,6 @@ max_row = find(yw <= args.image_pos(2) + args.image_pos(4), 1, 'last');
 
 img = img(min_row:max_row, min_col:max_col);
 roi = roi(min_row:max_row, min_col:max_col);
-
 
 if any(~roi(:))
     error('%s: image_pos limits must include only sand (ROI)', mfilename);
@@ -181,7 +184,7 @@ fin(~fin_roi) = 0;
 
 fprintf('%s: run PIV analysis\n', mfilename);
 
-result = piv(...     
+result = piv_step(...     
     ini, fin, ini_roi, fin_roi, x_img(1,:), y_img(:,1), args.samp_len, args.samp_spc, ...
     args.intr_len, args.num_pass, args.valid_radius, args.valid_max, ...
     args.valid_eps, args.min_frac_data, args.min_frac_overlap);
@@ -279,7 +282,7 @@ hf.Position(3) = screen_position(3);
 
 % compute errors
 absolute = obs - ext;
-relative = absolute./ext;  % may contain inf
+relative = abs(absolute./ext);  % may contain inf
 
 subplot(2, 2, 1);
 plot_error_map(xx, yy, absolute, 'X Position [pixels]', 'Y Position [pixels]', ...
@@ -291,8 +294,17 @@ plot_error_dist(zz, absolute, 'Distance to Shear Zone Center [pixels]', ...
     sprintf('%s_{obs}-%s_{ext} [%s]', name, name, units), ...
     sprintf('%s Absolute Error Distribution', name));
 
-keyboard
-% TODO: include relative error plots
+subplot(2, 2, 3);
+plot_error_map(xx, yy, relative, 'X Position [pixels]', 'Y Position [pixels]', ...
+    sprintf('|%s_{obs}-%s_{ext}/%s_{ext}| [1]', name, name, name), ...
+    sprintf('%s Relative Error Map', name));
+
+subplot(2, 2, 4);
+plot_error_dist(zz, relative, 'Distance to Shear Zone Center [pixels]', ...
+    sprintf('|%s_{obs}-%s_{ext}/%s_{ext}| [1]', name, name, name), ...
+    sprintf('%s Relative Error Distribution', name));
+
+% TODO: style up the figure
 
 return
 
