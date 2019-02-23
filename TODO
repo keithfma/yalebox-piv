@@ -1,7 +1,3 @@
-+ release new version
-
----
-
 + find decent parameters for 01 siden (and testcase 00)
 + branch off to test multiband xcorr
 + if improves results, then drop adaptive equalization and update accordingly
