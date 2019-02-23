@@ -58,6 +58,7 @@ X_train = X([sand_idx; other_idx], :);
 Y_train = [ones(size(sand_idx)); zeros(size(other_idx))];
 
 % fit model
+% TODO: fiddle with model parameters
 switch model_type
     case 'forest'
         model = TreeBagger(10, X_train, Y_train, ...

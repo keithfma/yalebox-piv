@@ -26,7 +26,7 @@ if nargin < 3; show = false; end
 narginchk(2, 3);
 validateattributes(rgb, {'numeric'}, {'3d'});
 % TODO: validate model arg
-validatestring(show, {'logical'}, {'scalar'});
+validateattributes(show, {'logical'}, {'scalar'});
 
 % predict
 X = prep_mask_features(rgb);
@@ -38,20 +38,42 @@ if iscell(labels)
     labels(labels == double('0')) = false;
 end
 labels = reshape(labels, size(rgb, 1), size(rgb, 2));
+mask = logical(labels);
+
+% fill holes along edges (wall off one corner, fill, repeat)
+ridx = 1:size(mask, 1);
+cidx = 1:size(mask, 2);
+dr = [1, 1, 0, 0];
+dc = [1, 0, 0, 1];
+for ii = 1:4
+    wall = true(size(mask)+1);
+    wall(ridx+dr(ii), cidx+dc(ii)) = mask;
+    wall = imfill(wall, 'holes');
+    mask = wall(ridx+dr(ii), cidx+dc(ii));
+end
+
+% extract largest connected object
+object_label = bwlabel(mask);
+largest_object = mode(object_label(object_label>0));
+mask = object_label == largest_object;
+
+% clean up edges with morphological filters
+mask = imopen(mask, strel('disk', 3));
+mask = imclose(mask, strel('disk', 30));
 
 % display
 if show
     hf = figure
     hf.Name = 'Masking Results';
     
-    hax1 = subplot(2, 1, 1)
-    imagesc(rgb, 'AlphaData', labels == 1);
+    hax1 = subplot(2, 1, 1);
+    imagesc(rgb, 'AlphaData', mask);
     axis equal tight
     hax1.Color = [1.0, 0.25, 0.25];
     hax1.YDir = 'normal';
     
-    hax2 = subplot(2, 1, 2)
-    imagesc(rgb, 'AlphaData', labels == 0);
+    hax2 = subplot(2, 1, 2);
+    imagesc(rgb, 'AlphaData', ~mask);
     axis equal tight
     hax2.Color = [1.0, 0.25, 0.25];
     hax2.YDir = 'normal';
