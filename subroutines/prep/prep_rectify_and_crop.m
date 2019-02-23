@@ -77,6 +77,8 @@ origin_xr = 0;
 origin_yr = 0;
 
 % transform image to rectified pixel coordinates
+% BUG: rectified image cannot include any negative Y coordinates, negative
+%   X coordinates seem to work just fine though
 warning('off', 'images:inv_lwm:cannotEvaluateTransfAtSomeOutputLocations');
 warning('off', 'images:geotrans:estimateOutputBoundsFailed');
 tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xr, ctrl_yr],'lwm', fit_npts);
