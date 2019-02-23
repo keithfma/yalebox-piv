@@ -1,10 +1,10 @@
 Mask bottom as well as top
 
-+ enable cropping below zero
-+ test existing method
-+ try a decision tree
-+ try a RF
-+ if model-based works better, then store params as MAT?
++ repurpose prep_mask_manual to interactively select training data
+    + write prep_mask_labels(poly1, poly2, ...) to create a labels for training from polygons
+    + write prep_mask_define_labels(rgb) to interactively make polygons for labeled training data
+    + figure out where to put the pack and unpack utilities - standalone in util?
+
 
 ---
 
