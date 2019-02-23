@@ -28,6 +28,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'spline2d'));
         case 'deriv'
             addpath(fullfile(dependencies, 'derivatives'));
+        case 'akde'
+            addpath(fullfile(dependencies, 'akde'));
     
         % subroutines
         case 'prep'

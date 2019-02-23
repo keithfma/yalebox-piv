@@ -1,5 +1,5 @@
-function [] = piv(param_json, prep_mat, piv_mat)
-% function [] = piv(param_json, prep_mat, piv_mat)
+function [] = piv(param, prep_mat, piv_mat)
+% function [] = piv(param, prep_mat, piv_mat)
 % 
 % Run PIV analysis for a given image series. Simple wrapper around
 % piv_series() that reads the (many) input parameters from the standard
@@ -7,7 +7,8 @@ function [] = piv(param_json, prep_mat, piv_mat)
 %
 % Arguments:
 % 
-%   param_json: JSON file containing all input parameters
+%   param: Either (a) string, path to JSON file containing all input
+%       parameters, or (b) struct containing same
 % 
 %   prep_mat = String, filename of the MAT file containing pre-processed
 %       experiment images
@@ -16,7 +17,16 @@ function [] = piv(param_json, prep_mat, piv_mat)
 % %
 
 update_path('jsonlab', 'piv');
-param = loadjson(param_json, 'SimplifyCell', 1);
+
+switch class(param)
+    case 'struct'
+        param = param;  % do nothing
+    case 'char'
+        param = loadjson(param, 'SimplifyCell', 1);
+    otherwise
+        error('Unexpected type for input argument "param"');
+end
+        
 piv_series(...
     piv_mat, ...
     prep_mat, ...
