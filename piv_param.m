@@ -17,7 +17,7 @@
 %   TEST_INDEX: int, index of initial image to use for single step test
 % %
 
-update_path('jsonlab', 'util', 'piv', 'post');
+update_path('util', 'piv', 'post');
 
 fprintf('Running PIV parameter check with:\n');
 fprintf('\tPARAM_FILE = %s\n', PARAM_FILE);

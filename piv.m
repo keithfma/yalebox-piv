@@ -7,7 +7,7 @@ function [] = piv(param, prep_mat, piv_mat)
 %
 % Arguments:
 % 
-%   param: Either (a) string, path to JSON file containing all input
+%   param: Either (a) string, path to MAT file containing all input
 %       parameters, or (b) struct containing same
 % 
 %   prep_mat = String, filename of the MAT file containing pre-processed
@@ -16,13 +16,13 @@ function [] = piv(param, prep_mat, piv_mat)
 %   piv_mat = String, filename of the MAT file to be created.
 % %
 
-update_path('jsonlab', 'piv');
+update_path('util', 'piv');
 
 switch class(param)
     case 'struct'
         param = param;  % do nothing
     case 'char'
-        param = loadjson(param, 'SimplifyCell', 1);
+        param = load_param(param);
     otherwise
         error('Unexpected type for input argument "param"');
 end

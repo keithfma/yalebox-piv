@@ -16,7 +16,7 @@
 %   TEST_INDEX: int, index of initial image to use for single step test
 % %
 
-update_path('post', 'jsonlab', 'util');
+update_path('post', 'util');
 
 fprintf('Running post parameter check with:\n');
 fprintf('\tPARAM_FILE = %s\n', PARAM_FILE);

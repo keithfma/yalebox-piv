@@ -6,23 +6,23 @@ function [] = prep(param, prep_mat)
 % metadata in a MAT file.
 %
 % Simple wraparamer around prep_series() that reads the (many) input
-% parameters from the standard JSON file rather than as arguments.
+% parameters from a file/struct rather than as arguments.
 %
 % Arguments:
 % 
-%   param: Either (a) string, path to JSON file containing all input
+%   param: Either (a) string, path to MAT file containing all input
 %       parameters, or (b) struct containing same
 % 
 %   prep_mat = String, filename of the MAT input file to be created. 
 % %
 
-update_path('jsonlab', 'prep');
+update_path('util', 'prep');
 
 switch class(param)
     case 'struct'
         param = param;  % do nothing
     case 'char'
-        param = loadjson(param, 'SimplifyCell', 1);
+        param = load_param(param);
     otherwise
         error('Unexpected type for input argument "param"');
 end
