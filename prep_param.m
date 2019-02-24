@@ -35,6 +35,12 @@ path = strip(path, 'right', filesep);
 woco_path = strip(woco_path, 'right', filesep);
 assert(strcmp(woco_path, path), 'Expect image to be in image directory');
 
+% mask training image
+[train_file, train_path] = uigetfile('*.*', 'Select mask training image', ...
+    fullfile(param.image_dir.value, param.mask_train_file.value));
+train_path = strip(train_path, 'right', filesep);
+assert(strcmp(train_path, path), 'Expect image to be in image directory');
+
 % all experiment images
 [exp_files, exp_path] = uigetfile(...
     '*.*', 'Select all experiment images', path, 'MultiSelect', 'on');
@@ -47,6 +53,7 @@ button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.image_dir.value = path;
     param.woco_file.value = woco_file;
+    param.mask_train_file.value = train_file;
     param.exp_files.value = exp_files;
     save_param(param, PARAM_FILE);
     fprintf('Saved parameter file: %s\n', PARAM_FILE);
@@ -123,6 +130,45 @@ fprintf('Displaying rectifed & cropped test image\n');
         imread(fullfile(param.image_dir.value, param.exp_files.value{TEST_INDEX})), ...,
         true);
 
+%% define labels for mask training -- interactive
+
+param = load_param(PARAM_FILE);
+
+[train_rgb, ~, ~] = prep_rectify_and_crop(...
+        param.woco_xp.value, ...
+        param.woco_yp.value, ...
+        param.woco_xw.value, ...
+        param.woco_yw.value, ...
+        param.crop_xlim.value, ...
+        param.crop_ylim.value, ...
+        imread(fullfile(param.image_dir.value, param.mask_train_file.value)));
+
+fprintf('Label training data for "sand" class\n');
+[~, sand_poly] = prep_mask_labels(rgb, param.mask_train_sand, true);
+
+fprintf('Label training data for "other" class\n');
+[~, other_poly] = prep_mask_labels(rgb, param.mask_train_other, true);
+
+% save results, take care to avoid accidental overwriting
+prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
+if strcmp(button, 'Yes')
+    param.mask_train_sand.value = sand_poly;
+    param.mask_train_other.value = other_poly;
+    save_param(param, PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+else
+    fprintf('Parameter file NOT saved\n');
+end
+
+%% train sand/other masking model (this step is slow)
+
+% TODO
+
+%% apply sand/other masking model
+
+% TODO
+    
 %% define "mask_manual" section parameters -- interactive
 
 param = load_param(PARAM_FILE);

@@ -56,24 +56,40 @@ pp.crop_ylim.value = [0.0, 0.2];
 
 % masking ----------
 
+pp.mask_train_sand.help = "2D array, vertices of ROI polygons for 'sand' class training data, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
+pp.mask_train_sand.value = [[]];
+
+pp.mask_train_other.help = "2D array, vertices of ROI polygons for 'other' class training data, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
+pp.mask_train_other.value = [[]];
+
+pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
+pp.mask_train_file.value = '';
+
+% obsolete?
 pp.mask_poly.help = "2D array, vertices of mask polygons, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
 pp.mask_poly.value = [[]];
 
+% obsolete?
 pp.mask_hue_lim.help = "2-element vector, double, range [0, 1]. [minimum, maximum] HSV 'hue' included as sand in the mask"; 
 pp.mask_hue_lim.value = [0.01, 0.30];
 
+% obsolete?
 pp.mask_value_lim.help = "2-element vector, double, range [0,1]. [minimum, maximum] HSV 'value' included as sand in the mask";
 pp.mask_value_lim.value = [0.07, 0.6];
 
+% obsolete?
 pp.mask_entropy_lim.help = "2-element vector, double, range [0, 1]. [minimum, maximum] entropy included as sand in the mask"; 
 pp.mask_entropy_lim.value = [0.55, 1.00]; 
 
+% obsolete?
 pp.mask_entropy_len.help = "scalar, integer, window size in pixels for entropy filter"; 
 pp.mask_entropy_len.value = 11;
 
+% obsolete?
 pp.mask_morph_open_rad.help = "scalar, double, radius of disk structuring element used in mophological opening filter";
 pp.mask_morph_open_rad.value =  10;
 
+% obsolete?
 pp.mask_morph_erode_rad.help = "scalar, double, radius of disk structuring element used in mophological erosion filter";
 pp.mask_morph_erode_rad.value = 3;
 
