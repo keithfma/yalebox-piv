@@ -14,7 +14,7 @@ function model = prep_mask_train(rgb, sand_poly, other_poly, model_type)
 %       polygons for sand-pixel training data, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
 % 
-%   model_type: string, selects model from a few options: 'tree' uses a
+%   model_type: string, select mask model from a few options: 'tree' uses a
 %       simple decision tree (relatively fast for development), and 'forest'
 %       uses a slower, better random forest model.
 % 
@@ -35,11 +35,8 @@ validateattributes(other_poly, {'numeric'}, {'2d'});
 validatestring(model_type, {'forest', 'tree'});
 
 % get training set indices
-% TODO: update upstream function so that masks are not inverted
-sand_mask = ~prep_mask_manual(rgb, sand_poly);
-sand_idx = find(sand_mask);
-other_mask = ~prep_mask_manual(rgb, other_poly);
-other_idx = find(other_mask);
+[sand_idx, ~] = prep_mask_labels(rgb, sand_poly);
+[other_idx, ] = prep_mask_labels(rgb, other_poly);
 
 % balance classes by random duplication of the smaller class
 if length(sand_idx) < length(other_idx)

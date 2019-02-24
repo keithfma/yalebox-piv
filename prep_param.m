@@ -144,10 +144,10 @@ param = load_param(PARAM_FILE);
         imread(fullfile(param.image_dir.value, param.mask_train_file.value)));
 
 fprintf('Label training data for "sand" class\n');
-[~, sand_poly] = prep_mask_labels(rgb, param.mask_train_sand, true);
+[~, sand_poly] = prep_mask_labels(train_rgb, param.mask_train_sand, true);
 
 fprintf('Label training data for "other" class\n');
-[~, other_poly] = prep_mask_labels(rgb, param.mask_train_other, true);
+[~, other_poly] = prep_mask_labels(train_rgb, param.mask_train_other, true);
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write parameters to %s?', PARAM_FILE);
@@ -161,13 +161,18 @@ else
     fprintf('Parameter file NOT saved\n');
 end
 
-%% train sand/other masking model (this step is slow)
+%% train and apply sand/other masking model  -- edit param file to update
 
-% TODO
+param = load_param(PARAM_FILE);
 
-%% apply sand/other masking model
+mask_model = prep_mask_train(...
+    train_rgb, ...
+    param.mask_train_sand.value, ...
+    param.mask_train_other.value, ...
+    param.mask_model_type.value);
 
-% TODO
+mask = prep_mask_apply(rgb, mask_model, true);
+
     
 %% define "mask_manual" section parameters -- interactive
 

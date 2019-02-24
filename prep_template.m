@@ -65,6 +65,9 @@ pp.mask_train_other.value = [[]];
 pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
 pp.mask_train_file.value = '';
 
+pp.mask_model_type.help = "string, select mask model from a few options: 'tree' uses a simple decision tree (relatively fast for development), and 'forest' uses a slower, better random forest model.";
+pp.mask_model_type.value = 'tree';
+
 % obsolete?
 pp.mask_poly.help = "2D array, vertices of mask polygons, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
 pp.mask_poly.value = [[]];
