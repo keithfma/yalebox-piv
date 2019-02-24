@@ -1,10 +1,8 @@
 Mask bottom as well as top
 
-+ repurpose prep_mask_manual to interactively select training data
-    + write prep_mask_labels(poly1, poly2, ...) to create a labels for training from polygons
-    + write prep_mask_define_labels(rgb) to interactively make polygons for labeled training data
-    + figure out where to put the pack and unpack utilities - standalone in util?
-
++ update prep_param to include label definition
++ update prep_param to train mask model
++ update prep_param to apply mask model
 
 ---
 
