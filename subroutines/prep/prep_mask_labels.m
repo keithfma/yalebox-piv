@@ -7,18 +7,20 @@ function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
 % Arguments:
 %   rgb: 3D, 24-bit color image
 %
-%  poly_in = initial ROI polygons for labeled image area, polygon vertices
-%    as 2d array with points in columns and NaNs separating each polygon
+%   poly_in: initial ROI polygons for labeled image area, cell array of
+%       2D matrices, each cell contains vertices for one polygon with
+%       x-coord in column 1 and y-coord in column 2
 %
-%  interactive: logical scalar, set true to define/update label polygons
-%    interactively, default is false
+%   interactive: logical scalar, set true to define/update label polygons
+%       interactively, default is false
 % 
 % Returns: 
-%  labels: integer array, linear indices into one layer of RGB for all
-%    pixels inside the label polygons
+%   labels: integer array, linear indices into one layer of RGB for all
+%       pixels inside the label polygons
 % 
-%  poly_out = final ROI polygons for labeled image area, polygon vertices
-%    as 2d array with points in columns and NaNs separating each polygon
+%   poly_out = final ROI polygons for labeled image area,  cell array of
+%       2D matrices, each cell contains vertices for one polygon with
+%       x-coord in column 1 and y-coord in column 2
 % % 
 
 % set defaults
@@ -28,21 +30,19 @@ if nargin < 3; interactive = false; end
 
 if interactive
     % interactive polygon definition
-    unpacked_poly_out = define_polygons(rgb, unpack_polygons(poly_in));
+    poly_out = define_polygons(rgb, poly_in);
 else
     % use input polygons without change
-    unpacked_poly_out = unpack_polygons(poly_in);
+    poly_out = poly_in;
 end
 
 mask = false(size(rgb, 1), size(rgb, 2));
-for ii = 1:length(unpacked_poly_out)
-    x_pts = unpacked_poly_out{ii}(:, 1);
-    y_pts = unpacked_poly_out{ii}(:, 2);
+for ii = 1:length(poly_out)
+    x_pts = poly_out{ii}(:, 1);
+    y_pts = poly_out{ii}(:, 2);
     mask = mask | poly2mask(x_pts, y_pts, size(mask, 1), size(mask, 2));
 end 
 labels = find(mask);
-
-poly_out = pack_polygons(unpacked_poly_out);
 
 
 function outpoly = define_polygons(rgb, inpoly)
@@ -51,14 +51,12 @@ function outpoly = define_polygons(rgb, inpoly)
 % Arguments:
 %   rgb: 3D, 24-bit color image
 % 
-%   inpoly = unpacked polygons, cell array or 2D matrices, each cell
-%       contains vertices for one polygon with x-coord in row 1 and y-coord
-%       in row 2
+%   inpoly = cell array of 2D matrices, each cell contains vertices for one
+%       polygon with x-coord in column 1 and y-coord in column 2
 % 
 % Returns:
-%   outpoly = unpacked polygons, cell array or 2D matrices, each cell
-%       contains vertices for one polygon with x-coord in row 1 and y-coord
-%       in row 2
+%   outpoly = cell array of 2D matrices, each cell contains vertices for
+%       one polygon with x-coord in column 1 and y-coord in column 2
 % %
 
 % constants
@@ -136,44 +134,3 @@ function [] = do_add(~, ~)
 % %
 drawpolygon('Tag', 'ROI');
 uiwait();
-
-
-function unpacked = unpack_polygons(packed)
-% function unpacked = unpack_polygons(packed)
-% 
-% Arguments:
-%   packed = polygon vertices as 2d array with points in columns and NaNs
-%       separating each polygon
-%
-% Returns:
-%   unpacked = cell array or 2D matrices, each cell contains vertices for
-%       one polygon with x-coord in row 1 and y-coord in row 2
-% % 
-unpacked = {};    
-ini = 1;
-while ini < size(packed, 2)
-    fin = find(isnan(packed(1, ini:end)), 1, 'first') + ini - 1;
-    unpacked{end+1} = packed(:, ini:(fin-1))'; %#ok!
-    ini = fin + 1;
-    if ini >= size(packed, 2)
-        break
-    end
-end
-
-
-function packed = pack_polygons(unpacked)
-% function packed = pack_polygons(unpacked)
-% 
-% Arguments:
-%   unpacked = cell array or 2D matrices, each cell contains vertices for
-%       one polygon with x-coord in row 1 and y-coord in row 2
-% 
-% Returns:
-%   packed = polygon vertices as 2d array with points in columns and NaNs
-%       separating each polygon
-% % 
-packed = [];
-for ii = 1:length(unpacked)
-   this_poly = unpacked{ii};
-   packed = [packed, this_poly', nan(2,1)]; %#ok!
-end

@@ -56,11 +56,11 @@ pp.crop_ylim.value = [0.0, 0.2];
 
 % masking ----------
 
-pp.mask_train_sand.help = "2D array, vertices of ROI polygons for 'sand' class training data, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
-pp.mask_train_sand.value = [[]];
+pp.mask_train_sand.help = "Cell array of 2D arrays, vertices of ROI polygons for 'sand' class training data, each cell contains vertices for one polygon with x-coord in column 1 and y-coord in column 2";
+pp.mask_train_sand.value = {};
 
-pp.mask_train_other.help = "2D array, vertices of ROI polygons for 'other' class training data, x-coords in row 1 and y-coords in row 2, polygons separated by NaN";
-pp.mask_train_other.value = [[]];
+pp.mask_train_other.help = "Cell array of 2D arrays, vertices of ROI polygons for 'other' class training data, each cell contains vertices for one polygon with x-coord in column 1 and y-coord in column 2";
+pp.mask_train_other.value = {};
 
 pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
 pp.mask_train_file.value = '';
