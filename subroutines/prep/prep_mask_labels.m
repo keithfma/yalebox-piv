@@ -1,5 +1,5 @@
 function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
-% function [labels, polygons] = prep_mask_labels(rgb, poly_in, interactive)
+% function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
 % 
 % Interactive tool for defining pixel classes using ROI polygons. Select
 % the region(s) that represent a single class (e.g. sand or other)
@@ -7,20 +7,24 @@ function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
 % Arguments:
 %   rgb: 3D, 24-bit color image
 %
-%   poly_in: initial ROI polygons for labeled image area, cell array of
-%       2D matrices, each cell contains vertices for one polygon with
-%       x-coord in column 1 and y-coord in column 2
-%
+%   poly_in: initial ROI polygons for labeled classes, nested cell array,
+%       each top-level cell contains a cell-array of 2D matrices defining
+%       the ROI polygons for a given class, with x-coord in column 1 and
+%       y-coord in column 2. The first class (in poly_out{1}) is sand, by
+%       definition, remaining cells are all flavors of not-sand%
+% 
 %   interactive: logical scalar, set true to define/update label polygons
 %       interactively, default is false
 % 
 % Returns: 
-%   labels: integer array, linear indices into one layer of RGB for all
-%       pixels inside the label polygons
+%   labels: 2D integer matrix, class labels for image pixels, class 0 means
+%       no-label, class 1 means sand, and all other classes are not-sand
 % 
-%   poly_out = final ROI polygons for labeled image area,  cell array of
-%       2D matrices, each cell contains vertices for one polygon with
-%       x-coord in column 1 and y-coord in column 2
+%   poly_out = final ROI polygons for labeled classes, nested cell array,
+%       each top-level cell contains a cell-array of 2D matrices defining
+%       the ROI polygons for a given class, with x-coord in column 1 and
+%       y-coord in column 2. The first class (in poly_out{1}) is sand, by
+%       definition, remaining cells are all flavors of not-sand
 % % 
 
 % set defaults
@@ -36,35 +40,28 @@ else
     poly_out = poly_in;
 end
 
-% TODO: do multiclass labeling
-mask = false(size(rgb, 1), size(rgb, 2));
-for ii = 1:length(poly_out)
-    x_pts = poly_out{ii}(:, 1);
-    y_pts = poly_out{ii}(:, 2);
-    mask = mask | poly2mask(x_pts, y_pts, size(mask, 1), size(mask, 2));
+nrows = size(rgb, 1);
+ncols = size(rgb, 2);
+labels = zeros(nrows, ncols, 'uint8');
+for class_id = 1:length(poly_out)
+    mask = false(nrows, ncols);
+    for ii = 1:length(poly_out{class_id})
+        x_pts = poly_out{class_id}{ii}(:, 1);
+        y_pts = poly_out{class_id}{ii}(:, 2);
+        mask = mask | poly2mask(x_pts, y_pts, nrows, ncols);
+    end
+    labels(mask) = class_id;
 end 
-labels = find(mask);
 
 
 function outpoly = define_polygons(rgb, inpoly)
 % Interactive GUI for defining/updating label ROI polygons
-% 
-% Arguments:
-%   rgb: 3D, 24-bit color image
-% 
-%   inpoly = cell array of 2D matrices, each cell contains vertices for one
-%       polygon with x-coord in column 1 and y-coord in column 2
-% 
-% Returns:
-%   outpoly = cell array of 2D matrices, each cell contains vertices for
-%       one polygon with x-coord in column 1 and y-coord in column 2
 % %
 
 % constants
 margin = 0.025; % norm
 buffer = 0.01; % norm
 font = 14; % pt
-% TODO: update instrictions
 instruct = {'Create polygons for each training class - the first class is sand', ...
             '+ To create a polygon: click "Add" button and then click to define vertices', ...
             '+ To change classes: click "Prev" or "Next" buttons', ...
@@ -143,11 +140,13 @@ update_colors();
 % display image and input polygons 
 imshow(rgb);
 for ii = 1:length(inpoly)
-    images.roi.Polygon(gca, ...
-        'Tag', 'Class', ...
-        'Position', inpoly{ii}, ...
-        'Color', colors(ii, :), ...
-        'UserData', ii);
+    for jj = 1:length(inpoly{ii})
+        images.roi.Polygon(gca, ...
+            'Tag', 'Class', ...
+            'Position', inpoly{ii}{jj}, ...
+            'Color', colors(ii, :), ...
+            'UserData', ii);
+    end
 end
 hax.YDir = 'normal';
 
