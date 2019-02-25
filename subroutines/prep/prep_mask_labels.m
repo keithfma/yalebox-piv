@@ -11,7 +11,7 @@ function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
 %       each top-level cell contains a cell-array of 2D matrices defining
 %       the ROI polygons for a given class, with x-coord in column 1 and
 %       y-coord in column 2. The first class (in poly_out{1}) is sand, by
-%       definition, remaining cells are all flavors of not-sand%
+%       definition, remaining cells are all flavors of not-sand
 % 
 %   interactive: logical scalar, set true to define/update label polygons
 %       interactively, default is false

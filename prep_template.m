@@ -11,7 +11,7 @@ function pp = prep_template(filename)
 update_path('util');
 
 [~, ~, ext] = fileparts(filename);
-assert(strcmp(ext, '.json'), 'Filename must have extension .json');
+assert(strcmp(ext, '.mat'), 'Filename must have extension .mat');
 
 % general --------
 
@@ -56,11 +56,8 @@ pp.crop_ylim.value = [0.0, 0.2];
 
 % masking ----------
 
-pp.mask_train_sand.help = "Cell array of 2D arrays, vertices of ROI polygons for 'sand' class training data, each cell contains vertices for one polygon with x-coord in column 1 and y-coord in column 2";
-pp.mask_train_sand.value = {};
-
-pp.mask_train_other.help = "Cell array of 2D arrays, vertices of ROI polygons for 'other' class training data, each cell contains vertices for one polygon with x-coord in column 1 and y-coord in column 2";
-pp.mask_train_other.value = {};
+pp.mask_train_labels.help = "ROI polygons for labeled classes, nested cell array, each top-level cell contains a cell-array of 2D matrices defining the ROI polygons for a given class, with x-coord in column 1 and y-coord in column 2. The first class (in poly_out{1}) is sand, by definition, remaining cells are all flavors of not-sand";
+pp.mask_train_labels.value = {};
 
 pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
 pp.mask_train_file.value = '';

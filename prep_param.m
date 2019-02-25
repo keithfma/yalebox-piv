@@ -143,18 +143,14 @@ param = load_param(PARAM_FILE);
         param.crop_ylim.value, ...
         imread(fullfile(param.image_dir.value, param.mask_train_file.value)));
 
-fprintf('Label training data for "sand" class\n');
-[~, sand_poly] = prep_mask_labels(train_rgb, param.mask_train_sand, true);
-
-fprintf('Label training data for "other" class\n');
-[~, other_poly] = prep_mask_labels(train_rgb, param.mask_train_other, true);
+fprintf('Label training data for all classes\n');
+[~, mask_poly] = prep_mask_labels(train_rgb, param.mask_train_labels.value, true);
 
 % save results, take care to avoid accidental overwriting
 prompt = sprintf('Write parameters to %s?', PARAM_FILE);
 button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
-    param.mask_train_sand.value = sand_poly;
-    param.mask_train_other.value = other_poly;
+    param.mask_train_labels.value = mask_poly;
     save_param(param, PARAM_FILE);
     fprintf('Saved parameter file: %s\n', PARAM_FILE);
 else
@@ -167,8 +163,7 @@ param = load_param(PARAM_FILE);
 
 mask_model = prep_mask_train(...
     train_rgb, ...
-    param.mask_train_sand.value, ...
-    param.mask_train_other.value, ...
+    param.mask_train_labels.value, ...
     param.mask_model_type.value);
 
 mask = prep_mask_apply(rgb, mask_model, true);
