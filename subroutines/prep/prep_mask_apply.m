@@ -33,12 +33,13 @@ X = prep_mask_features(rgb);
 labels = predict(model, X);
 if iscell(labels)
     % random forest models return silly cell arrays, conver to numeric
+    error('RF model not implemented for multiclass case');
     labels = double(cell2mat(labels));
     labels(labels == double('1')) = true;
     labels(labels == double('0')) = false;
 end
 labels = reshape(labels, size(rgb, 1), size(rgb, 2));
-mask = logical(labels);
+mask = labels == 1;
 
 % fill holes along edges (wall off one corner, fill, repeat)
 ridx = 1:size(mask, 1);
@@ -63,7 +64,7 @@ mask = imclose(mask, strel('disk', 30));
 
 % display
 if show
-    hf = figure
+    hf = figure;
     hf.Name = 'Masking Results';
     
     hax1 = subplot(2, 1, 1);
