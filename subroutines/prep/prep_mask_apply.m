@@ -33,10 +33,10 @@ X = prep_mask_features(rgb);
 labels = predict(model, X);
 if iscell(labels)
     % random forest models return silly cell arrays, conver to numeric
-    error('RF model not implemented for multiclass case');
+    for ii = 1:length(labels)  % TODO: slow, there must be a better way
+        labels{ii} = str2double(labels{ii});
+    end
     labels = double(cell2mat(labels));
-    labels(labels == double('1')) = true;
-    labels(labels == double('0')) = false;
 end
 labels = reshape(labels, size(rgb, 1), size(rgb, 2));
 mask = labels == 1;
