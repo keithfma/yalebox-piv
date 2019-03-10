@@ -157,6 +157,18 @@ else
     fprintf('Parameter file NOT saved\n');
 end
 
+%% extract features for mask training -- edit param file to update
+
+% TODO: specify parameters in parameter file
+scale = 25;
+sigma = 0.5;
+min_size = 50;
+
+train_segments = prep_mask_segments(train_rgb, scale, sigma, min_size, true);
+
+train_features = prep_mask_features(train_rgb, train_segments);
+
+
 %% train and apply sand/other masking model  -- edit param file to update
 
 param = load_param(PARAM_FILE);
