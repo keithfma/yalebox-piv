@@ -25,7 +25,7 @@ if nargin < 3; model_type = 'tree'; end
 % sanity check
 validateattributes(rgb, {'numeric'}, {'3d'});
 % TODO: check labels_poly
-validatestring(model_type, {'forest', 'tree'});
+validatestring(model_type, {'forest', 'tree', 'naiive_bayes'});
 
 % get training set labels as linear indices into a band of rgb
 [labels, ~] = prep_mask_labels(rgb, labels_poly);
@@ -44,19 +44,6 @@ label_idx = zeros(num_balanced, num_classes, 'int64');
 for ii = 1:num_classes
    label_idx(:, ii) = randsample(find(labels == unique_labels(ii)), num_balanced, true);
 end
-
-
-disp('DEBUG');
-
-% if length(sand_idx) < length(other_idx)
-%     num_extra = length(other_idx) - length(sand_idx);
-%     extra_idx = randsample(sand_idx, num_extra, true);
-%     sand_idx = [sand_idx; extra_idx];
-% else
-%     num_extra = length(sand_idx) - length(other_idx);
-%     extra_idx = randsample(other_idx, num_extra, true);
-%     other_idx = [other_idx; extra_idx];    
-% end
 
 % extract training set
 X = prep_mask_features(rgb);
@@ -79,6 +66,9 @@ switch model_type
                          % 'Options', statset('UseParallel', true)); 
     case 'tree'
         model = fitctree(X_train, Y_train);
+
+    case 'naiive_bayes'
+        model = fitcnb(X_train, Y_train);
 
                      
     otherwise
