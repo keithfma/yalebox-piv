@@ -1,4 +1,4 @@
-function model = prep_mask_train(rgb, labels_poly, model_type)
+function model = prep_mask_train(rgb, segments, labels_poly, model_type, show)
 % function model = prep_mask_train(rgb, labels_poly, model_type)
 % 
 % Train classifier to label pixels as sand (1) or other (0)
@@ -6,11 +6,15 @@ function model = prep_mask_train(rgb, labels_poly, model_type)
 % Arguments:
 %   rgb: 3D matrix, RGB 24-bit image
 % 
+%   segments: TODO
+% 
 %   labels_poly: TODO
 % 
 %   model_type: string, select mask model from a few options: 'tree' uses a
 %       simple decision tree (relatively fast for development), and 'forest'
 %       uses a slower, better random forest model.
+% 
+%   show: set true to display results for smell test
 % 
 %  Returns:
 %   model: ML model class, trained classifier
@@ -20,11 +24,13 @@ function model = prep_mask_train(rgb, labels_poly, model_type)
 % TODO: post process the mask with morph filters (like before)
 
 % set defaults
-if nargin < 3; model_type = 'tree'; end
+narginchk(3, 5);
+if nargin < 4; model_type = 'tree'; end
+if nargin < 5; show = false; end
 
 % sanity check
+% TODO: complete sanity checks
 validateattributes(rgb, {'numeric'}, {'3d'});
-% TODO: check labels_poly
 validatestring(model_type, {'forest', 'tree', 'naiive_bayes'});
 
 % get training set labels as linear indices into a band of rgb
