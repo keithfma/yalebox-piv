@@ -38,7 +38,7 @@ layer_labels = {...
     'hue', ...
     'saturation', ...
     'value', ...
-    'value_entropy'};
+    'value entropy'};
 num_pix = size(rgb, 1)*size(rgb, 2);
 layers = {...
     reshape(rgb(:,:,1), num_pix, 1), ...
@@ -66,21 +66,21 @@ for ii = 1:num_layers
 end
 features = cell2mat(features);
 
+% optional display
 if show
     fprintf('%s: display features, pausing between each\n', mfilename);
-    figure;
-    base_colormap = parula;
+    figure('Units', 'Normalized', 'Outerposition', [0 0 1 1]);
     for ii = 1:length(feature_labels)
         this_features = features(:, ii);
-        this_colormap = interp1(...
-            linspace(min(this_features), max(this_features), length(base_colormap))', ...
-            base_colormap, ...
-            this_features);
-        imshow(segments, this_colormap);
+        imagesc(this_features(segments));
+        set(gca, 'YDir', 'Normal');
+        colorbar
+        axis equal tight
         title(feature_labels{ii});
-        pause
+        pause                
     end
 end
+
 
 function [labels, features] = compute_features(layer_name, layer_data, segment_data)
 %
@@ -92,7 +92,7 @@ func_handle = @(x) [mean(x), std(x), prctile(x, [5, 25, 50, 75, 95])];
 
 labels = cell(1, length(func_names));
 for ii = 1:length(labels)
-    labels{ii} = sprintf('%s %s', layer_name, func_names{ii});
+    labels{ii} = sprintf('%s - %s', layer_name, func_names{ii});
 end
 
 features = splitapply(func_handle, layer_data, segment_data);
