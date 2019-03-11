@@ -39,8 +39,16 @@ assert(all(unique(labels(:)) == [1; 2]), 'Unexpected class(es) in output labels'
 % convert labels to mask
 mask = labels(segments);
 
-% TODO: use object sizes to clean things up (drop below min object size)
-% TODO: use morphological filters to clean things up
+% screen out by connected object area, convert to logical mask
+objects = bwlabel(mask==1) + 1;  % convert to 1-based index
+object_areas = splitapply(@sum, ones(size(objects(:))), objects(:));
+keep_objects = object_areas > (50*50);
+keep_objects(1) = false;  % 0 means not in original mask, drop it
+mask = keep_objects(objects); 
+
+% clean up edges with morphological filters
+mask = imopen(mask, strel('disk', 5));
+mask = imclose(mask, strel('disk', 5));
 
 % display
 if ~isempty(rgb)
@@ -48,14 +56,14 @@ if ~isempty(rgb)
     hf.Name = 'Masking Results';
     
     hax1 = subplot(2, 1, 1);
-    imagesc(rgb, 'AlphaData', mask == 1);
+    imagesc(rgb, 'AlphaData', mask);
     axis equal tight
     hax1.Color = [1.0, 0.25, 0.25];
     hax1.YDir = 'normal';
     title('Sand');
     
     hax2 = subplot(2, 1, 2);
-    imagesc(rgb, 'AlphaData', mask == 2);
+    imagesc(rgb, 'AlphaData', ~mask);
     axis equal tight
     hax2.Color = [1.0, 0.25, 0.25];
     hax2.YDir = 'normal';
