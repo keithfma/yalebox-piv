@@ -193,11 +193,11 @@ end
 param = load_param(PARAM_FILE);
 
 mask_model = prep_mask_train(...
-    train_rgb, ...
+    param.mask_train_features.value, ...
     param.mask_train_labels.value, ...
     param.mask_model_type.value);
 
-mask = prep_mask_apply(rgb, mask_model, true);
+% mask = prep_mask_apply(rgb, mask_model, true);
 
     
 %% define "mask_manual" section parameters -- interactive
