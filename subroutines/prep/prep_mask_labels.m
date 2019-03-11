@@ -26,8 +26,7 @@ if nargin < 3 || isempty(labels)
 end
 
 % sanity checks: TODO
-
-% define UI constants
+% TODO: we assume that segments starts with 1 and is sequential, check this
 
 % constants
 margin = 0.025; % norm
@@ -111,26 +110,29 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', font, ...
     'Callback', @(~,~)msgbox(instruct));
 
-% display image and segmentation boundaries input polygons 
+% display image
 h_rgb = imshow(rgb);
 set(h_rgb, 'Tag', 'RGB');
 hold on
+
+class_mask = labels(segments);
+sand_mask = double(class_mask == 1);
+other_mask = double(class_mask == 2);
 
 [nr, nc, ~] = size(rgb);
 blue = zeros(nr, nc, 3, 'uint8');
 blue(:, :, 3) = 255;
 h_sand = imshow(blue);
-set(h_sand, 'AlphaData', zeros(nr, nc), 'Tag', 'SandMask');
+set(h_sand, 'AlphaData', 0.5*sand_mask, 'Tag', 'SandMask');
 
 red = zeros(nr, nc, 3, 'uint8');
 red(:, :, 1) = 255;
 h_other = imshow(red); 
-set(h_other, 'AlphaData', zeros(nr, nc), 'Tag', 'OtherMask');
+set(h_other, 'AlphaData', 0.5*other_mask, 'Tag', 'OtherMask');
 
 hax.YDir = 'normal';
 
 % store segments with figure for use in callbacks
-% TODO: we assume that segments starts with 1 and is sequential, check this
 setappdata(hf, 'segments', segments);
 setappdata(hf, 'num_segments', length(unique(segments)));
 

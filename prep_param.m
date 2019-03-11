@@ -133,43 +133,60 @@ fprintf('Displaying rectifed & cropped test image\n');
     
 %% segment training image and retrieve features for each segment -- edit param file to update
 
-
 param = load_param(PARAM_FILE);
-% TODO: specify parameters in parameter file
- scale = 25;
-sigma = 0.5;
-min_size = 50;
 
 [train_rgb, ~, ~] = prep_rectify_and_crop(...
-        param.woco_xp.value, ...
-        param.woco_yp.value, ...
-        param.woco_xw.value, ...
-        param.woco_yw.value, ...
-        param.crop_xlim.value, ...
-        param.crop_ylim.value, ...
-        imread(fullfile(param.image_dir.value, param.mask_train_file.value)));
+    param.woco_xp.value, ...
+    param.woco_yp.value, ...
+    param.woco_xw.value, ...
+    param.woco_yw.value, ...
+    param.crop_xlim.value, ...
+    param.crop_ylim.value, ...
+    imread(fullfile(param.image_dir.value, param.mask_train_file.value)));
 
-train_segments = prep_mask_segments(train_rgb, scale, sigma, min_size, true);
-train_features = prep_mask_features(train_rgb, train_segments, true);
+train_segments = prep_mask_segments(...
+    train_rgb, ...
+    param.mask_segment_scale.value, ...
+    param.mask_segment_sigma.value, ...
+    param.mask_segment_min_size.value, ...
+    true);
+
+train_features = prep_mask_features(...
+    train_rgb, ...
+    train_segments, ...
+    true);
+
+% save results, take care to avoid accidental overwriting
+prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
+if strcmp(button, 'Yes')
+    param.mask_train_features.value = train_features;
+    save_param(param, PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+else
+    fprintf('Parameter file NOT saved\n');
+end
 
 %% define labels for mask training -- interactive
 
 param = load_param(PARAM_FILE);
 
-fprintf('Label training data for sand (1) and other (2) classes\n');
-train_labels = []; % TODO: use training labels from parameter file
-prep_mask_labels(train_rgb, train_segments, train_labels);      
+fprintf('Label training data for sand and other classes\n');
+train_labels = prep_mask_labels(...
+    train_rgb, ...
+    train_segments, ...
+    param.mask_train_labels.value);      
     
-% % save results, take care to avoid accidental overwriting
-% prompt = sprintf('Write parameters to %s?', PARAM_FILE);
-% button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
-% if strcmp(button, 'Yes')
-%     param.mask_train_labels.value = mask_poly;
-%     save_param(param, PARAM_FILE);
-%     fprintf('Saved parameter file: %s\n', PARAM_FILE);
-% else
-%     fprintf('Parameter file NOT saved\n');
-% end
+% save results, take care to avoid accidental overwriting
+prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
+if strcmp(button, 'Yes')
+    param.mask_train_labels.value = train_labels;
+    save_param(param, PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+else
+    fprintf('Parameter file NOT saved\n');
+end
 
 %% train and apply sand/other masking model  -- edit param file to update
 
