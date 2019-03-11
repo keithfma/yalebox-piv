@@ -16,14 +16,12 @@ function model = prep_mask_train(features, labels, model_type)
 %   model: ML model class, trained classifier
 % % 
 
-% TODO: add log messages
-
 % set defaults
 narginchk(2, 3);
 if nargin < 3; model_type = 'tree'; end
 
 % sanity check
-% TODO: complete sanity checks\
+% TODO: complete sanity checks
 % TODO: check that labels contains only 0, 1, 2
 validatestring(model_type, {'forest', 'tree', 'naiive_bayes'});
 
@@ -54,15 +52,12 @@ labels = [labels; labels(sample_idx)];
 features = [features; features(sample_idx, :)];    
 
 % fit model
-% TODO: fiddle with model parameters
 switch model_type
     case 'forest'
         % note: the best performing option tested so far
         fprintf('%s: train random forest model\n', mfilename);
         model = TreeBagger(100, features, labels, ...
-                           'InBagFraction', 0.80, ...
-                           'NumPrint', 1); %  , ...
-                         % 'Options', statset('UseParallel', true)); 
+                           'InBagFraction', 0.80); 
     case 'tree'
         fprintf('%s: train decision tree model\n', mfilename);
         model = fitctree(features, labels);

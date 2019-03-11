@@ -64,8 +64,8 @@ pp.mask_segment_scale.value = 25;
 pp.mask_segment_sigma.help = 'Scalar, parameter to Felzenswalb segmentation, width of Gaussian kernel used in preprocessing';
 pp.mask_segment_sigma.value = 0.5;
 
-p.mask_segment_min_size.help = 'Scalar, parameter to Felzenswalb segmentation, minimum component size';
-p.mask_segment_min_size.value = 50;
+pp.mask_segment_min_size.help = 'Scalar, parameter to Felzenswalb segmentation, minimum component size';
+pp.mask_segment_min_size.value = 50;
 
 pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
 pp.mask_train_file.value = '';

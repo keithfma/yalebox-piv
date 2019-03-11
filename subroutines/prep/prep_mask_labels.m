@@ -1,5 +1,5 @@
-function labels = prep_mask_labels_new(rgb, segments, labels)
-% function labels = prep_mask_labels_new(rgb, segments, labels)
+function labels = prep_mask_labels(rgb, segments, labels)
+% function labels = prep_mask_labels(rgb, segments, labels)
 % 
 % Interactive tool for defining super-pixel classes using ROI polygons. Select
 % the region(s) that represent a single class (e.g. sand or other)
@@ -20,12 +20,18 @@ function labels = prep_mask_labels_new(rgb, segments, labels)
 
 % set defaults
 narginchk(2, 3);
+if nargin < 3; labels = []; end
+
+% discard input labels if number of segments does not match
+% note: this is a common case if the user updates segmentation settings
 num_segments = length(unique(segments(:)));
-if nargin < 3 || isempty(labels)
+if length(labels) ~= num_segments
+    warning('Input labels do not match the number of image segments, ignoring them');
     labels = zeros(num_segments, 1, 'uint8');
 end
 
 % sanity checks: TODO
+
 % TODO: we assume that segments starts with 1 and is sequential, check this
 
 % constants
