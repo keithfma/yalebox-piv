@@ -156,12 +156,10 @@ train_features = prep_mask_features(train_rgb, train_segments, true);
 
 param = load_param(PARAM_FILE);
 
+fprintf('Label training data for sand (1) and other (2) classes\n');
 train_labels = []; % TODO: use training labels from parameter file
-prep_mask_labels_new(train_rgb, train_segments, train_labels);      
+prep_mask_labels(train_rgb, train_segments, train_labels);      
     
-% fprintf('Label training data for all classes\n');
-% [~, mask_poly] = prep_mask_labels(train_rgb, param.mask_train_labels.value, true);
-% 
 % % save results, take care to avoid accidental overwriting
 % prompt = sprintf('Write parameters to %s?', PARAM_FILE);
 % button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
@@ -172,7 +170,6 @@ prep_mask_labels_new(train_rgb, train_segments, train_labels);
 % else
 %     fprintf('Parameter file NOT saved\n');
 % end
-
 
 %% train and apply sand/other masking model  -- edit param file to update
 

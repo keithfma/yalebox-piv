@@ -1,64 +1,33 @@
-function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
-% function [labels, poly_out] = prep_mask_labels(rgb, poly_in, interactive)
+function labels = prep_mask_labels_new(rgb, segments, labels)
+% function labels = prep_mask_labels_new(rgb, segments, labels)
 % 
-% Interactive tool for defining pixel classes using ROI polygons. Select
+% Interactive tool for defining super-pixel classes using ROI polygons. Select
 % the region(s) that represent a single class (e.g. sand or other)
 % 
 % Arguments:
 %   rgb: 3D, 24-bit color image
+%   
+%   segments: TODO
 %
-%   poly_in: initial ROI polygons for labeled classes, nested cell array,
-%       each top-level cell contains a cell-array of 2D matrices defining
-%       the ROI polygons for a given class, with x-coord in column 1 and
-%       y-coord in column 2. The first class (in poly_out{1}) is sand, by
-%       definition, remaining cells are all flavors of not-sand
-% 
-%   interactive: logical scalar, set true to define/update label polygons
-%       interactively, default is false
+%   labels: TODO
 % 
 % Returns: 
-%   labels: 2D integer matrix, class labels for image pixels, class 0 means
-%       no-label, class 1 means sand, and all other classes are not-sand
-% 
-%   poly_out = final ROI polygons for labeled classes, nested cell array,
-%       each top-level cell contains a cell-array of 2D matrices defining
-%       the ROI polygons for a given class, with x-coord in column 1 and
-%       y-coord in column 2. The first class (in poly_out{1}) is sand, by
-%       definition, remaining cells are all flavors of not-sand
+%   labels: S
 % % 
 
+% NOTE: always interactive, we just save the training data, including the
+% label vector.
+
 % set defaults
-if nargin < 3; interactive = false; end
-
-% TODO: sanity checks
-
-if interactive
-    % interactive polygon definition
-    poly_out = define_polygons(rgb, poly_in);
-else
-    % use input polygons without change
-    poly_out = poly_in;
+narginchk(2, 3);
+num_segments = length(unique(segments(:)));
+if nargin < 3 || isempty(labels)
+    labels = zeros(num_segments, 1, 'uint8');
 end
 
-nrows = size(rgb, 1);
-ncols = size(rgb, 2);
-labels = zeros(nrows, ncols, 'uint8');
-for class_id = 1:length(poly_out)
-    mask = false(nrows, ncols);
-    for ii = 1:length(poly_out{class_id})
-        x_pts = poly_out{class_id}{ii}(:, 1);
-        y_pts = poly_out{class_id}{ii}(:, 2);
-        mask = mask | poly2mask(x_pts, y_pts, nrows, ncols);
-    end
-    labels(mask) = class_id;
-end 
+% sanity checks: TODO
 
-
-
-
-function outpoly = define_polygons(rgb, inpoly)
-% Interactive GUI for defining/updating label ROI polygons
-% %
+% define UI constants
 
 % constants
 margin = 0.025; % norm
@@ -77,28 +46,34 @@ img_width = 1 - 2*margin;
 img_height = 1 - (img_bot + 2*margin);
 img_pos = [img_left, img_bot, img_width, img_height];
 
-prev_left = margin;
-prev_bot = margin;
-prev_width = 0.1;
-prev_height = 0.05;
-prev_pos = [prev_left, prev_bot, prev_width, prev_height];
+add_sand_left = margin;
+add_sand_bot = margin;
+add_sand_width = 0.1;
+add_sand_height = 0.05;
+add_sand_pos = [add_sand_left, add_sand_bot, add_sand_width, add_sand_height];
 
-add_left = prev_left + prev_width + buffer;
-add_bot = prev_bot;
-add_width = prev_width;
-add_height = prev_height;
-add_pos = [add_left, add_bot, add_width, add_height];
+rem_sand_left = add_sand_left + add_sand_width + buffer;
+rem_sand_bot = add_sand_bot;
+rem_sand_width = add_sand_width;
+rem_sand_height = add_sand_height;
+rem_sand_pos = [rem_sand_left, rem_sand_bot, rem_sand_width, rem_sand_height];
 
-next_left = add_left + add_width + buffer;
-next_bot = add_bot;
-next_width = add_width;
-next_height = add_height;
-next_pos = [next_left, next_bot, next_width, next_height];
+add_other_left = rem_sand_left + rem_sand_width + buffer;
+add_other_bot = rem_sand_bot;
+add_other_width = rem_sand_width;
+add_other_height = rem_sand_height;
+add_other_pos = [add_other_left, add_other_bot, add_other_width, add_other_height];
 
-done_left = next_left + next_width + buffer;
-done_bot = next_bot;
-done_width = next_width;
-done_height = next_height;
+rem_other_left = add_other_left + add_other_width + buffer;
+rem_other_bot = add_other_bot;
+rem_other_width = add_other_width;
+rem_other_height = add_other_height;
+rem_other_pos = [rem_other_left, rem_other_bot, rem_other_width, rem_other_height];
+
+done_left = rem_other_left + rem_other_width + buffer;
+done_bot = rem_other_bot;
+done_width = rem_other_width;
+done_height = rem_other_height;
 done_pos = [done_left, done_bot, done_width, done_height];
 
 help_left = done_left + done_width + buffer;
@@ -113,16 +88,20 @@ hf = figure('Units', 'Normalized', 'Outerposition', [0 0 1 1]);
 hax = axes('Units', 'Normalized', 'Position', img_pos);
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', 'Tag', 'PrevBtn', ...
-    'Position', prev_pos, 'String', 'Prev Class', 'FontSize', font, ...
-    'Callback', @do_prev);
+    'Position', add_sand_pos, 'String', 'Add Sand', 'FontSize', font, ...
+    'Callback', @do_add_sand);
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', 'Tag', 'AddBtn', ...
-    'Position', add_pos, 'String', 'Add Poly', 'FontSize', font, ...
-    'Callback', @do_add);
+    'Position', rem_sand_pos, 'String', 'Remove Sand', 'FontSize', font, ...
+    'Callback', @do_rem_sand);
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', 'Tag', 'NextBtn', ...
-    'Position', next_pos, 'String', 'Next Class', 'FontSize', font, ...
-    'Callback', @do_next);
+    'Position', add_other_pos, 'String', 'Add Other', 'FontSize', font, ...
+    'Callback', @do_add_other);
+
+uicontrol('Style', 'pushbutton', 'Units', 'normalized', 'Tag', 'NextBtn', ...
+    'Position', rem_other_pos, 'String', 'Remove Other', 'FontSize', font, ...
+    'Callback', @do_rem_other);
 
 uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', done_pos, 'String', 'Done', 'FontSize', font, ...
@@ -132,96 +111,118 @@ uicontrol('Style', 'pushbutton', 'Units', 'normalized', ...
     'Position', help_pos, 'String', 'Help', 'FontSize', font, ...
     'Callback', @(~,~)msgbox(instruct));
 
-colors = lines;
-setappdata(hf, 'class_colors', colors);
-setappdata(hf, 'prev_class', 1);
-setappdata(hf, 'current_class', 1);
-setappdata(hf, 'next_class', 2);
-update_colors();
+% display image and segmentation boundaries input polygons 
+h_rgb = imshow(rgb);
+set(h_rgb, 'Tag', 'RGB');
+hold on
 
-% display image and input polygons 
-imshow(rgb);
-for ii = 1:length(inpoly)
-    for jj = 1:length(inpoly{ii})
-        images.roi.Polygon(gca, ...
-            'Tag', 'Class', ...
-            'Position', inpoly{ii}{jj}, ...
-            'Color', colors(ii, :), ...
-            'UserData', ii);
-    end
-end
+[nr, nc, ~] = size(rgb);
+blue = zeros(nr, nc, 3, 'uint8');
+blue(:, :, 3) = 255;
+h_sand = imshow(blue);
+set(h_sand, 'AlphaData', zeros(nr, nc), 'Tag', 'SandMask');
+
+red = zeros(nr, nc, 3, 'uint8');
+red(:, :, 1) = 255;
+h_other = imshow(red); 
+set(h_other, 'AlphaData', zeros(nr, nc), 'Tag', 'OtherMask');
+
 hax.YDir = 'normal';
+
+% store segments with figure for use in callbacks
+% TODO: we assume that segments starts with 1 and is sequential, check this
+setappdata(hf, 'segments', segments);
+setappdata(hf, 'num_segments', length(unique(segments)));
 
 % wait here until user presses "Done"
 uiwait(); 
 
-% % retreive and reformat output polygons
-objs = findobj(hf, 'Tag', 'ROI');
+% gather results from transparency layers and cleanup
+labels = zeros(num_segments, 1, 'uint8');
 
-class_ids = [];
-for jj = 1:length(objs)
-    class_ids(end+1) = objs(jj).UserData;  %#ok<AGROW>
-end
-    
-outpoly = cell(size(unique(class_ids)));
-for jj = 1:length(outpoly)
-    outpoly{jj} = {};
-end
+sand_mask = h_sand.AlphaData;
+sand_idx = unique(segments(sand_mask > 0));
+labels(sand_idx) = 1;
 
-for kk = 1:length(objs)
-    class_id = objs(kk).UserData;
-    outpoly{class_id}{end+1} = objs(kk).Position;
-end
+other_mask = h_other.AlphaData;
+other_idx = unique(segments(other_mask > 0));
+labels(other_idx) = 2;
 
 close(hf)
 
 
-function [] = update_colors()
-% Utility for updating colors when current class changes
+function mask = select_by_polygon()
+% Generate mask including all segments touched by user-drawn polygon
 % %
-colors = getappdata(gcf, 'class_colors');
+num_segments = getappdata(gcf, 'num_segments');
+segments = getappdata(gcf, 'segments');
 
-prev_obj = findobj(gcf, 'Tag', 'PrevBtn');
-prev_class = getappdata(gcf, 'prev_class');
-prev_obj.ForegroundColor = colors(prev_class, :);
+poly = drawpolygon();
+[nr, nc, ~] = size(get(findobj('Tag', 'RGB'), 'CData'));
+footprint = poly2mask(poly.Position(:,1), poly.Position(:,2), nr, nc);
+selected_segments = false(num_segments, 1);
+selected_segments(unique(segments(footprint))) = true;
+mask = selected_segments(segments);
 
-add_obj = findobj(gcf, 'Tag', 'AddBtn');
-current_class = getappdata(gcf, 'current_class');
-add_obj.ForegroundColor = colors(current_class, :);
-
-next_obj = findobj(gcf, 'Tag', 'NextBtn');
-next_class = getappdata(gcf, 'next_class');
-next_obj.ForegroundColor = colors(next_class, :);
+delete(poly);
 
 
-function [] = update_class(delta)
-% Update class indices
+function [] = do_add_sand(~, ~)
+% Callback for "Add Sand" button
 % %
-current_class = getappdata(gcf, 'current_class');
-current_class = max(current_class + delta, 1);
-prev_class = max(current_class - 1, 1);
-next_class = current_class + 1;
-setappdata(gcf, 'prev_class', prev_class);
-setappdata(gcf, 'current_class', current_class);
-setappdata(gcf, 'next_class', next_class);
-update_colors();
-
-
-function [] = do_prev(~, ~)
-% Callback for "Prev Class" button
-% %
-update_class(-1);
-
-function [] = do_add(~, ~)
-% Callback for "Add Poly" button
-% %
-colors = getappdata(gcf, 'class_colors');
-current_class = getappdata(gcf, 'current_class');
-drawpolygon('Tag', 'ROI', 'Color', colors(current_class, :), 'UserData', current_class);
+new_mask = select_by_polygon();
+% add mask to sand
+h_sand = findobj('Tag', 'SandMask');
+sand_mask = h_sand.AlphaData;
+sand_mask(new_mask) = 0.5;
+h_sand.AlphaData = sand_mask;
+% remove mask from other
+h_other = findobj('Tag', 'OtherMask');
+other_mask = h_other.AlphaData;
+other_mask(new_mask) = 0;
+h_other.AlphaData = other_mask;
+% don't close window
 uiwait();
 
 
-function [] = do_next(~, ~)
-% Callback for "Next Class" button
+function [] = do_rem_sand(~, ~)
+% Callback for "Remove Sand" button
 % %
-update_class(1)
+new_mask = select_by_polygon();
+% remove mask from sand
+h_sand = findobj('Tag', 'SandMask');
+sand_mask = h_sand.AlphaData;
+sand_mask(new_mask) = 0;
+h_sand.AlphaData = sand_mask;
+% don't close window
+uiwait();
+
+
+function [] = do_add_other(~, ~)
+% Callback for "Add Other" button
+% %
+new_mask = select_by_polygon();
+% remove mask from sand
+h_sand = findobj('Tag', 'SandMask');
+sand_mask = h_sand.AlphaData;
+sand_mask(new_mask) = 0;
+h_sand.AlphaData = sand_mask;
+% add mask to other
+h_other = findobj('Tag', 'OtherMask');
+other_mask = h_other.AlphaData;
+other_mask(new_mask) = 0.5;
+h_other.AlphaData = other_mask;
+% don't close window
+uiwait();
+
+function [] = do_rem_other(~, ~)
+% Callback for "Remove Other" button
+% %
+new_mask = select_by_polygon();
+% remove mask from other
+h_other = findobj('Tag', 'OtherMask');
+other_mask = h_other.AlphaData;
+other_mask(new_mask) = 0;
+h_other.AlphaData = other_mask;
+% don't close window
+uiwait();
