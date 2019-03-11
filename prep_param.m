@@ -188,6 +188,7 @@ else
     fprintf('Parameter file NOT saved\n');
 end
 
+
 %% train and apply sand/other masking model  -- edit param file to update
 
 param = load_param(PARAM_FILE);
@@ -197,10 +198,15 @@ mask_model = prep_mask_train(...
     param.mask_train_labels.value, ...
     param.mask_model_type.value);
 
-% mask = prep_mask_apply(rgb, mask_model, true);
+mask = prep_mask_apply(...
+    mask_model, ...
+    train_features, ...
+    train_segments, ...
+    train_rgb);
 
-    
+
 %% define "mask_manual" section parameters -- interactive
+
 
 param = load_param(PARAM_FILE);
 
