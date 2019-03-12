@@ -1,29 +1,23 @@
-function model = prep_mask_train(features, labels, model_type)
-% function model = prep_mask_train(features, labels, model_type)
+function model = prep_mask_train(features, labels)
+% function model = prep_mask_train(features, labels)
 % 
-% Train classifier to label pixels as sand (1) or other (2)
+% Train random forest classifier to label pixels as sand (1) or other (2)
 %
 % Arguments:
 %   features: TODO
 % 
 %   labels: TODO
 % 
-%   model_type: string, select mask model from a few options: 'tree' uses a
-%       simple decision tree (relatively fast for development), and 'forest'
-%       uses a slower, better random forest model.
-% 
 %  Returns:
-%   model: ML model class, trained classifier
+%   model: ML model class, trained random forest classifier
 % % 
 
 % set defaults
-narginchk(2, 3);
-if nargin < 3; model_type = 'tree'; end
+narginchk(2, 2);
 
 % sanity check
 % TODO: complete sanity checks
 % TODO: check that labels contains only 0, 1, 2
-validatestring(model_type, {'forest', 'tree', 'naiive_bayes'});
 
 % drop no-class labels
 has_class_idx = find(labels ~= 0);
@@ -52,20 +46,6 @@ labels = [labels; labels(sample_idx)];
 features = [features; features(sample_idx, :)];    
 
 % fit model
-switch model_type
-    case 'forest'
-        % note: the best performing option tested so far
-        fprintf('%s: train random forest model\n', mfilename);
-        model = TreeBagger(100, features, labels, ...
-                           'InBagFraction', 0.80); 
-    case 'tree'
-        fprintf('%s: train decision tree model\n', mfilename);
-        model = fitctree(features, labels);
-
-    case 'naiive_bayes'
-        fprintf('%s: train naiive bayes model\n', mfilename);
-        model = fitcnb(features, labels);
-
-    otherwise
-        error('Bad value for input argument "model_type"');
-end
+% note: minimal experimentation with model parameters
+fprintf('%s: train random forest model\n', mfilename);
+model = TreeBagger(100, features, labels, 'InBagFraction', 0.80); 

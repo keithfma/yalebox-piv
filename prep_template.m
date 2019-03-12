@@ -59,13 +59,13 @@ pp.crop_ylim.value = [0.0, 0.2];
 % masking ----------
 
 pp.mask_segment_scale.help = 'Scalar, parameter to Felzenswalb segmentation, free parameter, higher means larger clusters';
-pp.mask_segment_scale.value = 25;
+pp.mask_segment_scale.value = 15;
 
 pp.mask_segment_sigma.help = 'Scalar, parameter to Felzenswalb segmentation, width of Gaussian kernel used in preprocessing';
 pp.mask_segment_sigma.value = 0.5;
 
 pp.mask_segment_min_size.help = 'Scalar, parameter to Felzenswalb segmentation, minimum component size';
-pp.mask_segment_min_size.value = 50;
+pp.mask_segment_min_size.value = 20;
 
 pp.mask_train_file.help = "string, filename (without directory) of image to use for mask model training data";
 pp.mask_train_file.value = '';
@@ -75,9 +75,6 @@ pp.mask_train_features.value = [];
 
 pp.mask_train_labels.help = "1D array of length num_segments, labels for training features, 0 = unclassified, 1 = sand, 2 = other (not sand)";
 pp.mask_train_labels.value = [];
-
-pp.mask_model_type.help = "string, select mask model from a few options: 'tree' uses a simple decision tree (relatively fast for development), and 'forest' uses a slower, better random forest model.";
-pp.mask_model_type.value = 'tree';
 
 % color adjustment ----------
 

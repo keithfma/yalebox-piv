@@ -1,8 +1,8 @@
 Mask bottom as well as top
 
-+ update prep_param to include label definition
-+ update prep_param to train mask model
-+ update prep_param to apply mask model
++ add manual mask back in, to be applied after the automatic masking, need this
+    to avoid catastrophic errors at the base, rely on model to handle the details
++ save combined mask only
 
 ---
 

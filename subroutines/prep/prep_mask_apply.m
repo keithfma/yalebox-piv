@@ -29,6 +29,7 @@ if nargin < 4; rgb = []; end
 % TODO
 
 % predict
+fprintf('%s: predict image segment class (sand, other)\n', mfilename);
 labels = predict(model, features);
 if iscell(labels)
     % some models (i.e., random forest) return silly cell arrays, convert to numeric
@@ -40,13 +41,20 @@ assert(all(unique(labels(:)) == [1; 2]), 'Unexpected class(es) in output labels'
 mask = labels(segments);
 
 % screen out by connected object area, convert to logical mask
+area_threshold = 50*50;
+fprintf('%s: screen out small objects (< %i pixels)\n', mfilename, area_threshold);
 objects = bwlabel(mask==1) + 1;  % convert to 1-based index
 object_areas = splitapply(@sum, ones(size(objects(:))), objects(:));
-keep_objects = object_areas > (50*50);
+keep_objects = object_areas > area_threshold;
 keep_objects(1) = false;  % 0 means not in original mask, drop it
 mask = keep_objects(objects); 
 
+% fill holes
+fprintf('%s: fill holes\n', mfilename);
+mask = imfill(mask, 'holes');
+
 % clean up edges with morphological filters
+fprintf('%s: clean up edges with morpological filters\n', mfilename);
 mask = imopen(mask, strel('disk', 5));
 mask = imclose(mask, strel('disk', 5));
 
