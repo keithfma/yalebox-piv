@@ -1,11 +1,17 @@
 function pp = prep_template(filename)
 % function pp = prep_template(filename)
 %
-% Save template for image pre-processing parameter file to specified path
+% Generate and optionally save template image pre-processing parameters
 % 
 % Arguments:
 % 
-%   filename: string, path to output JSON file 
+%   filename: optional string, path to output MAT file, if not provided,
+%       parameters will be created but not saved
+% 
+% Returns:
+%   
+%   template parameter struct (always), and saves parameter struct to file
+%       if filename is providede
 % %
 
 update_path('util');
