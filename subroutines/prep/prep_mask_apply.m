@@ -55,8 +55,8 @@ mask = imfill(mask, 'holes');
 
 % clean up edges with morphological filters
 fprintf('%s: clean up edges with morpological filters\n', mfilename);
-mask = imopen(mask, strel('disk', 5));
-mask = imclose(mask, strel('disk', 5));
+mask = imopen(mask, strel('disk', 15));
+% mask = imclose(mask, strel('disk', 15));
 
 % display
 if ~isempty(rgb)

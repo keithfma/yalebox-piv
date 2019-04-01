@@ -31,11 +31,13 @@ image_data = matfile(IMAGE_FILE, 'Writable', false);
 
 ini = double(image_data.img(:, :, TEST_INDEX));
 fin = double(image_data.img(:, :, TEST_INDEX + param.gap.value));
-ini_mask = image_data.mask_manual & image_data.mask_auto(:, :, TEST_INDEX);
-fin_mask = image_data.mask_manual & image_data.mask_auto(:, :, TEST_INDEX + param.gap.value);
+ini_mask = image_data.mask(:, :, TEST_INDEX);
+fin_mask = image_data.mask(:, :, TEST_INDEX + param.gap.value);
+% ini_mask = image_data.mask_manual & image_data.mask_auto(:, :, TEST_INDEX);
+% fin_mask = image_data.mask_manual & image_data.mask_auto(:, :, TEST_INDEX + param.gap.value);
 
 % compute PIV
-piv_result = piv(...
+piv_result = piv_step(...
     ini, ...
     fin, ...
     ini_mask, ...

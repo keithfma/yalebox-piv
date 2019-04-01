@@ -42,7 +42,7 @@ r_tm = nan(nr, nc);
 c_tm = nan(nr, nc);
 
 parfor kk = 1:nn
-        
+          
     % get sample window, offset to initial time
     % NOTE: size(samp) may *not* be [samplen, samplen] due to rounding, it
     %   follows that the true center point may not be r_ti, c_ti, that's OK
