@@ -28,6 +28,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'derivatives'));
         case 'akde'
             addpath(fullfile(dependencies, 'akde'));
+        case 'inpaint_nans'
+            addpath(fullfile(dependencies, 'inpaint_nans'));
     
         % subroutines
         case 'prep'
