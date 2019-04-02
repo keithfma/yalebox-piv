@@ -1,4 +1,4 @@
-function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
+function [uu, vv] = piv_validate_pts_nmed(...
     cc, rr, uu, vv, radius, max_norm_res, epsilon)
 %
 % Validate the displacement vector field on a scattered grid using a
@@ -26,22 +26,27 @@ function [cc, rr, uu, vv] = piv_validate_pts_nmed(...
 % % 
 
 % check inputs
-validateattributes(uu, {'numeric'}, {'nonnan'});
-validateattributes(vv, {'numeric'}, {'nonnan', 'size', size(uu)});
-validateattributes(cc, {'numeric'}, {'nonnan', 'size', size(uu)});
-validateattributes(rr, {'numeric'}, {'nonnan', 'size', size(uu)});
+validateattributes(uu, {'numeric'}, {});
+validateattributes(vv, {'numeric'}, {'size', size(uu)});
+validateattributes(cc, {'numeric'}, {'size', size(uu)});
+validateattributes(rr, {'numeric'}, {'size', size(uu)});
 
 % initialize
 valid = true(size(uu));
-num_nbr = zeros(size(uu));
-num_valid_init = numel(uu);
+num_nbr = nan(size(uu));
+num_valid_init = sum(~isnan(uu(:)));
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
 % check all points
 for kk = 1:numel(uu)
     
+    % skip if there is no observation at this point
+    if isnan(uu(kk))
+        valid(kk) = false;
+        continue;
+    end
+    
     % get neighbors
-    % nbr = knnsearch(kdtree, [cc(kk), rr(kk)], 'K', num_nbr+1, 'IncludeTies', true);
     nbr = rangesearch(kdtree, [cc(kk), rr(kk)], radius);
     ind_nbr = cell2mat(nbr);
     ind_nbr(ind_nbr == kk) = [];
@@ -72,13 +77,12 @@ for kk = 1:numel(uu)
     
 end
 
-% drop all invalid points
-uu = uu(valid);
-vv = vv(valid);
-cc = cc(valid);
-rr = rr(valid);
+% set invalid observations to NaN
+uu(~valid) = NaN;
+vv(~valid) = NaN;
 
-num_invalidated = num_valid_init - numel(uu);
+num_valid_fin = sum(~isnan(uu(:)));
+num_invalidated = num_valid_fin - num_valid_init;
 pct_invalidated = 100*num_invalidated/num_valid_init;
 fprintf('%s: invalidated %d (%.1f%%), mean num neighbors: %.2f\n', ...
-    mfilename, num_invalidated, pct_invalidated, mean(num_nbr));
+    mfilename, num_invalidated, pct_invalidated, nanmean(num_nbr(:)));

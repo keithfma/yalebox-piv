@@ -54,20 +54,13 @@ function result = piv_step(...
 %
 %  Returns:
 % 
-%   result.x_pts_tm, result.y_pts_tm: Vector, x- and y-coordinates for sample
-%       points on scattered grid, the "raw" result from the PIV algorithm
+%   result.x_grd, result.y_grd: 2D matrix, x- and y-coordinates for gridded
+%       sample points
 % 
-%   result.u_pts_tm, result.v_pts_tm: Vector, x- and y-direction displacements
-%       at sample points on scattered grid, the "raw" result from the PIV
-%       algorithm
+%   result.u_grd_ti, result.v_grd_ti: 2D matrix, x- and y-direction displacements
+%       for gridded sample points
 % 
-%   result.x_grd_tm, result.y_grd_tm: 2D matrix, x- and y-coordinates for
-%       gridded sample points, the interpolated/extrapolated PIV results
-% 
-%   result.u_grd_tm, result.v_grd_tm: 2D matrix, x- and y-direction displacements
-%       for gridded sample points, the interpolated/extrapolated PIV results
-% 
-%   result.roi_grd_tm: 2D matrix, logical grid with set to "true" for
+%   result.roi_grd_ti: 2D matrix, logical grid with set to "true" for
 %       interpolated points, and "false" for extrapolated points
 %
 % Notes:
@@ -82,24 +75,19 @@ function result = piv_step(...
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
 %   Particle Image Velocimetry: A Practical Guide. BOOK. 
 %
-% [2] Wereley, S. T. (2001). Adaptive Second-Order Accurate Particle Image
-%   Velocimetry, 31
-%
-% [3] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
+% [2] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
 %   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
 %
 % %
 
 % NOTE: special suffixes describe the time and space grids, these are:
 %   ti -> time of the initial image
-%   tm -> midpoint between initial and final images
 %   tf -> time of the final image
 %   grd -> regular sample grid
-%   pts -> irregularly spaced points
 %   img -> regular grid at image resolution
 % %
 
-update_path('normxcorr2_masked');
+update_path('normxcorr2_masked', 'inpaint_nans');
 
 % check for sane inputs
 [nr, nc] = size(img_ti); % image size
@@ -124,7 +112,7 @@ fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(ro
 fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
 fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
 fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
-fprintf('%s: samp_len = %d \n', mfilename, samp_len);
+fprintf('%s: samp_len = ', mfilename); fprintf('%d ', samp_len); fprintf('\n');
 fprintf('%s: samp_spc = ', mfilename); fprintf('%d ', samp_spc); fprintf('\n');
 fprintf('%s: intr_len = ', mfilename); fprintf('%d ', intr_len); fprintf('\n');
 fprintf('%s: num_pass = ', mfilename); fprintf('%d ', num_pass); fprintf('\n');
@@ -138,11 +126,11 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
 % create sample grid
-[r_grd_tm, c_grd_tm] = piv_sample_grid(samp_spc, size(img_ti, 1), size(img_ti, 2));
+[r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
 
 % initial guess for displacements
-u_grd_tm = zeros(size(r_grd_tm));
-v_grd_tm = zeros(size(c_grd_tm));
+u_grd_ti = zeros(size(r_grd));
+v_grd_ti = zeros(size(c_grd));
 
 % multipass loop
 np = length(samp_len);
@@ -157,34 +145,36 @@ for pp = 1:np
     else
         quality = false;
     end
-    [r_pts_tm, c_pts_tm, u_pts_tm, v_pts_tm] = piv_displacement(...
-        img_ti, img_tf, r_grd_tm, c_grd_tm, u_grd_tm, v_grd_tm, ...
-        samp_len(pp), intr_len(pp), min_frac_data, min_frac_overlap, quality);
+    [u_grd_ti, v_grd_ti] = piv_displacement(...
+        img_ti, img_tf, r_grd, c_grd, u_grd_ti, v_grd_ti, samp_len(pp), ...
+        intr_len(pp), min_frac_data, min_frac_overlap, quality);
     
     % validate displacement vectors
-    [c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm] = piv_validate_pts_nmed(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, valid_radius, valid_max, ...
-        valid_eps);
-        
+    [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
+        c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
+    
+    % % DEBUG
+    % subplot(2, 1, 1)
+    % imagesc(u_grd_ti); caxis([-30, -5]);
+    % subplot(2, 1, 2)
+    % imagesc(v_grd_ti); caxis([-3, 3]);
+    % pause
+    % % END DEBUG
+    
     % interpolate valid vectors to full sample grid
-    [u_grd_tm, v_grd_tm, roi_grd_tm] = piv_interp_alpha(...
-        c_pts_tm, r_pts_tm, u_pts_tm, v_pts_tm, ...
-        c_grd_tm, r_grd_tm, 5*samp_spc, [], []);
+    u_grd_ti = inpaint_nans(u_grd_ti, 2);
+    v_grd_ti = inpaint_nans(v_grd_ti, 2);
    
 end
 % end multipass loop
 
 % convert all output variables to world coordinate system
-[x_pts_tm, y_pts_tm] = coord_intrinsic_to_world(r_pts_tm, c_pts_tm, x_img, y_img);
-[x_grd_tm, y_grd_tm] = coord_intrinsic_to_world(r_grd_tm, c_grd_tm, x_img, y_img);
-[u_pts_tm, v_pts_tm] = displ_intrinsic_to_world(u_pts_tm, v_pts_tm, x_img, y_img);
-[u_grd_tm, v_grd_tm] = displ_intrinsic_to_world(u_grd_tm, v_grd_tm, x_img, y_img);
+[x_grd, y_grd] = coord_intrinsic_to_world(r_grd, c_grd, x_img, y_img);
+[u_grd_ti, v_grd_ti] = displ_intrinsic_to_world(u_grd_ti, v_grd_ti, x_img, y_img);
 
 % package results as structure
 result = struct(...
-    'x_pts', x_pts_tm, 'y_pts', y_pts_tm, 'u_pts', u_pts_tm, 'v_pts', v_pts_tm, ...
-    'x_grd', x_grd_tm, 'y_grd', y_grd_tm, 'u_grd', u_grd_tm, 'v_grd', v_grd_tm, ...
-    'roi_grd', roi_grd_tm);
+    'x_grd', x_grd, 'y_grd', y_grd, 'u_grd', u_grd_ti, 'v_grd', v_grd_ti);
 
 end
 
