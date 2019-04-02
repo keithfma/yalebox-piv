@@ -1,5 +1,5 @@
-function out = post_strain(x, y, uu, vv, roi, pad_method)
-% function out = post_strain(x, y, uu, vv, roi, pad_method)
+function out = post_strain(x, y, uu, vv)
+% function out = post_strain(x, y, uu, vv)
 %
 % Compute strain parameters for input velocity fields.
 %
@@ -8,9 +8,6 @@ function out = post_strain(x, y, uu, vv, roi, pad_method)
 % Arguments:
 %   x, y: Coordinate vectors for x- and y-directions
 %   uu, vv: Displacement field matrices for x- and y-direction, [m/step]
-%   roi: Region-of-interest mask matrix (false for no data)
-%   pad_method: (temporary) Select padding method, valid options are 
-%       {'nearest'}
 %   out: Struct containing results, attributes follow.
 %   out.x, out.y: See x, y above
 %   out.F11: Deformation-gradient tensor, element (1,1), dx/dX, [1]
@@ -51,29 +48,18 @@ function out = post_strain(x, y, uu, vv, roi, pad_method)
 update_path('spline', 'deriv');
 
 % check inputs
-narginchk(6,7);
+narginchk(4, 4);
 validateattributes(x, {'numeric'}, {'vector','real'}, mfilename, 'x');
 validateattributes(y, {'numeric'}, {'vector','real'}, mfilename, 'y');
 nx = length(x);
 ny = length(y);
 validateattributes(uu, {'numeric'}, {'size', [ny, nx]}, mfilename, 'uu');
 validateattributes(vv, {'numeric'}, {'size', [ny, nx]}, mfilename, 'vv');
-validateattributes(roi,  {'logical'}, {'size', [ny, nx]}, mfilename, 'roi');
-validateattributes(pad_method, {'char'}, {'vector'}, mfilename, 'pad_method');
-
-% interpolate displacement vectors at initial time 
-%   this means the x,y grid represents initial position (i.e. X)
-[xx, yy] = meshgrid(x, y);
-xi_pts = xx(roi)-uu(roi)/2;
-yi_pts = yy(roi)-vv(roi)/2;
-tension = 0.9;
-uu(roi) = spline2d(xx(roi), yy(roi), xi_pts, yi_pts, uu(roi), tension);
-vv(roi) = spline2d(xx(roi), yy(roi), xi_pts, yi_pts, vv(roi), tension);
 
 % compute deformation gradient tensor: F = dx/dX = d/dX( X+u ) = I + du/dX
-[F11, F12] = spatial_gradient(x, y, uu, pad_method);
+[F11, F12] = spatial_gradient(x, y, uu);
 F11 = F11 + 1;
-[F21, F22] = spatial_gradient(x, y, vv, pad_method);
+[F21, F22] = spatial_gradient(x, y, vv);
 F22 = F22+1;
 
 % preallocate derived strain parameters
@@ -86,10 +72,13 @@ S2y = nan(ny, nx);
 spin = nan(ny, nx);
 
 % calculate derived strain parameters
-roi_idx = find(roi);
-% for kk = find(roi)'
-for ii = 1:length(roi_idx)
-    kk = roi_idx(ii);
+for kk = 1:numel(uu)
+    
+    % nothing more to do if strain matrix has nans
+    if any(isnan([F11(kk), F12(kk), F21(kk), F22(kk)]))
+        continue
+    end
+    
     F = [F11(kk), F12(kk); F21(kk), F22(kk)];
     % polar decomposition, F = VR, B = V^2 = FF', and R = (V^-1)F,
     % %     where B is the Left Cauchy-Green tensor.
@@ -156,7 +145,7 @@ out.Ak = Ak;
 out.Wk_star = Wk_star;
 out.Ak_star = Ak_star;
 
-function [dzdx, dzdy] = spatial_gradient(x, y, zz, pad_method)
+function [dzdx, dzdy] = spatial_gradient(x, y, zz)
 %
 % Return numerical gradient using optimal 7-tap method from reference (1).
 %
@@ -164,7 +153,6 @@ function [dzdx, dzdy] = spatial_gradient(x, y, zz, pad_method)
 %   x, y: Coordinate vectors for x- and y-directions
 %   zz: Data matrix for which gradient is to be computed, assumes missing
 %       data (outside the ROI) is NaN
-%   pad_method: Select padding method, valid options are {'nearest'}
 %   dzdx, dzdy: x- and y-direction components of the gradient of zz
 %
 % References:
@@ -176,42 +164,9 @@ function [dzdx, dzdy] = spatial_gradient(x, y, zz, pad_method)
 %   derivativesByFilter 
 % %
 
-% define parameters
-pad_width = 3;
-
 % get some constants
 dx = x(2)-x(1);
 dy = y(2)-y(1);
-roi = ~isnan(zz);
-
-% pad coordinate vectors
-pad_coord = @(z, dz) [z(1)+dz*(-pad_width:-1)'; z(:); z(end)+dz*(1:pad_width)'];
-x_p = pad_coord(x, dx);
-y_p = pad_coord(y, dy);
-[xx_p, yy_p] = meshgrid(x_p, y_p);
-
-% pad data matrix
-% TODO: add Brandon padding
-% TODO: add inpaint_nans padding
-zz_p = padarray(zz, [pad_width, pad_width], NaN, 'both');
-roi_p = padarray(roi, [pad_width, pad_width], false, 'both');
-
-if strcmp(pad_method, 'nearest')
-    si = scatteredInterpolant(xx_p(roi_p), yy_p(roi_p), zz_p(roi_p), ...
-        'nearest', 'nearest');
-    zz_p(~roi_p) = si(xx_p(~roi_p), yy_p(~roi_p));
-else
-    error('invalid padding method selected');
-end
 
 % compute gradient
-[dzdx_p, dzdy_p] = derivativesByFilters(zz_p, 'x', 'y', dx, dy, 'seven');
-
-% remove pad
-unpad = @(m) m(pad_width+1:end-pad_width, pad_width+1:end-pad_width);
-dzdx = unpad(dzdx_p);
-dzdy = unpad(dzdy_p);
-
-% re-apply ROI mask
-dzdx(~roi) = NaN;
-dzdy(~roi) = NaN;
+[dzdx, dzdy] = derivativesByFilters(zz, 'x', 'y', dx, dy, 'five');

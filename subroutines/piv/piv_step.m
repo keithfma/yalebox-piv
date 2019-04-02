@@ -153,18 +153,22 @@ for pp = 1:np
     [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
         c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
     
-    % % DEBUG
-    % subplot(2, 1, 1)
-    % imagesc(u_grd_ti); caxis([-30, -5]);
-    % subplot(2, 1, 2)
-    % imagesc(v_grd_ti); caxis([-3, 3]);
-    % pause
-    % % END DEBUG
+    % DEBUG
+    subplot(2, 1, 1)
+    imagesc(u_grd_ti); caxis([-30, -5]);
+    subplot(2, 1, 2)
+    imagesc(v_grd_ti); caxis([-3, 3]);
+    pause
+    % END DEBUG
     
     % interpolate valid vectors to full sample grid
-    u_grd_ti = inpaint_nans(u_grd_ti, 2);
-    v_grd_ti = inpaint_nans(v_grd_ti, 2);
-   
+    % note: leave as-is on last pass, want NaN where there is no valid
+    %   observation
+    if pp < np
+        u_grd_ti = inpaint_nans(u_grd_ti, 2);
+        v_grd_ti = inpaint_nans(v_grd_ti, 2);
+    end
+    
 end
 % end multipass loop
 

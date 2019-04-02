@@ -82,7 +82,7 @@ uu(~valid) = NaN;
 vv(~valid) = NaN;
 
 num_valid_fin = sum(~isnan(uu(:)));
-num_invalidated = num_valid_fin - num_valid_init;
+num_invalidated = num_valid_init - num_valid_fin;
 pct_invalidated = 100*num_invalidated/num_valid_init;
 fprintf('%s: invalidated %d (%.1f%%), mean num neighbors: %.2f\n', ...
     mfilename, num_invalidated, pct_invalidated, nanmean(num_nbr(:)));
