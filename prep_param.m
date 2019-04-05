@@ -35,12 +35,6 @@ path = strip(path, 'right', filesep);
 woco_path = strip(woco_path, 'right', filesep);
 assert(strcmp(woco_path, path), 'Expect image to be in image directory');
 
-% mask training image
-[train_file, train_path] = uigetfile('*.*', 'Select mask training image', ...
-    fullfile(param.image_dir.value, param.mask_train_file.value));
-train_path = strip(train_path, 'right', filesep);
-assert(strcmp(train_path, path), 'Expect image to be in image directory');
-
 % all experiment images
 [exp_files, exp_path] = uigetfile(...
     '*.*', 'Select all experiment images', path, 'MultiSelect', 'on');
@@ -53,7 +47,6 @@ button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.image_dir.value = path;
     param.woco_file.value = woco_file;
-    param.mask_train_file.value = train_file;
     param.exp_files.value = exp_files;
     save_param(param, PARAM_FILE);
     fprintf('Saved parameter file: %s\n', PARAM_FILE);

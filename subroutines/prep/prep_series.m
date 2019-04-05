@@ -1,11 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-                  segment_scale, segment_sigma, segment_min_size, ...
-                  train_features, train_labels, eql_len, notes)
+                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
+                  morph_open_rad, morph_erode_rad, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-%                   segment_scale, segment_sigma, segment_min_size, ...
-%                   train_features, train_labels, eql_len, notes)
+%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len...
+%                   morph_open_rad, morph_erode_rad, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -28,14 +28,16 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
 %       prep_rectify_and_crop() for details
 %   
-%   segment_scale, segment_sigma, segment_min_size: Image segmentation
-%       parameters, see prep_mask_segment() for details
-%   
-%   train_features, train_labels: mask model training data, see
-%       prep_mask_train() for details
+%   mask_poly = 2D array, vertices of mask polygons, x-coords in row 1 and
+%       y-coords in row 2, polygons separated by NaN
 % 
-%   eql_len: histogram equalization kernel size, see prep_intensity() for
-%       details
+%   hue_lim, value_lim, entropy_lim = 2-element vectors, threshold limits for
+%       prep_mask_auto()
+%
+%   entropy_len = Size of entropy filter window, see prep_mask_auto()
+%
+%   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
+%       radius for morphological filters in prep_mask_auto()
 %
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
@@ -45,8 +47,8 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 update_path('prep', 'util');
 
 % set defaults
-narginchk(16, 17);
-if nargin < 17; notes = ''; end
+narginchk(17, 18);
+if nargin < 18; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
@@ -78,10 +80,12 @@ assert(exist(result_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
 result = matfile(result_file, 'Writable', true);
 
-% get coordinate vectors (created during prep steps, so prep a fake image)
-img_fake = zeros(img_nrow, img_ncol, 3, 'uint8'); 
-[~, xw, yw] = prep_rectify_and_crop(...
-    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img_fake);
+% get coordinate vectors and manual mask array
+% note: created during prep steps, so prep a fake image)
+raw = zeros(img_nrow, img_ncol, 3, 'uint8'); 
+[img, xw, yw] = prep_rectify_and_crop(...
+    ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
+[mask_manual, ~] = prep_mask_manual(img, mask_poly);
 
 % get some size parameters
 nx = numel(xw);
@@ -100,11 +104,13 @@ meta.args.ctrl_xp = ctrl_xp;
 meta.args.ctrl_yp = ctrl_yp;
 meta.args.crop_xw = crop_xw;
 meta.args.crop_yw = crop_yw;
-meta.args.segment_scale = segment_scale;
-meta.args.segment_sigma = segment_sigma;
-meta.args.segment_min_size = segment_min_size;
-meta.args.train_features = train_features;
-meta.args.train_labels = train_labels;
+meta.args.mask_poly = mask_poly;
+meta.args.hue_lim = hue_lim;
+meta.args.value_lim = value_lim;
+meta.args.entropy_lim = entropy_lim;
+meta.args.entropy_len = entropy_len;
+meta.args.morph_open_rad = morph_open_rad;
+meta.args.morph_erode_rad = morph_erode_rad;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -124,23 +130,17 @@ meta.step.notes = 'coordinate axis';
 meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
-meta.img_rgb.name = 'img_rgb'; 
-meta.img_rgb.long_name = 'rectified rgb image';
-meta.img_rgb.notes = '';
-meta.img_rgb.dimensions = {'y', 'x', 'rgb', 'step'};
-meta.img_rgb.units = '24-bit color';
-
-meta.img.name = 'img';
-meta.img.long_name = 'rectified normalized grayscale image';
+meta.img.name = 'img'; 
+meta.img.long_name = 'rectified rgb image';
 meta.img.notes = '';
-meta.img.dimensions = {'y', 'x', 'step'};
-meta.img.units = '1';
+meta.img.dimensions = {'y', 'x', 'rgb', 'step'};
+meta.img.units = '24-bit color';
 
-meta.mask.name = 'mask';
-meta.mask.long_name = 'sand mask';
-meta.mask.notes = 'true where pixel is sand, false elsewhere';
-meta.mask.dimensions = {'y', 'x', 'step'};
-meta.mask.units = 'boolean';
+meta.mask_auto.name = 'mask';
+meta.mask_auto.long_name = 'sand mask';
+meta.mask_auto.notes = '';
+meta.mask_auto.dimensions = {'y', 'x', 'step'};
+meta.mask_auto.units = 'boolean';
 
 result.meta = meta;
 
@@ -148,39 +148,25 @@ result.meta = meta;
 result.x = xw;
 result.y = yw;
 result.step = 0:(num_image - 1);
-allocate(result, 'img_rgb', 'uint8', [ny, nx, 3, num_image]);
-allocate(result, 'img', 'single', [ny, nx, num_image]); 
+allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
 allocate(result, 'mask', 'logical', [ny, nx, num_image]);
-
-% train mask classifier model
-% note: not stored to output avoid version hell
-fprintf('%s: train mask classifier model\n', mfilename);
-mask_classifier = prep_mask_train(train_features, train_labels);
 
 % loop over all images
 for ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
-    img_rgb = imread(this_file);
+    img = imread(this_file);
      
     fprintf('\n%s: %s\n', mfilename, this_file);
     
-    img_rgb = prep_rectify_and_crop(...
-        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img_rgb);
+    img = prep_rectify_and_crop(...
+        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img);
 
-    img_segments = prep_mask_segments(...
-        img_rgb, segment_scale, segment_sigma, segment_min_size);
-    
-    img_features = prep_mask_features(img_rgb, img_segments);
-    
-    img_mask = prep_mask_apply...
-        (mask_classifier, img_features, img_segments);
-    
-    % note: this step is legacy, remove after testing multiband correlation
-    img = prep_intensity(img_rgb, img_mask, eql_len);
-     
-    result.mask(:, :, ii) = logical(img_mask);
-    result.img(:, :, ii) = single(img);
-    result.img_rgb(:, :, :, ii) = uint8(img_rgb);
-   
+    mask_auto = prep_mask_auto(...
+        img, hue_lim, value_lim, entropy_lim, entropy_len, ...
+        morph_open_rad, morph_erode_rad);
+      
+    result.mask(:, :, ii) = logical(mask_auto & mask_manual);
+    result.img(:, :, :, ii) = uint8(img);
+
 end

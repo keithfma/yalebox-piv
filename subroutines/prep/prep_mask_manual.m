@@ -21,9 +21,7 @@ function [mask, polygons] = prep_mask_manual(img, polygons, interactive)
 %   polygons: 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
 %
-% %
-
-update_path('util');
+% % 
 
 % set defaults
 narginchk(1,3);
@@ -138,6 +136,33 @@ data = hi.UserData;
 poly = pack_polygons(data.polygons);
 mask = get_mask(img, poly);
 close(findobj('Tag', 'mask_gui'));
+
+
+function packed = pack_polygons(unpacked)
+% Pack polygon vertices as 2d array with points in columns and NaNs
+% separating each polygon
+% % 
+packed = [];
+for ii = 1:length(unpacked)
+   this_poly = unpacked{ii};
+   packed = [packed, this_poly', nan(2,1)]; %#ok!
+end
+
+
+function unpacked = unpack_polygons(packed)
+% Unpack polygon vertices from 2d array with points in columns and NaNs
+% separating each polygon to cell array of individual polygons
+% % 
+unpacked = {};    
+ini = 1;
+while ini < size(packed, 2)
+    fin = find(isnan(packed(1, ini:end)), 1, 'first') + ini - 1;
+    unpacked{end+1} = packed(:, ini:(fin-1))'; %#ok!
+    ini = fin + 1;
+    if ini >= size(packed, 2)
+        break
+    end
+end
 
 
 function do_add(~, ~)
