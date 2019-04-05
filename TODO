@@ -1,10 +1,8 @@
 Mask bottom as well as top
 
-+ enable cropping below zero
-+ test existing method
-+ try a decision tree
-+ try a RF
-+ if model-based works better, then store params as MAT?
++ add manual mask back in, to be applied after the automatic masking, need this
+    to avoid catastrophic errors at the base, rely on model to handle the details
++ save combined mask only
 
 ---
 

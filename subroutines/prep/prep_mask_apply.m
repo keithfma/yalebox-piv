@@ -1,69 +1,66 @@
-function mask = prep_mask_apply(rgb, model, show)
-% function mask = prep_mask_apply(rgb, model, show)
+function mask = prep_mask_apply(model, features, segments, rgb)
+% function mask = prep_mask_apply(model, features, segments, rgb)
 % 
 % Apply trained classifier and morphological clean-up to create a
 % sand/other mask array
 % 
 % Arguments:
-%   rgb: 3D matrix, RGB 24-bit image
 % 
 %   model: ML model class, trained classifier
 % 
-%   show: set true to display resulting masked image for inspection, or
-%       (default) false to skip the plot
+%   features: TODO
+%   
+%   segments: TODO
+% 
+%   rgb: 3D matrix, RGB 24-bit image, optional argument, if provided
+%       display resulting masked image for inspection
 % 
 % Returns:
 %   mask: 2D matrix, 1 where sand, 0 where other
 % % 
 
 % TODO: add log messages
-% TODO: post process the mask with morph filters (like before)
 
 % set defaults
-if nargin < 3; show = false; end
+narginchk(3, 4);
+if nargin < 4; rgb = []; end
 
 % sanity checks
-narginchk(2, 3);
-validateattributes(rgb, {'numeric'}, {'3d'});
-% TODO: validate model arg
-validateattributes(show, {'logical'}, {'scalar'});
+% TODO
 
 % predict
-X = prep_mask_features(rgb);
-labels = predict(model, X);
+fprintf('%s: predict image segment class (sand, other)\n', mfilename);
+labels = predict(model, features);
 if iscell(labels)
-    % random forest models return silly cell arrays, conver to numeric
-    labels = double(cell2mat(labels));
-    labels(labels == double('1')) = true;
-    labels(labels == double('0')) = false;
+    % some models (i.e., random forest) return silly cell arrays, convert to numeric
+    labels = cellfun(@str2double, labels);
 end
-labels = reshape(labels, size(rgb, 1), size(rgb, 2));
-mask = logical(labels);
+assert(all(unique(labels(:)) == [1; 2]), 'Unexpected class(es) in output labels')
 
-% fill holes along edges (wall off one corner, fill, repeat)
-ridx = 1:size(mask, 1);
-cidx = 1:size(mask, 2);
-dr = [1, 1, 0, 0];
-dc = [1, 0, 0, 1];
-for ii = 1:4
-    wall = true(size(mask)+1);
-    wall(ridx+dr(ii), cidx+dc(ii)) = mask;
-    wall = imfill(wall, 'holes');
-    mask = wall(ridx+dr(ii), cidx+dc(ii));
-end
+% convert labels to mask
+mask = labels(segments);
 
-% extract largest connected object
-object_label = bwlabel(mask);
-largest_object = mode(object_label(object_label>0));
-mask = object_label == largest_object;
+% screen out by connected object area, convert to logical mask
+area_threshold = 50*50;
+fprintf('%s: screen out small objects (< %i pixels)\n', mfilename, area_threshold);
+objects = bwlabel(mask==1) + 1;  % convert to 1-based index
+object_areas = splitapply(@sum, ones(size(objects(:))), objects(:));
+keep_objects = object_areas > area_threshold;
+keep_objects(1) = false;  % 0 means not in original mask, drop it
+mask = keep_objects(objects); 
+
+% fill holes
+fprintf('%s: fill holes\n', mfilename);
+mask = imfill(mask, 'holes');
 
 % clean up edges with morphological filters
-mask = imopen(mask, strel('disk', 3));
-mask = imclose(mask, strel('disk', 30));
+fprintf('%s: clean up edges with morpological filters\n', mfilename);
+mask = imopen(mask, strel('disk', 15));
+% mask = imclose(mask, strel('disk', 15));
 
 % display
-if show
-    hf = figure
+if ~isempty(rgb)
+    hf = figure;
     hf.Name = 'Masking Results';
     
     hax1 = subplot(2, 1, 1);
@@ -71,12 +68,14 @@ if show
     axis equal tight
     hax1.Color = [1.0, 0.25, 0.25];
     hax1.YDir = 'normal';
+    title('Sand');
     
     hax2 = subplot(2, 1, 2);
     imagesc(rgb, 'AlphaData', ~mask);
     axis equal tight
     hax2.Color = [1.0, 0.25, 0.25];
     hax2.YDir = 'normal';
+    title('Other');
     
     linkaxes([hax1, hax2], 'xy');
 end

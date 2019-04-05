@@ -1,11 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  morph_open_rad, morph_erode_rad, eql_len, notes)
+                  morph_open_rad, morph_erode_rad, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                   morph_open_rad, morph_erode_rad, eql_len, notes)
+%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len...
+%                   morph_open_rad, morph_erode_rad, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -23,11 +23,11 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %   image_view = String, specify 'top' or 'side' view of experiment
 %
 %   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp = Control points, as defined by
-%       prep_world_coord_control_pts()
+%       prep_world_coord_control_pts() for details
 %
 %   crop_xw, crop_yw = Image crop limits in world coordinates, see
-%       prep_rectify_and_crop()
-%
+%       prep_rectify_and_crop() for details
+%   
 %   mask_poly = 2D array, vertices of mask polygons, x-coords in row 1 and
 %       y-coords in row 2, polygons separated by NaN
 % 
@@ -39,8 +39,6 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
 %       radius for morphological filters in prep_mask_auto()
 %
-%   eql_len = Neighborhood size for adaptive equalization, see prep_intensity()
-%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -49,8 +47,8 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 update_path('prep', 'util');
 
 % set defaults
-narginchk(19, 20);
-if nargin < 20; notes = ''; end
+narginchk(17, 18);
+if nargin < 18; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
@@ -61,16 +59,16 @@ assert(any(strcmp(image_view, {'side', 'top'})), 'Invalid value for "image_view"
 assert(strcmp('.mat', result_file_ext), 'Output file must be .mat');
 
 % check that all images exist and have the expected size and type
-info = imfinfo(fullfile(image_path, image_names{1}));
-raw_nrow = info.Height;
-raw_ncol = info.Width;
+img_info = imfinfo(fullfile(image_path, image_names{1}));
+img_nrow = img_info.Height;
+img_ncol = img_info.Width;
 for i = 1:numel(image_names)
     try
         this_file = fullfile(image_path, image_names{i});
-        info = imfinfo(this_file);
-        assert(info.Width == raw_ncol && info.Height == raw_nrow, ...
+        img_info = imfinfo(this_file);
+        assert(img_info.Width == img_ncol && img_info.Height == img_nrow, ...
             sprintf('incorrect dimensions in image %s', this_file));
-        assert(info.BitDepth == 24, ...
+        assert(img_info.BitDepth == 24, ...
             sprintf('incorrect bit depth in image %s', this_file));
     catch
         error('unable to read image %i: %s', i, this_file);
@@ -84,7 +82,7 @@ result = matfile(result_file, 'Writable', true);
 
 % get coordinate vectors and manual mask array
 % note: created during prep steps, so prep a fake image)
-raw = zeros(raw_nrow, raw_ncol, 3, 'uint8'); 
+raw = zeros(img_nrow, img_ncol, 3, 'uint8'); 
 [img, xw, yw] = prep_rectify_and_crop(...
     ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
 [mask_manual, ~] = prep_mask_manual(img, mask_poly);
@@ -106,13 +104,13 @@ meta.args.ctrl_xp = ctrl_xp;
 meta.args.ctrl_yp = ctrl_yp;
 meta.args.crop_xw = crop_xw;
 meta.args.crop_yw = crop_yw;
+meta.args.mask_poly = mask_poly;
 meta.args.hue_lim = hue_lim;
 meta.args.value_lim = value_lim;
 meta.args.entropy_lim = entropy_lim;
 meta.args.entropy_len = entropy_len;
 meta.args.morph_open_rad = morph_open_rad;
 meta.args.morph_erode_rad = morph_erode_rad;
-meta.args.eql_len = eql_len;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -132,29 +130,17 @@ meta.step.notes = 'coordinate axis';
 meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
-meta.img_rgb.name = 'img_rgb'; 
-meta.img_rgb.long_name = 'rectified rgb image';
-meta.img_rgb.notes = '';
-meta.img_rgb.dimensions = {'y', 'x', 'rgb', 'step'};
-meta.img_rgb.units = '24-bit color';
-
-meta.img.name = 'img';
-meta.img.long_name = 'rectified normalized grayscale image';
+meta.img.name = 'img'; 
+meta.img.long_name = 'rectified rgb image';
 meta.img.notes = '';
-meta.img.dimensions = {'y', 'x', 'step'};
-meta.img.units = '1';
+meta.img.dimensions = {'y', 'x', 'rgb', 'step'};
+meta.img.units = '24-bit color';
 
-meta.mask_auto.name = 'mask_auto';
-meta.mask_auto.long_name = 'sand mask, automatic';
+meta.mask_auto.name = 'mask';
+meta.mask_auto.long_name = 'sand mask';
 meta.mask_auto.notes = '';
 meta.mask_auto.dimensions = {'y', 'x', 'step'};
 meta.mask_auto.units = 'boolean';
-
-meta.mask_manual.name = 'mask_manual';
-meta.mask_manual.long_name = 'sand mask, manual';
-meta.mask_manual.notes = 'user-defined, constant in time';
-meta.mask_manual.dimensions = {'y', 'x'};
-meta.mask_manual.units = 'boolean';
 
 result.meta = meta;
 
@@ -162,30 +148,25 @@ result.meta = meta;
 result.x = xw;
 result.y = yw;
 result.step = 0:(num_image - 1);
-allocate(result, 'img_rgb', 'uint8', [ny, nx, 3, num_image]);
-allocate(result, 'img', 'single', [ny, nx, num_image]); 
-allocate(result, 'mask_auto', 'logical', [ny, nx, num_image]);
-result.mask_manual = mask_manual;
+allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
+allocate(result, 'mask', 'logical', [ny, nx, num_image]);
 
 % loop over all images
 for ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
-    raw = imread(this_file);
+    img = imread(this_file);
      
     fprintf('\n%s: %s\n', mfilename, this_file);
     
-    raw = prep_rectify_and_crop(...
-        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
-     
+    img = prep_rectify_and_crop(...
+        ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img);
+
     mask_auto = prep_mask_auto(...
-        raw, hue_lim, value_lim, entropy_lim, entropy_len, ...
+        img, hue_lim, value_lim, entropy_lim, entropy_len, ...
         morph_open_rad, morph_erode_rad);
-    
-    img = prep_intensity(raw, mask_manual & mask_auto, eql_len);
-     
-    result.mask_auto(:, :, ii) = logical(mask_auto);
-    result.img(:, :, ii) = single(img);
-    result.img_rgb(:, :, :, ii) = uint8(raw);
-   
+      
+    result.mask(:, :, ii) = logical(mask_auto & mask_manual);
+    result.img(:, :, :, ii) = uint8(img);
+
 end

@@ -16,11 +16,9 @@ end
 % extract key variables from the PIV results, apply ROI mask
 xx = piv_result.x_grd;
 yy = piv_result.y_grd;
-roi = piv_result.roi_grd;
 uu = piv_result.u_grd;
 vv = piv_result.v_grd;
-uu(~roi) = NaN;
-vv(~roi) = NaN;
+roi = ~isnan(uu);
 
 % get data limits
 xlim = [min(xx(roi)), max(xx(roi))] + range(xx(roi))*[-0.05, 0.05];

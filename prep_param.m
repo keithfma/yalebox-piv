@@ -14,7 +14,7 @@
 %   TEST_INDEX: int, index of initial image to use for single step test
 % %
 
-update_path('prep', 'jsonlab', 'util');
+update_path('prep', 'util');
 
 fprintf('Running prep parameter check with:\n');
 fprintf('\tPARAM_FILE = %s\n', PARAM_FILE);
@@ -123,7 +123,8 @@ fprintf('Displaying rectifed & cropped test image\n');
         imread(fullfile(param.image_dir.value, param.exp_files.value{TEST_INDEX})), ...,
         true);
 
-%% define "mask_manual" section parameters -- interactive
+    
+    %% define "mask_manual" section parameters -- interactive
 
 param = load_param(PARAM_FILE);
 
@@ -161,15 +162,3 @@ mask_auto = prep_mask_auto(...
     param.mask_morph_open_rad.value, ...
     param.mask_morph_erode_rad.value, ...
     true);
-
-%% apply histogram equalization
-
-param = load_param(PARAM_FILE);
-
-prep_intensity(...
-    rgb, ...
-    mask_manual & mask_auto, ...
-    param.intensity_eql_len.value, ...
-    true);
-
- 

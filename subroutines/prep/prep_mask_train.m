@@ -1,75 +1,51 @@
-function model = prep_mask_train(rgb, sand_poly, other_poly, model_type)
-% function model = prep_mask_train(rgb, sand_poly, other_poly, model_type)
+function model = prep_mask_train(features, labels)
+% function model = prep_mask_train(features, labels)
 % 
-% Train classifier to label pixels as sand (1) or other (0)
+% Train random forest classifier to label pixels as sand (1) or other (2)
 %
 % Arguments:
-%   rgb: 3D matrix, RGB 24-bit image
+%   features: TODO
 % 
-%   sand_poly: 2D array, vertices of mask
-%       polygons for sand-pixel training data, x-coords in row 1 and
-%       y-coords in row 2, polygons separated by NaN
-% 
-%   other_poly: 2D array, vertices of mask
-%       polygons for sand-pixel training data, x-coords in row 1 and
-%       y-coords in row 2, polygons separated by NaN
-% 
-%   model_type: string, selects model from a few options: 'tree' uses a
-%       simple decision tree (relatively fast for development), and 'forest'
-%       uses a slower, better random forest model.
+%   labels: TODO
 % 
 %  Returns:
-%   model: ML model class, trained classifier
+%   model: ML model class, trained random forest classifier
 % % 
 
-% TODO: add log messages
-% TODO: post process the mask with morph filters (like before)
-
 % set defaults
-if nargin < 4; model_type = 'tree'; end
+narginchk(2, 2);
 
 % sanity check
-validateattributes(rgb, {'numeric'}, {'3d'});
-validateattributes(sand_poly, {'numeric'}, {'2d'});
-validateattributes(other_poly, {'numeric'}, {'2d'});
-validatestring(model_type, {'forest', 'tree'});
+% TODO: complete sanity checks
+% TODO: check that labels contains only 0, 1, 2
 
-% get training set indices
-% TODO: update upstream function so that masks are not inverted
-sand_mask = ~prep_mask_manual(rgb, sand_poly);
-sand_idx = find(sand_mask);
-other_mask = ~prep_mask_manual(rgb, other_poly);
-other_idx = find(other_mask);
+% drop no-class labels
+has_class_idx = find(labels ~= 0);
+features = features(has_class_idx, :);
+labels = labels(has_class_idx);
 
-% balance classes by random duplication of the smaller class
-if length(sand_idx) < length(other_idx)
-    num_extra = length(other_idx) - length(sand_idx);
-    extra_idx = randsample(sand_idx, num_extra, true);
-    sand_idx = [sand_idx; extra_idx];
-else
-    num_extra = length(sand_idx) - length(other_idx);
-    extra_idx = randsample(other_idx, num_extra, true);
-    other_idx = [other_idx; extra_idx];    
+% count number of labels in each class
+count_labels = [0, 0];
+for ii = 1:2
+    count_labels(ii) = sum(labels(:) == ii);
 end
 
-% extract training set
-X = prep_mask_features(rgb);
-X_train = X([sand_idx; other_idx], :);
-Y_train = [ones(size(sand_idx)); zeros(size(other_idx))];
+% balance classes by random resampling to match larger class
+if count_labels(1) < count_labels(2)
+    num_resample = count_labels(2) - count_labels(1);
+    fprintf('%s: balance classes by adding %i resampled sand features\n', mfilename, num_resample);
+    sample_idx = randsample(find(labels == 1), num_resample, true);
+elseif count_labels(2) < count_labels(1)
+    num_resample = count_labels(1) - count_labels(2);
+    fprintf('%s: balance classes by adding %i resampled non-sand features\n', mfilename, num_resample);
+    sample_idx = randsample(find(labels == 2), num_resample, true);
+else
+    sample_idx = [];
+end
+labels = [labels; labels(sample_idx)];
+features = [features; features(sample_idx, :)];    
 
 % fit model
-% TODO: fiddle with model parameters
-switch model_type
-    case 'forest'
-        model = TreeBagger(10, X_train, Y_train, ...
-                           'InBagFraction', 0.80, ...
-                           'Cost', [0, 1; 1, 0], ...
-                           'NumPrint', 1); %  , ...
-                         % 'Options', statset('UseParallel', true)); 
-    case 'tree'
-        model = fitctree(X_train, Y_train, ...
-                         'Cost', [0, 1; 1, 0]);
-    
-    otherwise
-        error('Bad value for input argument "model_type"');
-end
+% note: minimal experimentation with model parameters
+fprintf('%s: train random forest model\n', mfilename);
+model = TreeBagger(100, features, labels, 'InBagFraction', 0.80); 

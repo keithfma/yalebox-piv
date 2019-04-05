@@ -1,17 +1,25 @@
 function pp = piv_template(filename)
 % function pp = piv_template(filename)
 %
-% Save template PIV parameter file to specified path
+% Generate and optionally save template PIV parameters
 % 
 % Arguments:
 % 
-%   filename: string, path to output JSON file 
+%   filename: optional string, path to output MAT file, if not provided,
+%       parameters will be created but not saved
+% 
+% Returns:
+%   
+%   template parameter struct (always), and saves parameter struct to file
+%       if filename is provided
 % %
 
 update_path('util');
 
-[~, ~, ext] = fileparts(filename);
-assert(strcmp(ext, '.json'), 'Filename must have extension .json');
+if nargin > 0
+    [~, ~, ext] = fileparts(filename);
+    assert(strcmp(ext, '.mat'), 'Filename must have extension .mat');
+end
 
 pp.notes.help = 'string, any notes to be included in the results file for posterity';
 pp.notes.value = '';
@@ -49,4 +57,8 @@ pp.min_frac_data.value = 0.8;
 pp.min_frac_overlap.help = "Scalar, minimum fraction of the sample window data that must overlap the interrogation window data for a point in the cross-correlation to be valid"; 
 pp.min_frac_overlap.value = 0.5;
 
-save_param(pp, filename);
+% save as file ---
+
+if nargin > 0
+    save_param(pp, filename);
+end

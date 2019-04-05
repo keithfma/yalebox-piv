@@ -1,6 +1,6 @@
-function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
-    ini, fin, r_tm_i, c_tm_i, u_tm_i, v_tm_i, samplen, intrlen, ...
-    min_frac_data, min_frac_overlap, high_quality)
+function [uu, vv] = piv_displacement(...
+    ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, ...
+    min_frac_overlap, high_quality)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
 % correlation of sample and interrogation windows. Displacements are evaluated
@@ -13,9 +13,9 @@ function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
 % Arguments:
 %
 % ini, fin: 2D matrix, initial and final images at midpoint time
-% r_tm_i, c_tm_i: 2D matrix, row- and column-coordinates for the initial sample grid
-% u_tm_i, v_tm_i: 2D matrix, initial guess for x (column) and y (row)
-%   displacements at points in r_tm_i, c_tm_i.
+% rr, cc: 2D matrix, row- and column-coordinates for the initial sample grid
+% uu, vv: 2D matrix, initial guess for x (column) and y (row)
+%   displacements at points in rr, cc.
 % samplen, intrlen = Scalar, size of the sample and interrogation windows in pixels
 % min_frac_data = Scalar, minimum fraction of the sample window that must
 %   contain data (e.g. sand) for the point to be included in the ROI for PIV
@@ -24,50 +24,43 @@ function [r_tm, c_tm, u_tm, v_tm, roi] = piv_displacement(...
 %   must overlap the interrogation window data for a point in the
 %   cross-correlation to be valid
 %
-% r_tm, c_tm = Vector, row- and column-coordinates for the estimated
-%   displacements at midpoint time
-% u_tm, v_tm = Vector, estimated displacements in the x (column) and y (row)
+% uu, vv = Vector, estimated displacements in the x (column) and y (row)
 %   directions
 % %
+
+% TODO: validate inputs: all grids same size, ...
 
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
-% allocate outputs, skipped points remain NaN, false
-[nr, nc] = size(r_tm_i);
-nn = numel(r_tm_i);
-u_tm = nan(nr, nc);
-v_tm = nan(nr, nc);
-r_tm = nan(nr, nc);
-c_tm = nan(nr, nc);
-
-parfor kk = 1:nn
-        
-    % get sample window, offset to initial time
-    % NOTE: size(samp) may *not* be [samplen, samplen] due to rounding, it
-    %   follows that the true center point may not be r_ti, c_ti, that's OK
-    r_ti = r_tm_i(kk) - 0.5*v_tm_i(kk);
-    c_ti = c_tm_i(kk) - 0.5*u_tm_i(kk);
-    [samp, r_samp, c_samp] = piv_window(ini, r_ti, c_ti, samplen);
+parfor kk = 1:numel(uu)
+          
+    % get sample window at initial time (no offest)
+    [samp, r_samp, c_samp] = piv_window(ini, rr(kk), cc(kk), samplen);
+    assert(all(size(samp) == samplen), 'Generated sample window does not match expected size');
     
     % skip if sample window is too empty
     frac_data = sum(samp(:) ~= 0)/numel(samp);
-    if  frac_data < min_frac_data;
-        continue;
+    if  frac_data < min_frac_data
+        uu(kk) = NaN;
+        vv(kk) = NaN;
+        continue
     end
     
     % get interrogation window, offset to final time
     % NOTE: size(intr) may *not* be [intrlen, intrlen] due to rounding, it
-    %   follows that the true center point may not be r_ti, c_ti, that's OK
-    r_tf = r_tm_i(kk) + 0.5*v_tm_i(kk);
-    c_tf = c_tm_i(kk) + 0.5*u_tm_i(kk);
-    [intr, r_intr, c_intr] = piv_window(fin, r_tf, c_tf, intrlen);
+    %   follows that the true center point may not be as requested, this is
+    %   OK because we compute it directly later
+    [intr, r_intr, c_intr] = piv_window(...
+        fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
     
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
     
     % skip if nowhere has enough overlapping sandy pixels
     if max(overlap(:)) < min_overlap
+        uu(kk) = NaN;
+        vv(kk) = NaN;
         continue
     end
     
@@ -86,29 +79,17 @@ parfor kk = 1:nn
     end
     
     % compute displacement
-    u_tm(kk) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
-    v_tm(kk) = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
+    uu(kk) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
+    vv(kk) = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
     
-    % get centroid of the sample window
-    [r_idx, c_idx] = find(samp ~= 0);
-    num = length(r_idx);
-    r_samp_cntr = sum(r_samp(r_idx))/num;
-    c_samp_cntr = sum(c_samp(c_idx))/num;
-    
-    % update observation point to midpoint time
-    r_tm(kk) = r_samp_cntr + 0.5*v_tm(kk);
-    c_tm(kk) = c_samp_cntr + 0.5*u_tm(kk);
+    % NOTE: sample window may be only partially filled, which suggests the
+    %   observation lies at the sample window centroid, not its center, we 
+    %   ignore this detail here in order to keep the grid regular and avoid
+    %   (more) problematic scattered interpolation
 end
 
-% convert matrices to vectors of valid measurements only
-roi = ~isnan(u_tm); % same as v_tm, r_tm, c_tm
-u_tm = u_tm(roi);
-v_tm = v_tm(roi);
-r_tm = r_tm(roi);
-c_tm = c_tm(roi);
-
 % report result
-num_valid = numel(u_tm);
-num_total = numel(roi);
+num_valid = sum(~isnan(uu(:)));  % same as vv
+num_total = numel(uu);
 fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
     mfilename, num_valid, num_total, num_valid/num_total*100);

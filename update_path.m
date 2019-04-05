@@ -18,8 +18,6 @@ for ii = 1:length(varargin)
     switch varargin{ii}
         
         % third-party libraries
-        case 'jsonlab'
-            addpath(fullfile(dependencies, 'jsonlab-1.8'));
         case 'datahash'
             addpath(fullfile(dependencies, 'DataHash_20181113'));
         case 'normxcorr2_masked'
@@ -30,6 +28,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'derivatives'));
         case 'akde'
             addpath(fullfile(dependencies, 'akde'));
+        case 'inpaint_nans'
+            addpath(fullfile(dependencies, 'inpaint_nans'));
     
         % subroutines
         case 'prep'

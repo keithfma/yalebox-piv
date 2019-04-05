@@ -1,17 +1,25 @@
 function pp = prep_template(filename)
 % function pp = prep_template(filename)
 %
-% Save template for image pre-processing parameter file to specified path
+% Generate and optionally save template image pre-processing parameters
 % 
 % Arguments:
 % 
-%   filename: string, path to output JSON file 
+%   filename: optional string, path to output MAT file, if not provided,
+%       parameters will be created but not saved
+% 
+% Returns:
+%   
+%   template parameter struct (always), and saves parameter struct to file
+%       if filename is providede
 % %
 
 update_path('util');
 
-[~, ~, ext] = fileparts(filename);
-assert(strcmp(ext, '.json'), 'Filename must have extension .json');
+if nargin > 0
+    [~, ~, ext] = fileparts(filename);
+    assert(strcmp(ext, '.mat'), 'Filename must have extension .mat');
+end
 
 % general --------
 
@@ -77,11 +85,8 @@ pp.mask_morph_open_rad.value =  10;
 pp.mask_morph_erode_rad.help = "scalar, double, radius of disk structuring element used in mophological erosion filter";
 pp.mask_morph_erode_rad.value = 3;
 
-% color adjustment ----------
-
-pp.intensity_eql_len.help = "scalar, integer, odd. Side length (in pixels) for the local neighborhood used to compute the transform for each pixel";
-pp.intensity_eql_len.value = 41;
-
 % save as file ---
 
-save_param(pp, filename);
+if nargin > 0
+    save_param(pp, filename);
+end

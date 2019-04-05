@@ -16,13 +16,13 @@ function [] = post(param, piv_mat, post_mat)
 %   post_mat = String, filename of the MAT file to be created.
 % %
 
-update_path('jsonlab');
+update_path('util');
 
 switch class(param)
     case 'struct'
         param = param;  % do nothing
     case 'char'
-        param = loadjson(param, 'SimplifyCell', 1);
+        param = load_param(param);
     otherwise
         error('Unexpected type for input argument "param"');
 end
