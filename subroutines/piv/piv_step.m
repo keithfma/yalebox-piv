@@ -125,7 +125,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % treat image boundaries
 % TODO: choose one, and drop other options
 fprintf('%s: apply boundary treatment to input images\n', mfilename);
-boundary_treatment = 'pad_nnbr_smooth'; 
+boundary_treatment = 'mask'; 
 
 if strcmp(boundary_treatment, 'mask')
     img_tf(repmat(~roi_img_tf, 1, 1, size(img_ti, 3))) = 0;
@@ -156,10 +156,10 @@ img_ti = img_ti(:,:,3);
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
 
-% DEBUG: save a gif to the current working directory
-gif_file = sprintf('test_%s.gif', boundary_treatment);
-imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
-imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
+% % DEBUG: save a gif to the current working directory
+% gif_file = sprintf('test_%s.gif', boundary_treatment);
+% imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
+% imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
 
 % create sample grid
 [r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
@@ -192,13 +192,13 @@ for pp = 1:np
     [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
         c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
     
-    % DEBUG
-    subplot(2, 1, 1)
-    imagesc(u_grd_ti); caxis([-30, -5]);
-    subplot(2, 1, 2)
-    imagesc(v_grd_ti); caxis([-3, 3]);
-    pause
-    % END DEBUG
+    % % DEBUG
+    % subplot(2, 1, 1)
+    % imagesc(u_grd_ti); caxis([-30, -5]);
+    % subplot(2, 1, 2)
+    % imagesc(v_grd_ti); caxis([-3, 3]);
+    % pause
+    % % END DEBUG
      
     % interpolate valid vectors to full sample grid 
     % note: leave as-is on last pass, want NaN where there is no valid

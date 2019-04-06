@@ -91,8 +91,8 @@ ini_idx = ini_idx(in_range);
 fin_idx = fin_idx(in_range);
 
 % compute size of gridded output dimensions
-[r_grd, c_grd] = piv_sample_grid(samp_spc, length(y_img), length(x_img));
-step = 0.5*(step_img(ini_idx) + step_img(fin_idx));
+[r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, length(y_img), length(x_img));
+step = step_img(ini_idx);
 num_x_grd = size(c_grd, 2);
 num_y_grd = size(r_grd, 1);
 num_step = length(step);
@@ -203,7 +203,7 @@ for ii = 1:num_step
     
     % update image and roi pair
     img0 = input_data.img(:, :, :, ini_idx(ii));
-    roi0 = input_data.mask(:, :, :, ini_idx(ii));
+    roi0 = input_data.mask(:, :, ini_idx(ii));
     
     img1 = input_data.img(:, :, :, fin_idx(ii));
     roi1 = input_data.mask(:, :, fin_idx(ii));
@@ -222,11 +222,6 @@ for ii = 1:num_step
     end
     output_data.u_grd(:, :, ii) = piv_data.u_grd;
     output_data.v_grd(:, :, ii) = piv_data.v_grd;
-    output_data.roi_grd(:, :, ii) = piv_data.roi_grd;
-    output_data.x_pts(1:numel(piv_data.x_pts), ii) = piv_data.x_pts(:);
-    output_data.y_pts(1:numel(piv_data.y_pts), ii) = piv_data.y_pts(:);
-    output_data.u_pts(1:numel(piv_data.u_pts), ii) = piv_data.u_pts(:);
-    output_data.v_pts(1:numel(piv_data.v_pts), ii) = piv_data.v_pts(:);
     
     fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
 end
