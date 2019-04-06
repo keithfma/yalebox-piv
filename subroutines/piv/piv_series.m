@@ -67,11 +67,10 @@ assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
 % open the input data file for reading
 input_data = matfile(input_file, 'Writable', false);
 
-% read constants (input coordinate vectors, constant mask)
+% read constants (input coordinate vectors)
 x_img = double(input_data.x);
 y_img = double(input_data.y);
 step_img = double(input_data.step);
-roi_const = input_data.mask_manual;
 
 % compute indices for image pairs
 if isnan(step_range(1))
@@ -203,11 +202,11 @@ for ii = 1:num_step
     fprintf('%s: fin_step = %.1f\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and roi pair
-    img0 = double(input_data.img(:, :, ini_idx(ii)));
-    roi0 = input_data.mask_auto(:, :, ini_idx(ii)) & roi_const;
+    img0 = input_data.img(:, :, :, ini_idx(ii));
+    roi0 = input_data.mask(:, :, :, ini_idx(ii));
     
-    img1 = double(input_data.img(:, :, fin_idx(ii)));
-    roi1 = input_data.mask_auto(:, :, fin_idx(ii)) & roi_const;
+    img1 = input_data.img(:, :, :, fin_idx(ii));
+    roi1 = input_data.mask(:, :, fin_idx(ii));
     
     % perform piv analysis
     piv_data = piv_step(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...

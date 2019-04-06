@@ -90,10 +90,10 @@ function result = piv_step(...
 update_path('normxcorr2_masked', 'inpaint_nans');
 
 % check for sane inputs
-[nr, nc] = size(img_ti); % image size
+[nr, nc, nb] = size(img_ti); % image size
 ng = numel(samp_len); % number of grid refinement steps
-validateattributes(img_ti, {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1});
-validateattributes(img_tf, {'double'},  {'2d', 'real', 'nonnan', '>=', 0, '<=' 1, 'size', [nr, nc]});
+validateattributes(img_ti, {'uint8'},  {'3d'});
+validateattributes(img_tf, {'uint8'},  {'3d', 'size', [nr, nc, nb]});
 validateattributes(roi_img_ti, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(roi_img_tf, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(x_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
@@ -132,6 +132,15 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 u_grd_ti = zeros(size(r_grd));
 v_grd_ti = zeros(size(c_grd));
 
+% convert to images to grayscale and apply mask
+img_ti = rgb2hsv(img_ti);
+img_ti = img_ti(:,:,3);
+img_ti(~roi_img_ti) = 0;
+
+img_tf = rgb2hsv(img_tf);
+img_tf = img_tf(:,:,3);
+img_tf(~roi_img_tf) = 0;
+
 % multipass loop
 np = length(samp_len);
 for pp = 1:np
@@ -153,17 +162,19 @@ for pp = 1:np
     [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
         c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
     
-    % DEBUG
-    subplot(2, 1, 1)
-    imagesc(u_grd_ti); caxis([-30, -5]);
-    subplot(2, 1, 2)
-    imagesc(v_grd_ti); caxis([-3, 3]);
-    pause
-    % END DEBUG
-    
-    % interpolate valid vectors to full sample grid
+    % % DEBUG
+    % subplot(2, 1, 1)
+    % imagesc(u_grd_ti); caxis([-30, -5]);
+    % subplot(2, 1, 2)
+    % imagesc(v_grd_ti); caxis([-3, 3]);
+    % pause
+    % % END DEBUG
+     
+    % interpolate valid vectors to full sample grid 
     % note: leave as-is on last pass, want NaN where there is no valid
     %   observation
+    % TODO: consider keeping it simple, just use nearest interpolation
+    % TODO: consider interpolating final results for padded images
     if pp < np
         u_grd_ti = inpaint_nans(u_grd_ti, 2);
         v_grd_ti = inpaint_nans(v_grd_ti, 2);
