@@ -1,5 +1,5 @@
-function [xx_fill, yy_fill, img_fill] = prep_fill_nnbr(xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill] = prep_fill_nnbr(xx, yy, img, mask, pad_width)
+function [xx_fill, yy_fill, img_fill] = piv_fill_nnbr(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_nnbr(xx, yy, img, mask, pad_width)
 % 
 % Fill non-sand regions of the input image by nearest-neighbor
 % extrapolation

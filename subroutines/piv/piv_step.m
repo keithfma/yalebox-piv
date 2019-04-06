@@ -122,25 +122,55 @@ fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
 fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
-% expand grid definition vectors to reflect the number of passes
-[samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
+% treat image boundaries
+% TODO: choose one, and drop other options
+fprintf('%s: apply boundary treatment to input images\n', mfilename);
+boundary_treatment = 'pad_nnbr_smooth'; 
 
-% create sample grid
-[r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
+if strcmp(boundary_treatment, 'mask')
+    img_tf(repmat(~roi_img_tf, 1, 1, size(img_ti, 3))) = 0;
+    img_ti(repmat(~roi_img_ti, 1, 1, size(img_tf, 3))) = 0;
+    
+elseif strcmp(boundary_treatment, 'pad_nnbr')
+    [~, ~, img_ti] = piv_fill_nnbr(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_nnbr(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
 
-% initial guess for displacements
-u_grd_ti = zeros(size(r_grd));
-v_grd_ti = zeros(size(c_grd));
+elseif strcmp(boundary_treatment, 'pad_nnbr_smooth')
+    [~, ~, img_ti] = piv_fill_nnbr_smooth(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_nnbr_smooth(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
+    
+elseif strcmp(boundary_treatment, 'pad_mirror')
+    [~, ~, img_ti] = piv_fill_mirror(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_mirror(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
+    
+elseif strcmp(boundary_treatment, 'pad_mirror_smooth')
+    [~, ~, img_ti] = piv_fill_mirror_smooth(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_mirror_smooth(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
+    
+end
 
 % convert to images to grayscale and apply mask
 img_ti = rgb2hsv(img_ti);
 img_ti = img_ti(:,:,3);
-img_ti(~roi_img_ti) = 0;
 
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
-img_tf(~roi_img_tf) = 0;
 
+% DEBUG: save a gif to the current working directory
+gif_file = sprintf('test_%s.gif', boundary_treatment);
+imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
+imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
+
+% create sample grid
+[r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
+
+% expand grid definition vectors to reflect the number of passes
+[samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
+
+% initial guess for displacements
+u_grd_ti = zeros(size(r_grd));
+v_grd_ti = zeros(size(c_grd));
+    
 % multipass loop
 np = length(samp_len);
 for pp = 1:np
@@ -162,13 +192,13 @@ for pp = 1:np
     [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
         c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
     
-    % % DEBUG
-    % subplot(2, 1, 1)
-    % imagesc(u_grd_ti); caxis([-30, -5]);
-    % subplot(2, 1, 2)
-    % imagesc(v_grd_ti); caxis([-3, 3]);
-    % pause
-    % % END DEBUG
+    % DEBUG
+    subplot(2, 1, 1)
+    imagesc(u_grd_ti); caxis([-30, -5]);
+    subplot(2, 1, 2)
+    imagesc(v_grd_ti); caxis([-3, 3]);
+    pause
+    % END DEBUG
      
     % interpolate valid vectors to full sample grid 
     % note: leave as-is on last pass, want NaN where there is no valid

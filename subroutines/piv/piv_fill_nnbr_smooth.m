@@ -1,5 +1,5 @@
-function [xx_fill, yy_fill, img_fill] = prep_fill_nnbr_smooth(xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill] = prep_fill_nnbr_smooth(xx, yy, img, mask, pad_width)
+function [xx_fill, yy_fill, img_fill] = piv_fill_nnbr_smooth(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_nnbr_smooth(xx, yy, img, mask, pad_width)
 % 
 % Fill non-sand regions of the input image by nearest-neighbor
 % extrapolation, uses a weighted (gaussian) mean of boundary pixels to
@@ -40,7 +40,6 @@ for kk = find(edge(mask_fill))'
     [ii, jj] = ind2sub(size(mask_fill), kk);
     for cc = 1:size(img_fill, 3)
         smooth_img_fill(ii, jj, cc) = get_value(img_fill, mask_fill, weight, ii, jj, cc);
-        disp(smooth_img_fill(ii, jj, cc))
     end
 end
                 
