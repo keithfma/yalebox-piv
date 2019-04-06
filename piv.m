@@ -20,7 +20,7 @@ update_path('util', 'piv');
 
 switch class(param)
     case 'struct'
-        param = param;  % do nothing
+        param = param;  %#ok! do nothing
     case 'char'
         param = load_param(param);
     otherwise
