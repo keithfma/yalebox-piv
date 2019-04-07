@@ -121,7 +121,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % treat image boundaries
 % TODO: choose one, and drop other options
 fprintf('%s: apply boundary treatment to input images\n', mfilename);
-boundary_treatment = 'mask'; 
+boundary_treatment = 'extend'; 
 
 if strcmp(boundary_treatment, 'mask')
     img_tf(repmat(~roi_img_tf, 1, 1, size(img_ti, 3))) = 0;

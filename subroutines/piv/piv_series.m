@@ -72,7 +72,7 @@ x_img = double(input_data.x);
 y_img = double(input_data.y);
 step_img = double(input_data.step);
 
-% compute indices for image pairs
+% compute indices for image pairs for given step range and gap
 if isnan(step_range(1))
     min_idx = 1;
 else
@@ -90,11 +90,8 @@ in_range = ini_idx >= min_idx & ini_idx <= max_idx ...
 ini_idx = ini_idx(in_range);
 fin_idx = fin_idx(in_range);
 
-% compute size of gridded output dimensions
-[rr, cc] = piv_sample_grid(samp_len, samp_spc, length(y_img), length(x_img));
+% compute step coordinate vector
 step = step_img(ini_idx);
-num_x = size(cc, 2);
-num_y = size(rr, 1);
 num_step = length(step);
 
 % create output file, fail if exists
@@ -153,15 +150,6 @@ meta.v.units = 'meters/step';
 
 output_data.meta = meta;
 
-% allocate output variables
-% note: matfile does not allow indexing into cell arrays, so we have to
-%   store the variable-length output in a fixed dimension grid
-% note: add one to num_step to handle special case for single step test
-%   runs, as there is no way to have a singleton as the last dimension
-allocate(output_data, 'u', 'double', [num_y, num_x, num_step+1]);
-allocate(output_data, 'v', 'double', [num_y, num_x, num_step+1]);
-allocate(output_data, 'valid', 'logical', [num_y, num_x, num_step+1]);
-
 % analyse all steps
 for ii = 1:num_step
     
@@ -182,11 +170,18 @@ for ii = 1:num_step
         min_frac_data, min_frac_overlap); 
     
     % write results to output file
-    % note: spatial coordinate vectors are created during PIV
-    if ii == 1      
+    if ii == 1
+        % write spatial coordinate vectors,  created during PIV
         output_data.x = reshape(piv_data.x(1, :), size(piv_data.x, 2), 1);
         output_data.y = reshape(piv_data.y(:, 1), size(piv_data.y, 1), 1);
-        output_data.step = step(:);
+        output_data.step = step(:);        
+        % allocate other output variables
+        % note: add one to num_step to handle special case for single step test
+        %   runs, as there is no way to have a singleton as the last dimension
+        dimensions = [length(output_data.y), length(output_data.x), num_step+1];
+        allocate(output_data, 'u', 'double', dimensions);
+        allocate(output_data, 'v', 'double', dimensions);
+        allocate(output_data, 'valid', 'logical', dimensions);
     end
     output_data.u(:, :, ii) = piv_data.u;
     output_data.v(:, :, ii) = piv_data.v;
