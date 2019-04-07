@@ -40,6 +40,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(subroutines, 'post'));
         case 'util'
             addpath(fullfile(subroutines, 'util'));
+        case 'plot'
+            addpath(fullfile(subroutines, 'plot'));
         
         % bad name, fail
         otherwise

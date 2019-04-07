@@ -3,7 +3,7 @@ function [] = piv(param, prep_mat, piv_mat)
 % 
 % Run PIV analysis for a given image series. Simple wrapper around
 % piv_series() that reads the (many) input parameters from the standard
-% JSON file rather than as arguments.
+% MAT file rather than as arguments.
 %
 % Arguments:
 % 
