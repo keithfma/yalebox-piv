@@ -1,5 +1,5 @@
 function [uu, vv] = piv_displacement(...
-    ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, ...
+    ini, fin, rr, cc, uu_guess, vv_guess, samplen, intrlen, min_frac_data, ...
     min_frac_overlap, high_quality)
 %
 % Compute the displacement at midpoint time from the maksed normalized cross
@@ -12,17 +12,23 @@ function [uu, vv] = piv_displacement(...
 %
 % Arguments:
 %
-% ini, fin: 2D matrix, initial and final images at midpoint time
-% rr, cc: 2D matrix, row- and column-coordinates for the initial sample grid
-% uu, vv: 2D matrix, initial guess for x (column) and y (row)
-%   displacements at points in rr, cc.
-% samplen, intrlen = Scalar, size of the sample and interrogation windows in pixels
-% min_frac_data = Scalar, minimum fraction of the sample window that must
-%   contain data (e.g. sand) for the point to be included in the ROI for PIV
-%   analysis
-% min_frac_overlap = Scalar, minimum fraction of the sample window data that
-%   must overlap the interrogation window data for a point in the
-%   cross-correlation to be valid
+%   ini, fin: 2D matrix, initial and final images at midpoint time
+% 
+%   rr, cc: 2D matrix, row- and column-coordinates for the initial sample grid
+%
+%   uu_guess, vv_guess: 2D matrix, initial guess for x (column) and y (row)
+%       displacements at points in rr, cc.
+%
+%   samplen, intrlen = Scalar, size of the sample and interrogation windows
+%       in pixels
+%
+%   min_frac_data = Scalar, minimum fraction of the sample window that must
+%       contain data (e.g. sand) for the point to be included in the ROI
+%       for PIV analysis
+%
+%   min_frac_overlap = Scalar, minimum fraction of the sample window data
+%       that must overlap the interrogation window data for a point in the
+%       cross-correlation to be valid
 %
 % uu, vv = Vector, estimated displacements in the x (column) and y (row)
 %   directions
@@ -33,7 +39,12 @@ function [uu, vv] = piv_displacement(...
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
-parfor kk = 1:numel(uu)
+% initialize output arrays
+uu = nan(size(uu_guess));
+vv = nan(size(vv_guess));
+
+% TODO: parfor results were mostly 0 instead of mostly NaN, not sure why
+for kk = 1:numel(uu_guess)
           
     % get sample window at initial time (no offest)
     [samp, r_samp, c_samp] = piv_window(ini, rr(kk), cc(kk), samplen);
@@ -42,25 +53,21 @@ parfor kk = 1:numel(uu)
     % skip if sample window is too empty
     frac_data = sum(samp(:) ~= 0)/numel(samp);
     if  frac_data < min_frac_data
-        uu(kk) = NaN;
-        vv(kk) = NaN;
         continue
     end
     
     % get interrogation window, offset to final time
-    % NOTE: size(intr) may *not* be [intrlen, intrlen] due to rounding, it
-    %   follows that the true center point may not be as requested, this is
-    %   OK because we compute it directly later
+    % note: size(intr) may *not* be [intrlen, intrlen] due to rounding,
+    %   this does not impact displacements since we compute them using the
+    %   actual intr size
     [intr, r_intr, c_intr] = piv_window(...
-        fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
+        fin, rr(kk) + vv_guess(kk), cc(kk) + uu_guess(kk), intrlen);
     
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
     
     % skip if nowhere has enough overlapping sandy pixels
     if max(overlap(:)) < min_overlap
-        uu(kk) = NaN;
-        vv(kk) = NaN;
         continue
     end
     

@@ -38,9 +38,10 @@ num_valid_init = sum(~isnan(uu(:)));
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
 % check all points
+% TODO: parfor yielded garbage results, not sure why
 for kk = 1:numel(uu)
     
-    % skip if there is no observation at this point
+    % skip if ther e is no observation at this point
     if isnan(uu(kk))
         valid(kk) = false;
         continue;

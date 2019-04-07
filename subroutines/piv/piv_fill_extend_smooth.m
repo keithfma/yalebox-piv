@@ -1,7 +1,7 @@
-function [xx_fill, yy_fill, img_fill] = piv_fill_mirror_smooth(xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill] = piv_fill_mirror_smooth(xx, yy, img, mask, pad_width)
+function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
 % 
-% Fill non-sand regions of the input image by mirroring boundary pixels,
+% Fill non-sand regions of the input image by extending boundary pixels,
 % uses a weighted (gaussian) mean of boundary pixels to reduce sensitivity
 % to the masking algorithm 
 %

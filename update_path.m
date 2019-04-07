@@ -30,7 +30,9 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'akde'));
         case 'inpaint_nans'
             addpath(fullfile(dependencies, 'inpaint_nans'));
-    
+        case 'export_fig'
+            addpath(fullfile(dependencies, 'export_fig'));
+        
         % subroutines
         case 'prep'
             addpath(fullfile(subroutines, 'prep'));

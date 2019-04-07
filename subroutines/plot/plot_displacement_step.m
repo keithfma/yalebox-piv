@@ -1,11 +1,12 @@
-function plot_displacement_step(piv_file, step)
-% function plot_displacement_step(piv_file, step)
+function plot_displacement_step(piv_file, step, png)
+% function plot_displacement_step(piv_file, step, png)
 %
 % Display displacements for specified step from PIV data file
 %
 % Arguments:
 %   piv_file: string, path to PIV data file, as created by piv.m
 %   step: int, step (not step index) to be displayed
+%   png: string, path to PNG file to save results, if needed
 % %
 
 % get relevant data
@@ -63,7 +64,11 @@ hax_v = subplot(3, 1, 3);
 him_v = imagesc([x(1), x(end)], [y(1), y(end)], v);
 format_subplot(hax_v, him_v, v, 'Vertical Displacement Magnitide', 'mm/step');
 
-fprintf('DONE\n');
+% save figure, if requested
+if png
+    drawnow
+    export_fig(png, hf, '-png', '-r300');
+end
 
 end
 

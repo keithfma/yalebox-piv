@@ -121,27 +121,27 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % treat image boundaries
 % TODO: choose one, and drop other options
 fprintf('%s: apply boundary treatment to input images\n', mfilename);
-boundary_treatment = 'mask'; 
+boundary_treatment = 'nnbr'; 
 
 if strcmp(boundary_treatment, 'mask')
     img_tf(repmat(~roi_img_tf, 1, 1, size(img_ti, 3))) = 0;
     img_ti(repmat(~roi_img_ti, 1, 1, size(img_tf, 3))) = 0;
     
-elseif strcmp(boundary_treatment, 'pad_nnbr')
+elseif strcmp(boundary_treatment, 'nnbr')
     [~, ~, img_ti] = piv_fill_nnbr(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
     [x_img, y_img, img_tf] = piv_fill_nnbr(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
 
-elseif strcmp(boundary_treatment, 'pad_nnbr_smooth')
+elseif strcmp(boundary_treatment, 'nnbr_smooth')
     [~, ~, img_ti] = piv_fill_nnbr_smooth(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
     [x_img, y_img, img_tf] = piv_fill_nnbr_smooth(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
     
-elseif strcmp(boundary_treatment, 'pad_mirror')
-    [~, ~, img_ti] = piv_fill_mirror(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
-    [x_img, y_img, img_tf] = piv_fill_mirror(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
+elseif strcmp(boundary_treatment, 'extend')
+    [~, ~, img_ti] = piv_fill_extend(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_extend(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
     
-elseif strcmp(boundary_treatment, 'pad_mirror_smooth')
-    [~, ~, img_ti] = piv_fill_mirror_smooth(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
-    [x_img, y_img, img_tf] = piv_fill_mirror_smooth(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
+elseif strcmp(boundary_treatment, 'extend_smooth')
+    [~, ~, img_ti] = piv_fill_extend_smooth(x_img, y_img, img_ti, roi_img_ti, samp_len(1));
+    [x_img, y_img, img_tf] = piv_fill_extend_smooth(x_img, y_img, img_tf, roi_img_ti, samp_len(1));
     
 end
 

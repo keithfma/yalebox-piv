@@ -9,4 +9,4 @@ temp/*
 *.asv
 standalone/*
 tmp/*
-*.gif
+exp-*
