@@ -121,7 +121,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % treat image boundaries
 % TODO: choose one, and drop other options
 fprintf('%s: apply boundary treatment to input images\n', mfilename);
-boundary_treatment = 'nnbr'; 
+boundary_treatment = 'mask'; 
 
 if strcmp(boundary_treatment, 'mask')
     img_tf(repmat(~roi_img_tf, 1, 1, size(img_ti, 3))) = 0;
@@ -175,14 +175,9 @@ for pp = 1:np
         mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
-    if pp == np
-        quality = true;
-    else
-        quality = false;
-    end
     [uu, vv] = piv_displacement(...
         img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
-        intr_len(pp), min_frac_data, min_frac_overlap, quality);
+        intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
     [uu, vv] = piv_validate_pts_nmed(...
