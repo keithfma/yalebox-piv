@@ -85,14 +85,39 @@ object_label = bwlabel(mask);
 largest_object = mode(object_label(object_label>0));
 mask = object_label == largest_object;
 
+% DEBUG: try "singed" mask to improve reliability
+
 % clean up edges with morphological filters
 % ...remove noise (open), then trim boundary (erode)
 if morph_open_rad > 0
     mask = imopen(mask, strel('disk', morph_open_rad));
 end
-if morph_erode_rad > 0
-    mask = imerode(mask, strel('disk', morph_erode_rad));
+
+threshold = 0.5;
+
+hsv = rgb2hsv(rgb);
+val = hsv(:, :, 3);
+
+for cc = 1:size(mask, 2)
+    not_nan = ~isnan(mask(:, cc));
+    
+    
+    median_val = median(val(not_nan, cc));
+    above_threshold = val(:, cc) > median_val*threshold;    
+    
+    keep = not_nan & above_threshold;
+    
+    min_idx = find(keep, 1, 'first');
+    max_idx = find(keep, 1, 'last');
+    mask(1:(min_idx-1), cc) = false;
+    mask((max_idx+1):end, cc) = false;
 end
+
+% if morph_erode_rad > 0
+%     mask = imerode(mask, strel('disk', morph_erode_rad));
+% end
+
+% END DEBUG
 
 % (optional) plot to facilitate parameter selection
 if show

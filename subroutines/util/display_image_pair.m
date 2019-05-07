@@ -13,6 +13,7 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi)
 figure 
 
 ini_masked = ini;
+ini_roi = repmat(ini_roi, 1, 1, 3);
 ini_masked(~ini_roi) = 0;
 
 ax1 = subplot(2,1,1);
@@ -23,10 +24,11 @@ axis equal tight
 title('Initial Image');
 
 fin_masked = fin;
+fin_roi = repmat(fin_roi, 1, 1, 3);
 fin_masked(~fin_roi) = 0;
 
 ax2 = subplot(2,1,2);
-imagesc(xx, yy, fin);
+imagesc(xx, yy, fin_masked);
 colormap('gray');
 ax2.YDir = 'normal';
 axis equal tight

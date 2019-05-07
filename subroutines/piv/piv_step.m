@@ -120,7 +120,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % treat image boundaries
 % TODO: choose one, and drop other options
-boundary_treatment = 'nnbr_smooth';
+boundary_treatment = 'extend';
 
 fprintf('%s: apply boundary treatment "%s" to input images\n', ...
     mfilename, boundary_treatment); 
@@ -154,10 +154,10 @@ img_ti = img_ti(:,:,3);
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
 
-% % DEBUG: save a gif to the current working directory
-% gif_file = sprintf('test_%s.gif', boundary_treatment);
-% imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
-% imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
+% DEBUG: save a gif to the current working directory
+gif_file = sprintf('test_%s.gif', boundary_treatment);
+imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
+imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
 
 % create sample grid
 [rr, cc] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
