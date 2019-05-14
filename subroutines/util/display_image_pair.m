@@ -10,6 +10,8 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi)
 %       indicating if a pixel is sand (1) or not (0)
 % %
 
+% TODO: add option to include padding in display
+
 figure 
 
 ini_masked = ini;
