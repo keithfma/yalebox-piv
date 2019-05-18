@@ -93,25 +93,7 @@ if morph_open_rad > 0
     mask = imopen(mask, strel('disk', morph_open_rad));
 end
 
-threshold = 0.5;
-
-hsv = rgb2hsv(rgb);
-val = hsv(:, :, 3);
-
-for cc = 1:size(mask, 2)
-    not_nan = ~isnan(mask(:, cc));
-    
-    
-    median_val = median(val(not_nan, cc));
-    above_threshold = val(:, cc) > median_val*threshold;    
-    
-    keep = not_nan & above_threshold;
-    
-    min_idx = find(keep, 1, 'first');
-    max_idx = find(keep, 1, 'last');
-    mask(1:(min_idx-1), cc) = false;
-    mask((max_idx+1):end, cc) = false;
-end
+mask = singe(rgb, mask, 50);
 
 % if morph_erode_rad > 0
 %     mask = imerode(mask, strel('disk', morph_erode_rad));
@@ -139,3 +121,43 @@ end
 % (optional) report percentage masked
 pct_sand = 100*sum(mask(:))/numel(mask);
 fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
+
+
+function mask = singe(rgb, mask, threshold_percentile)
+% function mask = singe(rgb, mask, threshold_percentile)
+%
+% Improve mask edge quality by burning off ("singing") low-brightness pixels
+%
+% Arguments:
+%   rgb: 3D matrix, RGB image
+%   mask: boolean matrix, true for sand pixels, false elsewhere
+%   threshold percentile: float, range 0-100, threshold below which pixels
+%       are "singed" out of the input mask
+%
+% Returns:
+%   mask: singed version of the input mask
+% %
+
+% TODO: next step: try a more stable threshold, by fitting a smooth line
+%   to the median along columns
+
+% TODO: next next step: perhaps we can be more clever and actually optimize
+%   masks from adjacent frames to yeild a matching pattern?
+
+hsv = rgb2hsv(rgb);
+val = hsv(:, :, 3);
+
+for cc = 1:size(mask, 2)
+    mask_col = mask(:, cc);
+    
+    threshold_value = prctile(val(mask_col, cc), threshold_percentile);
+    above_threshold = val(:, cc) > threshold_value;    
+    
+    keep = mask_col & above_threshold;
+    
+    min_idx = find(keep, 1, 'first');
+    max_idx = find(keep, 1, 'last');
+    mask(1:(min_idx-1), cc) = false;
+    mask((max_idx+1):end, cc) = false;
+end
+
