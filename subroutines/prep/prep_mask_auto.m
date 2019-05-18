@@ -93,7 +93,7 @@ if morph_open_rad > 0
     mask = imopen(mask, strel('disk', morph_open_rad));
 end
 
-mask = singe(rgb, mask, 50);
+mask = singe(rgb, mask, 10);
 
 % if morph_erode_rad > 0
 %     mask = imerode(mask, strel('disk', morph_erode_rad));
@@ -144,20 +144,47 @@ function mask = singe(rgb, mask, threshold_percentile)
 % TODO: next next step: perhaps we can be more clever and actually optimize
 %   masks from adjacent frames to yeild a matching pattern?
 
+% get brightness array
 hsv = rgb2hsv(rgb);
 val = hsv(:, :, 3);
 
-for cc = 1:size(mask, 2)
-    mask_col = mask(:, cc);
-    
-    threshold_value = prctile(val(mask_col, cc), threshold_percentile);
-    above_threshold = val(:, cc) > threshold_value;    
-    
-    keep = mask_col & above_threshold;
-    
-    min_idx = find(keep, 1, 'first');
-    max_idx = find(keep, 1, 'last');
-    mask(1:(min_idx-1), cc) = false;
-    mask((max_idx+1):end, cc) = false;
+% TODO: merge the first two for loops
+
+% compute first and last index of mask in each column
+min_idx = zeros(1, size(val,2));
+max_idx = zeros(1, size(val,2));
+for jj = 1:size(mask, 2)
+    min_idx(jj) = find(mask(:, jj), 1, 'first');
+    max_idx(jj) = find(mask(:, jj), 1, 'last');
 end
+
+% get threshold value for each column
+% note: assumes mask all true between min and max, and checks this is true
+threshold = zeros(1, size(val, 2));
+for jj = 1:size(mask, 2)
+    i0 = min_idx(jj);
+    i1 = max_idx(jj);
+    assert(all(mask(i0:i1, jj)), 'mask has holes in this column, bad');
+    threshold(jj) = prctile(val(i0:i1, jj), threshold_percentile);
+end
+    
+% smooth the threshold value to get a stable estimate
+threshold = smooth(threshold, 0.3, 'loess');
+
+% singe edge pixels below threshold
+masked_val = val;
+masked_val(~mask) = NaN;
+new_mask = false(size(mask));
+
+for jj = 1:size(mask, 2)
+    min_idx = find(masked_val(:, jj) >= threshold(jj), 1, 'first');
+    max_idx = find(masked_val(:, jj) >= threshold(jj), 1, 'last');
+    new_mask(min_idx:max_idx, jj) = true;
+end
+
+% debug
+imagesc(new_mask + mask)
+keyboard
+% end debug
+
 
