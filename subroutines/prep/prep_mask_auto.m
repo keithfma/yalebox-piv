@@ -66,9 +66,7 @@ value_mask = value >= value_lim(1) & value <= value_lim(2);
 entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 
 % create mask
-% combined_mask = hue_mask & value_mask & entropy_mask;
-combined_mask = hue_mask & value_mask;
-
+combined_mask = hue_mask & value_mask & entropy_mask;
 
 % fill holes along edges (wall off one corner, fill, repeat)
 ridx = 1:size(combined_mask, 1);
@@ -87,7 +85,6 @@ object_label = bwlabel(combined_mask);
 largest_object = mode(object_label(object_label>0));
 combined_mask = object_label == largest_object;
 
-
 % create a mask without holes from the first and last pixels per column
 mask = false(size(combined_mask));
 for jj = 1:size(combined_mask, 2)
@@ -97,21 +94,7 @@ for jj = 1:size(combined_mask, 2)
     mask(ii_min:ii_max, jj) = true;
 end
 
-% DEBUG: try "singed" mask to improve reliability
-
-% % clean up edges with morphological filters
-% % ...remove noise (open), then trim boundary (erode)
-% if morph_open_rad > 0
-%     mask = imopen(mask, strel('disk', morph_open_rad));
-% end
-
-mask = singe(rgb, mask, 50);
-
-% % if morph_erode_rad > 0
-% %     mask = imerode(mask, strel('disk', morph_erode_rad));
-% % end
-% 
-% % END DEBUG
+mask = singe(rgb, mask, 20);
 
 % (optional) plot to facilitate parameter selection
 if show
