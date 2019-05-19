@@ -229,7 +229,7 @@ for ii = 1:length(yy_fill)
 end
 
 % sanity checks
-% assert(all(mask_fill(:)), 'Expected all pixels to be populated by fill routine');
+assert(all(mask_fill(:)), 'Expected all pixels to be populated by fill routine');
 assert(length(yy_fill) == size(img_fill, 1), 'Padded dimensions do not match padded image');
 assert(length(xx_fill) == size(img_fill, 2), 'Padded dimensions do not match padded image');
 assert(size(img_fill, 3) == 3, 'Padded image does not appear to be RGB');

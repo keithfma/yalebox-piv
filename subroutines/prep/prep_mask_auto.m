@@ -66,35 +66,42 @@ value_mask = value >= value_lim(1) & value <= value_lim(2);
 entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 
 % create mask
-combined_mask = hue_mask & value_mask & entropy_mask;
+raw_mask = hue_mask & value_mask & entropy_mask;
 
 % fill holes along edges (wall off one corner, fill, repeat)
-ridx = 1:size(combined_mask, 1);
-cidx = 1:size(combined_mask, 2);
+ridx = 1:size(raw_mask, 1);
+cidx = 1:size(raw_mask, 2);
 dr = [1, 1, 0, 0];
 dc = [1, 0, 0, 1];
 for ii = 1:4
-    wall = true(size(combined_mask)+1);
-    wall(ridx+dr(ii), cidx+dc(ii)) = combined_mask;
+    wall = true(size(raw_mask)+1);
+    wall(ridx+dr(ii), cidx+dc(ii)) = raw_mask;
     wall = imfill(wall, 'holes');
-    combined_mask = wall(ridx+dr(ii), cidx+dc(ii));
+    raw_mask = wall(ridx+dr(ii), cidx+dc(ii));
 end
  
 % extract largest connected object
-object_label = bwlabel(combined_mask);
+object_label = bwlabel(raw_mask);
 largest_object = mode(object_label(object_label>0));
-combined_mask = object_label == largest_object;
+raw_mask = object_label == largest_object;
 
 % create a mask without holes from the first and last pixels per column
-mask = false(size(combined_mask));
-for jj = 1:size(combined_mask, 2)
-    column = combined_mask(:, jj);
+rough_mask = false(size(raw_mask));
+for jj = 1:size(raw_mask, 2)
+    column = raw_mask(:, jj);
     ii_min = find(column, 1, 'first');
     ii_max = find(column, 1, 'last');
-    mask(ii_min:ii_max, jj) = true;
+    rough_mask(ii_min:ii_max, jj) = true;
 end
 
-mask = singe(rgb, mask, 20);
+% clean up mask edges
+% note: low threshold percentile works, avoid parameterizing if possible
+mask = singe(value, rough_mask, 25);
+
+% TODO; singing working well at upper bnd but not lower, suspect a
+%   different threshold is needed. One approach would be to do stats on 
+%   a layer of fixed width from the boundary only, and run the top and
+%   bottom separately.
 
 % (optional) plot to facilitate parameter selection
 if show
@@ -110,7 +117,21 @@ if show
     figure()    
     colormap(gray);
     subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
-    subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])    
+    subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])
+    
+    figure()
+    rough_mask_bnd = bwboundaries(rough_mask);
+    rough_mask_x = rough_mask_bnd{1}(:,2);
+    rough_mask_y = rough_mask_bnd{1}(:,1);
+    mask_bnd = bwboundaries(mask);
+    mask_x = mask_bnd{1}(:,2);
+    mask_y = mask_bnd{1}(:,1);
+    imagesc(value); colormap('gray'); hold on;
+    plot(rough_mask_x, rough_mask_y, '-r');
+    plot(mask_x, mask_y, '-b');
+    axis equal tight
+    set(gca, 'YDir', 'normal', 'XTick', [], 'YTick',[]);
+    title('Final (blue) and rough (red) boundary lines');
 end
 
 % (optional) report percentage masked
@@ -118,13 +139,13 @@ pct_sand = 100*sum(mask(:))/numel(mask);
 fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
 
 
-function new_mask = singe(rgb, mask, threshold_percentile)
+function new_mask = singe(value, mask, threshold_percentile)
 % function mask = singe(rgb, mask, threshold_percentile)
 %
 % Improve mask edge quality by burning off ("singing") low-brightness pixels
 %
 % Arguments:
-%   rgb: 3D matrix, RGB image
+%   value: 
 %   mask: boolean matrix, true for sand pixels, false elsewhere
 %   threshold percentile: float, range 0-100, threshold below which pixels
 %       are "singed" out of the input mask
@@ -133,41 +154,28 @@ function new_mask = singe(rgb, mask, threshold_percentile)
 %   mask: singed version of the input mask
 % %
 
-% TODO: next step: try a more stable threshold, by fitting a smooth line
-%   to the median along columns
+% TODO: even with stable threshold estimate, there are some columns that 
+%   are deeply singed next to other that are not. This yields an irregular
+%   comb shape on mask edges, especially the bottom. Try smoothing the
+%   singed boundary, or something else if that fails
 
-% TODO: next next step: perhaps we can be more clever and actually optimize
-%   masks from adjacent frames to yeild a matching pattern?
-
-% get brightness array
-hsv = rgb2hsv(rgb);
-val = hsv(:, :, 3);
-
-% TODO: merge the first two for loops
-
-% compute first and last index of mask in each column
-min_idx = zeros(1, size(val,2));
-max_idx = zeros(1, size(val,2));
+% get raw threshold value for each column
+threshold = zeros(1, size(value, 2));
 for jj = 1:size(mask, 2)
-    min_idx(jj) = find(mask(:, jj), 1, 'first');
-    max_idx(jj) = find(mask(:, jj), 1, 'last');
+    % compute first and last index of mask in each column
+    min_idx = find(mask(:, jj), 1, 'first');
+    max_idx = find(mask(:, jj), 1, 'last');
+    % get raw threshold value
+    % note: check assumption that mask is all true between min and max
+    assert(all(mask(min_idx:max_idx, jj)), 'mask has holes in this column, bad');
+    threshold(jj) = prctile(value(min_idx:max_idx, jj), threshold_percentile);
 end
 
-% get threshold value for each column
-% note: assumes mask all true between min and max, and checks this is true
-threshold = zeros(1, size(val, 2));
-for jj = 1:size(mask, 2)
-    i0 = min_idx(jj);
-    i1 = max_idx(jj);
-    assert(all(mask(i0:i1, jj)), 'mask has holes in this column, bad');
-    threshold(jj) = prctile(val(i0:i1, jj), threshold_percentile);
-end
-    
-% smooth the threshold value to get a stable estimate
+% smooth threshold value to get a stable estimate
 threshold = smooth(threshold, 0.3, 'loess');
 
 % singe edge pixels below threshold
-masked_val = val;
+masked_val = value;
 masked_val(~mask) = NaN;
 new_mask = false(size(mask));
 
@@ -176,10 +184,5 @@ for jj = 1:size(mask, 2)
     max_idx = find(masked_val(:, jj) >= threshold(jj), 1, 'last');
     new_mask(min_idx:max_idx, jj) = true;
 end
-
-% % debug
-% imagesc(new_mask + mask)
-% keyboard
-% % end debug
 
 
