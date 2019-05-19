@@ -96,7 +96,7 @@ end
 
 % clean up mask edges
 % note: low threshold percentile works, avoid parameterizing if possible
-mask = singe(value, rough_mask, 25);
+mask = clean_up_edges(value, rough_mask, 25);
 
 % TODO; singing working well at upper bnd but not lower, suspect a
 %   different threshold is needed. One approach would be to do stats on 
@@ -139,7 +139,7 @@ pct_sand = 100*sum(mask(:))/numel(mask);
 fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
 
 
-function new_mask = singe(value, mask, threshold_percentile)
+function clean_mask = clean_up_edges(value, mask, threshold_percentile)
 % function mask = singe(rgb, mask, threshold_percentile)
 %
 % Improve mask edge quality by burning off ("singing") low-brightness pixels
@@ -159,30 +159,45 @@ function new_mask = singe(value, mask, threshold_percentile)
 %   comb shape on mask edges, especially the bottom. Try smoothing the
 %   singed boundary, or something else if that fails
 
-% get raw threshold value for each column
-threshold = zeros(1, size(value, 2));
+% TODO: the way to handle both top and bottom is to split the thickness of
+%   the sand and compute percentiles of each half, then have two
+%   thresholds. Will be interesting to see if they actually differ once I
+%   do this.
+
+% get raw threshold values for upper and lower layer in each column
+% note: does not matter if the image is inverted, upper/lower are arbitrary
+upper_threshold = zeros(1, size(value, 2));
+lower_threshold = zeros(1, size(value, 2));
 for jj = 1:size(mask, 2)
     % compute first and last index of mask in each column
     min_idx = find(mask(:, jj), 1, 'first');
     max_idx = find(mask(:, jj), 1, 'last');
-    % get raw threshold value
-    % note: check assumption that mask is all true between min and max
+    % check assumption that mask is all true between min and max
     assert(all(mask(min_idx:max_idx, jj)), 'mask has holes in this column, bad');
-    threshold(jj) = prctile(value(min_idx:max_idx, jj), threshold_percentile);
+    % split into two subequal layers
+    mid_idx = round(0.5*(min_idx + max_idx));
+    % get raw threshold values
+    upper_threshold(jj) = prctile(value(min_idx:mid_idx, jj), threshold_percentile);
+    lower_threshold(jj) = prctile(value(mid_idx:max_idx, jj), threshold_percentile);
 end
 
-% smooth threshold value to get a stable estimate
-threshold = smooth(threshold, 0.3, 'loess');
+% smooth threshold values to get a stable estimate
+upper_threshold = smooth(upper_threshold, 0.3, 'loess');
+lower_threshold = smooth(lower_threshold, 0.3, 'loess');
 
-% singe edge pixels below threshold
+% singe edge pixels below threshold values
 masked_val = value;
 masked_val(~mask) = NaN;
-new_mask = false(size(mask));
+clean_mask = false(size(mask));
 
 for jj = 1:size(mask, 2)
-    min_idx = find(masked_val(:, jj) >= threshold(jj), 1, 'first');
-    max_idx = find(masked_val(:, jj) >= threshold(jj), 1, 'last');
-    new_mask(min_idx:max_idx, jj) = true;
+    min_idx = find(masked_val(:, jj) >= upper_threshold(jj), 1, 'first');
+    max_idx = find(masked_val(:, jj) >= lower_threshold(jj), 1, 'last');
+    clean_mask(min_idx:max_idx, jj) = true;
 end
 
-
+% % debug
+% imagesc(clean_mask + mask);
+% set(gca, 'YDir', 'normal');
+% axis equal tight
+% % end debug
