@@ -66,40 +66,52 @@ value_mask = value >= value_lim(1) & value <= value_lim(2);
 entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 
 % create mask
-mask = hue_mask & value_mask & entropy_mask;
+% combined_mask = hue_mask & value_mask & entropy_mask;
+combined_mask = hue_mask & value_mask;
+
 
 % fill holes along edges (wall off one corner, fill, repeat)
-ridx = 1:size(mask, 1);
-cidx = 1:size(mask, 2);
+ridx = 1:size(combined_mask, 1);
+cidx = 1:size(combined_mask, 2);
 dr = [1, 1, 0, 0];
 dc = [1, 0, 0, 1];
 for ii = 1:4
-    wall = true(size(mask)+1);
-    wall(ridx+dr(ii), cidx+dc(ii)) = mask;
+    wall = true(size(combined_mask)+1);
+    wall(ridx+dr(ii), cidx+dc(ii)) = combined_mask;
     wall = imfill(wall, 'holes');
-    mask = wall(ridx+dr(ii), cidx+dc(ii));
+    combined_mask = wall(ridx+dr(ii), cidx+dc(ii));
 end
-
+ 
 % extract largest connected object
-object_label = bwlabel(mask);
+object_label = bwlabel(combined_mask);
 largest_object = mode(object_label(object_label>0));
-mask = object_label == largest_object;
+combined_mask = object_label == largest_object;
+
+
+% create a mask without holes from the first and last pixels per column
+mask = false(size(combined_mask));
+for jj = 1:size(combined_mask, 2)
+    column = combined_mask(:, jj);
+    ii_min = find(column, 1, 'first');
+    ii_max = find(column, 1, 'last');
+    mask(ii_min:ii_max, jj) = true;
+end
 
 % DEBUG: try "singed" mask to improve reliability
 
-% clean up edges with morphological filters
-% ...remove noise (open), then trim boundary (erode)
-if morph_open_rad > 0
-    mask = imopen(mask, strel('disk', morph_open_rad));
-end
-
-mask = singe(rgb, mask, 10);
-
-% if morph_erode_rad > 0
-%     mask = imerode(mask, strel('disk', morph_erode_rad));
+% % clean up edges with morphological filters
+% % ...remove noise (open), then trim boundary (erode)
+% if morph_open_rad > 0
+%     mask = imopen(mask, strel('disk', morph_open_rad));
 % end
 
-% END DEBUG
+mask = singe(rgb, mask, 50);
+
+% % if morph_erode_rad > 0
+% %     mask = imerode(mask, strel('disk', morph_erode_rad));
+% % end
+% 
+% % END DEBUG
 
 % (optional) plot to facilitate parameter selection
 if show
@@ -123,7 +135,7 @@ pct_sand = 100*sum(mask(:))/numel(mask);
 fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
 
 
-function mask = singe(rgb, mask, threshold_percentile)
+function new_mask = singe(rgb, mask, threshold_percentile)
 % function mask = singe(rgb, mask, threshold_percentile)
 %
 % Improve mask edge quality by burning off ("singing") low-brightness pixels
@@ -182,9 +194,9 @@ for jj = 1:size(mask, 2)
     new_mask(min_idx:max_idx, jj) = true;
 end
 
-% debug
-imagesc(new_mask + mask)
-keyboard
-% end debug
+% % debug
+% imagesc(new_mask + mask)
+% keyboard
+% % end debug
 
 
