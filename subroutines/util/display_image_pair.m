@@ -37,7 +37,8 @@ else
 end
 
 % setup figure for specified display type
-figure
+hf = figure;
+
 if strcmp(which, 'subplot')
     ax_ini = subplot(2,1,1);
     ax_fin = subplot(2,1,2);
@@ -81,8 +82,15 @@ addToolbarExplorationButtons(gcf);
 ax_ini.Toolbar.Visible = 'off';
 ax_fin.Toolbar.Visible = 'off';
 
-if strcmp(which, 'toggle')
+if strcmp(which, 'subplot')
+    hf.Units = 'Normalized';
+    hf.OuterPosition = [0, 0, 1, 1];
+
+elseif strcmp(which, 'toggle')
+    hf.Units = 'Normalized';
+    hf.OuterPosition = [0, hf.OuterPosition(2), 1, hf.OuterPosition(4)];
     toggle_axis(ax_fin);
+
 end
 
 end
