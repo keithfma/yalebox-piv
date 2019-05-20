@@ -1,7 +1,7 @@
-function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                    morph_open_rad, morph_erode_rad, show)
-% function mask = prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                     morph_open_rad, morph_erode_rad, show)
+function clean_mask = prep_mask_auto(...
+    rgb, hue_lim, value_lim, entropy_lim, entropy_len, view, show)
+% function clean_mask = prep_mask_auto(hsv, hue_lim, value_lim, entropy_lim, entropy_len, ...
+%                     morph_open_rad, morph_erode_rad, view, show)
 %
 % Create a logical mask for a color image that is TRUE where there is sand and
 % FALSE elsewhere. This can be used to remove (set to 0) the background in a
@@ -22,12 +22,8 @@ function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len
 %     entropy included as sand in the mask. 
 %
 %   entropy_len = scalar, integer, window size in pixels for entropy filter.
-%
-%   morph_open_rad = scalar, double, radius of disk structuring element used in
-%     mophological opening filter. 
-%
-%   morph_erode_rad = scalar, double, radius of disk structuring element used in
-%     mophological erosion filter.
+% 
+%   view =  string, specify 'side' or 'top' image view
 %
 %   show = Scalar, logical, set to 1 (true) to plot the mask bands, used to
 %       facilitate the parameter selection process, default = false.
@@ -37,18 +33,21 @@ function mask = prep_mask_auto(rgb, hue_lim, value_lim, entropy_lim, entropy_len
 % % 
 
 % set default values
-if nargin < 8; show = false; end
+if nargin < 7; show = false; end
 
 % check for sane arguments, set default values
-narginchk(7, 8);
+narginchk(6, 7);
 validateattributes(rgb, {'numeric'}, {'3d'});
 validateattributes(hue_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(value_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(entropy_lim, {'double'}, {'vector', 'numel', 2, '>=', 0, '<=', 1});
 validateattributes(entropy_len, {'numeric'}, {'scalar', 'integer', 'positive'});
-validateattributes(morph_open_rad, {'numeric'}, {'scalar', '>=', 0});
-validateattributes(morph_erode_rad, {'numeric'}, {'scalar', '>=', 0});
+validateattributes(view, {'char'}, {});
 validateattributes(show, {'numeric', 'logical'}, {'scalar'});
+
+% get size constants
+nr = size(rgb, 1);
+nc = size(rgb, 2);
 
 % get hue, value, and entropy, normalized to the range [0, 1]
 hsv = rgb2hsv(rgb);
@@ -69,12 +68,13 @@ entropy_mask = entropy >= entropy_lim(1) & entropy <= entropy_lim(2);
 raw_mask = hue_mask & value_mask & entropy_mask;
 
 % fill holes along edges (wall off one corner, fill, repeat)
-ridx = 1:size(raw_mask, 1);
-cidx = 1:size(raw_mask, 2);
+ridx = 1:nr;
+cidx = 1:nc;
 dr = [1, 1, 0, 0];
 dc = [1, 0, 0, 1];
 for ii = 1:4
-    wall = true(size(raw_mask)+1);
+    
+    wall = true([nr, nc]+1);
     wall(ridx+dr(ii), cidx+dc(ii)) = raw_mask;
     wall = imfill(wall, 'holes');
     raw_mask = wall(ridx+dr(ii), cidx+dc(ii));
@@ -86,8 +86,8 @@ largest_object = mode(object_label(object_label>0));
 raw_mask = object_label == largest_object;
 
 % create a mask without holes from the first and last pixels per column
-rough_mask = false(size(raw_mask));
-for jj = 1:size(raw_mask, 2)
+rough_mask = false([nr, nc]);
+for jj = 1:nc
     column = raw_mask(:, jj);
     ii_min = find(column, 1, 'first');
     ii_max = find(column, 1, 'last');
@@ -95,13 +95,46 @@ for jj = 1:size(raw_mask, 2)
 end
 
 % clean up mask edges
-% note: low threshold percentile works, avoid parameterizing if possible
-mask = clean_up_edges(value, rough_mask, 25);
+threshold_percentile =  25; % note: this threshold percentile works so far
 
-% TODO; singing working well at upper bnd but not lower, suspect a
-%   different threshold is needed. One approach would be to do stats on 
-%   a layer of fixed width from the boundary only, and run the top and
-%   bottom separately.
+if strcmp(view, 'side')
+    % drop pixels from upper sand boundary based on a threshold brightness
+    %   (value) computed from the rough mask, this effectively removes the
+    %   "halo" of background pixels in the rough mask
+    
+    % check assumption that wedge top is at high indices and bottom at low
+    assert(sum(rough_mask(1:10, :), 'all') > sum(rough_mask(end-10:end, :), 'all'), ...
+        'found more sand at high indices than at low, but expected wedge top at high indices');
+        
+    % get raw threshold value in each column
+    % note: smooth threshold values to get a stable estimate
+    threshold_value = zeros(1, nc);
+    for jj = 1:nc
+        min_idx = find(rough_mask(:, jj), 1, 'first');
+        max_idx = find(rough_mask(:, jj), 1, 'last');
+        threshold_value(jj) = prctile(value(min_idx:max_idx, jj), threshold_percentile);
+    end
+    threshold_value = smooth(threshold_value, 0.3, 'loess');
+    
+    % drop edge pixels below threshold values
+    masked_value = value; masked_value(~rough_mask) = NaN;
+    clean_mask = false([nr, nc]);
+    for jj = 1:nc
+        min_idx = find(rough_mask(:, jj), 1, 'first');  % note: same as above, lower edge already clean cleaned
+        max_idx = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
+        clean_mask(min_idx:max_idx, jj) = true;
+    end
+    
+elseif strcmp(view, 'top')
+    % not clear how top view should be handled, warn and skip for now
+    warning('edge cleanup for top view is not implemented');
+    clean_mask = rough_mask;
+
+end
+
+% report percentage masked
+pct_sand = 100*sum(clean_mask(:))/numel(clean_mask);
+fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
 
 % (optional) plot to facilitate parameter selection
 if show
@@ -117,87 +150,19 @@ if show
     figure()    
     colormap(gray);
     subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
-    subplot(2,1,2); imagesc(mask); title('mask'); set(gca,'XTick', [], 'YTick',[])
+    subplot(2,1,2); imagesc(clean_mask); title('mask'); set(gca,'XTick', [], 'YTick',[])
     
     figure()
     rough_mask_bnd = bwboundaries(rough_mask);
     rough_mask_x = rough_mask_bnd{1}(:,2);
     rough_mask_y = rough_mask_bnd{1}(:,1);
-    mask_bnd = bwboundaries(mask);
-    mask_x = mask_bnd{1}(:,2);
-    mask_y = mask_bnd{1}(:,1);
+    clean_mask_bnd = bwboundaries(clean_mask);
+    clean_mask_x = clean_mask_bnd{1}(:,2);
+    clean_mask_y = clean_mask_bnd{1}(:,1);
     imagesc(value); colormap('gray'); hold on;
     plot(rough_mask_x, rough_mask_y, '-r');
-    plot(mask_x, mask_y, '-b');
+    plot(clean_mask_x, clean_mask_y, '-b');
     axis equal tight
     set(gca, 'YDir', 'normal', 'XTick', [], 'YTick',[]);
-    title('Final (blue) and rough (red) boundary lines');
+    title('Clean (blue) and rough (red) boundary lines');
 end
-
-% (optional) report percentage masked
-pct_sand = 100*sum(mask(:))/numel(mask);
-fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
-
-
-function clean_mask = clean_up_edges(value, mask, threshold_percentile)
-% function mask = singe(rgb, mask, threshold_percentile)
-%
-% Improve mask edge quality by burning off ("singing") low-brightness pixels
-%
-% Arguments:
-%   value: 
-%   mask: boolean matrix, true for sand pixels, false elsewhere
-%   threshold percentile: float, range 0-100, threshold below which pixels
-%       are "singed" out of the input mask
-%
-% Returns:
-%   mask: singed version of the input mask
-% %
-
-% TODO: even with stable threshold estimate, there are some columns that 
-%   are deeply singed next to other that are not. This yields an irregular
-%   comb shape on mask edges, especially the bottom. Try smoothing the
-%   singed boundary, or something else if that fails
-
-% TODO: the way to handle both top and bottom is to split the thickness of
-%   the sand and compute percentiles of each half, then have two
-%   thresholds. Will be interesting to see if they actually differ once I
-%   do this.
-
-% get raw threshold values for upper and lower layer in each column
-% note: does not matter if the image is inverted, upper/lower are arbitrary
-upper_threshold = zeros(1, size(value, 2));
-lower_threshold = zeros(1, size(value, 2));
-for jj = 1:size(mask, 2)
-    % compute first and last index of mask in each column
-    min_idx = find(mask(:, jj), 1, 'first');
-    max_idx = find(mask(:, jj), 1, 'last');
-    % check assumption that mask is all true between min and max
-    assert(all(mask(min_idx:max_idx, jj)), 'mask has holes in this column, bad');
-    % split into two subequal layers
-    mid_idx = round(0.5*(min_idx + max_idx));
-    % get raw threshold values
-    upper_threshold(jj) = prctile(value(min_idx:mid_idx, jj), threshold_percentile);
-    lower_threshold(jj) = prctile(value(mid_idx:max_idx, jj), threshold_percentile);
-end
-
-% smooth threshold values to get a stable estimate
-upper_threshold = smooth(upper_threshold, 0.3, 'loess');
-lower_threshold = smooth(lower_threshold, 0.3, 'loess');
-
-% singe edge pixels below threshold values
-masked_val = value;
-masked_val(~mask) = NaN;
-clean_mask = false(size(mask));
-
-for jj = 1:size(mask, 2)
-    min_idx = find(masked_val(:, jj) >= upper_threshold(jj), 1, 'first');
-    max_idx = find(masked_val(:, jj) >= lower_threshold(jj), 1, 'last');
-    clean_mask(min_idx:max_idx, jj) = true;
-end
-
-% % debug
-% imagesc(clean_mask + mask);
-% set(gca, 'YDir', 'normal');
-% axis equal tight
-% % end debug

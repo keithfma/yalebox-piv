@@ -121,7 +121,7 @@ yy_fill = [yy(1) - dy*(pad_width:-1:1), yy, yy(end) + dy*(1:pad_width)];
 
 % create gaussian weight array
 % note: kernel size must be odd
-weight = fspecial('gaussian', 7, 1); 
+weight = fspecial('gaussian', 21, 1); 
 
 % temporarily convert the image to double
 img_fill = double(img_fill);
@@ -268,7 +268,7 @@ yy_fill = [yy(1) - dy*(pad_width:-1:1), yy, yy(end) + dy*(1:pad_width)];
 
 % create gaussian weight array
 % note: kernel size must be odd
-weight = fspecial('gaussian', 21, 1); 
+weight = fspecial('gaussian', 21, 1); % note: this big kernel yields good results!
 
 % temporarily convert the image to double
 img_fill = double(img_fill);
