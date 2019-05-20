@@ -1,11 +1,11 @@
 function result = piv_step(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-    valid_eps, min_frac_data, min_frac_overlap)
+    valid_eps, min_frac_data, min_frac_overlap, pad_method)
 % function result = piv_step(...
 %     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-%     valid_eps, min_frac_data, min_frac_overlap)
+%     valid_eps, min_frac_data, min_frac_overlap, pad_method)
 %
 % PIV analysis for Yalebox image data. Returns results at scattered (raw) and
 % gridded (interpolated) points, evaluated at the midpoint time between the two
@@ -52,16 +52,18 @@ function result = piv_step(...
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
 %
+%   pad_method = String, boundary treatment to apply e.g., 'extend_smooth'
+%
 %  Returns:
 % 
-%   result.x_grd, result.y_grd: 2D matrix, x- and y-coordinates for gridded
+%   result.x, result.y: 2D matrix, x- and y-coordinates for gridded
 %       sample points
 % 
-%   result.u_grd_ti, result.v_grd_ti: 2D matrix, x- and y-direction displacements
-%       for gridded sample points
+%   result.u, result.v: 2D matrix, x- and y-direction displacements
+%       for gridded sample points, at initial time
 % 
-%   result.roi_grd_ti: 2D matrix, logical grid with set to "true" for
-%       interpolated points, and "false" for extrapolated points
+%   result.valid: 2D matrix, logical grid with set to "true" for
+%       valid observations, and "false" for invalid
 %
 % Notes:
 %   + Sample grid spacing is held constant since our experiments showed
@@ -74,10 +76,6 @@ function result = piv_step(...
 %
 % [1] Raffel, M., Willert, C. E., Wereley, S. T., & Kompenhans, J. (2007).
 %   Particle Image Velocimetry: A Practical Guide. BOOK. 
-%
-% [2] Westerweel, J., & Scarano, F. (2005). Universal outlier detection for PIV
-%   data. Experiments in Fluids, 39(6), 1096???1100. doi:10.1007/s00348-005-0016-6
-%
 % %
 
 % NOTE: special suffixes describe the time and space grids, these are:
@@ -107,6 +105,7 @@ validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes(pad_method, {'char'}, {});
 
 fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
 fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
@@ -122,25 +121,30 @@ fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
 fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
-% expand grid definition vectors to reflect the number of passes
-[samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
+% treat image boundaries
+[~, ~, img_ti] = piv_fill(...
+    x_img, y_img, img_ti, roi_img_ti, samp_len(1), pad_method);
+[x_img, y_img, img_tf] = piv_fill(...
+    x_img, y_img, img_tf, roi_img_ti, samp_len(1), pad_method);
 
-% create sample grid
-[r_grd, c_grd] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
-
-% initial guess for displacements
-u_grd_ti = zeros(size(r_grd));
-v_grd_ti = zeros(size(c_grd));
-
-% convert to images to grayscale and apply mask
+% convert to images to grayscale
+% TODO: consider running PIV on all three bands and combining the results
 img_ti = rgb2hsv(img_ti);
 img_ti = img_ti(:,:,3);
-img_ti(~roi_img_ti) = 0;
 
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
-img_tf(~roi_img_tf) = 0;
 
+% create sample grid
+[rr, cc] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
+
+% expand grid definition vectors to reflect the number of passes
+[samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
+
+% initial guess for displacements
+uu = zeros(size(rr));
+vv = zeros(size(cc));
+    
 % multipass loop
 np = length(samp_len);
 for pp = 1:np
@@ -149,47 +153,33 @@ for pp = 1:np
         mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
-    if pp == np
-        quality = true;
-    else
-        quality = false;
-    end
-    [u_grd_ti, v_grd_ti] = piv_displacement(...
-        img_ti, img_tf, r_grd, c_grd, u_grd_ti, v_grd_ti, samp_len(pp), ...
-        intr_len(pp), min_frac_data, min_frac_overlap, quality);
+    [uu, vv] = piv_displacement(...
+        img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
+        intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
-    [u_grd_ti, v_grd_ti] = piv_validate_pts_nmed(...
-        c_grd, r_grd, u_grd_ti, v_grd_ti, valid_radius, valid_max, valid_eps);
-    
-    % % DEBUG
-    % subplot(2, 1, 1)
-    % imagesc(u_grd_ti); caxis([-30, -5]);
-    % subplot(2, 1, 2)
-    % imagesc(v_grd_ti); caxis([-3, 3]);
-    % pause
-    % % END DEBUG
+    [uu, vv] = piv_validate_pts_nmed(...
+        cc, rr, uu, vv, valid_radius, valid_max, valid_eps);
      
     % interpolate valid vectors to full sample grid 
     % note: leave as-is on last pass, want NaN where there is no valid
-    %   observation
-    % TODO: consider keeping it simple, just use nearest interpolation
-    % TODO: consider interpolating final results for padded images
+    %   observation, these can be filled later if desired, but should not
+    %   pretend to be good data
     if pp < np
-        u_grd_ti = inpaint_nans(u_grd_ti, 2);
-        v_grd_ti = inpaint_nans(v_grd_ti, 2);
+        uu = inpaint_nans(uu, 2);
+        vv = inpaint_nans(vv, 2);
     end
     
 end
 % end multipass loop
 
 % convert all output variables to world coordinate system
-[x_grd, y_grd] = coord_intrinsic_to_world(r_grd, c_grd, x_img, y_img);
-[u_grd_ti, v_grd_ti] = displ_intrinsic_to_world(u_grd_ti, v_grd_ti, x_img, y_img);
+[xx, yy] = coord_intrinsic_to_world(rr, cc, x_img, y_img);
+[uu, vv] = displ_intrinsic_to_world(uu, vv, x_img, y_img);
 
 % package results as structure
 result = struct(...
-    'x_grd', x_grd, 'y_grd', y_grd, 'u_grd', u_grd_ti, 'v_grd', v_grd_ti);
+    'x', xx, 'y', yy, 'u', uu, 'v', vv);
 
 end
 

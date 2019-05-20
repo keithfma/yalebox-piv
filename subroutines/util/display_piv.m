@@ -14,10 +14,10 @@ if nargin < 5
 end
 
 % extract key variables from the PIV results, apply ROI mask
-xx = piv_result.x_grd;
-yy = piv_result.y_grd;
-uu = piv_result.u_grd;
-vv = piv_result.v_grd;
+xx = piv_result.x;
+yy = piv_result.y;
+uu = piv_result.u;
+vv = piv_result.v;
 roi = ~isnan(uu);
 
 % get data limits

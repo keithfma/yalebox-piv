@@ -1,5 +1,5 @@
-function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi)
-% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi)
+function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, pad_method)
+% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, pad_method)
 %
 % Simple plot of image pair with area outside ROI set to 0
 %
@@ -8,28 +8,119 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi)
 %   ini, fin: 2D matrix, intensity values for initial and final images 
 %   ini_roi, fin_roi: 2D matrix, logical flags for inital and final images,
 %       indicating if a pixel is sand (1) or not (0)
+%   which: Optional string, select which kind of display, options are
+%       'subplot' and 'toggle' 
+%   pad_method: Optional string, if provided apply specified boundary
+%       padding method, see options in piv_fill
 % %
+if nargin < 7
+    which = 'subplot';
+end
 
-figure 
+if nargin == 8
+    % apply padding
+    update_path('piv')
+    pad_width = 25; % constant pad width because it does not seem worth specifying
+    xx0 = xx; % coordinates get overwritten, use the originals
+    yy0 = yy;
+    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, pad_width, pad_method);
+    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, pad_width, pad_method);
 
-ini_masked = ini;
-ini_masked(~ini_roi) = 0;
+else
+    % apply mask
+    ini_roi = repmat(ini_roi, 1, 1, 3);
+    ini(~ini_roi) = 0;
+    
+    fin_roi = repmat(fin_roi, 1, 1, 3);
+    fin(~fin_roi) = 0;
 
-ax1 = subplot(2,1,1);
-imagesc(xx, yy, ini_masked);
+end
+
+% setup figure for specified display type
+hf = figure;
+
+if strcmp(which, 'subplot')
+    ax_ini = subplot(2,1,1);
+    ax_fin = subplot(2,1,2);
+    linkaxes([ax_ini, ax_fin]);
+    
+elseif strcmp(which, 'toggle')
+    ax_ini = axes();
+    ax_fin = axes();
+    
+    switch_btn = uicontrol(...
+        'Style', 'pushbutton', ...
+        'String', 'Switch Image',...
+        'Callback', @switch_axes, ...
+        'Units', 'Normalized');
+    switch_btn.Position = [0.4, switch_btn.Position(2), ...
+                           0.2, switch_btn.Position(4)];
+    
+else
+    error('Invalid argument value: which = %s', which);
+end
+
+% plot images
+axes(ax_ini);
+imagesc(xx, yy, ini);
 colormap('gray');
-ax1.YDir = 'normal';
+ax_ini.YDir = 'normal';
 axis equal tight
 title('Initial Image');
 
-fin_masked = fin;
-fin_masked(~fin_roi) = 0;
-
-ax2 = subplot(2,1,2);
+axes(ax_fin);
 imagesc(xx, yy, fin);
 colormap('gray');
-ax2.YDir = 'normal';
+ax_fin.YDir = 'normal';
 axis equal tight
 title('Final Image');
 
-linkaxes([ax1, ax2]);
+linkaxes([ax_ini, ax_fin]);
+
+% some final formatting
+addToolbarExplorationButtons(gcf);
+ax_ini.Toolbar.Visible = 'off';
+ax_fin.Toolbar.Visible = 'off';
+
+if strcmp(which, 'subplot')
+    hf.Units = 'Normalized';
+    hf.OuterPosition = [0, 0, 1, 1];
+
+elseif strcmp(which, 'toggle')
+    hf.Units = 'Normalized';
+    hf.OuterPosition = [0, hf.OuterPosition(2), 1, hf.OuterPosition(4)];
+    toggle_axis(ax_fin);
+
+end
+
+end
+
+function toggle_axis(this_ax)
+% make specific axis and its children visible/invisible
+
+if strcmp(this_ax.Visible, 'on')
+    change_to = 'off';
+    uistack(this_ax, 'top');
+elseif strcmp(this_ax.Visible, 'off')
+    change_to = 'on';
+else
+    error('how did this happen, anyway?');
+end
+
+for jj = 1:length(this_ax.Children)
+    this_ax.Children(jj).Visible = change_to;
+end
+this_ax.Visible = change_to;
+
+end
+
+function switch_axes(~, ~)
+% callback that switches axes
+
+ax_list = findobj(gcf, 'type', 'axes');
+
+for ii = 1:length(ax_list)
+    toggle_axis(ax_list(ii));
+end
+
+end

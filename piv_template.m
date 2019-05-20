@@ -57,6 +57,9 @@ pp.min_frac_data.value = 0.8;
 pp.min_frac_overlap.help = "Scalar, minimum fraction of the sample window data that must overlap the interrogation window data for a point in the cross-correlation to be valid"; 
 pp.min_frac_overlap.value = 0.5;
 
+pp.pad_method.help = "String, image padding method, must be one of 'mask', 'extend_smooth'";
+pp.pad_method.value = 'extend_smooth';
+
 % save as file ---
 
 if nargin > 0

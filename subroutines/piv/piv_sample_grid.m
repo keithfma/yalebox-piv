@@ -1,9 +1,10 @@
 function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
-%function [r_sample, c_sample] = piv_sample_grid(sample_spc, img_nr, img_nc)
+%function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
 %
 % Create sample grid which is the largest centered grid that fits in the domain
 %
 % Arguments:
+%   sample_len = Vector, sample window size for each piv pass
 %   sample_spc = Scalar, integer, grid spacing in pixels
 %   img_nr, img_nc = Scalar, dimensions (number of rows and columns) of the
 %       input images.
@@ -13,7 +14,8 @@ function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, 
 % %
 
 % TODO: validate inputs
-% TODO: validate samp_len is all even or all odd
+% TODO: validate samp_len is all even or all odd, required so that sample
+%   window is centered on the specified point
 
 remainder = mod((img_nr - 1), sample_spc);
 r_sample_vector = (1 + remainder/2):sample_spc:img_nr;

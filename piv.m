@@ -3,7 +3,7 @@ function [] = piv(param, prep_mat, piv_mat)
 % 
 % Run PIV analysis for a given image series. Simple wrapper around
 % piv_series() that reads the (many) input parameters from the standard
-% JSON file rather than as arguments.
+% MAT file rather than as arguments.
 %
 % Arguments:
 % 
@@ -20,7 +20,7 @@ update_path('util', 'piv');
 
 switch class(param)
     case 'struct'
-        param = param;  % do nothing
+        param = param;  %#ok! do nothing
     case 'char'
         param = load_param(param);
     otherwise
@@ -41,4 +41,5 @@ piv_series(...
     param.valid_eps.value, ...
     param.min_frac_data.value, ...
     param.min_frac_overlap.value, ...
+    param.pad_method.value, ...
     param.notes.value);

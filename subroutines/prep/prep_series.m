@@ -1,11 +1,9 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  morph_open_rad, morph_erode_rad, notes)
+                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len...
-%                   morph_open_rad, morph_erode_rad, notes)
+%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -36,9 +34,6 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
 %
-%   morph_open_rad, morph_erode_rad = Scalar integers, structuring element
-%       radius for morphological filters in prep_mask_auto()
-%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -47,8 +42,8 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 update_path('prep', 'util');
 
 % set defaults
-narginchk(17, 18);
-if nargin < 18; notes = ''; end
+narginchk(15, 16);
+if nargin < 16; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
@@ -109,8 +104,6 @@ meta.args.hue_lim = hue_lim;
 meta.args.value_lim = value_lim;
 meta.args.entropy_lim = entropy_lim;
 meta.args.entropy_len = entropy_len;
-meta.args.morph_open_rad = morph_open_rad;
-meta.args.morph_erode_rad = morph_erode_rad;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -163,8 +156,7 @@ for ii = 1:num_image
         ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img);
 
     mask_auto = prep_mask_auto(...
-        img, hue_lim, value_lim, entropy_lim, entropy_len, ...
-        morph_open_rad, morph_erode_rad);
+        img, hue_lim, value_lim, entropy_lim, entropy_len, image_view);
       
     result.mask(:, :, ii) = logical(mask_auto & mask_manual);
     result.img(:, :, :, ii) = uint8(img);

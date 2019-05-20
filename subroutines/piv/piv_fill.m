@@ -1,7 +1,51 @@
-function [xx_fill, yy_fill, img_fill] = prep_fill_mirror_smooth(xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill] = prep_fill_mirror_smooth(xx, yy, img, mask, pad_width)
+function [xx_fill, yy_fill, img_fill] = piv_fill(xx, yy, img, mask, pad_width, method)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_extend(xx, yy, img, mask, pad_width, method)
 % 
-% Fill non-sand regions of the input image by mirroring boundary pixels,
+% Fill non-sand regions of the input image by extending boundary pixels
+%
+% Arguments:
+%   xx, yy: Vectors, coordinate axes for image columns, rows
+%   img: 3D matrix, rectified/cropped RGB image
+%   mask: 2D matrix, logical mask of sand pixels in img
+%   pad_width: Scalar integer, number of pixels of padding to add
+%   method: (Optional) string, which boundary treatment option to apply,
+%       default is 'extend_smooth'
+% 
+% Outputs:
+%   xx_fill, yy_fill: Vectors, coordinate axes for filled image columns, rows
+%   img_fill: 3D matrix, filled and padded RGB image
+% %
+
+% set defaults
+narginchk(5, 6);
+if nargin == 5; method = 'extend_smooth'; end
+
+fprintf('%s: apply boundary treatment "%s" to input image\n', ...
+    mfilename, method); 
+
+if strcmp(method, 'mask')
+    % legacy, don't pad just apply mask to image 
+    img_fill = img;
+    img_fill(repmat(~mask, 1, 1, size(img_ti, 3))) = 0;
+    xx_fill = xx;
+    yy_fill = yy;
+    
+elseif strcmp(method, 'extend_smooth')
+    % pad boundary pixels outwards
+    % note: experimented with nearest neighbor and non-smooth options, this
+    %   method was far and away the best one tested
+    [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width);
+    
+else
+    error('bad value for argument "method": %s', method);
+    
+end
+
+
+function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
+% 
+% Fill non-sand regions of the input image by extending boundary pixels,
 % uses a weighted (gaussian) mean of boundary pixels to reduce sensitivity
 % to the masking algorithm 
 %
@@ -29,7 +73,7 @@ yy_fill = [yy(1) - dy*(pad_width:-1:1), yy, yy(end) + dy*(1:pad_width)];
 
 % create gaussian weight array
 % note: kernel size must be odd
-weight = fspecial('gaussian', 7, 1); 
+weight = fspecial('gaussian', 21, 1); % note: this big kernel yields good results!
 
 % temporarily convert the image to double
 img_fill = double(img_fill);
@@ -100,4 +144,5 @@ wgt_win = wgt.*msk_win;
 wgt_win = wgt_win./sum(wgt_win(:));
 img_win = img((ii-dd):(ii+dd), (jj-dd):(jj+dd), cc);
 val = sum(wgt_win(:).*img_win(:));
+
 

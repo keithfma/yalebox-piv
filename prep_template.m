@@ -79,12 +79,6 @@ pp.mask_entropy_lim.value = [0.55, 1.00];
 pp.mask_entropy_len.help = "scalar, integer, window size in pixels for entropy filter"; 
 pp.mask_entropy_len.value = 11;
 
-pp.mask_morph_open_rad.help = "scalar, double, radius of disk structuring element used in mophological opening filter";
-pp.mask_morph_open_rad.value =  10;
-
-pp.mask_morph_erode_rad.help = "scalar, double, radius of disk structuring element used in mophological erosion filter";
-pp.mask_morph_erode_rad.value = 3;
-
 % save as file ---
 
 if nargin > 0
