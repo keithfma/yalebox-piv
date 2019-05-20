@@ -1,11 +1,11 @@
 function result = piv_step(...
     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-    valid_eps, min_frac_data, min_frac_overlap)
+    valid_eps, min_frac_data, min_frac_overlap, pad_method)
 % function result = piv_step(...
 %     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-%     valid_eps, min_frac_data, min_frac_overlap)
+%     valid_eps, min_frac_data, min_frac_overlap, pad_method)
 %
 % PIV analysis for Yalebox image data. Returns results at scattered (raw) and
 % gridded (interpolated) points, evaluated at the midpoint time between the two
@@ -51,6 +51,8 @@ function result = piv_step(...
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
+%
+%   pad_method = String, boundary treatment to apply e.g., 'extend_smooth'
 %
 %  Returns:
 % 
@@ -103,6 +105,7 @@ validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+validateattributes(pad_method, {'char'}, {});
 
 fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
 fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
@@ -119,26 +122,18 @@ fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % treat image boundaries
-% TODO: choose one, and drop other options
-boundary_treatment = 'extend';
-fprintf('%s: apply boundary treatment "%s" to input images\n', ...
-    mfilename, boundary_treatment); 
-[~, ~, img_ti] = piv_fill_nnbr(...
-    x_img, y_img, img_ti, roi_img_ti, samp_len(1), boundary_treatment);
-[x_img, y_img, img_tf] = piv_fill_nnbr(...
-    x_img, y_img, img_tf, roi_img_ti, samp_len(1), boundary_treatment);
+[~, ~, img_ti] = piv_fill(...
+    x_img, y_img, img_ti, roi_img_ti, samp_len(1), pad_method);
+[x_img, y_img, img_tf] = piv_fill(...
+    x_img, y_img, img_tf, roi_img_ti, samp_len(1), pad_method);
 
-% convert to images to grayscale and apply mask
+% convert to images to grayscale
+% TODO: consider running PIV on all three bands and combining the results
 img_ti = rgb2hsv(img_ti);
 img_ti = img_ti(:,:,3);
 
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
-
-% DEBUG: save a gif to the current working directory
-gif_file = sprintf('test_%s.gif', boundary_treatment);
-imwrite(uint8(img_ti*255), gif_file, 'gif', 'Loopcount', inf, 'DelayTime', 1);
-imwrite(uint8(img_tf*255), gif_file, 'gif','WriteMode','append', 'DelayTime', 1);
 
 % create sample grid
 [rr, cc] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
