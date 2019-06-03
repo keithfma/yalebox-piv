@@ -207,11 +207,19 @@ for jj = 1:length(xx_fill)
 end
 
 % create ripple pattern of offsets
-% note: starts with 1, increases to max_offset, decreases to 0, repeats
-max_offset = 75;
-ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
+% note: random offsets up to max_offset, create once then reuse for all images
 
-% fill with ripple pattern
+% max_offset = 25;
+% offsets = randi([0, max_offset], 2000, 1);
+% save('fill_offsets.mat', 'offsets');
+offset_file = matfile('fill_offsets.mat', 'Writable', false);
+ripple = offset_file.offsets;
+
+% % note: starts with 1, increases to max_offset, decreases to 0, repeats
+% max_offset = 75;
+% ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
+
+% fill with ripple pattern from the smoothed image
 nx = length(xx_fill);
 ny = length(yy_fill);
 
