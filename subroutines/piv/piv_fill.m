@@ -35,6 +35,13 @@ elseif strcmp(method, 'extend_smooth')
     % note: experimented with nearest neighbor and non-smooth options, this
     %   method was far and away the best one tested
     [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width);
+
+elseif strcmp(method, 'ripple')
+    % pad boundary pixels outwards
+    % note: experimented with nearest neighbor and non-smooth options, this
+    %   method was far and away the best one tested
+    [xx_fill, yy_fill, img_fill] = piv_fill_ripple(xx, yy, img, mask, pad_width);
+    
     
 else
     error('bad value for argument "method": %s', method);
@@ -144,5 +151,82 @@ wgt_win = wgt.*msk_win;
 wgt_win = wgt_win./sum(wgt_win(:));
 img_win = img((ii-dd):(ii+dd), (jj-dd):(jj+dd), cc);
 val = sum(wgt_win(:).*img_win(:));
+
+
+
+function [xx_fill, yy_fill, img_fill] = piv_fill_ripple(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
+% 
+% Fill non-sand regions of the input image by mirroring boundary pixels in
+% a "ripple" pattern
+%
+% Arguments:
+%   xx, yy: Vectors, coordinate axes for image columns, rows
+%   img: 3D matrix, rectified/cropped RGB image
+%   mask: 2D matrix, logical mask of sand pixels in img
+%   pad_width: Scalar integer, number of pixels of padding to add
+% 
+% Outputs:
+%   xx_fill, yy_fill: Vectors, coordinate axes for filled image columns, rows
+%   img_fill: 3D matrix, filled and padded RGB image
+% %
+
+% create padded arrays
+img_fill = padarray(img, [pad_width, 0, 0], NaN, 'both');
+mask_fill = padarray(mask, [pad_width, 0], 0, 'both'); % not returned
+
+% extend coordinate vectors
+dy = yy(2) - yy(1);
+yy_fill = [yy(1) - dy*(pad_width:-1:1), yy, yy(end) + dy*(1:pad_width)];
+
+xx_fill = xx; 
+
+% temporarily convert the image to double
+img_fill = double(img_fill);
+
+% find row index of the top and bottom boundaries
+top_row = nan(size(xx_fill));
+bot_row = nan(size(xx_fill));
+
+for jj = 1:length(xx_fill)
+    ii_bot = find(mask_fill(:, jj), 1, 'first');
+    if ~isempty(ii_bot)
+        bot_row(jj) = ii_bot+1;  % trying a bump by one
+    end
+    ii_top = find(mask_fill(:, jj), 1, 'last');
+    if ~isempty(ii_top)
+        top_row(jj) = ii_top -1;  % trying a bump by one
+    end
+end
+
+% top_row = round(smooth(top_row, 0.005, 'lowess'));
+
+% create ripple pattern of offsets
+% note: starts with 1, increases to max_offset, decreases to 0, repeats
+max_offset = 20;
+ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
+
+% fill with ripple pattern
+nx = length(xx_fill);
+ny = length(yy_fill);
+
+for jj = 1:nx
+    if ~isnan(top_row(jj))
+        for cc = 1:3
+            nf = ny - top_row(jj);
+            fill_idx = [1:top_row(jj), top_row(jj) - ripple(1:nf)];
+            img_fill(:, jj, cc) = img_fill(fill_idx, jj, cc);
+        end
+    end
+    % TODO: fill downwards too
+end
+
+% revert image to byte
+img_fill = uint8(img_fill);
+
+% sanity checks
+assert(length(yy_fill) == size(img_fill, 1), 'Padded dimensions do not match padded image');
+assert(length(xx_fill) == size(img_fill, 2), 'Padded dimensions do not match padded image');
+assert(size(img_fill, 3) == 3, 'Padded image does not appear to be RGB');
 
 
