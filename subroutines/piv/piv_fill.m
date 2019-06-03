@@ -186,7 +186,7 @@ img_fill = double(img_fill);
 
 % create a smoothed version to fill from
 img_smooth = img_fill;
-kernel = fspecial('gaussian', 21, 3);
+kernel = fspecial('gaussian', 21, 1);
 for cc = 1:3
     img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), mask_fill);
 end
@@ -198,7 +198,7 @@ bot_row = nan(size(xx_fill));
 for jj = 1:length(xx_fill)
     ii_bot = find(mask_fill(:, jj), 1, 'first');
     if ~isempty(ii_bot)
-        bot_row(jj) = ii_bot+1;  % trying a bump by one
+        bot_row(jj) = ii_bot + 1;  % trying a bump by one
     end
     ii_top = find(mask_fill(:, jj), 1, 'last');
     if ~isempty(ii_top)
@@ -209,14 +209,26 @@ end
 % create ripple pattern of offsets
 % note: random offsets up to max_offset, create once then reuse for all images
 
-% max_offset = 25;
-% offsets = randi([0, max_offset], 2000, 1);
-% save('fill_offsets.mat', 'offsets');
-offset_file = matfile('fill_offsets.mat', 'Writable', false);
-ripple = offset_file.offsets;
+% % max_offset = 25;
+% % offsets = randi([0, max_offset], 2000, 1);
+% % save('fill_offsets.mat', 'offsets');
+% offset_file = matfile('fill_offsets.mat', 'Writable', false);
+% ripple = offset_file.offsets;
+
+% ripples of random width, avoid periodic behavior
+% max_offset = 15;
+% ripple = [];
+% while length(ripple) < 2000
+%     offset = randi(max_offset);
+%     ripple = [ripple, 0:offset, offset-1:-1:1]; 
+% end
+% save('ripple.mat', 'ripple');
+
+ripple_mat = matfile('ripple.mat', 'Writable', false);
+ripple = ripple_mat.ripple;
 
 % % note: starts with 1, increases to max_offset, decreases to 0, repeats
-% max_offset = 75;
+% max_offset = 25;
 % ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
 
 % fill with ripple pattern from the smoothed image
