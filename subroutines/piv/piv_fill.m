@@ -184,6 +184,13 @@ xx_fill = xx;
 % temporarily convert the image to double
 img_fill = double(img_fill);
 
+% create a smoothed version to fill from
+img_smooth = img_fill;
+kernel = fspecial('gaussian', 21, 3);
+for cc = 1:3
+    img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), mask_fill);
+end
+    
 % find row index of the top and bottom boundaries
 top_row = nan(size(xx_fill));
 bot_row = nan(size(xx_fill));
@@ -199,11 +206,9 @@ for jj = 1:length(xx_fill)
     end
 end
 
-% top_row = round(smooth(top_row, 0.005, 'lowess'));
-
 % create ripple pattern of offsets
 % note: starts with 1, increases to max_offset, decreases to 0, repeats
-max_offset = 20;
+max_offset = 75;
 ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
 
 % fill with ripple pattern
@@ -214,8 +219,8 @@ for jj = 1:nx
     if ~isnan(top_row(jj))
         for cc = 1:3
             nf = ny - top_row(jj);
-            fill_idx = [1:top_row(jj), top_row(jj) - ripple(1:nf)];
-            img_fill(:, jj, cc) = img_fill(fill_idx, jj, cc);
+            fill_idx = top_row(jj) - ripple(1:nf);
+            img_fill(top_row(jj)+1:end, jj, cc) = img_smooth(fill_idx, jj, cc);
         end
     end
     % TODO: fill downwards too
