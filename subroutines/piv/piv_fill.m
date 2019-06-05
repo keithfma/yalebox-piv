@@ -191,68 +191,46 @@ bot_row = nan(size(xx_fill));
 for jj = 1:length(xx_fill)
     ii_bot = find(mask_fill(:, jj), 1, 'first');
     if ~isempty(ii_bot)
-        bot_row(jj) = ii_bot + 2;  % trying a bump by one
+        bot_row(jj) = ii_bot;
     end
     ii_top = find(mask_fill(:, jj), 1, 'last');
     if ~isempty(ii_top)
-        top_row(jj) = ii_top -2;  % trying a bump by one
+        top_row(jj) = ii_top;
     end
 end
 
-% create ripple pattern of offsets
-% note: random offsets up to max_offset, create once then reuse for all images
+% build index array by reflecting until all indices are within sand
+[nr, nc] = size(mask_fill);
+bot_rows = repmat(bot_row, nr, 1);
+top_rows = repmat(top_row, nr, 1);
+[cols, rows] = meshgrid(1:nc, 1:nr);
 
-% % max_offset = 25;
-% % offsets = randi([0, max_offset], 2000, 1);
-% % save('fill_offsets.mat', 'offsets');
-% offset_file = matfile('fill_offsets.mat', 'Writable', false);
-% ripple = offset_file.offsets;
+while any(rows(:) > top_rows(:) | rows(:) < bot_rows(:))
+    
+    % reflect at top boundary
+    above_top = rows > top_rows;
+    rows(above_top) = 2*top_rows(above_top) - rows(above_top);  % same as t-(r-t)
+    
+    % reflect at bottom boundary
+    below_bot = rows < bot_rows;
+    rows(below_bot) = 2*bot_rows(below_bot) - rows(below_bot);  % same as b+(b-r)
 
-% ripples of random width, avoid periodic behavior
-% max_offset = 15;
-% ripple = [];
-% while length(ripple) < 2000
-%     offset = randi(max_offset);
-%     ripple = [ripple, 0:offset, offset-1:-1:1]; 
-% end
-% save('ripple.mat', 'ripple');
+end
+idx = sub2ind([nr, nc], rows, cols);
 
-ripple_mat = matfile('ripple.mat', 'Writable', false);
-ripple = ripple_mat.ripple;
+% apply reflection
+for cc = 1:3
+    band = img_fill(:, :, cc);
+    band(:) = band(idx);
+    img_fill(:, :, cc) = band;
+end
 
-% % note: starts with 1, increases to max_offset, decreases to 0, repeats
-% max_offset = 25;
-% ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
-
-% % create a smoothed version to fill from
+% % smooth the filled region only
 % img_smooth = img_fill;
 % kernel = fspecial('gaussian', 21, 1);
 % for cc = 1:3
-%     img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), mask_fill);
+%     img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), ~mask_fill);
 % end
-
-% fill with ripple pattern
-nx = length(xx_fill);
-ny = length(yy_fill);
-
-for jj = 1:nx
-    if ~isnan(top_row(jj))
-        for cc = 1:3
-            nf = ny - top_row(jj);
-            fill_idx = top_row(jj) - ripple(1:nf);
-%             img_fill(top_row(jj)+1:end, jj, cc) = img_smooth(fill_idx, jj, cc);
-            img_fill(top_row(jj)+1:end, jj, cc) = img_fill(fill_idx, jj, cc);
-        end
-    end
-    % TODO: fill downwards too
-end
-
-% smooth the filled region only
-img_smooth = img_fill;
-kernel = fspecial('gaussian', 21, 1);
-for cc = 1:3
-    img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), ~mask_fill);
-end
 
 % revert image to byte
 img_fill = uint8(img_fill);
