@@ -183,13 +183,6 @@ xx_fill = xx;
 
 % temporarily convert the image to double
 img_fill = double(img_fill);
-
-% create a smoothed version to fill from
-img_smooth = img_fill;
-kernel = fspecial('gaussian', 21, 1);
-for cc = 1:3
-    img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), mask_fill);
-end
     
 % find row index of the top and bottom boundaries
 top_row = nan(size(xx_fill));
@@ -198,11 +191,11 @@ bot_row = nan(size(xx_fill));
 for jj = 1:length(xx_fill)
     ii_bot = find(mask_fill(:, jj), 1, 'first');
     if ~isempty(ii_bot)
-        bot_row(jj) = ii_bot + 1;  % trying a bump by one
+        bot_row(jj) = ii_bot + 2;  % trying a bump by one
     end
     ii_top = find(mask_fill(:, jj), 1, 'last');
     if ~isempty(ii_top)
-        top_row(jj) = ii_top -1;  % trying a bump by one
+        top_row(jj) = ii_top -2;  % trying a bump by one
     end
 end
 
@@ -231,7 +224,14 @@ ripple = ripple_mat.ripple;
 % max_offset = 25;
 % ripple = abs(mod(-max_offset:10000, 2*max_offset) - max_offset + 1);
 
-% fill with ripple pattern from the smoothed image
+% % create a smoothed version to fill from
+% img_smooth = img_fill;
+% kernel = fspecial('gaussian', 21, 1);
+% for cc = 1:3
+%     img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), mask_fill);
+% end
+
+% fill with ripple pattern
 nx = length(xx_fill);
 ny = length(yy_fill);
 
@@ -240,10 +240,18 @@ for jj = 1:nx
         for cc = 1:3
             nf = ny - top_row(jj);
             fill_idx = top_row(jj) - ripple(1:nf);
-            img_fill(top_row(jj)+1:end, jj, cc) = img_smooth(fill_idx, jj, cc);
+%             img_fill(top_row(jj)+1:end, jj, cc) = img_smooth(fill_idx, jj, cc);
+            img_fill(top_row(jj)+1:end, jj, cc) = img_fill(fill_idx, jj, cc);
         end
     end
     % TODO: fill downwards too
+end
+
+% smooth the filled region only
+img_smooth = img_fill;
+kernel = fspecial('gaussian', 21, 1);
+for cc = 1:3
+    img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), ~mask_fill);
 end
 
 % revert image to byte
