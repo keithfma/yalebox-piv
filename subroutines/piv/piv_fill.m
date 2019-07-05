@@ -16,6 +16,9 @@ function [xx_fill, yy_fill, img_fill] = piv_fill(xx, yy, img, mask, pad_width, m
 %   img_fill: 3D matrix, filled and padded RGB image
 % %
 
+% FIXME: remove the method option once the dust has settled on image padding,
+%   there should be one and only one fill method implemented here in v1.0
+
 % set defaults
 narginchk(5, 6);
 if nargin == 5; method = 'extend_smooth'; end
@@ -31,17 +34,12 @@ if strcmp(method, 'mask')
     yy_fill = yy;
     
 elseif strcmp(method, 'extend_smooth')
-    % pad boundary pixels outwards
-    % note: experimented with nearest neighbor and non-smooth options, this
-    %   method was far and away the best one tested
+    % extend boundary pixels with smoothing
     [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width);
 
-elseif strcmp(method, 'ripple')
-    % pad boundary pixels outwards
-    % note: experimented with nearest neighbor and non-smooth options, this
-    %   method was far and away the best one tested
-    [xx_fill, yy_fill, img_fill] = piv_fill_ripple(xx, yy, img, mask, pad_width);
-    
+elseif strcmp(method, 'mirror')
+    % mirror boundary pixels
+    [xx_fill, yy_fill, img_fill] = piv_fill_mirror(xx, yy, img, mask, pad_width);
     
 else
     error('bad value for argument "method": %s', method);
@@ -154,11 +152,10 @@ val = sum(wgt_win(:).*img_win(:));
 
 
 
-function [xx_fill, yy_fill, img_fill] = piv_fill_ripple(xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill] = piv_fill_extend_smooth(xx, yy, img, mask, pad_width)
+function [xx_fill, yy_fill, img_fill] = piv_fill_mirror(xx, yy, img, mask, pad_width)
+% function [xx_fill, yy_fill, img_fill] = piv_fill_mirror(xx, yy, img, mask, pad_width)
 % 
-% Fill non-sand regions of the input image by mirroring boundary pixels in
-% a "ripple" pattern
+% Fill non-sand regions of the input image by mirroring boundary pixels
 %
 % Arguments:
 %   xx, yy: Vectors, coordinate axes for image columns, rows
@@ -224,13 +221,6 @@ for cc = 1:3
     band(:) = band(idx);
     img_fill(:, :, cc) = band;
 end
-
-% % smooth the filled region only
-% img_smooth = img_fill;
-% kernel = fspecial('gaussian', 21, 1);
-% for cc = 1:3
-%     img_smooth(:,:,cc) = roifilt2(kernel, img_fill(:,:,cc), ~mask_fill);
-% end
 
 % revert image to byte
 img_fill = uint8(img_fill);
