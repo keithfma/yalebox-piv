@@ -38,6 +38,8 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %       attribute. default = ''
 % %
 
+fprintf('%s: preprocessing %d images\n\n', mfilename, numel(image_names));
+
 % load dependencies
 update_path('prep', 'util');
 
@@ -75,8 +77,16 @@ assert(exist(result_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
 result = matfile(result_file, 'Writable', true);
 
+% create temporary output file, to hold results before crop to mask extent
+% note: needed to avoid loading whole data arrays to memory during crop
+% note: registers a function to cleanup on exit, no matter what
+tmp_name = [tempname(), '.mat'];
+tmp = matfile(tmp_name, 'Writable', true);
+cleaner = onCleanup(@() delete(tmp_name));
+
 % get coordinate vectors and manual mask array
 % note: created during prep steps, so prep a fake image)
+fprintf('%s: get cordinate vectors and manual mask array\n', mfilename);
 raw = zeros(img_nrow, img_ncol, 3, 'uint8'); 
 [img, xw, yw] = prep_rectify_and_crop(...
     ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
@@ -135,14 +145,20 @@ meta.mask_auto.notes = '';
 meta.mask_auto.dimensions = {'y', 'x', 'step'};
 meta.mask_auto.units = 'boolean';
 
-result.meta = meta;
+tmp.meta = meta;
 
 % write constant variables, allocate space for other variables
-result.x = xw;
-result.y = yw;
-result.step = 0:(num_image - 1);
-allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
-allocate(result, 'mask', 'logical', [ny, nx, num_image]);
+tmp.x = xw;
+tmp.y = yw;
+tmp.step = 0:(num_image - 1);
+allocate(tmp, 'img', 'uint8', [ny, nx, 3, num_image]);
+allocate(tmp, 'mask', 'logical', [ny, nx, num_image]);
+
+% keep track of the maximum extent of the mask
+min_row = inf;  % set initial values so they are sure to be overridden
+max_row = -inf;
+min_col = inf;
+max_col = -inf;
 
 % loop over all images
 for ii = 1:num_image
@@ -150,15 +166,45 @@ for ii = 1:num_image
     this_file = fullfile(image_path, image_names{ii});
     img = imread(this_file);
      
-    fprintf('\n%s: %s\n', mfilename, this_file);
+    fprintf('\n%s: preprocess image %s\n', mfilename, this_file);
     
     img = prep_rectify_and_crop(...
         ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img);
 
     mask_auto = prep_mask_auto(...
         img, hue_lim, value_lim, entropy_lim, entropy_len, image_view);
-      
-    result.mask(:, :, ii) = logical(mask_auto & mask_manual);
-    result.img(:, :, :, ii) = uint8(img);
+    mask = logical(mask_auto & mask_manual);
+    
+    [mask_rows, mask_cols] = ind2sub(size(mask), find(mask));
+    min_row = min(min_row, min(mask_rows));
+    max_row = max(max_row, max(mask_rows));
+    min_col = min(min_col, min(mask_cols));
+    max_col = max(max_col, max(mask_cols));    
+    
+    tmp.mask(:, :, ii) = mask_auto;
+    tmp.img(:, :, :, ii) = uint8(img);
 
 end
+nx = max_col - min_col + 1;  % size of reduced data arrays
+ny = max_row - min_row + 1;
+
+% copy data from temporary file to results file
+% note: here we trim image data to maximum extent of mask i.e., exclude
+%   pixels that are always sand to reduce compute during PIV
+fprintf('\n%s: copy from temporary to final file: %s\n', mfilename, result_file);
+fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_image);
+fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
+
+result.meta = tmp.meta;
+result.x = tmp.x(1, min_col:max_col);
+result.y = tmp.y(1, min_row:max_row);
+result.step = tmp.step;
+
+allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
+allocate(result, 'mask', 'logical', [ny, nx, num_image]);
+
+for ii = 1:num_image
+    result.mask(:, :, ii) = tmp.mask(min_row:max_row, min_col:max_col, ii);
+    result.img(:, :, :, ii) = tmp.img(min_row:max_row, min_col:max_col, :, ii);
+end
+
