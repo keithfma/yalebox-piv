@@ -1,7 +1,7 @@
-function [uu, vv] = piv_displacement(...
-    ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
-% function [uu, vv] = piv_displacement(...
-%     ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
+function [uu, vv, qual, mask] = piv_displacement(...
+    ini, ini_mask, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
+% function [uu, vv, qual, mask] = piv_displacement(...
+%     ini, ini_mask, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
 %
 % Compute the displacement at initial image time on a regular grid. To
 % allow for an iterative solution, the initial window locations are
@@ -10,8 +10,12 @@ function [uu, vv] = piv_displacement(...
 %
 % Arguments:
 %
-%   ini, fin: 2D matrix, initial and final images at midpoint time
+%   ini, fin: 2D matrix, initial and final images
 % 
+%   ini_mask: 2D logical matrix, labels pixels in initial image as either
+%       sand (true) or not (false), used to compute a new mask at PIV
+%       resolution
+%
 %   rr, cc: 2D matrix, row- and column-coordinates for the initial sample grid
 %
 %   uu, vv: 2D matrix, initial guess for x (column) and y (row)
@@ -31,24 +35,46 @@ function [uu, vv] = piv_displacement(...
 %
 %   uu, vv = Matrix, estimated displacements in the x (column) and y (row)
 %       directions
+%   qual: Matrix, Quality flags indicating how each observation was
+%       computed (or not computed), possible values are enumerated in the
+%       Quality class
+%   mask: Matrix, logical, indicates observations for which the sample
+%       window is majority sand (true) or not (false)
 % %
 
 % TODO: validate inputs: all grids same size, ...
 
+% FIXME: with mirror pad, may be no need to test for full
+%   sample window or overlap fraction, but this requires first fixing
+%   the zero-padding applied by sample windows. Once this is done, we can
+%   also remove the quality flag from this function
+
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
-parfor kk = 1:numel(uu)
-          
+% allocate quality and mask matrices
+qual = repmat(Quality.Valid, size(uu));
+mask = true(size(uu));
+
+for kk = 1:numel(uu)
+    
+    % get sample window mask, decide if this observation is majority sand
+    % FIXME: bump the fraction up to 0.5 when ready to test real params
+    [samp_mask, ~, ~] = piv_window(ini_mask, rr(kk), cc(kk), samplen);
+    frac_mask = sum(samp_mask(:))/numel(samp_mask);
+    if frac_mask < 0.25
+        mask(kk) = false;
+    end
+    
     % get sample window at initial time (no offest)
     [samp, r_samp, c_samp] = piv_window(ini, rr(kk), cc(kk), samplen);
     assert(all(size(samp) == samplen), 'Generated sample window does not match expected size');
-    
+        
     % skip if sample window is too empty
+    % FIXME: is this needed when we use mirror padding?
     frac_data = sum(samp(:) ~= 0)/numel(samp);
     if  frac_data < min_frac_data
-        uu(kk) = NaN;
-        vv(kk) = NaN;
+        qual(kk) = Quality.EmptySampleWindow;
         continue
     end
     
@@ -59,13 +85,18 @@ parfor kk = 1:numel(uu)
     [intr, r_intr, c_intr] = piv_window(...
         fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
     
+    % FIXME: strong brightess anomolies at the boundaries, these can be
+    %   removed with standard AHE now
+    
+    % FIXME: zero-padding applied by the window picker is fucking up 
+    %   the chance to use the standard normxcorr2 here.
+    
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
     
     % skip if nowhere has enough overlapping sandy pixels
     if max(overlap(:)) < min_overlap
-        uu(kk) = NaN;
-        vv(kk) = NaN;
+        qual(kk) = Quality.BelowMinOverlap;
         continue
     end
     
@@ -87,7 +118,11 @@ parfor kk = 1:numel(uu)
 end
 
 % report result
-num_valid = sum(~isnan(uu(:)));  % same as vv
+num_valid = sum(qual(:) == Quality.Valid);
 num_total = numel(uu);
 fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
     mfilename, num_valid, num_total, num_valid/num_total*100);
+
+num_mask = sum(mask(:));
+fprintf('%s: majority-sand measurements at %d/%d pts (%.2f%%)\n', ...
+    mfilename, num_mask, num_total, num_mask/num_total*100);
