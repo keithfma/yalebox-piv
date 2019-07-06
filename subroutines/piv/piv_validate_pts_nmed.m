@@ -39,7 +39,6 @@ num_valid_init = sum(qual(:) == Quality.Valid);
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
 % check all points
-% TODO: parfor yielded garbage results, not sure why
 for kk = 1:numel(uu)
     
     % skip if there is no observation at this point

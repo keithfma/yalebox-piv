@@ -57,7 +57,6 @@ qual = repmat(Quality.Valid, size(uu));
 mask = true(size(uu));
 
 for kk = 1:numel(uu)
-% parfor kk = 1:numel(uu)
     
     % get sample window mask, decide if this observation is majority sand
     % FIXME: bump the fraction up to 0.5 when ready to test real params

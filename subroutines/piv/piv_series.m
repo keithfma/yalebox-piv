@@ -168,9 +168,16 @@ meta.quality.notes = qual_note;
 meta.quality.dimensions = {'x', 'y', 'step'};
 meta.quality.units = 'categorical';
 
+meta.mask.name = 'mask';
+meta.mask.long_name = 'majority-sand mask';
+meta.mask.notes = 'true where sample window contains majority-sand, false elsewhere';
+meta.mask.dimensions = {'x', 'y', 'step'};
+meta.quality.units = 'boolean';
+
 output_data.meta = meta;
 
 % analyse all steps
+% FIXME: implement parallelism here, at the top-level
 for ii = 1:num_step
     
     fprintf('\n%s: begin step = %.1f\n', mfilename, step(ii));
@@ -202,10 +209,12 @@ for ii = 1:num_step
         allocate(output_data, 'u', 'double', dimensions);
         allocate(output_data, 'v', 'double', dimensions);
         allocate(output_data, 'quality', 'uint8', dimensions);
+        allocate(output_data, 'mask', 'logical', dimensions);
     end
     output_data.u(:, :, ii) = piv_data.u;
     output_data.v(:, :, ii) = piv_data.v;
     output_data.quality(:, :, ii) = Quality.to_uint8(piv_data.quality);
+    output_data.mask(:, :, ii) = piv_data.mask;
     
     fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
 end
