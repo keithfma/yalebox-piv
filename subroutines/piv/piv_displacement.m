@@ -38,6 +38,7 @@ function [uu, vv] = piv_displacement(...
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
 
+% for kk = 1:numel(uu)
 parfor kk = 1:numel(uu)
           
     % get sample window at initial time (no offest)
@@ -58,6 +59,12 @@ parfor kk = 1:numel(uu)
     %   OK because we compute it directly later
     [intr, r_intr, c_intr] = piv_window(...
         fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
+    
+    % FIXME: strong brightess anomolies at the boundaries, these can be
+    %   removed with standard AHE now
+    
+    % FIXME: zero-padding applied by the window picker is fucking up 
+    %   the chance to use the standard normxcorr2 here.
     
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);

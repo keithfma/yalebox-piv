@@ -1,9 +1,9 @@
 function result = piv_step(...
-    img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
+    img_ti, img_tf, mask_ti, mask_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
     valid_eps, min_frac_data, min_frac_overlap, pad_method)
 % function result = piv_step(...
-%     img_ti, img_tf, roi_img_ti, roi_img_tf, x_img, y_img, ...
+%     img_ti, img_tf, mask_ti, mask_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
 %     valid_eps, min_frac_data, min_frac_overlap, pad_method)
 %
@@ -15,7 +15,7 @@ function result = piv_step(...
 %   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale image
 %       from the start and end of the step to be analyzed.
 % 
-%   roi_img_ti, roi_img_tf = 2D matrix, logical, mask indicating pixels where
+%   mask_ti, mask_tf = 2D matrix, logical, mask indicating pixels where
 %       there is sand (1) and background (0) that should be ignored.
 %  
 %   x_img, y_img = Vector, double, increasing, x- and y-direction
@@ -62,8 +62,16 @@ function result = piv_step(...
 %   result.u, result.v: 2D matrix, x- and y-direction displacements
 %       for gridded sample points, at initial time
 % 
-%   result.valid: 2D matrix, logical grid with set to "true" for
-%       valid observations, and "false" for invalid
+%   result.quality: 2D matrix, integer labels indicating how this
+%       observation was computed, possible values are:
+%           0: valid
+%           1: interpolated - failed minimum overlap test
+%           2: interpolated - failed normalized median test
+%
+%   result.mask: 2D matrix, logical labels indicating if an observation is
+%       inside (true) or outside (false) the original sand region, a
+%       given observation is considered "inside" if a majority of its
+%       sample window pixels are within the image mask.
 %
 % Notes:
 %   + Sample grid spacing is held constant since our experiments showed
@@ -92,8 +100,8 @@ update_path('normxcorr2_masked', 'inpaint_nans');
 ng = numel(samp_len); % number of grid refinement steps
 validateattributes(img_ti, {'uint8'},  {'3d'});
 validateattributes(img_tf, {'uint8'},  {'3d', 'size', [nr, nc, nb]});
-validateattributes(roi_img_ti, {'logical'}, {'2d', 'size', [nr, nc]});
-validateattributes(roi_img_tf, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(mask_ti, {'logical'}, {'2d', 'size', [nr, nc]});
+validateattributes(mask_tf, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(x_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
 validateattributes(y_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nr});
 validateattributes(samp_len, {'numeric'}, {'vector', 'integer', 'positive', 'nonnan'});
@@ -107,8 +115,8 @@ validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(pad_method, {'char'}, {});
 
-fprintf('%s: ini: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_ti(:))/numel(roi_img_ti));
-fprintf('%s: fin: size = [%d, %d], roi frac = %.2f\n', mfilename, nr, nc, sum(roi_img_tf(:))/numel(roi_img_tf));
+fprintf('%s: ini: size = [%d, %d], mask frac = %.2f\n', mfilename, nr, nc, sum(mask_ti(:))/numel(mask_ti));
+fprintf('%s: fin: size = [%d, %d], mask frac = %.2f\n', mfilename, nr, nc, sum(mask_tf(:))/numel(mask_tf));
 fprintf('%s: x_img: min = %.3f, max = %.3f\n', mfilename, min(x_img), max(x_img));
 fprintf('%s: y_img: min = %.3f, max = %.3f\n', mfilename, min(y_img), max(y_img));
 fprintf('%s: samp_len = ', mfilename); fprintf('%d ', samp_len); fprintf('\n');
@@ -122,10 +130,10 @@ fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % treat image boundaries
-[~, ~, img_ti] = piv_fill(...
-    x_img, y_img, img_ti, roi_img_ti, samp_len(1), pad_method);
-[x_img, y_img, img_tf] = piv_fill(...
-    x_img, y_img, img_tf, roi_img_ti, samp_len(1), pad_method);
+[~, ~, img_ti, mask_ti] = piv_fill(...
+    x_img, y_img, img_ti, mask_ti, samp_len(1), pad_method);
+[x_img, y_img, img_tf, mask_tf] = piv_fill(...
+    x_img, y_img, img_tf, mask_tf, samp_len(1), pad_method);
 
 % convert to images to grayscale
 % TODO: consider running PIV on all three bands and combining the results
@@ -160,7 +168,13 @@ for pp = 1:np
     % validate displacement vectors
     [uu, vv] = piv_validate_pts_nmed(...
         cc, rr, uu, vv, valid_radius, valid_max, valid_eps);
+    
+    % FIXME: need to return a QA-flag matrix
      
+%     % interpolate valid vectors to full sample grid 
+%     uu = inpaint_nans(uu, 2);
+%     vv = inpaint_nans(vv, 2);
+    
     % interpolate valid vectors to full sample grid 
     % note: leave as-is on last pass, want NaN where there is no valid
     %   observation, these can be filled later if desired, but should not

@@ -181,7 +181,7 @@ for ii = 1:num_image
     min_col = min(min_col, min(mask_cols));
     max_col = max(max_col, max(mask_cols));    
     
-    tmp.mask(:, :, ii) = mask_auto;
+    tmp.mask(:, :, ii) = mask;
     tmp.img(:, :, :, ii) = uint8(img);
 
 end
