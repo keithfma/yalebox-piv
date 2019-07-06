@@ -166,23 +166,17 @@ for pp = 1:np
         intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
-    [uu, vv] = piv_validate_pts_nmed(...
+    [uu, vv, qual] = piv_validate_pts_nmed(...
         cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
     
     % FIXME: need to return a QA-flag matrix
      
-%     % interpolate valid vectors to full sample grid 
-%     uu = inpaint_nans(uu, 2);
-%     vv = inpaint_nans(vv, 2);
-    
-    % interpolate valid vectors to full sample grid 
-    % note: leave as-is on last pass, want NaN where there is no valid
-    %   observation, these can be filled later if desired, but should not
-    %   pretend to be good data
-    if pp < np
-        uu = inpaint_nans(uu, 2);
-        vv = inpaint_nans(vv, 2);
-    end
+    % interpolate valid vectors to full sample grid
+    invalid = qual ~= Quality.Valid;
+    uu(invalid) = NaN;
+    vv(invalid) = NaN;
+    uu = inpaint_nans(uu, 2);
+    vv = inpaint_nans(vv, 2);
     
 end
 % end multipass loop
@@ -193,7 +187,7 @@ end
 
 % package results as structure
 result = struct(...
-    'x', xx, 'y', yy, 'u', uu, 'v', vv);
+    'x', xx, 'y', yy, 'u', uu, 'v', vv, 'quality', qual);
 
 end
 
