@@ -166,8 +166,6 @@ for pp = 1:np
     % validate displacement vectors
     [uu, vv, qual] = piv_validate_pts_nmed(...
         cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
-    
-    % FIXME: need to return a QA-flag matrix
      
     % interpolate valid vectors to full sample grid
     invalid = qual ~= Quality.Valid;
