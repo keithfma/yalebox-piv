@@ -55,8 +55,8 @@ function [] = piv_series(...
 update_path('piv', 'util');
 
 % set defaults
-narginchk(13, 14);
-if nargin < 14; notes = ''; end
+narginchk(14, 15);
+if nargin < 15; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
@@ -151,6 +151,23 @@ meta.v.notes = '';
 meta.v.dimensions = {'y', 'x', 'step'};
 meta.v.units = 'meters/step';
 
+% note: build quality notes string dynamically from enumerated values
+[qual_members, qual_names] = enumeration('Quality');
+qual_values = Quality.to_uint8(qual_members);
+qual_note = sprintf(['labels indicate how each observation was ', ...
+    'computed, all values except %d (%s) are interpolated. Possible ', ...
+    'values are: '], Quality.to_uint8(Quality.Valid), 'Valid');
+for ii = 1:numel(qual_members)
+    qual_note = [qual_note, sprintf('%d (%s), ', qual_values(ii), qual_names{ii})];  %#ok!
+end
+qual_note = sprintf('%s\b\b', qual_note);
+
+meta.quality.name = 'quality';
+meta.quality.long_name = 'quality labels';
+meta.quality.notes = qual_note;
+meta.quality.dimensions = {'x', 'y', 'step'};
+meta.quality.units = 'categorical';
+
 output_data.meta = meta;
 
 % analyse all steps
@@ -160,15 +177,15 @@ for ii = 1:num_step
     fprintf('%s: ini_step = %d\n', mfilename, step_img(ini_idx(ii)));
     fprintf('%s: fin_step = %d\n', mfilename, step_img(fin_idx(ii)));
     
-    % update image and roi pair
+    % update image and mask pair
     img0 = input_data.img(:, :, :, ini_idx(ii));
-    roi0 = input_data.mask(:, :, ini_idx(ii));
+    mask0 = input_data.mask(:, :, ini_idx(ii));
     
     img1 = input_data.img(:, :, :, fin_idx(ii));
-    roi1 = input_data.mask(:, :, fin_idx(ii));
+    mask1 = input_data.mask(:, :, fin_idx(ii));
     
     % perform piv analysis
-    piv_data = piv_step(img0, img1, roi0, roi1, x_img, y_img, samp_len, samp_spc, ...
+    piv_data = piv_step(img0, img1, mask0, mask1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
         min_frac_data, min_frac_overlap, pad_method); 
     
@@ -184,10 +201,11 @@ for ii = 1:num_step
         dimensions = [length(output_data.y), length(output_data.x), num_step+1];
         allocate(output_data, 'u', 'double', dimensions);
         allocate(output_data, 'v', 'double', dimensions);
-        allocate(output_data, 'valid', 'logical', dimensions);
+        allocate(output_data, 'quality', 'uint8', dimensions);
     end
     output_data.u(:, :, ii) = piv_data.u;
     output_data.v(:, :, ii) = piv_data.v;
+    output_data.quality(:, :, ii) = Quality.to_uint8(piv_data.quality);
     
     fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
 end

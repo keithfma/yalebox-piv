@@ -32,7 +32,8 @@ function [uu, vv, qual] = piv_displacement(...
 %   uu, vv = Matrix, estimated displacements in the x (column) and y (row)
 %       directions
 %   qual: Matrix, Quality flags indicating how each observation was
-%       computed (or not computed)
+%       computed (or not computed), possible values are enumerated in the
+%       Quality class
 % %
 
 % TODO: validate inputs: all grids same size, ...
@@ -104,7 +105,7 @@ parfor kk = 1:numel(uu)
 end
 
 % report result
-num_valid = sum(Quality.is_valid(qual(:)));
+num_valid = sum(qual(:) == Quality.Valid);
 num_total = numel(uu);
 fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
     mfilename, num_valid, num_total, num_valid/num_total*100);

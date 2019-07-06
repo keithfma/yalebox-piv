@@ -10,7 +10,8 @@ function [uu, vv, qual] = piv_validate_pts_nmed(...
 %   cc, rr = 2D matrix, double, location of displacement observations
 %   uu, vv = 2D matrix, double, displacement vector components
 %   qual: Matrix, Quality flags indicating how each observation was
-%       computed (or not computed)
+%       computed (or not computed), possible values are enumerated in the
+%       Quality class
 %   radius = Scalar, distance in pixel units around each point to search
 %       for neighbors to include in normalized median test
 %   max_norm_res = Scalar, double, maximum value for the normalized residual,

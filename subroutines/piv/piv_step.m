@@ -63,10 +63,8 @@ function result = piv_step(...
 %       for gridded sample points, at initial time
 % 
 %   result.quality: 2D matrix, integer labels indicating how this
-%       observation was computed, possible values are:
-%           0: valid
-%           1: interpolated - failed minimum overlap test
-%           2: interpolated - failed normalized median test
+%       observation was computed, possible values are enumerated in the
+%       Quality class
 %
 %   result.mask: 2D matrix, logical labels indicating if an observation is
 %       inside (true) or outside (false) the original sand region, a
