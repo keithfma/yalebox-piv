@@ -1,5 +1,5 @@
-function [uu, vv] = piv_validate_pts_nmed(...
-    cc, rr, uu, vv, radius, max_norm_res, epsilon)
+function [uu, vv, qual] = piv_validate_pts_nmed(...
+    cc, rr, uu, vv, qual, radius, max_norm_res, epsilon)
 %
 % Validate the displacement vector field on a scattered grid using a
 % normalized median test including all neighbors within a fixed radius.
@@ -11,6 +11,8 @@ function [uu, vv] = piv_validate_pts_nmed(...
 %       vectors.
 %   uu, vv = 2D matrix, double, displacement vector components. NaNs are
 %       treated as missing values to allow for roi masking.
+%   qual: Matrix, Quality flags indicating how each observation was
+%       computed (or not computed)
 %   radius = Scalar, distance around each point to search for neighbors to
 %       include in normalized median test
 %   max_norm_res = Scalar, double, maximum value for the normalized residual,
@@ -28,8 +30,11 @@ function [uu, vv] = piv_validate_pts_nmed(...
 % check inputs
 validateattributes(uu, {'numeric'}, {});
 validateattributes(vv, {'numeric'}, {'size', size(uu)});
+validateattributes(qual, {'Quality'}, {'size', size(uu)});
 validateattributes(cc, {'numeric'}, {'size', size(uu)});
 validateattributes(rr, {'numeric'}, {'size', size(uu)});
+
+% FIXME: use qual throughout, and update it with test results
 
 % initialize
 valid = true(size(uu));
@@ -41,7 +46,7 @@ kdtree = KDTreeSearcher([cc(:), rr(:)]);
 % TODO: parfor yielded garbage results, not sure why
 for kk = 1:numel(uu)
     
-    % skip if ther e is no observation at this point
+    % skip if there is no observation at this point
     if isnan(uu(kk))
         valid(kk) = false;
         continue;

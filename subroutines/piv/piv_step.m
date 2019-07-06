@@ -161,13 +161,13 @@ for pp = 1:np
         mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
-    [uu, vv] = piv_displacement(...
+    [uu, vv, qual] = piv_displacement(...
         img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
         intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
     [uu, vv] = piv_validate_pts_nmed(...
-        cc, rr, uu, vv, valid_radius, valid_max, valid_eps);
+        cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
     
     % FIXME: need to return a QA-flag matrix
      

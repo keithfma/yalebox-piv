@@ -1,6 +1,6 @@
-function [uu, vv] = piv_displacement(...
+function [uu, vv, qual] = piv_displacement(...
     ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
-% function [uu, vv] = piv_displacement(...
+% function [uu, vv, qual] = piv_displacement(...
 %     ini, fin, rr, cc, uu, vv, samplen, intrlen, min_frac_data, min_frac_overlap)
 %
 % Compute the displacement at initial image time on a regular grid. To
@@ -31,12 +31,23 @@ function [uu, vv] = piv_displacement(...
 %
 %   uu, vv = Matrix, estimated displacements in the x (column) and y (row)
 %       directions
+%   qual: Matrix, Quality flags indicating how each observation was
+%       computed (or not computed)
 % %
 
 % TODO: validate inputs: all grids same size, ...
 
+% FIXME: with mirror pad, there should be no need to test for full
+%   sample window or overlap fraction, but this requires first fixing
+%   the zero-padding applied by sample windows. Once this is done, we can
+%   also remove the quality flag from this function
+
 % constants
 min_overlap = min_frac_overlap*samplen*samplen; % frac to pixels 
+
+% allocate quality and mask matrices
+qual = repmat(Quality.Valid, size(uu));
+% TODO: allocate mask
 
 % for kk = 1:numel(uu)
 parfor kk = 1:numel(uu)
@@ -46,10 +57,10 @@ parfor kk = 1:numel(uu)
     assert(all(size(samp) == samplen), 'Generated sample window does not match expected size');
     
     % skip if sample window is too empty
+    % FIXME: here is where we assign the mask value
     frac_data = sum(samp(:) ~= 0)/numel(samp);
     if  frac_data < min_frac_data
-        uu(kk) = NaN;
-        vv(kk) = NaN;
+        qual(kk) = Quality.EmptySampleWindow;
         continue
     end
     
@@ -71,8 +82,7 @@ parfor kk = 1:numel(uu)
     
     % skip if nowhere has enough overlapping sandy pixels
     if max(overlap(:)) < min_overlap
-        uu(kk) = NaN;
-        vv(kk) = NaN;
+        qual(kk) = Quality.BelowMinOverlap;
         continue
     end
     
@@ -94,7 +104,7 @@ parfor kk = 1:numel(uu)
 end
 
 % report result
-num_valid = sum(~isnan(uu(:)));  % same as vv
+num_valid = sum(Quality.is_valid(qual(:)));
 num_total = numel(uu);
 fprintf('%s: valid measurements at %d/%d pts (%.2f%%)\n', ...
     mfilename, num_valid, num_total, num_valid/num_total*100);
