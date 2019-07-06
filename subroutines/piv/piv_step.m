@@ -130,7 +130,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % treat image boundaries
 [~, ~, img_ti, mask_ti] = piv_fill(...
     x_img, y_img, img_ti, mask_ti, samp_len(1), pad_method);
-[x_img, y_img, img_tf, mask_tf] = piv_fill(...
+[x_img, y_img, img_tf, ~] = piv_fill(...
     x_img, y_img, img_tf, mask_tf, samp_len(1), pad_method);
 
 % convert to images to grayscale
@@ -159,8 +159,8 @@ for pp = 1:np
         mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
-    [uu, vv, qual] = piv_displacement(...
-        img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
+    [uu, vv, qual, mask] = piv_displacement(...
+        img_ti, mask_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
         intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
@@ -185,7 +185,7 @@ end
 
 % package results as structure
 result = struct(...
-    'x', xx, 'y', yy, 'u', uu, 'v', vv, 'quality', qual);
+    'x', xx, 'y', yy, 'u', uu, 'v', vv, 'quality', qual, 'mask', mask);
 
 end
 
