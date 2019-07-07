@@ -1,5 +1,5 @@
-function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, pad_method)
-% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, pad_method)
+function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
+% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
 %
 % Simple plot of image pair with area outside ROI set to 0
 %
@@ -10,21 +10,21 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, pad_metho
 %       indicating if a pixel is sand (1) or not (0)
 %   which: Optional string, select which kind of display, options are
 %       'subplot' and 'toggle' 
-%   pad_method: Optional string, if provided apply specified boundary
-%       padding method, see options in piv_fill
+%   fill: Optional, set true to fill non-sand pixels as in PIV routine
 % %
-if nargin < 7
-    which = 'subplot';
-end
 
-if nargin == 8
+% set defaults
+if nargin < 7; which = 'subplot'; end
+if nargin < 8; fill = false; end
+
+if fill
     % apply padding
     update_path('piv')
     pad_width = 25; % constant pad width because it does not seem worth specifying
     xx0 = xx; % coordinates get overwritten, use the originals
     yy0 = yy;
-    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, pad_width, pad_method);
-    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, pad_width, pad_method);
+    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, pad_width);
+    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, pad_width);
 
 else
     % apply mask
