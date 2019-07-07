@@ -108,11 +108,14 @@ fprintf('%s: valid_eps = %.2e\n', mfilename, valid_eps);
 fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
+% create sample grid and pad image arrays
+[rr, cc, pad_r, pad_c] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
+
 % treat image boundaries
 [~, ~, img_ti, mask_ti] = piv_fill(...
-    x_img, y_img, img_ti, mask_ti, samp_len(1));
+    x_img, y_img, img_ti, mask_ti, pad_r, pad_c);
 [x_img, y_img, img_tf, ~] = piv_fill(...
-    x_img, y_img, img_tf, mask_tf, samp_len(1));
+    x_img, y_img, img_tf, mask_tf, pad_r, pad_c);
 
 % convert to images to grayscale
 % TODO: consider running PIV on all three bands and combining the results
@@ -121,9 +124,6 @@ img_ti = img_ti(:,:,3);
 
 img_tf = rgb2hsv(img_tf);
 img_tf = img_tf(:,:,3);
-
-% create sample grid
-[rr, cc] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
 
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
