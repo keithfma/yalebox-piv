@@ -20,9 +20,14 @@ function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill(...
 
 % sanity checks
 narginchk(6, 6);
-% FIXME: check all inputs with validateattributes
+validateattributes(xx, {'numeric'}, {'vector'});
+validateattributes(yy, {'numeric'}, {'vector'});
+validateattributes(img, {'numeric'}, {'3d', 'size', [numel(yy), numel(xx), 3]});
+validateattributes(mask, {'logical'}, {'2d', 'size', [numel(yy), numel(xx)]});
+validateattributes(pad_r, {'numeric'}, {'integer', 'nonnegative'});
+validateattributes(pad_c, {'numeric'}, {'integer', 'nonnegative'});
 
-fprintf('%s: fill outside image mask by mirroring sand pixels\n', ...
+fprintf('%s: fill and pad image and its mask by mirroring sand pixels\n', ...
     mfilename); 
 
 % create padded arrays
