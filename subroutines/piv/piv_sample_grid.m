@@ -13,9 +13,11 @@ function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, 
 %       column) directions, in pixels
 % %
 
-% TODO: validate inputs
-% TODO: validate samp_len is all even or all odd, required so that sample
-%   window is centered on the specified point
+% validate inputs
+validateattributes(sample_len, {'numeric'}, {'vector', 'integer'});
+validateattributes(sample_spc, {'numeric'}, {'scalar', 'integer'});
+validateattributes(img_nr, {'numeric'}, {'scalar', 'integer', 'positive'});
+validateattributes(img_nc, {'numeric'}, {'scalar', 'integer', 'positive'});
 
 remainder = mod((img_nr - 1), sample_spc);
 r_sample_vector = (1 + remainder/2):sample_spc:img_nr;
@@ -24,20 +26,23 @@ remainder = mod((img_nc - 1), sample_spc);
 c_sample_vector = (1 + remainder/2):sample_spc:img_nc;
 
 % shift grid to ensure sample windows span integer-pixel range
-if is_even(sample_len(1))  % validated such that all even or all odd
+if is_even(sample_len)  % validated such that all even or all odd
     if is_whole(r_sample_vector(1))
         r_sample_vector = r_sample_vector + 0.5;
     end
     if is_whole(c_sample_vector(1))
         c_sample_vector = c_sample_vector + 0.5;
     end
-else
+elseif is_odd(sample_len)
     if ~is_whole(r_sample_vector(1))
         r_sample_vector = r_sample_vector + 0.5;
     end
     if ~is_whole(c_sample_vector(1))
         c_sample_vector = c_sample_vector + 0.5;
     end
+else
+    error(['sample_len must be either all-even or all-odd so that '
+        'sample window is centered on the specified point']);
 end
 
 % generate grid from vectors
@@ -56,7 +61,11 @@ end
 
 
 function result = is_even(x)
-result = mod(x, 2) == 0;
+result = all(mod(x, 2) == 0);
+
+
+function result = is_odd(x)
+result = all(mod(x, 2) == 1);
 
 
 function result = is_whole(x)
