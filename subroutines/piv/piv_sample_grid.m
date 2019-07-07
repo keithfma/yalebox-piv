@@ -1,5 +1,5 @@
-function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
-%function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
+function [r_sample, c_sample, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
+%function [r_sample, c_sample, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
 %
 % Create sample grid which is the largest centered grid that fits in the domain
 %
@@ -8,9 +8,13 @@ function [r_sample, c_sample] = piv_sample_grid(sample_len, sample_spc, img_nr, 
 %   sample_spc = Scalar, integer, grid spacing in pixels
 %   img_nr, img_nc = Scalar, dimensions (number of rows and columns) of the
 %       input images.
+%
+% Returns:
 %   r_sample, c_sample = 2D matrix, integer, coordinate matrices, as constructed
 %       by meshgrid, for the sample grid in the y (a.k.a. row) and x (a.k.a.
 %       column) directions, in pixels
+%   pad_nr, pad_nc = scalars, number of pixels to pad images (and thier
+%       coordinates) in the row and column directions
 % %
 
 % validate inputs
@@ -19,11 +23,26 @@ validateattributes(sample_spc, {'numeric'}, {'scalar', 'integer'});
 validateattributes(img_nr, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(img_nc, {'numeric'}, {'scalar', 'integer', 'positive'});
 
+% note: intentionally verbose to make this easier to understand
+
 remainder = mod((img_nr - 1), sample_spc);
 r_sample_vector = (1 + remainder/2):sample_spc:img_nr;
+r_sample_vector = [...  % add one extra sample window
+    r_sample_vector(1) - sample_spc, ...
+    r_sample_vector, ...
+    r_sample_vector(end) + sample_spc] + sample_spc;
+r_sample_vector = r_sample_vector + sample_len(1)/2; % shift so first window is covered
+pad_nr = sample_spc + sample_len(1)/2;
 
 remainder = mod((img_nc - 1), sample_spc);
 c_sample_vector = (1 + remainder/2):sample_spc:img_nc;
+c_sample_vector = [...  % add one extra sample window
+    c_sample_vector(1) - sample_spc, ...
+    c_sample_vector, ...
+    c_sample_vector(end) + sample_spc] + sample_spc;
+c_sample_vector = c_sample_vector + sample_len(1)/2; % shift so first window is covered
+pad_nc = sample_spc + sample_len(1)/2;
+
 
 % shift grid to ensure sample windows span integer-pixel range
 if is_even(sample_len)  % validated such that all even or all odd
