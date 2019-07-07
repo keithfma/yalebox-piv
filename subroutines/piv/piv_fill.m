@@ -1,56 +1,6 @@
 function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill(...
-    xx, yy, img, mask, pad_width, method)
-% function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill(...
-%   xx, yy, img, mask, pad_width, method)
-% 
-% Fill non-sand regions of the input image by extending boundary pixels
-%
-% Arguments:
-%   xx, yy: Vectors, coordinate axes for image columns, rows
-%   img: 3D matrix, rectified/cropped RGB image
-%   mask: 2D matrix, logical mask of sand pixels in img
-%   pad_width: Scalar integer, number of pixels of padding to add
-%   method: (Optional) string, which boundary treatment option to apply,
-%       default is 'extend_smooth'
-% 
-% Outputs:
-%   xx_fill, yy_fill: Vectors, coordinate axes for filled image columns, rows
-%   img_fill: 3D matrix, filled and padded RGB image
-%   mask_fill: 2D matrix, padded image mask matching (2D) size of img_fill
-% %
-
-% FIXME: remove the method option once the dust has settled on image padding,
-%   there should be one and only one fill method implemented here in v1.0
-
-% set defaults
-narginchk(5, 6);
-if nargin == 5; method = 'extend_smooth'; end
-
-fprintf('%s: apply boundary treatment "%s" to input image\n', ...
-    mfilename, method); 
-
-if strcmp(method, 'mask')
-    % legacy, don't pad just apply mask to image 
-    img_fill = img;
-    img_fill(repmat(~mask, 1, 1, size(img_ti, 3))) = 0;
-    xx_fill = xx;
-    yy_fill = yy;
-    mask_fill = mask;
-
-elseif strcmp(method, 'mirror')
-    % mirror boundary pixels
-    [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill_mirror(...
-        xx, yy, img, mask, pad_width);
-    
-else
-    error('bad value for argument "method": %s', method);
-    
-end
-
-
-function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill_mirror(...
     xx, yy, img, mask, pad_width)
-% function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill_mirror(...
+% function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill(...
 %   xx, yy, img, mask, pad_width)
 % 
 % Fill non-sand regions of the input image by mirroring boundary pixels
@@ -66,6 +16,13 @@ function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill_mirror(...
 %   img_fill: 3D matrix, filled and padded RGB image
 %   mask_fill: 2D matrix, padded image mask matching (2D) size of img_fill
 % %
+
+% sanity checks
+narginchk(5, 5);
+% FIXME: check all inputs with validateattributes
+
+fprintf('%s: fill outside image mask by mirroring sand pixels\n', ...
+    mfilename); 
 
 % create padded arrays
 img_fill = padarray(img, [pad_width, 0, 0], NaN, 'both');

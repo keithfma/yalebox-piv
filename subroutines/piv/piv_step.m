@@ -1,71 +1,54 @@
 function result = piv_step(...
     img_ti, img_tf, mask_ti, mask_tf, x_img, y_img, ...
     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-    valid_eps, min_frac_data, min_frac_overlap, pad_method)
+    valid_eps, min_frac_data, min_frac_overlap)
 % function result = piv_step(...
 %     img_ti, img_tf, mask_ti, mask_tf, x_img, y_img, ...
 %     samp_len, samp_spc, intr_len, num_pass, valid_radius, valid_max, ...
-%     valid_eps, min_frac_data, min_frac_overlap, pad_method)
+%     valid_eps, min_frac_data, min_frac_overlap)
 %
-% PIV analysis for Yalebox image data. Returns results at scattered (raw) and
-% gridded (interpolated) points, evaluated at the midpoint time between the two
-% input images. See subroutines docs for additional details.
+% PIV analysis for Yalebox image data. Returns results evaluated at the
+% time of the initial image. See subroutines docs for additional details.
 %
 % Arguments:
 %   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale image
 %       from the start and end of the step to be analyzed.
-% 
 %   mask_ti, mask_tf = 2D matrix, logical, mask indicating pixels where
 %       there is sand (1) and background (0) that should be ignored.
-%  
 %   x_img, y_img = Vector, double, increasing, x- and y-direction
 %       coordinate vectors, length must match the cols and rows, respectively,
 %       in both image grids.
-% 
 %   samp_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square sample window, [pixels]
-% 
 %   samp_spc = Scalar, integer, spacing between adjacent sample points in the
 %       (square) sample grid, [pixels].
-% 
 %   intr_len = Vector, length == number of grid resolutions, integer, side
 %       length of the square interrogation window
-% 
 %   num_pass = Vector, length == number of grid resolutions, integer, number of
 %       image deformation passes
-% 
 %   valid_radius: Scalar, radius around each sample point to include in vector
 %       validation, recommended to use ~4*samp_spc, [pixel] units
-% 
 %   valid_max = Scalar, double, maximum value for the normalized residual
 %       in the vector validation function, above which a vector is flagged
 %       as invalid. Ref [3] reccomends a value of 2.
-% 
 %   valid_eps = Scalar, double, minimum value of the normalization factor in
 %       the vector validation function. Ref [3] reccomends a value of 0.1.
-% 
 %   min_frac_data = Scalar, minimum fraction of the sample window that must
 %       contain data (e.g. sand) for the point to be included in the ROI for PIV
-%       analysis
-% 
+%       analysis 
 %   min_frac_overlap = Scalar, minimum fraction of the sample window data that
 %       must overlap the interrogation window data for a point in the
 %       cross-correlation to be valid
-%
-%   pad_method = String, boundary treatment to apply e.g., 'extend_smooth'
 %
 %  Returns:
 % 
 %   result.x, result.y: 2D matrix, x- and y-coordinates for gridded
 %       sample points
-% 
 %   result.u, result.v: 2D matrix, x- and y-direction displacements
 %       for gridded sample points, at initial time
-% 
 %   result.quality: 2D matrix, integer labels indicating how this
 %       observation was computed, possible values are enumerated in the
 %       Quality class
-%
 %   result.mask: 2D matrix, logical labels indicating if an observation is
 %       inside (true) or outside (false) the original sand region, a
 %       given observation is considered "inside" if a majority of its
@@ -87,7 +70,6 @@ function result = piv_step(...
 % NOTE: special suffixes describe the time and space grids, these are:
 %   ti -> time of the initial image
 %   tf -> time of the final image
-%   grd -> regular sample grid
 %   img -> regular grid at image resolution
 % %
 
@@ -111,7 +93,6 @@ validateattributes(valid_max, {'double'}, {'scalar', 'positive'});
 validateattributes(valid_eps, {'double'}, {'scalar', 'positive'});
 validateattributes(min_frac_data, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
 validateattributes(min_frac_overlap, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
-validateattributes(pad_method, {'char'}, {});
 
 fprintf('%s: ini: size = [%d, %d], mask frac = %.2f\n', mfilename, nr, nc, sum(mask_ti(:))/numel(mask_ti));
 fprintf('%s: fin: size = [%d, %d], mask frac = %.2f\n', mfilename, nr, nc, sum(mask_tf(:))/numel(mask_tf));
@@ -129,9 +110,9 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % treat image boundaries
 [~, ~, img_ti, mask_ti] = piv_fill(...
-    x_img, y_img, img_ti, mask_ti, samp_len(1), pad_method);
+    x_img, y_img, img_ti, mask_ti, samp_len(1));
 [x_img, y_img, img_tf, ~] = piv_fill(...
-    x_img, y_img, img_tf, mask_tf, samp_len(1), pad_method);
+    x_img, y_img, img_tf, mask_tf, samp_len(1));
 
 % convert to images to grayscale
 % TODO: consider running PIV on all three bands and combining the results

@@ -1,7 +1,7 @@
 function [] = piv_series(...
     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-    min_frac_data, min_frac_overlap, pad_method, notes)
+    min_frac_data, min_frac_overlap, notes)
 % function [] = piv_series(...
 %     output_file, input_file, step_range, gap, samp_len, samp_spc, ...
 %     intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
@@ -14,40 +14,25 @@ function [] = piv_series(...
 % Arguments:
 %
 %   output_file: String, name of the output MAT file containing PIV results
-% 
 %   input_file: String, name of the input MAT file containing pre-processed
 %       image data
-%
 %   step_range: 2-element vector, [initial, final] steps of input images series
 %       to include in PIV analysis. Either element can be set to NaN to use the
 %       full range.
-%
 %   gap : Scalar, integer, gap between analyzed images in steps, for
 %       example, for an initial image at step 3, setting gap -> 1 would use
 %       a final image at step 4 and yield PIV results at step 3.5, or
 %       alternatively, setting gap -> 2 would use a final image at step 5
 %       and yield PIV results at step 4.
-%
 %   samp_len: see piv_step() help for details
-%
 %   samp_spc: see piv_step() help for details
-%
 %   intr_len: see piv_step() help for details
-%
 %   num_pass: see piv_step() help for details
-%
 %   valid_radius: see piv_step() help for details
-%
 %   valid_max: see piv_step() help for details
-%
 %   valid_eps: see piv_step() help for details
-%
 %   min_frac_data: see piv_step() help for details
-%
 %   min_frac_overlap: see piv_step() help for details
-%
-%   pad_method: see piv_step() help for details
-%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -55,8 +40,8 @@ function [] = piv_series(...
 update_path('piv', 'util');
 
 % set defaults
-narginchk(14, 15);
-if nargin < 15; notes = ''; end
+narginchk(13, 14);
+if nargin < 14; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(output_file, {'char'}, {'vector'});
@@ -119,7 +104,6 @@ meta.args.valid_max = valid_max;
 meta.args.valid_eps = valid_eps;
 meta.args.min_frac_data = min_frac_data;
 meta.args.min_frac_overlap = min_frac_overlap;
-meta.args.pad_method = pad_method;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position, regular grid';
@@ -194,7 +178,7 @@ for ii = 1:num_step
     % perform piv analysis
     piv_data = piv_step(img0, img1, mask0, mask1, x_img, y_img, samp_len, samp_spc, ...
         intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-        min_frac_data, min_frac_overlap, pad_method); 
+        min_frac_data, min_frac_overlap); 
     
     % write results to output file
     if ii == 1
