@@ -147,7 +147,7 @@ end
 % --> no luck with entropy
 
 % try getting the top layer as a square array
-thickness = 50;
+thickness = 70;
 
 top = nan(1, size(value, 2));
 for jj = 1:size(value, 2)
@@ -163,19 +163,22 @@ end
 layer = zeros(thickness, size(value, 2));
 layer(:) = value(layer_idx);
 
+% detrend layer image
+trend = smooth(median(layer, 1), 0.2, 'lowess');
+layer = layer - repmat(trend', [size(layer, 1), 1]);
+
 % pad, smooth, and unpad
 % smooth to the right only
 half_width = 500;
 width = half_width*2 + 1;
 height = 1;
 kernel = [zeros(height, half_width), fspecial('average', [height, half_width + 1])];
-kernel = fliplr(kernel);
 padded_layer = padarray(layer, [height, width], 'symmetric', 'both');
 padded_layer = imfilter(padded_layer, kernel);
 layer = padded_layer((1+height):(end-height), (1+width):(end-width));
 
 % create mask from layer by filling upwards
-value_threshold = 0.29;
+value_threshold = 0.05;
 layer_mask = true(size(layer));
 for jj = 1:size(layer, 2)
     bottom = find(layer(:, jj) >= value_threshold, 1, 'first');
@@ -199,6 +202,10 @@ rgbm_all(repmat(~all_mask, [1, 1, 3])) = 0;
 
 rgbm_clean = rgb;
 rgbm_clean(repmat(~clean_mask, [1, 1, 3])) = 0;
+
+figure
+imagesc(layer);
+set(gca, 'YDir', 'Normal');
 
 figure;
 subplot(2,1,1)
