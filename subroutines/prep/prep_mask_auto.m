@@ -169,16 +169,32 @@ layer = layer - repmat(trend', [size(layer, 1), 1]);
 
 % pad, smooth, and unpad
 % smooth to the right only
-half_width = 500;
-width = half_width*2 + 1;
+% half_width = 500;
+% width = half_width*2 + 1;
+width = 300;
 height = 1;
-kernel = [zeros(height, half_width), fspecial('average', [height, half_width + 1])];
+% kernel = [zeros(height, half_width), fspecial('average', [height, half_width + 1])];
+kernel = fspecial('average', [height, width]);
 padded_layer = padarray(layer, [height, width], 'symmetric', 'both');
 padded_layer = imfilter(padded_layer, kernel);
 layer = padded_layer((1+height):(end-height), (1+width):(end-width));
 
 % create mask from layer by filling upwards
-value_threshold = 0.05;
+value_threshold = 0.05;  % FIXME: need a way to select this automatically
+
+% ALSO: could I write a tool that lets you click in one boundary, then
+%   selects the mask parameters to best match it? Bet I could...in fact, 
+%   this sounds a lot like the label/decision tree model I build a while
+%   back
+
+% ALSO: consider order of operations to make sure mirror pad still works a
+%   trick on this - singing may no longer be needed
+
+% ALSO: consider splitting the prep step into rectify, mask, and perhaps
+%   mirror steps, doing so might allow me to get rid of the script. A
+%   function to update a parameter value would help here too and make the
+%   workflow more functional.
+
 layer_mask = true(size(layer));
 for jj = 1:size(layer, 2)
     bottom = find(layer(:, jj) >= value_threshold, 1, 'first');
@@ -196,22 +212,22 @@ layer_mask_full(layer_idx) = layer_mask;
 % combine with clean mask
 all_mask = clean_mask & layer_mask_full;
 
-% quick check
-rgbm_all = rgb;
-rgbm_all(repmat(~all_mask, [1, 1, 3])) = 0;
-
-rgbm_clean = rgb;
-rgbm_clean(repmat(~clean_mask, [1, 1, 3])) = 0;
-
-figure
-imagesc(layer);
-set(gca, 'YDir', 'Normal');
-
-figure;
-subplot(2,1,1)
-imshow(rgbm_clean);
-subplot(2,1,2)
-imshow(rgbm_all);
+% % quick check
+% rgbm_all = rgb;
+% rgbm_all(repmat(~all_mask, [1, 1, 3])) = 0;
+% 
+% rgbm_clean = rgb;
+% rgbm_clean(repmat(~clean_mask, [1, 1, 3])) = 0;
+% 
+% figure
+% imagesc(layer);
+% set(gca, 'YDir', 'Normal');
+%
+% figure;
+% subplot(2,1,1)
+% imshow(rgbm_clean);
+% subplot(2,1,2)
+% imshow(rgbm_all);
 
 % report percentage masked
 pct_sand = 100*sum(clean_mask(:))/numel(clean_mask);
@@ -219,19 +235,19 @@ fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_san
 
 % (optional) plot to facilitate parameter selection
 if show
-    figure()
-    colormap(gray);
-    subplot(3,2,1); imagesc(hue); title('hue'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,2); imagesc(hue_mask); title('hue mask'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,3); imagesc(value); title('value'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,4); imagesc(value_mask); title('value mask'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,5); imagesc(entropy); title('entropy'); set(gca,'XTick', [], 'YTick',[])
-    subplot(3,2,6); imagesc(entropy_mask); title('entropy mask'); set(gca,'XTick', [], 'YTick',[])
-    
-    figure()    
-    colormap(gray);
-    subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
-    subplot(2,1,2); imagesc(clean_mask); title('mask'); set(gca,'XTick', [], 'YTick',[])
+%     figure()
+%     colormap(gray);
+%     subplot(3,2,1); imagesc(hue); title('hue'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(3,2,2); imagesc(hue_mask); title('hue mask'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(3,2,3); imagesc(value); title('value'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(3,2,4); imagesc(value_mask); title('value mask'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(3,2,5); imagesc(entropy); title('entropy'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(3,2,6); imagesc(entropy_mask); title('entropy mask'); set(gca,'XTick', [], 'YTick',[])
+%     
+%     figure()    
+%     colormap(gray);
+%     subplot(2,1,1); imagesc(hsv(:,:,3)); title('original'); set(gca,'XTick', [], 'YTick',[])
+%     subplot(2,1,2); imagesc(clean_mask); title('mask'); set(gca,'XTick', [], 'YTick',[])
     
     figure()
     rough_mask_bnd = bwboundaries(rough_mask);
