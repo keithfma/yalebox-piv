@@ -132,6 +132,80 @@ elseif strcmp(view, 'top')
 
 end
 
+% may want to do the below on the rough mask...
+
+% get smooth estimate of mean per column
+
+% use this value to remove brightness gradients in the x-direction
+%   but leave brightness gradients in the y-direction intact?
+% --> looks better with raw
+
+% mean filter with domain enlongated in x-dir?
+% --> promising. wide on x like 10, 100 in filled image is promising
+
+% texture change? the top grains are smushed in the vertical?
+% --> no luck with entropy
+
+% try getting the top layer as a square array
+thickness = 50;
+
+top = nan(1, size(value, 2));
+for jj = 1:size(value, 2)
+    top(jj) = find(clean_mask(:, jj), 1, 'last');
+end
+
+value_idx = reshape(1:numel(value), size(value));
+layer_idx = nan(thickness, size(value, 2));
+for jj = 1:size(value, 2)
+    layer_idx(:, jj) = value_idx((top(jj)-thickness+1):top(jj), jj);
+end
+
+layer = zeros(thickness, size(value, 2));
+layer(:) = value(layer_idx);
+
+% pad, smooth, and unpad
+% smooth to the right only
+half_width = 500;
+width = half_width*2 + 1;
+height = 1;
+kernel = [zeros(height, half_width), fspecial('average', [height, half_width + 1])];
+kernel = fliplr(kernel);
+padded_layer = padarray(layer, [height, width], 'symmetric', 'both');
+padded_layer = imfilter(padded_layer, kernel);
+layer = padded_layer((1+height):(end-height), (1+width):(end-width));
+
+% create mask from layer by filling upwards
+value_threshold = 0.29;
+layer_mask = true(size(layer));
+for jj = 1:size(layer, 2)
+    bottom = find(layer(:, jj) >= value_threshold, 1, 'first');
+    layer_mask((bottom+1):end, jj) = false;
+end
+
+% expand to full image size
+layer_mask_full = true(size(value));
+layer_mask_full(layer_idx) = layer_mask;
+
+% imagesc(layer_mask_full);
+% colorbar;
+% set(gca, 'YDir', 'normal');
+
+% combine with clean mask
+all_mask = clean_mask & layer_mask_full;
+
+% quick check
+rgbm_all = rgb;
+rgbm_all(repmat(~all_mask, [1, 1, 3])) = 0;
+
+rgbm_clean = rgb;
+rgbm_clean(repmat(~clean_mask, [1, 1, 3])) = 0;
+
+figure;
+subplot(2,1,1)
+imshow(rgbm_clean);
+subplot(2,1,2)
+imshow(rgbm_all);
+
 % report percentage masked
 pct_sand = 100*sum(clean_mask(:))/numel(clean_mask);
 fprintf('%s: %.0f%% sand, %.0f%% background\n', mfilename, pct_sand, 100-pct_sand);
@@ -159,9 +233,13 @@ if show
     clean_mask_bnd = bwboundaries(clean_mask);
     clean_mask_x = clean_mask_bnd{1}(:,2);
     clean_mask_y = clean_mask_bnd{1}(:,1);
+    all_mask_bnd = bwboundaries(all_mask);
+    all_mask_x = all_mask_bnd{1}(:,2);
+    all_mask_y = all_mask_bnd{1}(:,1);
     imagesc(value); colormap('gray'); hold on;
     plot(rough_mask_x, rough_mask_y, '-r');
     plot(clean_mask_x, clean_mask_y, '-b');
+    plot(all_mask_x, all_mask_y, '-g');
     axis equal tight
     set(gca, 'YDir', 'normal', 'XTick', [], 'YTick',[]);
     title('Clean (blue) and rough (red) boundary lines');
