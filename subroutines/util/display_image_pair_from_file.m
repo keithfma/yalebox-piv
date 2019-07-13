@@ -12,8 +12,8 @@ function display_image_pair_from_file(filename, ini_idx, fin_idx, which, fill)
 % %
 
 % set defaults
-if nargin < 7; which = 'subplot'; end
-if nargin < 8; fill = false; end
+if nargin < 4; which = 'subplot'; end
+if nargin < 5; fill = false; end
 
 % display!
 data = matfile(filename, 'Writable', false);
