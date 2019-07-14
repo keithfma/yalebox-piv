@@ -18,10 +18,8 @@ function [xx_fill, yy_fill, img_fill, mask_fill] = piv_fill(...
 %   mask_fill: 2D matrix, padded image mask matching (2D) size of img_fill
 % %
 
-% FIXME: just remove this option
-if pad_c ~= 0
-    error('Fill in x-direction is not implemented');
-end
+% note: x-direction is padded with zeros and left masked. There is no
+%   sane way to pad regions where sand grains enter or leave the frame.
 
 % sanity checks
 narginchk(6, 6);
@@ -64,12 +62,15 @@ for jj = 1:length(xx_fill)
     end
 end
 
-% debug: smoother result by interpolation
-% FIXME: how to deal with bottom, which is *not* smooth at the spacer
+% smooth the upper boundary line
+% note: lower boundary is *not* smooth due to the presence of the 
+%   metal support in the image, leave it alone
 smooth_num_pts = 10;
 top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
 
 % build index array by reflecting until all indices are within sand
+% note: resulting coordinates are not integers, due to smoothing of the
+%   upper boundary line
 [nr, nc] = size(mask_fill);
 bot_rows = repmat(bot_row, nr, 1);
 top_rows = repmat(top_row, nr, 1);
@@ -87,39 +88,12 @@ while any(rows(:) > top_rows(:) | rows(:) < bot_rows(:))
 
 end
 
-% apply reflection
+% apply reflection by interpolating
+% note: pixels within the mask are left unchanged, as desired
 [jj, ii] = meshgrid(1:size(mask_fill, 2), 1:size(mask_fill, 1)); 
 for cc = 1:3
     img_fill(:, :, cc) = interp2(jj, ii, img_fill(:, :, cc), cols, rows, 'cubic');
 end
-
-% end debug
-
-% % build index array by reflecting until all indices are within sand
-% [nr, nc] = size(mask_fill);
-% bot_rows = repmat(bot_row, nr, 1);
-% top_rows = repmat(top_row, nr, 1);
-% [cols, rows] = meshgrid(1:nc, 1:nr);
-% 
-% while any(rows(:) > top_rows(:) | rows(:) < bot_rows(:))
-%     
-%     % reflect at top boundary
-%     above_top = rows > top_rows;
-%     rows(above_top) = 2*top_rows(above_top) - rows(above_top);  % same as t-(r-t)
-%     
-%     % reflect at bottom boundary
-%     below_bot = rows < bot_rows;
-%     rows(below_bot) = 2*bot_rows(below_bot) - rows(below_bot);  % same as b+(b-r)
-% 
-% end
-% idx = sub2ind([nr, nc], rows, cols);
-% 
-% % apply reflection
-% for cc = 1:3
-%     band = img_fill(:, :, cc);
-%     band(:) = band(idx);
-%     img_fill(:, :, cc) = band;
-% end
 
 % revert image to byte
 img_fill = uint8(img_fill);
