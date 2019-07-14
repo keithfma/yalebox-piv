@@ -1,5 +1,5 @@
-function display_strain(strain_result, prefix)
-% function display_strain(strain_result, prefix)
+function display_strain(strain_result, piv_mask, prefix)
+% function display_strain(strain_result, piv_mask, prefix)
 %
 % Simple plot of strain parameters derived from PIV displacement fields,
 % intended for rapid inspection of results
@@ -9,15 +9,23 @@ function display_strain(strain_result, prefix)
 %   prefix: String, optional prefix for subplot titles
 % %
 
-if nargin < 2
+% FIXME: the piv_mask should be burned into the strain results as well
+
+if nargin < 3
     prefix = '';
 end
+
+% apply mask
+Dd = strain_result.Dd; Dd(~piv_mask) = NaN;
+Dv = strain_result.Dv; Dv(~piv_mask) = NaN;
+spin = strain_result.spin; spin(~piv_mask) = NaN;
+
 
 % get data limits
 [xx, yy] = meshgrid(strain_result.x, strain_result.y);
 roi = ~isnan(strain_result.Dd);
-xlim = [min(xx(roi)), max(xx(roi))] + range(xx(roi))*[-0.05, 0.05];
-ylim = [min(yy(roi)), max(yy(roi))] + range(yy(roi))*[-0.15, 0.15];
+xlim = [min(xx(roi)), max(xx(roi))];
+ylim = [min(yy(roi)), max(yy(roi))];
 Ddlim = prctile(strain_result.Dd(:), [5, 95]);
 Dvlim = prctile(strain_result.Dv(:), [5, 95]);
 spinlim = prctile(strain_result.spin(:), [5, 95]);
@@ -26,8 +34,8 @@ spinlim = prctile(strain_result.spin(:), [5, 95]);
 figure
 
 a1 = subplot(3,1,1);
-imagesc(strain_result.x, strain_result.y, strain_result.Dd, ...
-    'AlphaData', ~isnan(strain_result.Dd)); 
+imagesc(strain_result.x, strain_result.y, Dd, ...
+    'AlphaData', ~isnan(Dd)); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
@@ -36,8 +44,8 @@ title([prefix, 'Dd']);
 
 % plot Dv
 a2 = subplot(3,1,2);
-imagesc(strain_result.x, strain_result.y, strain_result.Dv, ...
-    'AlphaData', ~isnan(strain_result.Dv)); 
+imagesc(strain_result.x, strain_result.y, Dv, ...
+    'AlphaData', ~isnan(Dv)); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
@@ -46,8 +54,8 @@ title([prefix, 'Dv']);
 
 % plot spin
 a3 = subplot(3,1,3);
-imagesc(strain_result.x, strain_result.y, strain_result.spin, ...
-    'AlphaData', ~isnan(strain_result.spin)); 
+imagesc(strain_result.x, strain_result.y, spin, ...
+    'AlphaData', ~isnan(spin)); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
