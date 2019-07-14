@@ -45,6 +45,9 @@ function clean_mask = prep_mask_auto(...
 %   function to update a parameter value would help here too and make the
 %   workflow more functional.
 
+% debug: turn in-plane masking on or off for comparison
+% do_in_plane_mask = true;
+do_in_plane_mask = false;
 
 % set default values
 if nargin < 7; show = false; end
@@ -114,59 +117,65 @@ fprintf('%s: rough mask: %.1f%% sand\n', mfilename, pct_sand);
 % remove out-of-plane pixels from top of wedge in side view
 % note: these pixels manifest as a bright upper layer where the lighting
 %   shines on the top of the sand
-if strcmp(view, 'side')
+if do_in_plane_mask
+    if strcmp(view, 'side')
 
-    % constants
-    layer_thickness = 70; % FIXME: this will fail when the top boundary is too low...
-    smooth_width = 300; % FIXME: should probably be an input argument
-    smooth_height = 1;
-    threshold_value = 0.05;  % FIXME: select this automatically
+        % constants
+        layer_thickness = 70; % FIXME: this will fail when the top boundary is too low...
+        smooth_width = 300; % FIXME: should probably be an input argument
+        smooth_height = 1;
+        threshold_value = 0.05;  % FIXME: select this automatically
 
-    % check assumption that wedge top is at high indices and bottom at low
-    assert(sum(rough_mask(1:10, :), 'all') > sum(rough_mask(end-10:end, :), 'all'), ...
-        'found more sand at high indices than at low, but expected wedge top at high indices');
-        
-    % copy out the upper sand layer to a square array
-    value_idx = reshape(1:numel(value), size(value));
-    layer_idx = nan(layer_thickness, size(value, 2));
-    for jj = 1:size(value, 2)
-        top = find(rough_mask(:, jj), 1, 'last');
-        layer_idx(:, jj) = value_idx((top - layer_thickness+1):top, jj);
+        % check assumption that wedge top is at high indices and bottom at low
+        assert(sum(rough_mask(1:10, :), 'all') > sum(rough_mask(end-10:end, :), 'all'), ...
+            'found more sand at high indices than at low, but expected wedge top at high indices');
+
+        % copy out the upper sand layer to a square array
+        value_idx = reshape(1:numel(value), size(value));
+        layer_idx = nan(layer_thickness, size(value, 2));
+        for jj = 1:size(value, 2)
+            top = find(rough_mask(:, jj), 1, 'last');
+            layer_idx(:, jj) = value_idx((top - layer_thickness+1):top, jj);
+        end
+        layer = reshape(value(layer_idx), size(layer_idx)); 
+
+        % detrend x-direction lighting gradients in the layer array
+        % FIXME: may need to rescale to some known range, unless automatic
+        %   threshold selection makes this irrelevant
+        trend = smooth(median(layer, 1), 0.2, 'lowess');
+        layer = layer - repmat(trend', [size(layer, 1), 1]);
+
+        % pad, smooth, and unpad
+        kernel = fspecial('average', [smooth_height, smooth_width]);
+        padded_layer = padarray(layer, [smooth_height, smooth_width], 'symmetric', 'both');
+        padded_layer = imfilter(padded_layer, kernel);
+        layer = padded_layer((1+smooth_height):(end-smooth_height), (1+smooth_width):(end-smooth_width));
+
+        % create mask from layer by filling upwards
+        layer_mask = true(size(layer));
+        for jj = 1:size(layer, 2)
+            bottom = find(layer(:, jj) >= threshold_value, 1, 'first');
+            layer_mask((bottom+1):end, jj) = false;
+        end
+
+        % expand mask from layer size to full image size
+        layer_mask_full = true(size(value));
+        layer_mask_full(layer_idx) = layer_mask;
+
+        % combine with rough mask
+        in_plane_mask = rough_mask & layer_mask_full; 
+
+    elseif strcmp(view, 'top') || ~do_in_plane_mask
+        warning('no out-of-plane masking for top view');
+        in_plane_mask = rough_mask;
     end
-    layer = reshape(value(layer_idx), size(layer_idx)); 
 
-    % detrend x-direction lighting gradients in the layer array
-    % FIXME: may need to rescale to some known range, unless automatic
-    %   threshold selection makes this irrelevant
-    trend = smooth(median(layer, 1), 0.2, 'lowess');
-    layer = layer - repmat(trend', [size(layer, 1), 1]);
+else
+    warning('out-of-plane masking disabled');
+    in_plane_mask = rough_mask;
+end    
 
-    % pad, smooth, and unpad
-    kernel = fspecial('average', [smooth_height, smooth_width]);
-    padded_layer = padarray(layer, [smooth_height, smooth_width], 'symmetric', 'both');
-    padded_layer = imfilter(padded_layer, kernel);
-    layer = padded_layer((1+smooth_height):(end-smooth_height), (1+smooth_width):(end-smooth_width));
-
-    % create mask from layer by filling upwards
-    layer_mask = true(size(layer));
-    for jj = 1:size(layer, 2)
-        bottom = find(layer(:, jj) >= threshold_value, 1, 'first');
-        layer_mask((bottom+1):end, jj) = false;
-    end
-
-    % expand mask from layer size to full image size
-    layer_mask_full = true(size(value));
-    layer_mask_full(layer_idx) = layer_mask;
-
-    % combine with rough mask
-    layer_mask = rough_mask & layer_mask_full; 
-
-elseif strcmp(view, 'top')
-    warning('no out-of-plane masking for top view');
-    layer_mask = rough_mask;
-end
-
-pct_sand = 100*sum(layer_mask(:))/numel(layer_mask);
+pct_sand = 100*sum(in_plane_mask(:))/numel(in_plane_mask);
 fprintf('%s: layer mask: %.1f%% sand\n', mfilename, pct_sand);
 
 % clean up mask edges
@@ -181,24 +190,24 @@ if strcmp(view, 'side')
     threshold_percentile =  25; % note: this threshold percentile works so far
     
     % check assumption that wedge top is at high indices and bottom at low
-    assert(sum(layer_mask(1:10, :), 'all') > sum(layer_mask(end-10:end, :), 'all'), ...
+    assert(sum(in_plane_mask(1:10, :), 'all') > sum(in_plane_mask(end-10:end, :), 'all'), ...
         'found more sand at high indices than at low, but expected wedge top at high indices');
         
     % get raw threshold value in each column
     % note: smooth threshold values to get a stable estimate
     threshold_value = zeros(1, nc);
     for jj = 1:nc
-        min_idx = find(layer_mask(:, jj), 1, 'first');
-        max_idx = find(layer_mask(:, jj), 1, 'last');
+        min_idx = find(in_plane_mask(:, jj), 1, 'first');
+        max_idx = find(in_plane_mask(:, jj), 1, 'last');
         threshold_value(jj) = prctile(value(min_idx:max_idx, jj), threshold_percentile);
     end
     threshold_value = smooth(threshold_value, 0.3, 'loess');
     
     % drop edge pixels below threshold values
-    masked_value = value; masked_value(~layer_mask) = NaN;
+    masked_value = value; masked_value(~in_plane_mask) = NaN;
     clean_mask = false([nr, nc]);
     for jj = 1:nc
-        min_idx = find(layer_mask(:, jj), 1, 'first');  % note: same as above, lower edge already clean cleaned
+        min_idx = find(in_plane_mask(:, jj), 1, 'first');  % note: same as above, lower edge already clean cleaned
         max_idx = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
         clean_mask(min_idx:max_idx, jj) = true;
     end
@@ -206,7 +215,7 @@ if strcmp(view, 'side')
 elseif strcmp(view, 'top')
     % not clear how top view should be handled, warn and skip for now
     warning('edge cleanup for top view is not implemented');
-    clean_mask = layer_mask;
+    clean_mask = in_plane_mask;
 
 end
 pct_sand = 100*sum(clean_mask(:))/numel(clean_mask);
@@ -233,9 +242,9 @@ if show
     rough_mask_x = rough_mask_bnd{1}(:,2);
     rough_mask_y = rough_mask_bnd{1}(:,1);
 
-    layer_mask_bnd = bwboundaries(layer_mask);
-    layer_mask_x = layer_mask_bnd{1}(:,2);
-    layer_mask_y = layer_mask_bnd{1}(:,1);
+    in_plane_mask_bnd = bwboundaries(in_plane_mask);
+    in_plane_mask_x = in_plane_mask_bnd{1}(:,2);
+    in_plane_mask_y = in_plane_mask_bnd{1}(:,1);
     
     clean_mask_bnd = bwboundaries(clean_mask);
     clean_mask_x = clean_mask_bnd{1}(:,2);
@@ -243,7 +252,7 @@ if show
     
     imagesc(value); colormap('gray'); hold on;
     plot(rough_mask_x, rough_mask_y, '-r');
-    plot(layer_mask_x, layer_mask_y, '-b');
+    plot(in_plane_mask_x, in_plane_mask_y, '-b');
     plot(clean_mask_x, clean_mask_y, '-g');
     axis equal tight
     set(gca, 'YDir', 'normal', 'XTick', [], 'YTick',[]);
