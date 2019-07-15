@@ -1,5 +1,5 @@
-function [r_sample, c_sample, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
-%function [r_sample, c_sample, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
+function [r_grid, c_grid, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
+%function [r_grid, c_grid, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
 %
 % Create sample grid and define image pad widths. The goal is a centered
 % grid with a 2 extra observations at the edges, and all sample windows
@@ -12,7 +12,7 @@ function [r_sample, c_sample, pad_nr, pad_nc] = piv_sample_grid(sample_len, samp
 %       input images.
 %
 % Returns:
-%   r_sample, c_sample = 2D matrix, integer, coordinate matrices, as constructed
+%   r_grid, c_grid = 2D matrix, integer, coordinate matrices, as constructed
 %       by meshgrid, for the sample grid in the y (a.k.a. row) and x (a.k.a.
 %       column) directions, in pixels
 %   pad_nr, pad_nc = scalars, number of pixels to pad images (and thier
@@ -27,54 +27,65 @@ validateattributes(img_nc, {'numeric'}, {'scalar', 'integer', 'positive'});
 
 % note: intentionally verbose to make this easier to understand
 
+% number of "extra" samples to pad out in each direction
+% note: need at least 1 for code to work, 3 is sufficient for 7-tap derivative 
+num_extra = 3; 
+assert(num_extra >= 1, 'constant num_extra breaks assumptions used below'); 
+
 remainder = mod((img_nr - 1), sample_spc);
-r_sample_vector = (1 + remainder/2):sample_spc:img_nr;
-r_sample_vector = [...  % add two extra samples
-    r_sample_vector(1) - 2*sample_spc, ...
-    r_sample_vector, ...
-    r_sample_vector(end) + 2*sample_spc] + 2*sample_spc;
-r_sample_vector = r_sample_vector + sample_len(1)/2; % shift so first window is covered
-pad_nr = 2*sample_spc + sample_len(1)/2;
+r_vec = (1 + remainder/2):sample_spc:img_nr;
+r_vec = [...  % add extra samples
+    (r_vec(1) - num_extra*sample_spc):sample_spc:r_vec(1)-sample_spc, ...
+    r_vec, ...
+    (r_vec(end) + sample_spc):sample_spc:(r_vec(end) + num_extra*sample_spc)] + num_extra*sample_spc;
+r_vec = r_vec + sample_len(1)/2; % shift so first window is covered
+pad_nr = num_extra*sample_spc + sample_len(1)/2;
 
 remainder = mod((img_nc - 1), sample_spc);
-c_sample_vector = (1 + remainder/2):sample_spc:img_nc;
-c_sample_vector = [...  % add two extra samples
-    c_sample_vector(1) - 2*sample_spc, ...
-    c_sample_vector, ...
-    c_sample_vector(end) + 2*sample_spc] + 2*sample_spc;
-c_sample_vector = c_sample_vector + sample_len(1)/2; % shift so first window is covered
-pad_nc = 2*sample_spc + sample_len(1)/2;
+c_vec = (1 + remainder/2):sample_spc:img_nc;
+c_vec = [...  % add extra samples
+    (c_vec(1) - num_extra*sample_spc):sample_spc:c_vec(1)-sample_spc, ...
+    c_vec, ...
+    (c_vec(end) + sample_spc):sample_spc:(c_vec(end) + num_extra*sample_spc)] + num_extra*sample_spc;
+c_vec = c_vec + sample_len(1)/2; % shift so first window is covered
+pad_nc = num_extra*sample_spc + sample_len(1)/2;
 
 % shift grid to ensure sample windows span integer-pixel range
 if is_even(sample_len)  % validated such that all even or all odd
-    if is_whole(r_sample_vector(1))
-        r_sample_vector = r_sample_vector + 0.5;
+    if is_whole(r_vec(1))
+        r_vec = r_vec + 0.5;
     end
-    if is_whole(c_sample_vector(1))
-        c_sample_vector = c_sample_vector + 0.5;
+    if is_whole(c_vec(1))
+        c_vec = c_vec + 0.5;
     end
 elseif is_odd(sample_len)
-    if ~is_whole(r_sample_vector(1))
-        r_sample_vector = r_sample_vector + 0.5;
+    if ~is_whole(r_vec(1))
+        r_vec = r_vec + 0.5;
     end
-    if ~is_whole(c_sample_vector(1))
-        c_sample_vector = c_sample_vector + 0.5;
+    if ~is_whole(c_vec(1))
+        c_vec = c_vec + 0.5;
     end
 else
     error(['sample_len must be either all-even or all-odd so that '
         'sample window is centered on the specified point']);
 end
 
+% bugfix: confirm that grids are spaced as expected, this may seem
+%   obviously true given the code above, but it is critical and has been
+%   broken in the past
+assert(all(diff(r_vec) == sample_spc), 'row grid has incorrect spacing');
+assert(all(diff(c_vec) == sample_spc), 'column grid has incorrect spacing');
+
 % generate grid from vectors
-[c_sample, r_sample] = meshgrid(c_sample_vector, r_sample_vector);
+[c_grid, r_grid] = meshgrid(c_vec, r_vec);
 
 % % <DEBUG>: Check grid edges to confirm it is centered in the domain
 % fprintf('Left edge [pixel]: %f, Right edge [pixel]: %f\n', ...
-%     c_sample_vector(1) - 1, img_nc - c_sample_vector(end));
+%     c_vec(1) - 1, img_nc - c_vec(end));
 % fprintf('Left edge [world]: %f, Right edge [world]: %f\n', ...
 %     x_sample_vector(1) - x_world(1), x_world(end) - x_sample_vector(end));
 % fprintf('Bottom edge [pixel]: %f, Top edge [pixel]: %f\n', ...
-%     r_sample_vector(1) - 1, img_nr - r_sample_vector(end));
+%     r_vec(1) - 1, img_nr - r_vec(end));
 % fprintf('Bottom edge [world]: %f, Top edge [world]: %f\n', ...
 %     y_sample_vector(1) - y_world(1), y_world(end) - y_sample_vector(end));
 % % </DEBUG>

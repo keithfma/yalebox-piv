@@ -58,18 +58,17 @@ mask = true(size(uu));
 
 for kk = 1:numel(uu)
     
-    % get sample window mask, decide if this observation is majority sand
-    % FIXME: bump the fraction up to 0.5 when ready to test real params
+    % get sample window at initial time (no offest)
+    [samp, r_samp, c_samp] = piv_window(ini, rr(kk), cc(kk), samplen);
     [samp_mask, ~, ~] = piv_window(ini_mask, rr(kk), cc(kk), samplen);
+    assert(all(size(samp) == samplen), 'Generated sample window does not match expected size');
+        
+    % decide if this observation is majority sand
     frac_mask = sum(samp_mask(:))/numel(samp_mask);
-    if frac_mask < 0.25
+    if frac_mask < 0.50
         mask(kk) = false;
     end
     
-    % get sample window at initial time (no offest)
-    [samp, r_samp, c_samp] = piv_window(ini, rr(kk), cc(kk), samplen);
-    assert(all(size(samp) == samplen), 'Generated sample window does not match expected size');
-        
     % skip if sample window is too empty
     % FIXME: is this needed when we use mirror padding?
     frac_data = sum(samp(:) ~= 0)/numel(samp);
@@ -84,12 +83,6 @@ for kk = 1:numel(uu)
     %   OK because we compute it directly later
     [intr, r_intr, c_intr] = piv_window(...
         fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
-    
-    % FIXME: strong brightess anomolies at the boundaries, these can be
-    %   removed with standard AHE now
-    
-    % FIXME: zero-padding applied by the window picker is fucking up 
-    %   the chance to use the standard normxcorr2 here.
     
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
