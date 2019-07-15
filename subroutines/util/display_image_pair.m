@@ -23,8 +23,8 @@ if fill
     pad_width = 25; % constant pad width because it does not seem worth specifying
     xx0 = xx; % coordinates get overwritten, use the originals
     yy0 = yy;
-    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, 0, 0);
-    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, 0, 0);
+    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, pad_width, pad_width);
+    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, pad_width, pad_width);
 
 else
     % apply mask
