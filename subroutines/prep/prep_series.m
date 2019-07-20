@@ -191,9 +191,17 @@ ny = max_row - min_row + 1;
 % copy data from temporary file to results file
 % note: here we trim image data to maximum extent of mask i.e., exclude
 %   pixels that are always sand to reduce compute during PIV
+% note: copy data in chunks to avoid blowing up memory
 fprintf('\n%s: copy from temporary to final file: %s\n', mfilename, result_file);
 fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_image);
 fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
+
+% compute chunk size that fits in constant memory limits
+max_memory_bytes = 4*1024^3;
+image_bytes = ny*nx*3*1; % uint8s are 1 byte
+mask_bytes = ny*nx*1;  % logicals are 1 byte
+chunk_size = floor(max_memory_bytes/(image_bytes + mask_bytes));
+fprintf('%s: copying in chunks of %d images\n', mfilename, chunk_size);
 
 result.meta = tmp.meta;
 result.x = tmp.x(1, min_col:max_col);
@@ -203,8 +211,11 @@ result.step = tmp.step;
 allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
 allocate(result, 'mask', 'logical', [ny, nx, num_image]);
 
-for ii = 1:num_image
-    result.mask(:, :, ii) = tmp.mask(min_row:max_row, min_col:max_col, ii);
-    result.img(:, :, :, ii) = tmp.img(min_row:max_row, min_col:max_col, :, ii);
+for min_img = 1:chunk_size:num_image
+    max_img = min(min_img + chunk_size - 1, num_image);
+    fprintf('%s: copy images %d-%d\n', mfilename, min_img, max_img);
+    result.mask(:, :, min_img:max_img) = ...
+        tmp.mask(min_row:max_row, min_col:max_col, min_img:max_img);
+    result.img(:, :, :, min_img:max_img) = ...
+        tmp.img(min_row:max_row, min_col:max_col, :, min_img:max_img);
 end
-
