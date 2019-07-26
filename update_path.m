@@ -44,6 +44,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(subroutines, 'util'));
         case 'plot'
             addpath(fullfile(subroutines, 'plot'));
+        case 'movie'
+            addpath(fullfile(subroutines, 'movie'));
         
         % bad name, fail
         otherwise
