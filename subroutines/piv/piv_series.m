@@ -51,13 +51,12 @@ validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 [~, ~, output_file_ext] = fileparts(output_file);
 assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
 
-% open the input data file for reading
-input_data = matfile(input_file, 'Writable', false);
-
-% read constants (input coordinate vectors)
-x_img = double(input_data.x);
-y_img = double(input_data.y);
-step_img = double(input_data.step);
+% read in all required input data from file
+% note: reading a single time step takes about the same amount of time as
+%   reading the whole dataset, so we do not read a step-at-a time
+% note: it is possible this may cause memory problems, but ~500 image
+%   series fits in ~5 GB, so no reason to solve this problem now
+[x_img, y_img, step_img, img, mask] = read_input_data(input_file);
 
 % compute indices for image pairs for given step range and gap
 if isnan(step_range(1))
@@ -169,11 +168,11 @@ for ii = 1:num_step
     fprintf('%s: fin_step = %d\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and mask pair
-    img0 = input_data.img(:, :, :, ini_idx(ii));
-    mask0 = input_data.mask(:, :, ini_idx(ii));
+    img0 = img(:, :, :, ini_idx(ii));
+    mask0 = mask(:, :, ini_idx(ii));
     
-    img1 = input_data.img(:, :, :, fin_idx(ii));
-    mask1 = input_data.mask(:, :, fin_idx(ii));
+    img1 = img(:, :, :, fin_idx(ii));
+    mask1 = mask(:, :, fin_idx(ii));
     
     % perform piv analysis
     piv_data = piv_step(img0, img1, mask0, mask1, x_img, y_img, samp_len, samp_spc, ...
@@ -205,3 +204,17 @@ end
 
 fprintf('%s: end series\n', mfilename);
 fprintf('%s: output data saved to %s\n', mfilename, output_file);
+
+
+function [x, y, step, img, mask] = read_input_data(input_file)
+% function [x, y, step, img, mask] = read_input_data(input_file)
+% 
+% Read in all required input data from file. Written as a function to scope
+% memory use
+% %
+input_data = load(input_file, 'x', 'y', 'step', 'img');
+x = double(input_data.x);
+y = double(input_data.y);
+step = double(input_data.step);
+img = input_data.img;
+mask = input_data.mask;

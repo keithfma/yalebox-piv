@@ -197,7 +197,7 @@ fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_ima
 fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 
 % compute chunk size that fits in constant memory limits
-max_memory_bytes = 4*1024^3;
+max_memory_bytes = 8*1024^3;  % 8 GB
 image_bytes = ny*nx*3*1; % uint8s are 1 byte
 mask_bytes = ny*nx*1;  % logicals are 1 byte
 chunk_size = floor(max_memory_bytes/(image_bytes + mask_bytes));
