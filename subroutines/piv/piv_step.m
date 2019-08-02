@@ -119,6 +119,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % convert to images to grayscale
 % TODO: consider running PIV on all three bands and combining the results
+% TODO: consider using equalized images as inputs
 img_ti = rgb2hsv(img_ti);
 img_ti = img_ti(:,:,3);
 
