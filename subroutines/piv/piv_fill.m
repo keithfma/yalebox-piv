@@ -62,55 +62,50 @@ for jj = 1:length(xx_fill)
     end
 end
 
-% create (repeatable) random sawtooth pattern for mirror offsets
-% note: using a constant seed to make this repeatable 
-rng(204808, 'twister');  % set seed and generator type
-max_depth = 20;
-
-offset_idx = [];
-while length(offset_idx) < size(img_fill, 1)
-    depth = randi([0, max_depth]);
-    offset_idx = [offset_idx, 1:depth, (depth-1):-1:2];  %#ok!
-end
-
-% FIXME: fails when layer is too thin?
-
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
 smooth_num_pts = 10;
-top_bnd = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
-bot_bnd = bot_row;
+smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
+smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
+top_row = smooth_top_row;  % rename and replace
 
-% compute row index for fill region using offsets from the boundary
+% build index array by reflecting until all indices are within sand
+% note: resulting coordinates are not integers, due to smoothing of the
+%   upper boundary line
 [nr, nc] = size(mask_fill);
-[mirror_jj, mirror_ii] = meshgrid(1:nc, 1:nr);
-for jj = 1:nc
+bot_rows = repmat(bot_row, nr, 1);
+top_rows = repmat(top_row, nr, 1);
+[cols, rows] = meshgrid(1:nc, 1:nr);
+
+has_sand = ... % only try to mirror where there is something to mirror
+    ~isnan(top_rows) & ...
+    ~isnan(bot_rows) & ...
+    (top_rows - bot_rows > 3);
+above_top = (rows > top_rows) & has_sand;
+below_bot = (rows < bot_rows) & has_sand;
+while any(above_top(:) | below_bot(:))
     
-    % fill above wedge
-    if ~isnan(top_row(jj))
-        fill_idx = top_row(jj):nr;  % portion of column to fill
-        fill_values = mirror_ii(fill_idx, jj);
-        fill_values = fill_values(offset_idx(1:length(fill_values)));  % apply sawtooth
-        mirror_ii(fill_idx, jj) = top_bnd(jj) + top_bnd(jj) - fill_values;
-    end
+    % reflect at top boundary
+    rows(above_top) = 2*top_rows(above_top) - rows(above_top);  % same as t-(r-t)
+    above_top = (rows > top_rows) & has_sand;
     
-    % fill below wedge
-    if ~isnan(bot_row(jj))
-        fill_idx = bot_row(jj):-1:1;  % portion of column to fill
-        fill_values = mirror_ii(fill_idx, jj);
-        fill_values = fill_values(offset_idx(1:length(fill_values)));  % apply sawtooth
-        mirror_ii(fill_idx, jj) = bot_bnd(jj) + bot_bnd(jj) - fill_values;
-    end
+    % reflect at bottom boundary
+    rows(below_bot) = 2*bot_rows(below_bot) - rows(below_bot);  % same as b+(b-r)
+    below_bot = (rows < bot_rows) & has_sand;
+
 end
 
 % apply reflection by interpolating
+% black out regions with no sand at all
 % note: pixels within the mask are left unchanged, as desired
-[original_jj, original_ii] = meshgrid(1:nc, 1:nr);
+[jj, ii] = meshgrid(1:size(mask_fill, 2), 1:size(mask_fill, 1)); 
 for cc = 1:3
-    img_fill(:, :, cc) = interp2(...
-        original_jj, original_ii, img_fill(:, :, cc), mirror_jj, mirror_ii, 'cubic');
+    img_fill(:, :, cc) = interp2(jj, ii, img_fill(:, :, cc), cols, rows, 'cubic');
 end
+
+% black out regions with no sand at all
+img_fill(repmat(~has_sand, [1, 1, 3])) = 0;
 
 % revert image to byte
 img_fill = uint8(img_fill);
