@@ -66,7 +66,9 @@ end
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
 smooth_num_pts = 10;
-top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
+smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
+smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
+top_row = smooth_top_row;  % rename and replace
 
 % build index array by reflecting until all indices are within sand
 % note: resulting coordinates are not integers, due to smoothing of the
@@ -76,24 +78,33 @@ bot_rows = repmat(bot_row, nr, 1);
 top_rows = repmat(top_row, nr, 1);
 [cols, rows] = meshgrid(1:nc, 1:nr);
 
-while any(rows(:) > top_rows(:) | rows(:) < bot_rows(:))
+has_sand = ... % only try to mirror where there is something to mirror
+    ~isnan(top_rows) & ...
+    ~isnan(bot_rows) & ...
+    (top_rows - bot_rows > 3);
+above_top = (rows > top_rows) & has_sand;
+below_bot = (rows < bot_rows) & has_sand;
+while any(above_top(:) | below_bot(:))
     
     % reflect at top boundary
-    above_top = rows > top_rows;
     rows(above_top) = 2*top_rows(above_top) - rows(above_top);  % same as t-(r-t)
+    above_top = (rows > top_rows) & has_sand;
     
     % reflect at bottom boundary
-    below_bot = rows < bot_rows;
     rows(below_bot) = 2*bot_rows(below_bot) - rows(below_bot);  % same as b+(b-r)
-
+    below_bot = (rows < bot_rows) & has_sand;
 end
 
 % apply reflection by interpolating
+% black out regions with no sand at all
 % note: pixels within the mask are left unchanged, as desired
 [jj, ii] = meshgrid(1:size(mask_fill, 2), 1:size(mask_fill, 1)); 
 for cc = 1:3
     img_fill(:, :, cc) = interp2(jj, ii, img_fill(:, :, cc), cols, rows, 'cubic');
 end
+
+% black out regions with no sand at all
+img_fill(repmat(~has_sand, [1, 1, 3])) = 0;
 
 % revert image to byte
 img_fill = uint8(img_fill);

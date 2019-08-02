@@ -51,13 +51,12 @@ validateattributes(gap, {'numeric'}, {'scalar', 'positive', 'integer'});
 [~, ~, output_file_ext] = fileparts(output_file);
 assert(strcmp('.mat', output_file_ext), 'Output file must be .mat');
 
-% open the input data file for reading
-input_data = matfile(input_file, 'Writable', false);
-
-% read constants (input coordinate vectors)
-x_img = double(input_data.x);
-y_img = double(input_data.y);
-step_img = double(input_data.step);
+% read in all required input data from file
+% note: reading a single time step takes about the same amount of time as
+%   reading the whole dataset, so we do not read a step-at-a time
+% note: it is possible this may cause memory problems, but ~500 image
+%   series fits in ~5 GB, so no reason to solve this problem now
+[x_img, y_img, step_img, img, mask_img] = read_input_data(input_file);
 
 % compute indices for image pairs for given step range and gap
 if isnan(step_range(1))
@@ -78,13 +77,12 @@ ini_idx = ini_idx(in_range);
 fin_idx = fin_idx(in_range);
 
 % compute step coordinate vector
-step = step_img(ini_idx);
-num_step = length(step);
+step_piv = step_img(ini_idx);
+num_step = length(step_piv);
 
-% create output file, fail if exists
+% fail if output exists already
 assert(exist(output_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
-output_data = matfile(output_file, 'Writable', true);
 
 % define metadata
 meta = struct();
@@ -158,50 +156,74 @@ meta.mask.notes = 'true where sample window contains majority-sand, false elsewh
 meta.mask.dimensions = {'x', 'y', 'step'};
 meta.quality.units = 'boolean';
 
-output_data.meta = meta;
-
 % analyse all steps
-% FIXME: implement parallelism here, at the top-level
 for ii = 1:num_step
     
-    fprintf('\n%s: begin step = %.1f\n', mfilename, step(ii));
+    fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
     fprintf('%s: ini_step = %d\n', mfilename, step_img(ini_idx(ii)));
     fprintf('%s: fin_step = %d\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and mask pair
-    img0 = input_data.img(:, :, :, ini_idx(ii));
-    mask0 = input_data.mask(:, :, ini_idx(ii));
+    img_ini = img(:, :, :, ini_idx(ii));
+    mask_img_ini = mask_img(:, :, ini_idx(ii));
     
-    img1 = input_data.img(:, :, :, fin_idx(ii));
-    mask1 = input_data.mask(:, :, fin_idx(ii));
+    img_fin = img(:, :, :, fin_idx(ii));
+    mask_img_fin = mask_img(:, :, fin_idx(ii));
     
     % perform piv analysis
-    piv_data = piv_step(img0, img1, mask0, mask1, x_img, y_img, samp_len, samp_spc, ...
-        intr_len, num_pass, valid_radius, valid_max, valid_eps, ...
-        min_frac_data, min_frac_overlap); 
+    piv_data = piv_step(...
+        img_ini, img_fin, mask_img_ini, mask_img_fin, x_img, y_img, ...
+        samp_len, samp_spc, intr_len, num_pass, valid_radius, ...
+        valid_max, valid_eps, min_frac_data, min_frac_overlap); 
     
-    % write results to output file
     if ii == 1
-        % write spatial coordinate vectors,  created during PIV
-        output_data.x = reshape(piv_data.x(1, :), size(piv_data.x, 2), 1);
-        output_data.y = reshape(piv_data.y(:, 1), size(piv_data.y, 1), 1);
-        output_data.step = step(:);        
+        % copy spatial coordinate vectors, created during PIV
+        x_piv = reshape(piv_data.x(1, :), size(piv_data.x, 2), 1);
+        y_piv = reshape(piv_data.y(:, 1), size(piv_data.y, 1), 1);
         % allocate other output variables
-        % note: add one to num_step to handle special case for single step test
-        %   runs, as there is no way to have a singleton as the last dimension
-        dimensions = [length(output_data.y), length(output_data.x), num_step+1];
-        allocate(output_data, 'u', 'double', dimensions);
-        allocate(output_data, 'v', 'double', dimensions);
-        allocate(output_data, 'quality', 'uint8', dimensions);
-        allocate(output_data, 'mask', 'logical', dimensions);
+        % note: num_step is forced to be >= 2 b/c there is no way to have
+        %   a singleton as the last dimension
+        dims = [length(y_piv), length(x_piv), min(num_step, 2)];
+        u_piv = zeros(dims, 'double');
+        v_piv = zeros(dims, 'double');
+        qual_piv = zeros(dims, 'uint8');
+        mask_piv = zeros(dims, 'logical');
     end
-    output_data.u(:, :, ii) = piv_data.u;
-    output_data.v(:, :, ii) = piv_data.v;
-    output_data.quality(:, :, ii) = Quality.to_uint8(piv_data.quality);
-    output_data.mask(:, :, ii) = piv_data.mask;
     
-    fprintf('%s: end step = %.1f\n', mfilename,  step(ii));
+    % copy results to output arrays
+    u_piv(:, :, ii) = piv_data.u;
+    v_piv(:, :, ii) = piv_data.v;
+    qual_piv(:, :, ii) = Quality.to_uint8(piv_data.quality);
+    mask_piv(:, :, ii) = piv_data.mask;
+    
+    fprintf('%s: end step = %.1f\n', mfilename,  step_piv(ii));
 end
-
 fprintf('%s: end series\n', mfilename);
-fprintf('%s: output data saved to %s\n', mfilename, output_file);
+
+write_output_data(output_file, x_piv, y_piv, step_piv, u_piv, v_piv, ...
+    qual_piv, mask_piv, meta);
+
+
+function [x, y, step, img, mask] = read_input_data(input_file)
+% function [x, y, step, img, mask] = read_input_data(input_file)
+% 
+% Read in all required input data from file. Written as a function to scope
+% memory use
+% %
+fprintf('%s: read input data from %s\n', mfilename, input_file);
+input_data = load(input_file, 'x', 'y', 'step', 'img', 'mask');
+x = double(input_data.x);
+y = double(input_data.y);
+step = double(input_data.step);
+img = input_data.img;
+mask = input_data.mask;
+
+
+function write_output_data(output_file, x, y, step, u, v, quality, mask, meta)
+% function write_output_data(output_file, x, y, step, u, v, quality, mask, meta)
+%
+% Write results out to file
+% % 
+fprintf('%s: write output data to %s\n', mfilename, output_file);
+save(output_file, 'x', 'y', 'step', 'u', 'v', 'quality', 'mask', 'meta');
+

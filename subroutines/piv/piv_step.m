@@ -118,7 +118,6 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
     x_img, y_img, img_tf, mask_tf, pad_r, pad_c);
 
 % convert to images to grayscale
-% TODO: consider running PIV on all three bands and combining the results
 img_ti = rgb2hsv(img_ti);
 img_ti = img_ti(:,:,3);
 
