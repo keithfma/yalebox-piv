@@ -157,8 +157,7 @@ meta.mask.dimensions = {'x', 'y', 'step'};
 meta.quality.units = 'boolean';
 
 % analyse all steps
-% FIXME: consider SPMD for parallelism
-for ii = 2:num_step
+for ii = 1:num_step
     
     fprintf('\n%s: begin step = %.1f\n', mfilename, step_piv(ii));
     fprintf('%s: ini_step = %d\n', mfilename, step_img(ini_idx(ii)));
