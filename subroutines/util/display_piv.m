@@ -31,10 +31,10 @@ hf = figure;
 
 % plot displacement magnitude and direction, [mm/step]
 % FIXME: ain't no direction here yet...
-% FIXME: draw mask boundaries on these plots
 ax1 = subplot(4, 1, 1);
 mm = sqrt(uu.^2 + vv.^2);
-imagesc(xx(1,:), yy(:,1), mm*1000); 
+imagesc(xx(1,:), yy(:,1), mm*1000);
+scale_cmap(mm*1000);
 colorbar;
 draw_mask(xx, yy, mask);
 axis equal tight
@@ -43,7 +43,8 @@ title([prefix, 'Displacement Magnitude']);
 
 % plot x-direction displacement magnitude, [mm/step]
 ax2 = subplot(4, 1, 2);
-imagesc(xx(1,:), yy(:,1), uu*1000); 
+imagesc(xx(1,:), yy(:,1), uu*1000);
+scale_cmap(uu*1000);
 colormap(gca, flipud(colormap)); % flow is in negative x direction
 colorbar;
 draw_mask(xx, yy, mask);
@@ -53,7 +54,8 @@ title([prefix, 'X-Direction Displacement']);
 
 % plot y-direction displacement magnitude, [mm/step]
 ax3 = subplot(4, 1, 3);
-imagesc(xx(1,:), yy(:,1), vv*1000); 
+imagesc(xx(1,:), yy(:,1), vv*1000);
+scale_cmap(vv*1000);
 colorbar;
 draw_mask(xx, yy, mask);
 axis equal tight
@@ -93,3 +95,12 @@ for ii = 1:numel(mask_bounds)
     mask_y = yy(mask_bounds{ii}(:, 1), 1);
     plot(mask_x, mask_y, '-k');
 end
+
+
+function scale_cmap(values, min_percentile, max_percentile)
+% set color limits in current axis to specified percentiles of the data
+
+if nargin < 2; min_percentile = 10; end
+if nargin < 3; max_percentile = 90; end
+clim = prctile(values(:), [min_percentile, max_percentile]);
+caxis(clim)
