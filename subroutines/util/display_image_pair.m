@@ -6,7 +6,7 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
 % Arguments:
 %   xx, yy: Vector, world coordinate vectors for image matrices
 %   ini, fin: 2D matrix, intensity values for initial and final images 
-%   ini_roi, fin_roi: 2D matrix, logical flags for inital and final images,
+%   ini_roi, fin_roi: 2/3D matrix, logical flags for inital and final images,
 %       indicating if a pixel is sand (1) or not (0)
 %   which: Optional string, select which kind of display, options are
 %       'subplot' and 'toggle' 
@@ -28,10 +28,10 @@ if fill
 
 else
     % apply mask
-    ini_roi = repmat(ini_roi, 1, 1, 3);
+    if size(ini, 3) == 3; ini_roi = repmat(ini_roi, 1, 1, 3); end
     ini(~ini_roi) = 0;
     
-    fin_roi = repmat(fin_roi, 1, 1, 3);
+    if size(fin, 3) == 3; fin_roi = repmat(fin_roi, 1, 1, 3); end
     fin(~fin_roi) = 0;
 
 end
