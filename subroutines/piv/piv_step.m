@@ -11,8 +11,8 @@ function result = piv_step(...
 % time of the initial image. See subroutines docs for additional details.
 %
 % Arguments:
-%   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale image
-%       from the start and end of the step to be analyzed.
+%   img_ti, img_tf = 2D matrix, double, range 0 to 1, normalized grayscale
+%       images from the start and end of the step to be analyzed.
 %   mask_ti, mask_tf = 2D matrix, logical, mask indicating pixels where
 %       there is sand (1) and background (0) that should be ignored.
 %   x_img, y_img = Vector, double, increasing, x- and y-direction
@@ -76,10 +76,10 @@ function result = piv_step(...
 update_path('normxcorr2_masked', 'inpaint_nans');
 
 % check for sane inputs
-[nr, nc, nb] = size(img_ti); % image size
+[nr, nc] = size(img_ti); % image size
 ng = numel(samp_len); % number of grid refinement steps
-validateattributes(img_ti, {'uint8'},  {'3d'});
-validateattributes(img_tf, {'uint8'},  {'3d', 'size', [nr, nc, nb]});
+validateattributes(img_ti, {'double', 'single'},  {'2d'});
+validateattributes(img_tf, {'double', 'single'},  {'2d', 'size', [nr, nc]});
 validateattributes(mask_ti, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(mask_tf, {'logical'}, {'2d', 'size', [nr, nc]});
 validateattributes(x_img, {'double'},  {'vector', 'real', 'nonnan', 'numel', nc});
@@ -116,13 +116,6 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
     x_img, y_img, img_ti, mask_ti, pad_r, pad_c);
 [x_img, y_img, img_tf, ~] = piv_fill(...
     x_img, y_img, img_tf, mask_tf, pad_r, pad_c);
-
-% convert to images to grayscale
-img_ti = rgb2hsv(img_ti);
-img_ti = img_ti(:,:,3);
-
-img_tf = rgb2hsv(img_tf);
-img_tf = img_tf(:,:,3);
 
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);

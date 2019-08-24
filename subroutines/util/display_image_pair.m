@@ -11,6 +11,8 @@ function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
 %   which: Optional string, select which kind of display, options are
 %       'subplot' and 'toggle' 
 %   fill: Optional, set true to fill non-sand pixels as in PIV routine
+%   color: Optional, set false to display equalized grayscale, else will
+%       show rgb color (default)
 % %
 
 % set defaults
@@ -18,7 +20,7 @@ if nargin < 7; which = 'subplot'; end
 if nargin < 8; fill = false; end
 
 if fill
-    % apply padding
+    % use grayscale, and apply padding
     update_path('piv')
     pad_width = 25; % constant pad width because it does not seem worth specifying
     xx0 = xx; % coordinates get overwritten, use the originals

@@ -86,7 +86,7 @@ for kk = 1:numel(uu)
     
     % compute masked, normalized cross correlation
     [xcr, overlap] = normxcorr2_masked(intr, samp, intr~=0, samp~=0);
-    
+        
     % skip if nowhere has enough overlapping sandy pixels
     if max(overlap(:)) < min_overlap
         qual(kk) = Quality.BelowMinOverlap;

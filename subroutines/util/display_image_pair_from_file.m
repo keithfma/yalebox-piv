@@ -1,5 +1,5 @@
-function display_image_pair_from_file(filename, ini_idx, fin_idx, which, fill)
-% function display_image_pair_from_file(filename, ini_idx, fin_idx, which, fill)
+function display_image_pair_from_file(filename, ini_idx, fin_idx, which, fill, color)
+% function display_image_pair_from_file(filename, ini_idx, fin_idx, which, fill. color)
 %
 % Simple plot of image pair with area outside ROI set to 0
 %

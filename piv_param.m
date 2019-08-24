@@ -29,10 +29,10 @@ fprintf('\tTEST_INDEX = %i\n', TEST_INDEX);
 param = load_param(PARAM_FILE);
 image_data = matfile(IMAGE_FILE, 'Writable', false);
 
-ini      = image_data.img(:, :, :, TEST_INDEX);
+ini      = image_data.img_eql(:, :, TEST_INDEX);
 ini_mask = image_data.mask(:, :, TEST_INDEX);
 
-fin      = image_data.img(:, :, :, TEST_INDEX + param.gap.value);
+fin      = image_data.img_eql(:, :, TEST_INDEX + param.gap.value);
 fin_mask = image_data.mask(:, :, TEST_INDEX + param.gap.value);
 
 display_image_pair(...
@@ -42,8 +42,8 @@ display_image_pair(...
     ini_mask, ...
     fin, ...
     fin_mask, ...
-    'subplot', ...
-    false);
+    'toggle', ...
+    true);
 
 %% compute PIV
 
