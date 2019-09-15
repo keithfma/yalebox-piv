@@ -124,7 +124,7 @@ fprintf('Displaying rectifed & cropped test image\n');
         true);
 
     
-    %% define "mask_manual" section parameters -- interactive
+%% define "mask_manual" section parameters -- interactive
 
 param = load_param(PARAM_FILE);
 
@@ -161,3 +161,17 @@ mask_auto = prep_mask_auto(...
     param.mask_entropy_len.value, ...
     param.view.value, ...
     true);
+
+%% apply "equalize" section parameters -- edit param file to update
+
+tic;
+
+param = load_param(PARAM_FILE);
+
+img_eql = prep_equalize(...
+    rgb, ...
+    mask_auto & mask_manual, ...
+    param.equalize_len.value, ...
+    true);
+
+toc

@@ -79,6 +79,11 @@ pp.mask_entropy_lim.value = [0.55, 1.00];
 pp.mask_entropy_len.help = "scalar, integer, window size in pixels for entropy filter"; 
 pp.mask_entropy_len.value = 11;
 
+% equalization -----------
+
+pp.equalize_len.help =  'scalar, integer, odd, side length (in pixels) for the local neighborhood used to compute the transform for each pixel';
+pp.equalize_len.value = 21;
+
 % save as file ---
 
 if nargin > 0

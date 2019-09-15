@@ -1,9 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, notes)
+                  mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
+                  equalize_len, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
-%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, notes)
+%                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
+%                   equalize_len, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -34,6 +36,9 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
 %
+%   equalize_len_len: Scalar, integer, odd. Side length (in pixels) for the local
+%       neighborhood used to compute the transform for each pixel.
+%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -44,8 +49,8 @@ fprintf('%s: preprocessing %d images\n\n', mfilename, numel(image_names));
 update_path('prep', 'util');
 
 % set defaults
-narginchk(15, 16);
-if nargin < 16; notes = ''; end
+narginchk(16, 17);
+if nargin < 17; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
@@ -114,6 +119,7 @@ meta.args.hue_lim = hue_lim;
 meta.args.value_lim = value_lim;
 meta.args.entropy_lim = entropy_lim;
 meta.args.entropy_len = entropy_len;
+meta.args.equalize_len = equalize_len;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -127,6 +133,12 @@ meta.y.notes = 'coordinate axis';
 meta.y.dimensions = {};  % is coordinate axis
 meta.y.units = 'meters';
 
+meta.band.name = 'band';
+meta.band.long_name = 'color band (RGB)';
+meta.band.notes = 'coordinate axis';
+meta.band.dimensions = {}; % is coordinate axis
+meta.band.units = NaN;
+
 meta.step.name = 'step';
 meta.step.long_name = 'step number';
 meta.step.notes = 'coordinate axis';
@@ -136,8 +148,14 @@ meta.step.units = '1';
 meta.img.name = 'img'; 
 meta.img.long_name = 'rectified rgb image';
 meta.img.notes = '';
-meta.img.dimensions = {'y', 'x', 'rgb', 'step'};
+meta.img.dimensions = {'y', 'x', 'band', 'step'};
 meta.img.units = '24-bit color';
+
+meta.img_eql.name = 'img_eql'; 
+meta.img_eql.long_name = 'histogram-equalized grayscale image';
+meta.img_eql.notes = '';
+meta.img_eql.dimensions = {'y', 'x', 'step'};
+meta.img_eql.units = '1';
 
 meta.mask_auto.name = 'mask';
 meta.mask_auto.long_name = 'sand mask';
@@ -150,8 +168,10 @@ tmp.meta = meta;
 % write constant variables, allocate space for other variables
 tmp.x = xw;
 tmp.y = yw;
+tmp.band = 'RGB';
 tmp.step = 0:(num_image - 1);
 allocate(tmp, 'img', 'uint8', [ny, nx, 3, num_image]);
+allocate(tmp, 'img_eql', 'single', [ny, nx, num_image]);
 allocate(tmp, 'mask', 'logical', [ny, nx, num_image]);
 
 % keep track of the maximum extent of the mask
@@ -175,14 +195,17 @@ for ii = 1:num_image
         img, hue_lim, value_lim, entropy_lim, entropy_len, image_view);
     mask = logical(mask_auto & mask_manual);
     
+    img_eql = prep_equalize(img, mask, equalize_len);
+    
     [mask_rows, mask_cols] = ind2sub(size(mask), find(mask));
     min_row = min(min_row, min(mask_rows));
     max_row = max(max_row, max(mask_rows));
     min_col = min(min_col, min(mask_cols));
     max_col = max(max_col, max(mask_cols));    
     
-    tmp.mask(:, :, ii) = mask;
     tmp.img(:, :, :, ii) = uint8(img);
+    tmp.img_eql(:, :, ii) = single(img_eql);
+    tmp.mask(:, :, ii) = mask;
 
 end
 nx = max_col - min_col + 1;  % size of reduced data arrays
@@ -199,23 +222,29 @@ fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 % compute chunk size that fits in constant memory limits
 max_memory_bytes = 8*1024^3;  % 8 GB
 image_bytes = ny*nx*3*1; % uint8s are 1 byte
+image_eql_bytes = ny*nx*32;  % singles are 32 bytes
 mask_bytes = ny*nx*1;  % logicals are 1 byte
-chunk_size = floor(max_memory_bytes/(image_bytes + mask_bytes));
+total_bytes = image_bytes + image_eql_bytes + mask_bytes;
+chunk_size = floor(max_memory_bytes/total_bytes);
 fprintf('%s: copying in chunks of %d images\n', mfilename, chunk_size);
 
 result.meta = tmp.meta;
 result.x = tmp.x(1, min_col:max_col);
 result.y = tmp.y(1, min_row:max_row);
+result.band = tmp.band;
 result.step = tmp.step;
 
 allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
+allocate(result, 'img_eql', 'single', [ny, nx, num_image]);
 allocate(result, 'mask', 'logical', [ny, nx, num_image]);
 
 for min_img = 1:chunk_size:num_image
     max_img = min(min_img + chunk_size - 1, num_image);
     fprintf('%s: copy images %d-%d\n', mfilename, min_img, max_img);
-    result.mask(:, :, min_img:max_img) = ...
-        tmp.mask(min_row:max_row, min_col:max_col, min_img:max_img);
     result.img(:, :, :, min_img:max_img) = ...
         tmp.img(min_row:max_row, min_col:max_col, :, min_img:max_img);
+    result.img_eql(:, :, min_img:max_img) = ...
+        tmp.img_eql(min_row:max_row, min_col:max_col, min_img:max_img);
+    result.mask(:, :, min_img:max_img) = ...
+        tmp.mask(min_row:max_row, min_col:max_col, min_img:max_img);
 end
