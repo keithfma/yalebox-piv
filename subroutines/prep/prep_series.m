@@ -179,7 +179,7 @@ min_col = inf;
 max_col = -inf;
 
 % loop over all images
-parfor ii = 1:10  % debug: truncate range % num_image
+parfor ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
     img = imread(this_file);
