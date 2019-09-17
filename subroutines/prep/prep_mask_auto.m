@@ -123,7 +123,7 @@ if strcmp(view, 'side')
     masked_value = value;
     masked_value(~rough_mask) = NaN;
     data_idx =  find(max(masked_value > repmat(threshold_value', size(masked_value, 1), 1)));  % find columns that have pixels above the threshold
-    threshold_max_idx = ones(1, nc);
+    threshold_max_idx = zeros(1, nc);  % set default to 0 (below bottom)
     for jj = data_idx
         threshold_max_idx(jj) = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
     end
