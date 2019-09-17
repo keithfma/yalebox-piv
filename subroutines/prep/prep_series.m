@@ -158,12 +158,6 @@ meta.mask_auto.units = 'boolean';
 
 result.meta = meta;
 
-% write constant variables, allocate space for other variables
-result.x = xw;
-result.y = yw;
-result.band = 'RGB';
-result.step = 0:(num_image - 1);
-
 % allocate output arrays
 % note: store results in memory and write to file at once because
 %   incremental writes to matfile slow to a crawl, allocating the variables
@@ -217,6 +211,10 @@ fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_ima
 fprintf('%s: equalized images array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 
+result.x = xw(min_col:max_col);
+result.y = yw(min_row:max_row);
+result.band = 'RGB';
+result.step = 0:(num_image - 1);
 result.img = img(min_row:max_row, min_col:max_col, :, :);
 result.img_eql = img_eqls(min_row:max_row, min_col:max_col, :);
 result.mask = masks(min_row:max_row, min_col:max_col, :);
