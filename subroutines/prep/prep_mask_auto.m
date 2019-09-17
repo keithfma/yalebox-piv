@@ -108,10 +108,11 @@ if strcmp(view, 'side')
         
     % get raw threshold value in each column
     % note: smooth threshold values to get a stable estimate
+    data_idx = find(max(rough_mask));  % find columns that have some sand
     threshold_value = zeros(1, nc);
-    min_idx = zeros(1, nc);
-    max_idx = zeros(1, nc);
-    for jj = 1:nc
+    min_idx = ones(1, nc);
+    max_idx = ones(1, nc);
+    for jj = data_idx  % leave min/max idx as 1 for columns with no sand 
         min_idx(jj) = find(rough_mask(:, jj), 1, 'first');
         max_idx(jj) = find(rough_mask(:, jj), 1, 'last');
         threshold_value(jj) = prctile(value(min_idx(jj):max_idx(jj), jj), threshold_percentile);
@@ -119,9 +120,11 @@ if strcmp(view, 'side')
     threshold_value = smooth(threshold_value, 0.3, 'lowess');
     
     % find the new top boundary 
-    masked_value = value; masked_value(~rough_mask) = NaN;
-    threshold_max_idx = zeros(1, nc);
-    for jj = 1:nc
+    masked_value = value;
+    masked_value(~rough_mask) = NaN;
+    data_idx =  find(max(masked_value > repmat(threshold_value', size(masked_value, 1), 1)));  % find columns that have pixels above the threshold
+    threshold_max_idx = ones(1, nc);
+    for jj = data_idx
         threshold_max_idx(jj) = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
     end
 
@@ -136,8 +139,6 @@ if strcmp(view, 'side')
     threshold_max_idx = round(smooth(threshold_max_idx, 5/nc, 'lowess'));
     
     % drop edge pixels below threshold values
-    masked_value = value;
-    masked_value(~rough_mask) = NaN;
     clean_mask = false([nr, nc]);
     for jj = 1:nc
         clean_mask(min_idx(jj):threshold_max_idx(jj), jj) = true;
@@ -147,7 +148,6 @@ elseif strcmp(view, 'top')
     % not clear how top view should be handled, warn and skip for now
     warning('edge cleanup for top view is not implemented');
     clean_mask = rough_mask;
-
 end
 
 % report percentage masked
