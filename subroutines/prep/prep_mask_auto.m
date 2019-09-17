@@ -129,11 +129,13 @@ if strcmp(view, 'side')
     end
 
     % replace outliers with interpolated estimate
-    outliers = isoutlier(max_idx - threshold_max_idx)';  % 3 MAD from median
+    outliers = false(size(threshold_max_idx));
+    outliers(data_idx) = isoutlier(...
+        max_idx(data_idx) - threshold_max_idx(data_idx), 'gesd')';  %  generalized extreme Studentized deviate test 
     cols = 1:nc;
     threshold_max_idx(outliers) = interp1(...
         cols(~outliers)', threshold_max_idx(~outliers)', ...
-        cols(outliers), 'pchip');
+        cols(outliers), 'pchip', 1);  % extrapolated values set to 1 (bottom)
     
     % apply a touch of smoothing to the new boundary
     threshold_max_idx = round(smooth(threshold_max_idx, 5/nc, 'lowess'));
