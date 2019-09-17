@@ -109,20 +109,38 @@ if strcmp(view, 'side')
     % get raw threshold value in each column
     % note: smooth threshold values to get a stable estimate
     threshold_value = zeros(1, nc);
+    min_idx = zeros(1, nc);
+    max_idx = zeros(1, nc);
     for jj = 1:nc
-        min_idx = find(rough_mask(:, jj), 1, 'first');
-        max_idx = find(rough_mask(:, jj), 1, 'last');
-        threshold_value(jj) = prctile(value(min_idx:max_idx, jj), threshold_percentile);
+        min_idx(jj) = find(rough_mask(:, jj), 1, 'first');
+        max_idx(jj) = find(rough_mask(:, jj), 1, 'last');
+        threshold_value(jj) = prctile(value(min_idx(jj):max_idx(jj), jj), threshold_percentile);
     end
-    threshold_value = smooth(threshold_value, 0.3, 'loess');
+    threshold_value = smooth(threshold_value, 0.3, 'lowess');
+    
+    % find the new top boundary 
+    masked_value = value; masked_value(~rough_mask) = NaN;
+    threshold_max_idx = zeros(1, nc);
+    for jj = 1:nc
+        threshold_max_idx(jj) = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
+    end
+
+    % replace outliers with interpolated estimate
+    outliers = isoutlier(max_idx - threshold_max_idx)';  % 3 MAD from median
+    cols = 1:nc;
+    threshold_max_idx(outliers) = interp1(...
+        cols(~outliers)', threshold_max_idx(~outliers)', ...
+        cols(outliers), 'pchip');
+    
+    % apply a touch of smoothing to the new boundary
+    threshold_max_idx = round(smooth(threshold_max_idx, 5/nc, 'lowess'));
     
     % drop edge pixels below threshold values
-    masked_value = value; masked_value(~rough_mask) = NaN;
+    masked_value = value;
+    masked_value(~rough_mask) = NaN;
     clean_mask = false([nr, nc]);
     for jj = 1:nc
-        min_idx = find(rough_mask(:, jj), 1, 'first');  % note: same as above, lower edge already clean cleaned
-        max_idx = find(masked_value(:, jj) >= threshold_value(jj), 1, 'last');
-        clean_mask(min_idx:max_idx, jj) = true;
+        clean_mask(min_idx(jj):threshold_max_idx(jj), jj) = true;
     end
     
 elseif strcmp(view, 'top')
