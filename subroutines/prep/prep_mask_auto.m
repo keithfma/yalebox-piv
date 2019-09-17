@@ -135,7 +135,7 @@ if strcmp(view, 'side')
     cols = 1:nc;
     threshold_max_idx(outliers) = interp1(...
         cols(~outliers)', threshold_max_idx(~outliers)', ...
-        cols(outliers), 'pchip', 1);  % extrapolated values set to 1 (bottom)
+        cols(outliers), 'pchip', 0);  % extrapolated values set to 0 (below bottom)
     
     % apply a touch of smoothing to the new boundary
     threshold_max_idx = round(smooth(threshold_max_idx, 5/nc, 'lowess'));
