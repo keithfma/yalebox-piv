@@ -82,13 +82,6 @@ assert(exist(result_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
 result = matfile(result_file, 'Writable', true);
 
-% create temporary output file, to hold results before crop to mask extent
-% note: needed to avoid loading whole data arrays to memory during crop
-% note: registers a function to cleanup on exit, no matter what
-tmp_name = [tempname(), '.mat'];
-tmp = matfile(tmp_name, 'Writable', true);
-cleaner = onCleanup(@() delete(tmp_name));
-
 % get coordinate vectors and manual mask array
 % note: created during prep steps, so prep a fake image)
 fprintf('%s: get cordinate vectors and manual mask array\n', mfilename);
@@ -163,16 +156,21 @@ meta.mask_auto.notes = '';
 meta.mask_auto.dimensions = {'y', 'x', 'step'};
 meta.mask_auto.units = 'boolean';
 
-tmp.meta = meta;
+result.meta = meta;
 
 % write constant variables, allocate space for other variables
-tmp.x = xw;
-tmp.y = yw;
-tmp.band = 'RGB';
-tmp.step = 0:(num_image - 1);
-allocate(tmp, 'img', 'uint8', [ny, nx, 3, num_image]);
-allocate(tmp, 'img_eql', 'single', [ny, nx, num_image]);
-allocate(tmp, 'mask', 'logical', [ny, nx, num_image]);
+result.x = xw;
+result.y = yw;
+result.band = 'RGB';
+result.step = 0:(num_image - 1);
+
+% allocate output arrays
+% note: store results in memory and write to file at once because
+%   incremental writes to matfile slow to a crawl, allocating the variables
+%   at the outset ensures that everything fits in memory
+imgs = zeros(ny, nx, 3, num_image, 'uint8');
+img_eqls = zeros(ny, nx, num_image, 'single');
+masks = false(ny, nx, num_image);
 
 % keep track of the maximum extent of the mask
 min_row = inf;  % set initial values so they are sure to be overridden
@@ -181,7 +179,7 @@ min_col = inf;
 max_col = -inf;
 
 % loop over all images
-for ii = 1:num_image
+parfor ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
     img = imread(this_file);
@@ -203,48 +201,22 @@ for ii = 1:num_image
     min_col = min(min_col, min(mask_cols));
     max_col = max(max_col, max(mask_cols));    
     
-    tmp.img(:, :, :, ii) = uint8(img);
-    tmp.img_eql(:, :, ii) = single(img_eql);
-    tmp.mask(:, :, ii) = mask;
+    imgs(:, :, :, ii) = uint8(img);
+    img_eqls(:, :, ii) = single(img_eql);
+    masks(:, :, ii) = mask;
 
 end
 nx = max_col - min_col + 1;  % size of reduced data arrays
 ny = max_row - min_row + 1;
 
-% copy data from temporary file to results file
+% copy data from memory to results file
 % note: here we trim image data to maximum extent of mask i.e., exclude
 %   pixels that are always sand to reduce compute during PIV
-% note: copy data in chunks to avoid blowing up memory
-fprintf('\n%s: copy from temporary to final file: %s\n', mfilename, result_file);
+fprintf('\n%s: copy from memory to results file: %s\n', mfilename, result_file);
 fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_image);
+fprintf('%s: equalized images array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 
-% compute chunk size that fits in constant memory limits
-max_memory_bytes = 8*1024^3;  % 8 GB
-image_bytes = ny*nx*3*1; % uint8s are 1 byte
-image_eql_bytes = ny*nx*32;  % singles are 32 bytes
-mask_bytes = ny*nx*1;  % logicals are 1 byte
-total_bytes = image_bytes + image_eql_bytes + mask_bytes;
-chunk_size = floor(max_memory_bytes/total_bytes);
-fprintf('%s: copying in chunks of %d images\n', mfilename, chunk_size);
-
-result.meta = tmp.meta;
-result.x = tmp.x(1, min_col:max_col);
-result.y = tmp.y(1, min_row:max_row);
-result.band = tmp.band;
-result.step = tmp.step;
-
-allocate(result, 'img', 'uint8', [ny, nx, 3, num_image]);
-allocate(result, 'img_eql', 'single', [ny, nx, num_image]);
-allocate(result, 'mask', 'logical', [ny, nx, num_image]);
-
-for min_img = 1:chunk_size:num_image
-    max_img = min(min_img + chunk_size - 1, num_image);
-    fprintf('%s: copy images %d-%d\n', mfilename, min_img, max_img);
-    result.img(:, :, :, min_img:max_img) = ...
-        tmp.img(min_row:max_row, min_col:max_col, :, min_img:max_img);
-    result.img_eql(:, :, min_img:max_img) = ...
-        tmp.img_eql(min_row:max_row, min_col:max_col, min_img:max_img);
-    result.mask(:, :, min_img:max_img) = ...
-        tmp.mask(min_row:max_row, min_col:max_col, min_img:max_img);
-end
+result.img = img(min_row:max_row, min_col:max_col, :, :);
+result.img_eql = img_eqls(min_row:max_row, min_col:max_col, :);
+result.mask = masks(min_row:max_row, min_col:max_col, :);
