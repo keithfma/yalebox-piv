@@ -1,52 +1,36 @@
-function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
-% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which, fill)
+function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which_view)
+% function display_image_pair(xx, yy, ini, ini_roi, fin, fin_roi, which_view)
 %
 % Simple plot of image pair with area outside ROI set to 0
 %
 % Arguments:
 %   xx, yy: Vector, world coordinate vectors for image matrices
-%   ini, fin: 2D matrix, intensity values for initial and final images 
-%   ini_roi, fin_roi: 2/3D matrix, logical flags for inital and final images,
+%   ini, fin: 2/3D matrix, intensity or RGB values for initial and final images 
+%   ini_roi, fin_roi: 2D matrix, logical flags for inital and final images,
 %       indicating if a pixel is sand (1) or not (0)
-%   which: Optional string, select which kind of display, options are
+%   which_view: Optional string, select which kind of display, options are
 %       'subplot' and 'toggle' 
-%   fill: Optional, set true to fill non-sand pixels as in PIV routine
-%   color: Optional, set false to display equalized grayscale, else will
-%       show rgb color (default)
 % %
 
 % set defaults
-if nargin < 7; which = 'subplot'; end
-if nargin < 8; fill = false; end
+if nargin < 7; which_view = 'subplot'; end
 
-if fill
-    % use grayscale, and apply padding
-    update_path('piv')
-    pad_width = 25; % constant pad width because it does not seem worth specifying
-    xx0 = xx; % coordinates get overwritten, use the originals
-    yy0 = yy;
-    [xx, yy, ini] = piv_fill(xx0, yy0, ini, ini_roi, pad_width, pad_width);
-    [~, ~, fin] = piv_fill(xx0, yy0, fin, fin_roi, pad_width, pad_width);
+% apply mask
+if size(ini, 3) == 3; ini_roi = repmat(ini_roi, 1, 1, 3); end
+ini(~ini_roi) = 0;
 
-else
-    % apply mask
-    if size(ini, 3) == 3; ini_roi = repmat(ini_roi, 1, 1, 3); end
-    ini(~ini_roi) = 0;
-    
-    if size(fin, 3) == 3; fin_roi = repmat(fin_roi, 1, 1, 3); end
-    fin(~fin_roi) = 0;
-
-end
+if size(fin, 3) == 3; fin_roi = repmat(fin_roi, 1, 1, 3); end
+fin(~fin_roi) = 0;
 
 % setup figure for specified display type
 hf = figure;
 
-if strcmp(which, 'subplot')
+if strcmp(which_view, 'subplot')
     ax_ini = subplot(2,1,1);
     ax_fin = subplot(2,1,2);
     linkaxes([ax_ini, ax_fin]);
     
-elseif strcmp(which, 'toggle')
+elseif strcmp(which_view, 'toggle')
     ax_ini = axes();
     ax_fin = axes();
     
@@ -84,11 +68,11 @@ addToolbarExplorationButtons(gcf);
 ax_ini.Toolbar.Visible = 'off';
 ax_fin.Toolbar.Visible = 'off';
 
-if strcmp(which, 'subplot')
+if strcmp(which_view, 'subplot')
     hf.Units = 'Normalized';
     hf.OuterPosition = [0, 0, 1, 1];
 
-elseif strcmp(which, 'toggle')
+elseif strcmp(which_view, 'toggle')
     hf.Units = 'Normalized';
     hf.OuterPosition = [0, hf.OuterPosition(2), 1, hf.OuterPosition(4)];
     toggle_axis(ax_fin);
