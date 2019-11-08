@@ -7,7 +7,7 @@
 %
 % Expected variables in workspace:
 % 
-%   PARAM_FILE: path to parameters definition file. Use
+%   PREP_PARAM_FILE: path to parameters definition file. Use
 %       piv_default_param() to create a template, and populate the
 %       variables therein to suit your experiment.
 % 
@@ -17,12 +17,12 @@
 update_path('prep', 'util');
 
 fprintf('Running prep parameter check with:\n');
-fprintf('\tPARAM_FILE = %s\n', PARAM_FILE);
+fprintf('\tPREP_PARAM_FILE = %s\n', PREP_PARAM_FILE);
 fprintf('\tTEST_INDEX = %i\n', TEST_INDEX);
 
 %% define "images" section parameters -- interactive
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 % path to images directory
 path = uigetdir(...
@@ -42,21 +42,21 @@ exp_path = strip(exp_path, 'right', filesep);
 assert(strcmp(exp_path, path), 'Expect images to be in selected image directory');
 
 % save results, take care to avoid accidental overwriting
-prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+prompt = sprintf('Write parameters to %s?', PREP_PARAM_FILE);
 button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.image_dir.value = path;
     param.woco_file.value = woco_file;
     param.exp_files.value = exp_files;
-    save_param(param, PARAM_FILE);
-    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+    save_param(param, PREP_PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PREP_PARAM_FILE);
 else
     fprintf('Parameter file NOT saved\n');
 end
 
 %% define "woco" section parameters -- interactive
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 % sanity check
 lengths = [length(param.woco_xw.value), ...
@@ -82,22 +82,22 @@ else
 end
 
 % save results, take care to avoid accidental overwriting
-prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+prompt = sprintf('Write parameters to %s?', PREP_PARAM_FILE);
 button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.woco_xw.value = xw;
     param.woco_yw.value = yw;
     param.woco_xp.value = xp;
     param.woco_yp.value = yp;
-    save_param(param, PARAM_FILE);
-    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+    save_param(param, PREP_PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PREP_PARAM_FILE);
 else
     fprintf('Parameter file NOT saved\n');
 end
 
 %% apply "crop" parameters -- edit param file to update
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 fprintf('Displaying rectifed & cropped woco image\n');
 [~, ~, ~] = ...
@@ -112,7 +112,7 @@ fprintf('Displaying rectifed & cropped woco image\n');
         true);
 
 fprintf('Displaying rectifed & cropped test image\n');
-[rgb, ~, ~] = ...
+[rgb, x, y] = ...
     prep_rectify_and_crop(...
         param.woco_xp.value, ...
         param.woco_yp.value, ...
@@ -126,7 +126,7 @@ fprintf('Displaying rectifed & cropped test image\n');
     
 %% define "mask_manual" section parameters -- interactive
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 % interactive mask creation
 [mask_manual, poly] = prep_mask_manual(...
@@ -139,19 +139,19 @@ mrgb = rgb;
 mrgb(repmat(~mask_manual, 1, 1, 3)) = 0;
 
 % save results, take care to avoid accidental overwriting
-prompt = sprintf('Write parameters to %s?', PARAM_FILE);
+prompt = sprintf('Write parameters to %s?', PREP_PARAM_FILE);
 button = questdlg(prompt, 'WARNING', 'Yes', 'No', 'Yes');
 if strcmp(button, 'Yes')
     param.mask_poly.value = poly;
-    save_param(param, PARAM_FILE);
-    fprintf('Saved parameter file: %s\n', PARAM_FILE);
+    save_param(param, PREP_PARAM_FILE);
+    fprintf('Saved parameter file: %s\n', PREP_PARAM_FILE);
 else
     fprintf('Parameter file NOT saved\n');
 end
 
 %% apply "mask_auto" section parameters -- edit param file to update
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 mask_auto = prep_mask_auto(...
     mrgb, ...
@@ -166,7 +166,7 @@ mask_auto = prep_mask_auto(...
 
 tic;
 
-param = load_param(PARAM_FILE);
+param = load_param(PREP_PARAM_FILE);
 
 img_eql = prep_equalize(...
     rgb, ...
@@ -175,3 +175,21 @@ img_eql = prep_equalize(...
     true);
 
 toc
+
+%% apply pad and fill -- edit param file to update
+
+param = load_param(PREP_PARAM_FILE);
+
+[x_pad, y_pad, img_pad, mask_pad] = prep_pad(...
+    x, ...
+    y, ...
+    img_eql, ...
+    mask_auto & mask_manual, ...
+    param.pad_num_rows.value, ...
+    param.pad_num_cols.value);
+
+img_fill = prep_fill(...
+    img_pad, ...
+    mask_pad, ...
+    param.fill_method.value, ...
+    true);

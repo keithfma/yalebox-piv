@@ -84,6 +84,17 @@ pp.mask_entropy_len.value = 11;
 pp.equalize_len.help =  'scalar, integer, odd, side length (in pixels) for the local neighborhood used to compute the transform for each pixel';
 pp.equalize_len.value = 21;
 
+% pad and fill -----------
+
+pp.pad_num_row.help = 'Number of rows of padding to add to top and bottom of all images, use to ensure extra displacement observations are available for gradient calculation';
+pp.pad_num_row.value = 100;
+
+pp.pad_num_cols.help = 'Number of columns of padding to add to left and right of all images, use to ensure extra displacement observations are available for gradient calculation';
+pp.pad_num_col.value = 100;
+
+pp.fill_method.help = 'Name of the method used to fill non-sand pixels in the image and pad, valid options are: "none"';
+pp.fill_method.value = 'none';
+
 % save as file ---
 
 if nargin > 0
