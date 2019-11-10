@@ -164,8 +164,6 @@ mask_auto = prep_mask_auto(...
 
 %% apply "equalize" section parameters -- edit param file to update
 
-tic;
-
 param = load_param(PREP_PARAM_FILE);
 
 img_eql = prep_equalize(...
@@ -173,8 +171,6 @@ img_eql = prep_equalize(...
     mask_auto & mask_manual, ...
     param.equalize_len.value, ...
     true);
-
-toc
 
 %% apply pad and fill -- edit param file to update
 

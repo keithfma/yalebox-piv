@@ -32,7 +32,7 @@ fprintf('%s: pad image, its mask, and its coordinate arrays by %d rows and %d co
     mfilename, pad_r, pad_c); 
 
 % create padded arrays
-img_pad = padarray(img, [pad_r, pad_c], 0, 'both');
+img_pad = padarray(img, [pad_r, pad_c], NaN, 'both');  % fill is arbitrary, we use mask to find sand 
 mask_pad = padarray(mask, [pad_r, pad_c], false, 'both');  
 
 % extend coordinate vectors
