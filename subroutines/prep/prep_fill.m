@@ -41,6 +41,10 @@ elseif strcmp(method, 'mirror')
     warning('fill method "%s" known to produce incorrect results', method);
     [img_fill, mask_fill] = prep_fill_mirror(img, mask);
     
+elseif strcmp(method, 'skin')
+    % mirror a thin layer of the sand boundary vertically
+    [img_fill, mask_fill] = prep_fill_skin(img, mask);
+    
 else
     error('Unknown fill method "%s"', method);
 
