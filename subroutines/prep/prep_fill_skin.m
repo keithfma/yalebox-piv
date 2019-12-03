@@ -14,9 +14,12 @@ function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
 %   mask_fill: 2D matrix, image mask matching size of img_fill
 % %
 
+% TODO: what if I ran this on the RGB panes, and equalized afterwards on a full image?
+
 % TODO: consider what to do about left and right side padding
 
-% TODO: consider what to do about regions of the image with no sand at all during buildup phase
+% TODO: consider what to do about regions of the image with no sand at all during buildup phase,
+%   would be much better if they were filled so that I could drop (slow) masked cross correlation.
 
 % TODO: consider special treatment for the center spacer, not clear what sort of padding will work
 %   best in that region
@@ -114,50 +117,23 @@ for jj = 1:nc
     
 end
 
-% DEBUG: let's see it
-figure
-imagesc(rows);
-caxis([nanmin(bot_row), nanmax(top_row)]);
-set(gca, 'YDir', 'Normal');
-title('Row indices')
-disp('debug');
-% /DEBUG
+% % DEBUG: let's see it
+% figure
+% imagesc(rows);
+% caxis([nanmin(bot_row), nanmax(top_row)]);
+% set(gca, 'YDir', 'Normal');
+% title('Row indices')
+% % /DEBUG
 
 % TODO: assert something about spacing, always approx 1? always < 1? not sure what is right here.
+ 
+% apply reflection by interpolating
+% black out regions with no sand at all
+% note: pixels within the mask are left unchanged, as desired
+img_fill = img;
+[jj, ii] = meshgrid(1:nc, 1:nr); 
+img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
 
-% bot_rows = repmat(bot_row, nr, 1);
-% top_rows = repmat(top_row, nr, 1);
-% [cols, rows] = meshgrid(1:nc, 1:nr);
-% 
-% has_sand = ... % only try to mirror where there is something to mirror
-%     ~isnan(top_rows) & ~isnan(bot_rows) & (top_rows - bot_rows > 3);
-% above_top = (rows > top_rows) & has_sand;
-% 
-% while any(above_top(:))
-% 
-%     % reflect at top boundary, may create inidices below bottom so update
-%     rows(above_top) = 2*top_rows(above_top) - rows(above_top);  % same as t-(r-t)
-%     below_bot = (rows < bot_rows) & has_sand;
-%     
-%     % reflect at bottom boundary, may create indices above top so update
-%     rows(below_bot) = 2*bot_rows(below_bot) - rows(below_bot);  % same as b+(b-r)
-%     above_top = (rows > top_rows) & has_sand;
-%     
-% end
-% 
-% % apply reflection by interpolating
-% % black out regions with no sand at all
-% % note: pixels within the mask are left unchanged, as desired
-% img_fill = img;
-% [jj, ii] = meshgrid(1:nc, 1:nr); 
-% img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
-% 
-% % black out regions with no sand at all
-% mask_fill = ~has_sand;
-% img_fill(~has_sand) = NaN;
-
-
-
-
+% TODO: add optional plot
 
 keyboard
