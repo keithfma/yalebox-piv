@@ -189,3 +189,55 @@ img_fill = prep_fill(...
     mask_pad, ...
     param.fill_method.value, ...
     true);
+
+%% TODO
+
+% Filling first, then equalizing yields better results overall. Note that a fast per-pixel 
+%   equalization is still missing here.
+
+
+%% DEBUG: try filling each band independently
+
+param = load_param(PREP_PARAM_FILE);
+
+
+bands = cell(1, 3);
+
+for band_idx = 1:3
+    
+    band = double(rgb(:, :, band_idx));
+    
+    [x_pad, y_pad, band_pad, mask_pad] = prep_pad(...
+        x, ...
+        y, ...
+        band, ...
+        mask_auto & mask_manual, ...
+        param.pad_num_rows.value, ...
+        param.pad_num_cols.value);
+
+    
+    [band_fill, ~] = prep_fill(...
+        band_pad, ...
+        mask_pad, ...
+        param.fill_method.value);
+    
+    bands{band_idx} = uint8(band_fill);
+end
+
+[nr, nc] = size(bands{1});
+rgb_fill = nan(nr, nc, 3);
+for band_idx = 1:3
+    rgb_fill(:, :, band_idx) = bands{band_idx};
+end
+rgb_fill = uint8(rgb_fill);
+
+
+%% DEBUG: equalize after filling
+
+param = load_param(PREP_PARAM_FILE);
+
+img_eql = prep_equalize(...
+    rgb_fill, ...
+    true(size(rgb_fill, 1), size(rgb_fill, 2)), ...  % FIXME: not right, but we did not make a real mask, nor fill completely
+    param.equalize_len.value, ...
+    true);
