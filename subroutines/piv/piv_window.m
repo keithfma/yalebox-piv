@@ -2,7 +2,7 @@ function [win, r_win, c_win] = piv_window(img, r_cntr, c_cntr, len)
 % function [win, r_win, c_win] = piv_window(img, r_cntr, c_cntr, len)
 % 
 % Extract and return a sample or interrogation window from the input image,
-% padding as needed, and its coordinate information Regions without data are
+% padding as needed, and its coordinate information. Regions without data are
 % filled with 0's to facilitate masking during normalized cross correlation.
 % Rounding is used to expand window extent outward to the nearest integer pixel
 % coordinates.

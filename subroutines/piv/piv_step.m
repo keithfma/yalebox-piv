@@ -111,13 +111,7 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % create sample grid and pad image arrays
 % FIXME: update piv_sample_grid such that the grid starts at the origin, this
 %   change is needed to respect the fact that fill has been done elsewhere
-[rr, cc, pad_r, pad_c] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
-
-% treat image boundaries
-[~, ~, img_ti, mask_ti] = piv_fill(...
-    x_img, y_img, img_ti, mask_ti, pad_r, pad_c);
-[x_img, y_img, img_tf, ~] = piv_fill(...
-    x_img, y_img, img_tf, mask_tf, pad_r, pad_c);
+[rr, cc] = piv_sample_grid(samp_len, samp_spc, x_img, y_img);
 
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
@@ -135,7 +129,7 @@ for pp = 1:np
     
     % get displacement update using normalized cross correlation
     [uu, vv, qual, mask] = piv_displacement(...
-        img_ti, mask_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
+        img_ti, mask_ti, img_tf, mask_tf, rr, cc, uu, vv, samp_len(pp), ...
         intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors

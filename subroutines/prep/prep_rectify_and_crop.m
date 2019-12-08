@@ -61,13 +61,23 @@ ctrl_yp = ctrl_yp(:);
 % get pixel size from median of pairwise distance between all points
 Dw = pdist([ctrl_xw, ctrl_yw]);
 Dp = pdist([ctrl_xp, ctrl_yp]);
-delta_pixel_per_meter = median(Dp./Dw);
+pixels_per_meter = median(Dp./Dw);
+meters_per_pixel = 1/pixels_per_meter;
+
+% adjust crop limits to register pixels to origin, i.e., ensure we have a pixel at
+%   world coordinates (0, 0)
+crop_xp = [floor(crop_xw(1)*pixels_per_meter) - 0.5, ceil(crop_xw(2)*pixels_per_meter) + 0.5];
+crop_yp = [floor(crop_yw(1)*pixels_per_meter) - 0.5, ceil(crop_yw(2)*pixels_per_meter) + 0.5];
+crop_xw = crop_xp * meters_per_pixel;
+crop_yw = crop_yp * meters_per_pixel;
+
+% create output image reference
+out_size = [diff(crop_yp), diff(crop_xp)];   % plus one?
+out_ref = imref2d(out_size, crop_xw, crop_yw);
 
 % transform image to rectified pixel coordinates
 tform = fitgeotrans([ctrl_xp, ctrl_yp], [ctrl_xw, ctrl_yw], 'lwm', FIT_NPTS);
 in_ref = imref2d([size(rgb,1), size(rgb,2)]);
-out_size = round([diff(crop_yw), diff(crop_xw)]*delta_pixel_per_meter);
-out_ref = imref2d(out_size, crop_xw, crop_yw);
 rgb_out = imwarp(rgb, in_ref, tform, 'cubic', 'OutputView', out_ref);
 
 % generate world coordinate vectors for rectified, cropped image

@@ -1,103 +1,50 @@
-function [r_grid, c_grid, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
-%function [r_grid, c_grid, pad_nr, pad_nc] = piv_sample_grid(sample_len, sample_spc, img_nr, img_nc)
+function [r_grid, c_grid] = piv_sample_grid(sample_len, sample_spc, x_vec, y_vec)
+%function [r_grid, c_grid] = piv_sample_grid(sample_len, sample_spc, x_vec, y_vec)
 %
-% Create sample grid and define image pad widths. The goal is a centered
-% grid with a 2 extra observations at the edges, and all sample windows
-% completely filled.
+% Create sample grid registered to the world coordinate origin
 %
 % Arguments:
 %   sample_len = Vector, sample window size for each piv pass
 %   sample_spc = Scalar, integer, grid spacing in pixels
-%   img_nr, img_nc = Scalar, dimensions (number of rows and columns) of the
-%       input images.
+%   x_vec, y_vec = x (columns) and y (rows) coordinate vectors for input images.
 %
 % Returns:
 %   r_grid, c_grid = 2D matrix, integer, coordinate matrices, as constructed
 %       by meshgrid, for the sample grid in the y (a.k.a. row) and x (a.k.a.
 %       column) directions, in pixels
-%   pad_nr, pad_nc = scalars, number of pixels to pad images (and thier
-%       coordinates) in the row and column directions
 % %
 
 % validate inputs
 validateattributes(sample_len, {'numeric'}, {'vector', 'integer'});
 validateattributes(sample_spc, {'numeric'}, {'scalar', 'integer'});
-validateattributes(img_nr, {'numeric'}, {'scalar', 'integer', 'positive'});
-validateattributes(img_nc, {'numeric'}, {'scalar', 'integer', 'positive'});
+validateattributes(x_vec, {'numeric'}, {'vector'});
+validateattributes(y_vec, {'numeric'}, {'vector'});
 
 % note: intentionally verbose to make this easier to understand
 
-% number of "extra" samples to pad out in each direction
-% note: need at least 1 for code to work, 3 is sufficient for 7-tap derivative 
-num_extra = 3; 
-assert(num_extra >= 1, 'constant num_extra breaks assumptions used below'); 
+% find the origin pixel
+r_origin = find(abs(y_vec) < eps);
+c_origin = find(abs(x_vec) < eps);
+assert(numel(r_origin) == 1, 'Failed to find y-component of origin pixel');
+assert(numel(c_origin) == 1, 'Failed to find x-component of origin pixel');
 
-remainder = mod((img_nr - 1), sample_spc);
-r_vec = (1 + remainder/2):sample_spc:img_nr;
-r_vec = [...  % add extra samples
-    (r_vec(1) - num_extra*sample_spc):sample_spc:r_vec(1)-sample_spc, ...
-    r_vec, ...
-    (r_vec(end) + sample_spc):sample_spc:(r_vec(end) + num_extra*sample_spc)] + num_extra*sample_spc;
-r_vec = r_vec + sample_len(1)/2; % shift so first window is covered
-pad_nr = num_extra*sample_spc + sample_len(1)/2;
+r_vec = [...
+    fliplr((r_origin - sample_spc):-sample_spc:(sample_len(1)/2)), ...     % below origin
+    r_origin, ...                                                          % origin
+    (r_origin + sample_spc):sample_spc:(length(y_vec) - sample_len(1)/2)]; % above origin
 
-remainder = mod((img_nc - 1), sample_spc);
-c_vec = (1 + remainder/2):sample_spc:img_nc;
-c_vec = [...  % add extra samples
-    (c_vec(1) - num_extra*sample_spc):sample_spc:c_vec(1)-sample_spc, ...
-    c_vec, ...
-    (c_vec(end) + sample_spc):sample_spc:(c_vec(end) + num_extra*sample_spc)] + num_extra*sample_spc;
-c_vec = c_vec + sample_len(1)/2; % shift so first window is covered
-pad_nc = num_extra*sample_spc + sample_len(1)/2;
+assert(all(diff(r_vec) == sample_spc), 'sample grid spacing in y-direction is messed up');
+assert(sum(r_vec == r_origin) == 1, 'sample grid does not contain origin in y-direction');
+assert(all(r_vec >= 1) && all(r_vec <= (numel(y_vec) + 1)), 'sample grid out-of-bounds in y-direction');
 
-% shift grid to ensure sample windows span integer-pixel range
-if is_even(sample_len)  % validated such that all even or all odd
-    if is_whole(r_vec(1))
-        r_vec = r_vec + 0.5;
-    end
-    if is_whole(c_vec(1))
-        c_vec = c_vec + 0.5;
-    end
-elseif is_odd(sample_len)
-    if ~is_whole(r_vec(1))
-        r_vec = r_vec + 0.5;
-    end
-    if ~is_whole(c_vec(1))
-        c_vec = c_vec + 0.5;
-    end
-else
-    error(['sample_len must be either all-even or all-odd so that '
-        'sample window is centered on the specified point']);
-end
+c_vec = [...
+    fliplr((c_origin - sample_spc):-sample_spc:(sample_len(1)/2)), ...     % below origin
+    c_origin, ...                                                          % origin
+    (c_origin + sample_spc):sample_spc:(length(x_vec) - sample_len(1)/2)]; % above origin
 
-% bugfix: confirm that grids are spaced as expected, this may seem
-%   obviously true given the code above, but it is critical and has been
-%   broken in the past
-assert(all(diff(r_vec) == sample_spc), 'row grid has incorrect spacing');
-assert(all(diff(c_vec) == sample_spc), 'column grid has incorrect spacing');
+assert(all(diff(c_vec) == sample_spc), 'sample grid spacing in x-direction is messed up');
+assert(sum(c_vec == c_origin) == 1, 'sample grid does not contain origin in x-direction');
+assert(all(c_vec >= 1) && all(c_vec <= (numel(x_vec) + 1)), 'sample grid out-of-bounds in x-direction');
 
 % generate grid from vectors
 [c_grid, r_grid] = meshgrid(c_vec, r_vec);
-
-% % <DEBUG>: Check grid edges to confirm it is centered in the domain
-% fprintf('Left edge [pixel]: %f, Right edge [pixel]: %f\n', ...
-%     c_vec(1) - 1, img_nc - c_vec(end));
-% fprintf('Left edge [world]: %f, Right edge [world]: %f\n', ...
-%     x_sample_vector(1) - x_world(1), x_world(end) - x_sample_vector(end));
-% fprintf('Bottom edge [pixel]: %f, Top edge [pixel]: %f\n', ...
-%     r_vec(1) - 1, img_nr - r_vec(end));
-% fprintf('Bottom edge [world]: %f, Top edge [world]: %f\n', ...
-%     y_sample_vector(1) - y_world(1), y_world(end) - y_sample_vector(end));
-% % </DEBUG>
-
-
-function result = is_even(x)
-result = all(mod(x, 2) == 0);
-
-
-function result = is_odd(x)
-result = all(mod(x, 2) == 1);
-
-
-function result = is_whole(x)
-result = mod(x, 1) == 0;
