@@ -117,14 +117,6 @@ for jj = 1:nc
     
 end
 
-% % DEBUG: let's see it
-% figure
-% imagesc(rows);
-% caxis([nanmin(bot_row), nanmax(top_row)]);
-% set(gca, 'YDir', 'Normal');
-% title('Row indices')
-% % /DEBUG
-
 % TODO: assert something about spacing, always approx 1? always < 1? not sure what is right here.
  
 % apply reflection by interpolating
@@ -133,7 +125,4 @@ end
 img_fill = img;
 [jj, ii] = meshgrid(1:nc, 1:nr); 
 img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
-mask_fill = true(size(img_fill)); % FIXME: not right, but trying to keep moving forward
-% TODO: add optional plot
-
-% keyboard
+mask_fill = ~isnan(img_fill);
