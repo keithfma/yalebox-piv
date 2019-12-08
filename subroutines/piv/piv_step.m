@@ -109,6 +109,8 @@ fprintf('%s: min_frac_data = %.3f\n', mfilename, min_frac_data);
 fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 
 % create sample grid and pad image arrays
+% FIXME: update piv_sample_grid such that the grid starts at the origin, this
+%   change is needed to respect the fact that fill has been done elsewhere
 [rr, cc, pad_r, pad_c] = piv_sample_grid(samp_len, samp_spc, size(img_ti, 1), size(img_ti, 2));
 
 % treat image boundaries

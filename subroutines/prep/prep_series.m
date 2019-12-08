@@ -1,11 +1,11 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  equalize_len, notes)
+                  equalize_len, pad_num_rows, pad_num_cols, fill_method, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
 %                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                   equalize_len, notes)
+%                   equalize_len, pad_num_rows, pad_num_cols, fill_method, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -39,6 +39,10 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %   equalize_len_len: Scalar, integer, odd. Side length (in pixels) for the local
 %       neighborhood used to compute the transform for each pixel.
 %
+%   pad_num_rows, pad_num_cols: Scalar, integers, number of rows/cols to pad out on both sides
+%
+%   fill_method: String, specify which fill method to use
+%
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
 % %
@@ -49,8 +53,8 @@ fprintf('%s: preprocessing %d images\n\n', mfilename, numel(image_names));
 update_path('prep', 'util');
 
 % set defaults
-narginchk(16, 17);
-if nargin < 17; notes = ''; end
+narginchk(19, 20);
+if nargin < 20; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
@@ -82,15 +86,13 @@ assert(exist(result_file, 'file') == 0, ...
     'Output file exists, either make space or choose another filename');
 result = matfile(result_file, 'Writable', true);
 
-% get coordinate vectors and manual mask array
+% get coordinate vectors, some size parameters, and manual mask array
 % note: created during prep steps, so prep a fake image)
 fprintf('%s: get cordinate vectors and manual mask array\n', mfilename);
 raw = zeros(img_nrow, img_ncol, 3, 'uint8'); 
 [img, xw, yw] = prep_rectify_and_crop(...
     ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, raw);
 [mask_manual, ~] = prep_mask_manual(img, mask_poly);
-
-% get some size parameters
 nx = numel(xw);
 ny = numel(yw);
 num_image = numel(image_names);
@@ -113,6 +115,8 @@ meta.args.value_lim = value_lim;
 meta.args.entropy_lim = entropy_lim;
 meta.args.entropy_len = entropy_len;
 meta.args.equalize_len = equalize_len;
+meta.args.pad_num_rows = pad_num_rows;
+meta.args.pad_num_cols = pad_num_cols;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -138,17 +142,29 @@ meta.step.notes = 'coordinate axis';
 meta.step.dimensions = {};  % is coordinate axis
 meta.step.units = '1';
 
+meta.x_ext.name = 'x_ext';
+meta.x_ext.long_name = 'horizonal position, extended';
+meta.x_ext.notes = 'coordinate axis';
+meta.x_ext.dimensions = {};
+meta.x_ext.units = 'meters';
+
+meta.y_ext.name = 'y_ext';
+meta.y_ext.long_name = 'vertical position, extended';
+meta.y_ext.notes = 'coordinate axis';
+meta.y_ext.dimensions = {};
+meta.y_ext.units = 'meters';
+
 meta.img.name = 'img'; 
 meta.img.long_name = 'rectified rgb image';
 meta.img.notes = '';
 meta.img.dimensions = {'y', 'x', 'band', 'step'};
 meta.img.units = '24-bit color';
 
-meta.img_eql.name = 'img_eql'; 
-meta.img_eql.long_name = 'histogram-equalized grayscale image';
+meta.img_eql.name = 'img_ext'; 
+meta.img_eql.long_name = 'extended grayscale image';
 meta.img_eql.notes = '';
-meta.img_eql.dimensions = {'y', 'x', 'step'};
-meta.img_eql.units = '1';
+meta.img_eql.dimensions = {'y_ext', 'x_ext', 'step'};
+meta.img_eql.units = 'normalized';
 
 meta.mask_auto.name = 'mask';
 meta.mask_auto.long_name = 'sand mask';
@@ -163,7 +179,6 @@ result.meta = meta;
 %   incremental writes to matfile slow to a crawl, allocating the variables
 %   at the outset ensures that everything fits in memory
 imgs = zeros(ny, nx, 3, num_image, 'uint8');
-img_eqls = zeros(ny, nx, num_image, 'single');
 masks = false(ny, nx, num_image);
 
 % keep track of the maximum extent of the mask
@@ -172,13 +187,14 @@ max_row = -inf;
 min_col = inf;
 max_col = -inf;
 
-% loop over all images
+% read, rectify, crop, and mask all images
+% note: will crop out empty space before pad, equalize and fill
 parfor ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
     img = imread(this_file);
      
-    fprintf('\n%s: preprocess image %s\n', mfilename, this_file);
+    fprintf('\n%s: read, rectify, crop, and mask image %s\n', mfilename, this_file);
     
     img = prep_rectify_and_crop(...
         ctrl_xp, ctrl_yp, ctrl_xw, ctrl_yw, crop_xw, crop_yw, img);
@@ -187,8 +203,6 @@ parfor ii = 1:num_image
         img, hue_lim, value_lim, entropy_lim, entropy_len, image_view);
     mask = logical(mask_auto & mask_manual);
     
-    img_eql = prep_equalize(img, mask, equalize_len);
-    
     [mask_rows, mask_cols] = ind2sub(size(mask), find(mask));
     min_row = min(min_row, min(mask_rows));
     max_row = max(max_row, max(mask_rows));
@@ -196,25 +210,67 @@ parfor ii = 1:num_image
     max_col = max(max_col, max(mask_cols));    
     
     imgs(:, :, :, ii) = uint8(img);
-    img_eqls(:, :, ii) = single(img_eql);
     masks(:, :, ii) = mask;
-
+    
 end
+
+% reduce size of data arrays
 nx = max_col - min_col + 1;  % size of reduced data arrays
 ny = max_row - min_row + 1;
+xw = xw(min_col:max_col);
+yw = yw(min_row:max_row);
+
+imgs = imgs(min_row:max_row, min_col:max_col, :, :);
+masks = masks(min_row:max_row, min_col:max_col, :);
+
+% get coordinates and size parameters for extended arrays
+[xw_ext, yw_ext, ~, ~] = prep_pad(xw, yw, ones(ny, nx), true(ny, nx), pad_num_rows, pad_num_cols);
+nx_ext = numel(xw_ext);
+ny_ext = numel(yw_ext);
+
+% allocate extended arrays
+imgs_ext = zeros(ny_ext, nx_ext, num_image, 'single');
+masks_ext = false(ny_ext, nx_ext, num_image);
+
+% equalize, pad, and fill all images
+% note: will crop out empty space before pad, equalize and fill
+parfor ii = 1:num_image
+    
+    img = imgs(:, :, :, ii);
+    mask = masks(:, :, ii);
+     
+    fprintf('\n%s: equalize, pad, and fill image %i\n', mfilename, ii);
+    
+    img = prep_equalize(img, mask, equalize_len);
+    
+    [~, ~, img_ext, mask_ext] = prep_pad(...
+        xw, yw, img, mask, pad_num_rows, pad_num_cols);
+    
+    [img_ext, mask_ext] = prep_fill(img_ext, mask_ext, fill_method);
+    
+    imgs_ext(:, :, ii) = single(img_ext);
+    masks_ext(:, :, ii) = mask_ext;
+    
+end
 
 % copy data from memory to results file
 % note: here we trim image data to maximum extent of mask i.e., exclude
 %   pixels that are always sand to reduce compute during PIV
 fprintf('\n%s: copy from memory to results file: %s\n', mfilename, result_file);
 fprintf('%s: images array size = %d x %d x 3 x %d\n', mfilename, ny, nx, num_image);
-fprintf('%s: equalized images array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
 fprintf('%s: masks array size = %d x %d x %d\n', mfilename, ny, nx, num_image);
+fprintf('%s: extended images array size = %d x %d x %d\n', mfilename, ny_ext, nx_ext, num_image);
+fprintf('%s: extended masks array size = %d x %d x %d\n', mfilename, ny_ext, nx_ext, num_image);
 
-result.x = xw(min_col:max_col);
-result.y = yw(min_row:max_row);
+result.x = xw;
+result.y = yw;
+result.x_ext = xw_ext;
+result.y_ext = yw_ext;
 result.band = 'RGB';
 result.step = 0:(num_image - 1);
-result.img = img(min_row:max_row, min_col:max_col, :, :);
-result.img_eql = img_eqls(min_row:max_row, min_col:max_col, :);
-result.mask = masks(min_row:max_row, min_col:max_col, :);
+
+result.img = imgs;
+result.mask = masks;
+
+result.img_ext = imgs_ext;
+result.mask_ext = masks_ext;
