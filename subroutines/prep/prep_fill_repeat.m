@@ -1,7 +1,7 @@
-function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
-% function img_fill = prep_fill(img, mask)
-% 
-% Fill non-sand regions of the input image by mirroring across sand boundary
+function [img_fill, mask_fill] = prep_fill_repeat(img, mask, skin_min, skin_max)
+% function [img_fill, mask_fill] = prep_fill_repeat(img, mask, skin_min, skin_max)
+%
+% Fill non-sand regions of the input image by repeating a thin layer at sand boundary
 %
 % Arguments:
 %   img: 2D matrix, rectified/cropped, and padded grayscale image
@@ -25,8 +25,8 @@ function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
 %   best in that region
 
 narginchk(2, 4);
-if nargin < 3; skin_min = 3; end
-if nargin < 4; skin_max = 10; end
+if nargin < 3; skin_min = 10; end
+if nargin < 4; skin_max = 30; end
 
 validateattributes(img, {'double', 'single'}, {'2d'});
 validateattributes(mask, {'logical'}, {'2d', 'size', size(img)});
@@ -50,7 +50,7 @@ offsets  = nan(nr, 1);
 start_idx = 1;
 while start_idx < nr
     skin_depth = randi([skin_min, skin_max], 1);
-    this = [0:skin_depth, (skin_depth - 1):-1:1];
+    this = (skin_depth - 1):-1:1;
     end_idx = min(start_idx + length(this) - 1, length(offsets));
     offsets(start_idx:end_idx) = this(1:(end_idx - start_idx + 1));
     start_idx = end_idx + 1;
@@ -78,7 +78,8 @@ end
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
-smooth_num_pts = 10;
+% EXPERIMENT!
+smooth_num_pts = 200;
 smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
 smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
 top_row = smooth_top_row;  % rename and replace
@@ -124,5 +125,7 @@ end
 % note: pixels within the mask are left unchanged, as desired
 img_fill = img;
 [jj, ii] = meshgrid(1:nc, 1:nr); 
-img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
+% EXPERIMENT!
+% img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
+img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'cubic');  % FIXME: higher order interpolants introduce NaNs
 mask_fill = ~isnan(img_fill);
