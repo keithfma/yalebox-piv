@@ -26,7 +26,7 @@ function [img_fill, mask_fill] = prep_fill_repeat(img, mask, skin_min, skin_max)
 
 narginchk(2, 4);
 if nargin < 3; skin_min = 10; end
-if nargin < 4; skin_max = 30; end
+if nargin < 4; skin_max = 40; end
 
 validateattributes(img, {'double', 'single'}, {'2d'});
 validateattributes(mask, {'logical'}, {'2d', 'size', size(img)});
@@ -83,6 +83,10 @@ smooth_num_pts = 200;
 smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
 smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
 top_row = smooth_top_row;  % rename and replace
+
+% EXPERIMENT: trim off the top layer
+trim_pixels = 40;
+top_row = max(1, top_row - trim_pixels);
  
 % build index array
 % note: resulting coordinates are not integers, due to smoothing of the upper boundary line
