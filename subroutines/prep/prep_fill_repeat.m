@@ -25,8 +25,8 @@ function [img_fill, mask_fill] = prep_fill_repeat(img, mask, skin_min, skin_max)
 %   best in that region
 
 narginchk(2, 4);
-if nargin < 3; skin_min = 10; end
-if nargin < 4; skin_max = 40; end
+if nargin < 3; skin_min = 3; end
+if nargin < 4; skin_max = 10; end
 
 validateattributes(img, {'double', 'single'}, {'2d'});
 validateattributes(mask, {'logical'}, {'2d', 'size', size(img)});
@@ -45,16 +45,29 @@ validateattributes(skin_max, {'numeric'}, {'scalar', 'integer', 'positive', '>='
 % non-repeatable randomness somewhere downstream
 rng(982198);
 
-offsets  = nan(nr, 1);
+% TODO 1111: need a true sawtooth we can interpolate into, build a cell array of offsets and
+% distance, then compose offset and offset_dist vectors to use in interpolation
 
-start_idx = 1;
-while start_idx < nr
+offsets_parts = cell(0);
+offsets_dist_parts = cell(0);
+
+max_dist = 0;
+while max_dist < nr
     skin_depth = randi([skin_min, skin_max], 1);
-    this = (skin_depth - 1):-1:1;
-    end_idx = min(start_idx + length(this) - 1, length(offsets));
-    offsets(start_idx:end_idx) = this(1:(end_idx - start_idx + 1));
-    start_idx = end_idx + 1;
+    
+    this_offsets = (skin_depth - 1):-1:0;
+    
+    this_offsets_dist = max_dist + (0:length(this_offsets) - 1);
+    this_offsets_dist(1) = this_offsets_dist(1) + eps(this_offsets_dist(1));
+    
+    offsets_parts{end + 1} = this_offsets;  %#ok!
+    offsets_dist_parts{end + 1} = this_offsets_dist;  %#ok!
+    
+    max_dist = this_offsets_dist(end);
 end
+
+offsets = cell2mat(offsets_parts);
+offsets_dist = cell2mat(offsets_dist_parts);
  
 % find row index of the top and bottom boundaries
 % TODO: rename to top_row_idx, etc, for clarity
@@ -72,13 +85,9 @@ for jj = 1:nc
     end
 end
 
-% TODO: does using a smoothed boundary really do anything? I am now skeptical, but it might be
-%   useful just to force a (smooth) resampling in the filled region.
-
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
-% EXPERIMENT!
 smooth_num_pts = 200;
 smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
 smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
@@ -96,11 +105,14 @@ for jj = 1:nc
         continue
     end
     
-    start_fill_idx = ceil(top_row(jj));
-    num_fill = nr - start_fill_idx + 1;
-    this_offsets = offsets + (start_fill_idx - top_row(jj));  % adjust so first offset mirrors boundary
-    rows(start_fill_idx:end, jj) = top_row(jj) - this_offsets(1:num_fill);
+    to_fill = rows(:, jj) > top_row(jj);
+    num_fill = sum(to_fill);
     
+    % get offsets by interpolating into the offsets vector based on distance to boundary
+    dist = rows(to_fill, jj) - top_row(jj);
+    this_offsets = interp1(offsets_dist(1:num_fill), offsets(1:num_fill), dist);
+
+    rows(to_fill, jj) = top_row(jj) - this_offsets;
 end
 
 for jj = 1:nc
@@ -119,9 +131,17 @@ for jj = 1:nc
 end
 
 
-% DEBUG 1111: review the index array to search for hard boundaries
-keyboard
-% /DEBUG 1111
+% % DEBUG 1111: review the index array to search for hard boundaries
+% figure
+% imagesc(rows);
+% caxis([265, 285]);
+% colorbar
+% hold on;
+% plot(top_row, 'Marker', '.');
+% axis equal
+% set(gca, 'XLim', [3688, 3816], 'YLim', [266, 332]);
+% keyboard
+% % /DEBUG 1111
 
 
 % TODO: assert something about spacing, always approx 1? always < 1? not sure what is right here.
