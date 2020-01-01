@@ -83,10 +83,6 @@ smooth_num_pts = 200;
 smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
 smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
 top_row = smooth_top_row;  % rename and replace
-
-% EXPERIMENT: trim off the top layer
-trim_pixels = 40;
-top_row = max(1, top_row - trim_pixels);
  
 % build index array
 % note: resulting coordinates are not integers, due to smoothing of the upper boundary line
@@ -121,6 +117,12 @@ for jj = 1:nc
     rows(1:num_fill, jj) = bot_row(jj) + this_offsets(num_fill:-1:1);
     
 end
+
+
+% DEBUG 1111: review the index array to search for hard boundaries
+keyboard
+% /DEBUG 1111
+
 
 % TODO: assert something about spacing, always approx 1? always < 1? not sure what is right here.
  

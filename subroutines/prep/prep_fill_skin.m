@@ -46,6 +46,7 @@ validateattributes(skin_max, {'numeric'}, {'scalar', 'integer', 'positive', '>='
 rng(982198);
 
 offsets  = nan(nr, 1);
+offsets_dist = 0:(nr-1);  % first element of the offset vector corresponds to the boundary
 
 start_idx = 1;
 while start_idx < nr
@@ -72,9 +73,6 @@ for jj = 1:nc
     end
 end
 
-% TODO: does using a smoothed boundary really do anything? I am now skeptical, but it might be
-%   useful just to force a (smooth) resampling in the filled region.
-
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
@@ -95,12 +93,20 @@ for jj = 1:nc
         continue
     end
     
-    start_fill_idx = ceil(top_row(jj));
-    num_fill = nr - start_fill_idx + 1;
-    this_offsets = offsets + (start_fill_idx - top_row(jj));  % adjust so first offset mirrors boundary
-    rows(start_fill_idx:end, jj) = top_row(jj) - this_offsets(1:num_fill);
+    to_fill = rows(:, jj) > top_row(jj);
+    num_fill = sum(to_fill);
     
+    % get offsets by interpolating into the offsets vector based on distance to boundary
+    dist = rows(to_fill, jj) - top_row(jj);
+    this_offsets = interp1(offsets_dist(1:num_fill), offsets(1:num_fill), dist);
+
+    rows(to_fill, jj) = top_row(jj) - this_offsets;
+
 end
+
+% TODO 1111: use same method as top fill here, abstract away to a helper
+% TODO 1111: repeat pad should use a simliar method, but iterpolating will be problematic given the
+%   "jump" between offsets when the cycle repeats.
 
 for jj = 1:nc
     
@@ -117,8 +123,18 @@ for jj = 1:nc
     
 end
 
-% TODO: assert something about spacing, always approx 1? always < 1? not sure what is right here.
- 
+% % DEBUG 1111: review the index array to search for hard boundaries
+% figure
+% imagesc(rows);
+% caxis([265, 285]);
+% colorbar
+% hold on;
+% plot(top_row, 'Marker', '.');
+% axis equal
+% set(gca, 'XLim', [3688, 3816], 'YLim', [266, 332]);
+% keyboard
+% % /DEBUG 1111
+
 % apply reflection by interpolating
 % black out regions with no sand at all
 % note: pixels within the mask are left unchanged, as desired

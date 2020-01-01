@@ -166,6 +166,12 @@ mask_auto = prep_mask_auto(...
 
 param = load_param(PREP_PARAM_FILE);
 
+% % DEBUG 1111: temporarily load variables up to this point from file
+% % and modify parameters temporarily
+% load debug-inputs.mat
+% param.fill_method.value = 'skin';
+% % /DEBUG 1111
+
 img = prep_grayscale(rgb);
 
 [x_pad, y_pad, img_pad, mask_pad] = prep_pad(...
@@ -175,8 +181,6 @@ img = prep_grayscale(rgb);
     mask_auto & mask_manual, ...
     param.pad_num_rows.value, ...
     param.pad_num_cols.value);
-
-% Might want to find a way to smooth transitions in the fill, feathering edges perhaps?
 
 [img_fill, mask_fill] = prep_fill(...
     img_pad, ...
