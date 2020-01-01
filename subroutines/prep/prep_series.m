@@ -241,8 +241,6 @@ parfor ii = 1:num_image
      
     fprintf('\n%s: equalize, pad, and fill image %i\n', mfilename, ii);
     
-    % DEBUG: try not equalizing
-    
     img = prep_grayscale(img);
     
     [~, ~, img_ext, mask_ext] = prep_pad(...
@@ -250,7 +248,7 @@ parfor ii = 1:num_image
     
     [img_ext, mask_ext] = prep_fill(img_ext, mask_ext, fill_method);
     
-%     img_ext = prep_equalize(img_ext, mask_ext, equalize_len);
+    img_ext = prep_equalize(img_ext, mask_ext, equalize_len);
     
     imgs_ext(:, :, ii) = single(img_ext);
     masks_ext(:, :, ii) = mask_ext;
