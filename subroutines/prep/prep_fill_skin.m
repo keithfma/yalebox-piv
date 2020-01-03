@@ -14,8 +14,6 @@ function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
 %   mask_fill: 2D matrix, image mask matching size of img_fill
 % %
 
-% TODO: what if I ran this on the RGB panes, and equalized afterwards on a full image?
-
 % TODO: consider what to do about left and right side padding
 
 % TODO: consider what to do about regions of the image with no sand at all during buildup phase,
@@ -45,12 +43,22 @@ validateattributes(skin_max, {'numeric'}, {'scalar', 'integer', 'positive', '>='
 % non-repeatable randomness somewhere downstream
 rng(982198);
 
+skin_depth_idx = 1;
+skin_depths = []; 
+
 offsets  = nan(nr, 1);
 offsets_dist = 0:(nr-1);  % first element of the offset vector corresponds to the boundary
 
 start_idx = 1;
 while start_idx < nr
-    skin_depth = randi([skin_min, skin_max], 1);
+    
+    if skin_depth_idx > length(skin_depths)
+        skin_depths =  randperm(skin_max - skin_min + 1) + skin_min -1;  % random permutation of ints in range [skin_min, skin_max], inclusive
+        skin_depth_idx = 1;
+    end
+    skin_depth = skin_depths(skin_depth_idx);
+    skin_depth_idx = skin_depth_idx + 1;
+        
     this = [0:skin_depth, (skin_depth - 1):-1:1];
     end_idx = min(start_idx + length(this) - 1, length(offsets));
     offsets(start_idx:end_idx) = this(1:(end_idx - start_idx + 1));

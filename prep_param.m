@@ -166,11 +166,11 @@ mask_auto = prep_mask_auto(...
 
 param = load_param(PREP_PARAM_FILE);
 
-% % DEBUG 1111: temporarily load variables up to this point from file
-% % and modify parameters temporarily
-% load debug-inputs.mat
-% param.fill_method.value = 'skin';
-% % /DEBUG 1111
+% DEBUG 1111: temporarily load variables up to this point from file
+% and modify parameters temporarily
+load debug-inputs.mat
+param.fill_method.value = 'skin';
+% /DEBUG 1111
 
 img = prep_grayscale(rgb);
 
@@ -191,8 +191,6 @@ img = prep_grayscale(rgb);
 %% equalize histogram -- edit param file to update
 
 param = load_param(PREP_PARAM_FILE);
-
-% TODO: try a built-in equalization for speed?
 
 img_eql = prep_equalize(...
     img_fill, ...
