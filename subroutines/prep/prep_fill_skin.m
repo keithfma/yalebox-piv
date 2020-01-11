@@ -23,8 +23,8 @@ function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
 %   best in that region
 
 narginchk(2, 4);
-if nargin < 3; skin_min = 3; end
-if nargin < 4; skin_max = 10; end
+if nargin < 3; skin_min = 20; end
+if nargin < 4; skin_max = 30; end
 
 validateattributes(img, {'double', 'single'}, {'2d'});
 validateattributes(mask, {'logical'}, {'2d', 'size', size(img)});
@@ -80,6 +80,9 @@ for jj = 1:nc
         top_row(jj) = ii_top;
     end
 end
+
+% % EXPERIMENT: trim upper layer off
+% top_row = max(0, top_row - 20);
 
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
