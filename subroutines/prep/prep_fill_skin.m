@@ -6,8 +6,10 @@ function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max)
 % Arguments:
 %   img: 2D matrix, rectified/cropped, and padded grayscale image
 %   mask: 2D matrix, logical mask of sand pixels in img
-%   skin_min: Optional integer, TODO
-%   skin_sax: Optional integer, TODO
+%   skin_min: Optional integer, minimum thickness of skin layer to mirror when filling, 
+%       will choose a random series of thicknesses between 'skin_min' and 'skin_max'
+%   skin_sax: Optional integer, maximum thickness of skin layer to mirror when filling,
+%       will choose a random series of thicknesses between 'skin_min' and 'skin_max'
 %
 % Outputs:
 %   img_fill: 2D matrix, filled grayscale image
@@ -36,9 +38,6 @@ validateattributes(skin_max, {'numeric'}, {'scalar', 'integer', 'positive', '>='
 
 % create repeatably random offset vector 
 
-% TODO: replace with random permutations of possible skin widths, which should better assure we do
-%   not repeat and get degenerate PIV results
-
 % set seed, note that this modifies the global stream, which should be fine unless we require
 % non-repeatable randomness somewhere downstream
 rng(982198);
@@ -66,31 +65,27 @@ while start_idx < nr
 end
  
 % find row index of the top and bottom boundaries
-% TODO: rename to top_row_idx, etc, for clarity
-top_row = nan(1, nc);
-bot_row = nan(1, nc);
+top_row_idx = nan(1, nc);
+bot_row_idx = nan(1, nc);
 
 for jj = 1:nc
     ii_bot = find(mask(:, jj), 1, 'first');
     if ~isempty(ii_bot)
-        bot_row(jj) = ii_bot;
+        bot_row_idx(jj) = ii_bot;
     end
     ii_top = find(mask(:, jj), 1, 'last');
     if ~isempty(ii_top)
-        top_row(jj) = ii_top;
+        top_row_idx(jj) = ii_top;
     end
 end
-
-% % EXPERIMENT: trim upper layer off
-% top_row = max(0, top_row - 20);
 
 % smooth the upper boundary line
 % note: lower boundary is *not* smooth due to the presence of the 
 %   metal support in the image, leave it alone
 smooth_num_pts = 10;
-smooth_top_row = smooth(top_row, smooth_num_pts/length(top_row), 'lowess')';
-smooth_top_row(isnan(top_row)) = nan;  % do not extrapolate! these regions have no pixels to mirror
-top_row = smooth_top_row;  % rename and replace
+smooth_top_row_idx = smooth(top_row_idx, smooth_num_pts/length(top_row_idx), 'lowess')';
+smooth_top_row_idx(isnan(top_row_idx)) = nan;  % do not extrapolate! these regions have no pixels to mirror
+top_row_idx = smooth_top_row_idx;  % rename and replace
  
 % build index array
 % note: resulting coordinates are not integers, due to smoothing of the upper boundary line
@@ -98,39 +93,37 @@ top_row = smooth_top_row;  % rename and replace
 
 for jj = 1:nc
     
-    if isnan(top_row(jj))
+    if isnan(top_row_idx(jj))
         % not enough to pad with, skip
         % TODO: handle case where there is something, but less than the skin depth
         continue
     end
     
-    to_fill = rows(:, jj) > top_row(jj);
+    to_fill = rows(:, jj) > top_row_idx(jj);
     num_fill = sum(to_fill);
     
     % get offsets by interpolating into the offsets vector based on distance to boundary
-    dist = rows(to_fill, jj) - top_row(jj);
+    dist = rows(to_fill, jj) - top_row_idx(jj);
     this_offsets = interp1(offsets_dist(1:num_fill), offsets(1:num_fill), dist);
 
-    rows(to_fill, jj) = top_row(jj) - this_offsets;
+    rows(to_fill, jj) = top_row_idx(jj) - this_offsets;
 
 end
 
 % TODO 1111: use same method as top fill here, abstract away to a helper
-% TODO 1111: repeat pad should use a simliar method, but iterpolating will be problematic given the
-%   "jump" between offsets when the cycle repeats.
 
 for jj = 1:nc
     
-    if isnan(bot_row(jj))
+    if isnan(bot_row_idx(jj))
         % not enough to pad with, skip
         % TODO: handle case where there is something, but less than the skin depth
         continue
     end
     
-    start_fill_idx = floor(bot_row(jj)); % TODO: this fails! we get a repeat value, try adding one then taking floor
+    start_fill_idx = floor(bot_row_idx(jj)); % TODO: this fails! we get a repeat value, try adding one then taking floor
     num_fill = start_fill_idx + 1;
-    this_offsets = offsets + (bot_row(jj) - start_fill_idx);  % adjust so first offset mirrors boundary
-    rows(1:num_fill, jj) = bot_row(jj) + this_offsets(num_fill:-1:1);
+    this_offsets = offsets + (bot_row_idx(jj) - start_fill_idx);  % adjust so first offset mirrors boundary
+    rows(1:num_fill, jj) = bot_row_idx(jj) + this_offsets(num_fill:-1:1);
     
 end
 
@@ -140,7 +133,7 @@ end
 % caxis([265, 285]);
 % colorbar
 % hold on;
-% plot(top_row, 'Marker', '.');
+% plot(top_row_idx, 'Marker', '.');
 % axis equal
 % set(gca, 'XLim', [3688, 3816], 'YLim', [266, 332]);
 % keyboard
