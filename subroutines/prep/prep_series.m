@@ -1,11 +1,13 @@
 function [] = prep_series(result_file, image_path, image_names, image_view, ...
                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-                  equalize_len, pad_num_rows, pad_num_cols, fill_method, notes)
+                  equalize_len, pad_num_rows, pad_num_cols, fill_skin_min, ...
+                  fill_skin_max, fill_bnd_smooth_window, fill_mirror, notes)
 % function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %                   ctrl_xw, ctrl_yw, ctrl_xp, ctrl_yp, crop_xw, crop_yw, ...
 %                   mask_poly, hue_lim, value_lim, entropy_lim, entropy_len, ...
-%                   equalize_len, pad_num_rows, pad_num_cols, fill_method, notes)
+%                   equalize_len, pad_num_rows, pad_num_cols, fill_skin_min, ...
+%                   fill_skin_max, fill_bnd_smooth_window, fill_mirror, notes)
 % 
 % Create PIV input file for a given image series. Reads in the images,
 % rectifies and crops, masks, corrects illumination, and saves the results
@@ -36,12 +38,18 @@ function [] = prep_series(result_file, image_path, image_names, image_view, ...
 %
 %   entropy_len = Size of entropy filter window, see prep_mask_auto()
 %
-%   equalize_len_len: Scalar, integer, odd. Side length (in pixels) for the local
+%   equalize_len: Scalar, integer, odd. Side length (in pixels) for the local
 %       neighborhood used to compute the transform for each pixel.
 %
 %   pad_num_rows, pad_num_cols: Scalar, integers, number of rows/cols to pad out on both sides
 %
-%   fill_method: String, specify which fill method to use
+%   fill_skin_min, fill_skin_max: Scalar, integers, thickness of skin layer used in padding, see
+%       prep_fill() for details.
+%
+%   fill_bnd_smooth_window: Integer, smoothing window to apply to boundary prior to fill, see
+%       prep_fill() for details.
+%
+%   fill_mirror: bool, set true to mirror skin layer, or false to repeat it
 %
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
@@ -117,6 +125,10 @@ meta.args.entropy_len = entropy_len;
 meta.args.equalize_len = equalize_len;
 meta.args.pad_num_rows = pad_num_rows;
 meta.args.pad_num_cols = pad_num_cols;
+meta.args.fill_skin_min = fill_skin_min;
+meta.args.fill_skin_max = fill_skin_max;
+meta.args.fill_bnd_smooth_window = fill_bnd_smooth_window;
+meta.args.fill_mirror = fill_mirror;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -246,7 +258,8 @@ parfor ii = 1:num_image
     [~, ~, img_ext, mask_ext] = prep_pad(...
         xw, yw, img, mask, pad_num_rows, pad_num_cols);
     
-    [img_ext, mask_ext] = prep_fill(img_ext, mask_ext, fill_method);
+    [img_ext, mask_ext] = prep_fill(...
+        img_ext, mask_ext, fill_skin_min, fill_skin_max, fill_bnd_smooth_window);
     
     img_ext = prep_equalize(img_ext, mask_ext, equalize_len);
     

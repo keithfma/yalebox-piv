@@ -95,6 +95,18 @@ pp.pad_num_cols.value = 100;
 pp.fill_method.help = 'Name of the method used to fill non-sand pixels in the image and pad, valid options are: "none"';
 pp.fill_method.value = 'none';
 
+pp.fill_skin_min.help = 'Integer, minimum thickness of skin layer to use when filling';
+pp.fill_skin_min.value = 3;
+
+pp.fill_skin_max.help = 'Integer, maximum thickness of skin layer to use when filling';
+pp.fill_skin_max.value = 10;
+
+pp.fill_bnd_smooth_window.help = 'width of the (loess) smoothing window to apply to the upper boundary before computing the skin layer, set to 0 to disable smoothing';
+pp.fill_bnd_smooth_window.value = 10;
+
+pp.fill_mirror.help = 'logical, set True to mirror the skin layer when filling, or false to repeat it';
+pp.fill_mirror.value = false;
+
 % save as file ---
 
 if nargin > 0
