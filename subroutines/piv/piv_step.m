@@ -137,6 +137,7 @@ for pp = 1:np
         cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
      
     % interpolate valid vectors to full sample grid
+    % TODO: use fancy stuff again?
     invalid = qual ~= Quality.Valid;
     uu(invalid) = NaN;
     vv(invalid) = NaN;

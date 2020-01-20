@@ -5,7 +5,7 @@ function display_piv(piv_result, prefix)
 % results
 %
 % Arguments:
-%   piv_result: Struct, results for PIV analysis as returned by piv()
+%   piv_result: Struct, results for PIV analysis as returned by piv_step()
 %   prefix: String, optional prefix for subplot titles
 % %
 
@@ -39,7 +39,7 @@ colorbar;
 draw_mask(xx, yy, mask);
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
-title([prefix, 'Displacement Magnitude']);
+title([prefix, ' Displacement Magnitude'], 'Interpreter', 'none');
 
 % plot x-direction displacement magnitude, [mm/step]
 ax2 = subplot(4, 1, 2);
@@ -50,7 +50,7 @@ colorbar;
 draw_mask(xx, yy, mask);
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
-title([prefix, 'X-Direction Displacement']);
+title([prefix, ' X-Direction Displacement'], 'Interpreter', 'none');
 
 % plot y-direction displacement magnitude, [mm/step]
 ax3 = subplot(4, 1, 3);
@@ -60,7 +60,7 @@ colorbar;
 draw_mask(xx, yy, mask);
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
-title([prefix, 'Y-Direction Displacement']);
+title([prefix, ' Y-Direction Displacement'], 'Interpreter', 'none');
 
 % plot quality flags, [categorical]
 ax4 = subplot(4, 1, 4);
@@ -78,7 +78,7 @@ hcb.TickLabels = names;
 draw_mask(xx, yy, mask);
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
-title([prefix, 'Quality Flags']);
+title([prefix, ' Quality Flags'], 'Interpreter', 'none');
 
 % some final formatting
 linkaxes([ax1, ax2, ax3, ax4]);

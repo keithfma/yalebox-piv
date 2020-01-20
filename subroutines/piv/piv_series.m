@@ -171,10 +171,10 @@ for ii = 1:num_step
     fprintf('%s: fin_step = %d\n', mfilename, step_img(fin_idx(ii)));
     
     % update image and mask pair
-    img_ini = img(:, :, :, ini_idx(ii));
+    img_ini = img(:, :, ini_idx(ii));
     mask_img_ini = mask_img(:, :, ini_idx(ii));
     
-    img_fin = img(:, :, :, fin_idx(ii));
+    img_fin = img(:, :, fin_idx(ii));
     mask_img_fin = mask_img(:, :, fin_idx(ii));
     
     % perform piv analysis
@@ -190,7 +190,7 @@ for ii = 1:num_step
         % allocate other output variables
         % note: num_step is forced to be >= 2 b/c there is no way to have
         %   a singleton as the last dimension
-        dims = [length(output.y), length(output.x), min(num_step, 2)];
+        dims = [length(output.y), length(output.x), max(num_step, 2)];
         allocate(output, 'u', 'double', dims);
         allocate(output, 'v', 'double', dims);
         allocate(output, 'quality', 'uint8', dims);
@@ -215,9 +215,9 @@ function [x, y, step, img, mask] = read_input_data(input_file)
 % memory use
 % %
 fprintf('%s: read input data from %s\n', mfilename, input_file);
-input_data = load(input_file, 'x', 'y', 'step', 'img', 'mask');
-x = double(input_data.x);
-y = double(input_data.y);
+input_data = load(input_file, 'x_ext', 'y_ext', 'step', 'img_ext', 'mask_ext');
+x = double(input_data.x_ext);
+y = double(input_data.y_ext);
 step = double(input_data.step);
-img = input_data.img;
-mask = input_data.mask;
+img = input_data.img_ext;
+mask = input_data.mask_ext;

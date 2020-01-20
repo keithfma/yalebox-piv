@@ -1,5 +1,5 @@
-function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
-% function [img_fill, mask_fill] = prep_fill_skin(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
+function [img_fill, mask_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
+% function [img_fill, mask_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
 % 
 % Fill non-sand regions of the input image by mirroring across sand boundary
 %
@@ -56,7 +56,7 @@ rng(982198);
 % create repeatably random offset vector 
 if mirror
     [offsets, offsets_dist] = mirror_offsets(nr, skin_min, skin_max);
-else:
+else
     [offsets, offsets_dist] = repeat_offsets(nr, skin_min, skin_max);
 end
 
@@ -157,7 +157,7 @@ end
 end
 
 
-function [offs, offsets_dist] = mirror_offsets(num_rows, min_depth, max_depth)
+function [offs, offs_dist] = mirror_offsets(num_rows, min_depth, max_depth)
 % function [offsets, offsets_dist] = mirror_offsets(num_rows, min_depth, max_depth)
 % 
 % Create vector of offsets (from boundary inwards) for filled region by mirroring the skin layer
@@ -197,7 +197,7 @@ end
 end
 
  
-function [offs, offsets_dist] = repeat_offsets(num_rows, min_depth, max_depth)
+function [offs, offs_dist] = repeat_offsets(num_rows, min_depth, max_depth)
 % function [offsets, offsets_dist] = repeat_offsets(num_rows, min_depth, max_depth)
 % 
 % Create vector of offsets (from boundary inwards) for filled region by repeating the skin layer
@@ -216,7 +216,7 @@ offs_parts = cell(0);
 offs_dist_parts = cell(0);
 
 max_dist = 0;
-while max_dist < nr
+while max_dist < num_rows
     depth = randi([min_depth, max_depth], 1);
     
     this_offs = (depth - 1):-1:0;

@@ -23,12 +23,11 @@ spin = strain_result.spin; spin(~piv_mask) = NaN;
 
 % get data limits
 [xx, yy] = meshgrid(strain_result.x, strain_result.y);
-roi = ~isnan(strain_result.Dd);
-xlim = [min(xx(roi)), max(xx(roi))];
-ylim = [min(yy(roi)), max(yy(roi))];
-Ddlim = prctile(strain_result.Dd(:), [5, 95]);
-Dvlim = prctile(strain_result.Dv(:), [5, 95]);
-spinlim = prctile(strain_result.spin(:), [5, 95]);
+xlim = [min(xx(piv_mask)), max(xx(piv_mask))];
+ylim = [min(yy(piv_mask)), max(yy(piv_mask))];
+Ddlim = prctile(strain_result.Dd(piv_mask), [5, 95]);
+Dvlim = prctile(strain_result.Dv(piv_mask), [5, 95]);
+spinlim = prctile(strain_result.spin(piv_mask), [5, 95]);
 
 % plot Dd
 figure

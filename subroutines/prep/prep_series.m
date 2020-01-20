@@ -61,8 +61,8 @@ fprintf('%s: preprocessing %d images\n\n', mfilename, numel(image_names));
 update_path('prep', 'util');
 
 % set defaults
-narginchk(19, 20);
-if nargin < 20; notes = ''; end
+narginchk(22, 23);
+if nargin < 23; notes = ''; end
 
 % check for sane arguments (pass-through arguments are checked in subroutines)
 validateattributes(result_file, {'char'}, {'vector'});
