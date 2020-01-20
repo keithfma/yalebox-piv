@@ -32,6 +32,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'inpaint_nans'));
         case 'export_fig'
             addpath(fullfile(dependencies, 'export_fig'));
+        case 'allcomb'
+            addpath(fullfile(dependencies, 'allcomb'));
         
         % subroutines
         case 'prep'
