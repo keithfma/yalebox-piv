@@ -17,6 +17,10 @@
 % TODO: respect gap parameter
 % TODO: remove a lot of this_ prefixes
 % TODO: save all as fig and png (for exploration and sharing)
+% TODO: drop allcomb, just run a single case and defer looping to outside
+
+% note: not bothering to include test cases for post-processing, as there are basically
+%   no adjustable parameters at present.
 
 update_path('util', 'prep', 'piv', 'post', 'allcomb');
 
@@ -39,85 +43,97 @@ overwrite_piv = false;
 prep_cases = get_cases(prep_test_params);
 piv_cases = get_cases(piv_test_params);
 
+PLOT_FORMATS = {'png', 'fig'};
+
 for ii = 1:length(prep_cases)
-   
-    % run prep case
-    this_prep_case = prep_cases(ii);
-    this_prep_name = get_case_name(this_prep_case);
-    this_image_file = fullfile(dest_dir, sprintf('IMAGE-%s.mat', this_prep_name));
-    this_prep_param = update_case_params(base_prep_param_file, this_prep_case);
-    this_prep_param.exp_files.value = this_prep_param.exp_files.value(test_index:test_index+1);
+    
+    % run prep
+    prep_case = prep_cases(ii);
+    prep_name = get_case_name(prep_case);
+    image_file = get_file_name(dest_dir, prep_name, '', '-IMAGE.mat');
     
     fprintf('----------------------------------\n');
-    fprintf('Prep case %d/%d: %s\n', ii, length(prep_cases), this_prep_name);
+    fprintf('Prep case %d/%d: %s\n', ii, length(prep_cases), prep_name);
     fprintf('----------------------------------\n\n');
     
-    if isfile(this_image_file) && overwrite_prep
-        delete(this_image_file)
+    if need_to_run(image_file, overwrite_prep)
+        prep_param = update_case_params(base_prep_param_file, prep_case);
+        prep_param.exp_files.value = prep_param.exp_files.value(test_index:test_index+1);
+        prep(prep_param, image_file);
     end
-    if isfile(this_image_file)
-        fprintf('Image file exists, skipping: %s\n', this_image_file);
-    else
-        prep(this_prep_param, this_image_file);
-    end
-    
-    % TODO: plot any prep results you wish to plot
-    
         
     for jj = 1:length(piv_cases)
         
-        % run PIV case
-        this_piv_case = piv_cases{jj};
-        this_piv_name = get_case_name(this_piv_case);
-        this_piv_file = fullfile(dest_dir, sprintf('PIV-%s-PREP-%s.mat', this_piv_name, this_prep_name));
-        this_piv_param = update_case_params(base_piv_param_file, this_piv_case);
-        
+        % run PIV
+        piv_case = piv_cases{jj};
+        piv_name = get_case_name(piv_case);
+        piv_file = get_file_name(dest_dir, prep_name, piv_name, '-VELOCITY.mat');
+       
         fprintf('----------------------------------\n');
-        fprintf('PIV case %d/%d: %s\n', jj, length(piv_cases), this_piv_name);
+        fprintf('PIV case %d/%d: %s\n', jj, length(piv_cases), piv_name);
         fprintf('----------------------------------\n\n');
         
-        if isfile(this_piv_file) && overwrite_piv
-            delete(this_piv_file);
+        if need_to_run(piv_file, overwrite_piv)
+            piv_param = update_case_params(base_piv_param_file, piv_case);
+            piv(piv_param, image_file, piv_file);
         end
-        if isfile(this_piv_file)
-            fprintf('PIV file exists, skipping: %s\n', this_piv_file);
-        else
-           piv(this_piv_param, this_image_file, this_piv_file);
+        piv_result = get_single_piv_result(load(piv_file));
+        
+        % run strain
+        this_strain_result = post_strain(piv_result.x, piv_result.y, piv_result.u, piv_result.v);
+        
+        % make plots
+        plot_prefix = sprintf('PIV: %s; PREP: %s;', piv_name, prep_name);
+        display_piv(piv_result, plot_prefix)
+        for kk = 1:length(PLOT_FORMATS)
+            fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-VELOCITY.%s', PLOT_FORMATS{kk}));
+            saveas(gcf, fn);
         end
         
-        % plot and save PIV results
-        this_piv_result = get_single_piv_result(load(this_piv_file));
-        this_plot_prefix = sprintf('PIV: %s; PREP: %s;', this_piv_name, this_prep_name);
-        this_piv_plot_file = fullfile(...
-            dest_dir, sprintf('PIV-%s-PREP-%s-DISPLACEMENT.png', this_piv_name, this_prep_name));
-        display_piv(this_piv_result, this_plot_prefix)
-        saveas(gcf, this_piv_plot_file, 'png');
-        
-        % TODO: loop over strain cases
-        
-        % TODO: use strain results saved above
-        % plot and save strain results
-        this_strain_plot_file = fullfile(...
-            dest_dir, sprintf('PIV-%s-PREP-%s-STRAIN.png', this_piv_name, this_prep_name));
-        this_strain_result = post_strain(...
-            this_piv_result.x(1,:), ...
-            this_piv_result.y(:,1), ...
-            this_piv_result.u, ...
-            this_piv_result.v);
-        display_strain(this_strain_result, this_piv_result.mask, this_plot_prefix);
-        saveas(gcf, this_strain_plot_file, 'png');
-        
-        keyboard
+        display_strain(this_strain_result, piv_result.mask, plot_prefix);
+        for kk = 1:length(PLOT_FORMATS)
+            fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-STRAIN.%s', PLOT_FORMATS{kk}));
+            saveas(gcf, fn);
+        end
+           
     end
     
 end
 
 
+function name = get_file_name(folder, prep_name, piv_name, suffix)
+% helper function to build a standardized filename
+    
+name = '';
+    if ~isempty(prep_name)
+        name = sprintf('PREP-%s', prep_name);
+    end
+    if ~isempty(piv_name)
+        name = [sprintf('PIV-%s-', piv_name), name];
+    end
+    name = fullfile(folder, [name, suffix]);
+    
+end
+    
+
+function tf = need_to_run(file, overwrite)
+% helper function to prepare for running a arbitrary stage, return True to run, or False to skip
+     if isfile(file) && overwrite
+            delete(file);
+     end
+     if isfile(file)
+         fprintf('File exists, skipping: %s\n', file);
+         tf = false;
+     else
+         tf = true;
+     end
+end
+   
+
 function result = get_single_piv_result(results)
 % helper function to pull a single PIV result struct out of a series of them
     
-    [x, y] = meshgrid(results.x, results.y);
-    result = struct('x', x, 'y', y, 'u', results.u(:, :, 1), ...
+    result = struct('x', results.x, 'y', results.y, 'u', results.u(:, :, 1), ...
                     'v', results.v(:, :, 1), 'mask', results.mask(:, :, 1), ...
                     'quality', results.quality(:, :, 1));
 

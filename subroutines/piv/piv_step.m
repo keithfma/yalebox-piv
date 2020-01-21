@@ -152,8 +152,10 @@ end
 [uu, vv] = displ_intrinsic_to_world(uu, vv, x_img, y_img);
 
 % package results as structure
+x = xx(1, :); x = x(:);  % convert to vectors
+y = yy(:, 1); y = y(:);
 result = struct(...
-    'x', xx, 'y', yy, 'u', uu, 'v', vv, 'quality', qual, 'mask', mask);
+    'x', x, 'y', y, 'u', uu, 'v', vv, 'quality', qual, 'mask', mask);
 
 end
 

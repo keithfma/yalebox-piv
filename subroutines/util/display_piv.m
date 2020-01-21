@@ -24,8 +24,8 @@ qual = piv_result.quality;
 mask = piv_result.mask;
 
 % get data limits
-xlim = [min(xx(:)), max(xx(:))];
-ylim = [min(yy(:)), max(yy(:))];
+xlim = [min(xx), max(xx)];
+ylim = [min(yy), max(yy)];
 
 hf = figure;
 
@@ -33,7 +33,7 @@ hf = figure;
 % FIXME: ain't no direction here yet...
 ax1 = subplot(4, 1, 1);
 mm = sqrt(uu.^2 + vv.^2);
-imagesc(xx(1,:), yy(:,1), mm*1000);
+imagesc(xx, yy, mm*1000);
 scale_cmap(mm*1000);
 colorbar;
 draw_mask(xx, yy, mask);
@@ -43,7 +43,7 @@ title([prefix, ' Displacement Magnitude'], 'Interpreter', 'none');
 
 % plot x-direction displacement magnitude, [mm/step]
 ax2 = subplot(4, 1, 2);
-imagesc(xx(1,:), yy(:,1), uu*1000);
+imagesc(xx, yy, uu*1000);
 scale_cmap(uu*1000);
 colormap(gca, flipud(colormap)); % flow is in negative x direction
 colorbar;
@@ -54,7 +54,7 @@ title([prefix, ' X-Direction Displacement'], 'Interpreter', 'none');
 
 % plot y-direction displacement magnitude, [mm/step]
 ax3 = subplot(4, 1, 3);
-imagesc(xx(1,:), yy(:,1), vv*1000);
+imagesc(xx, yy, vv*1000);
 scale_cmap(vv*1000);
 colorbar;
 draw_mask(xx, yy, mask);
@@ -64,7 +64,7 @@ title([prefix, ' Y-Direction Displacement'], 'Interpreter', 'none');
 
 % plot quality flags, [categorical]
 ax4 = subplot(4, 1, 4);
-imagesc(xx(1,:), yy(:,1), Quality.to_uint8(qual), ...
+imagesc(xx, yy, Quality.to_uint8(qual), ...
     'AlphaData', qual ~= Quality.Valid);
 [members, names] = enumeration('Quality');
 names(members == Quality.Valid) = [];
@@ -91,8 +91,8 @@ function draw_mask(xx, yy, mask)
 hold on
 mask_bounds = bwboundaries(mask);
 for ii = 1:numel(mask_bounds)
-    mask_x = xx(1, mask_bounds{ii}(:, 2));
-    mask_y = yy(mask_bounds{ii}(:, 1), 1);
+    mask_x = xx(mask_bounds{ii}(:, 2));
+    mask_y = yy(mask_bounds{ii}(:, 1));
     plot(mask_x, mask_y, '-k');
 end
 

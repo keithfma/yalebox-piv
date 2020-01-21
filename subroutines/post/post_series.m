@@ -1,7 +1,7 @@
 function [] = post_series(input_file, output_file, pro_bbox, ...
-                          retro_bbox, pad_method, notes)
+                          retro_bbox, notes)
 % function [] = post_series(input_file, output_file, pro_bbox, ...
-%                           retro_bbox, pad_method, notes)
+%                           retro_bbox, notes)
 % 
 % Run post-processing analyses on PIV data, and saves the results and
 % metadata in a MAT-file file.
@@ -17,8 +17,6 @@ function [] = post_series(input_file, output_file, pro_bbox, ...
 %   pro_bbox, retro_bbox: 4-element position vectors [xmin, ymin, width,
 %       height] for the bounding boxes used to estimate pro- and retro-
 %       plate displacements from PIV data.
-%
-%   pad_method: String, ...
 %
 %   notes: String, notes to be included in output MAT-file as a global
 %       attribute. default = ''
@@ -54,7 +52,6 @@ meta.version = get_version();
 meta.piv_file_md5 = md5_hash(input_file);
 meta.args.pro_bbox = pro_bbox;
 meta.args.retro_bbox = retro_bbox;
-meta.args.pad_method = pad_method;
 
 meta.x.name = 'x';
 meta.x.long_name = 'horizontal position';
@@ -242,7 +239,7 @@ for ii = 1:num_steps
     output_data.u_retro(ii, 1) = uv_retro(1);
     output_data.v_retro(ii, 1) = uv_retro(2);
     
-    strain = post_strain(xx, yy, uu, vv, roi, pad_method);
+    strain = post_strain(xx, yy, uu, vv, roi);
     for jj = 1:length(vars_3d)
         output_data.(vars_3d{jj})(:, :, ii) = strain.(vars_3d{jj});
     end

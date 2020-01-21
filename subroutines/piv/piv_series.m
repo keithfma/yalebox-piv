@@ -185,8 +185,8 @@ for ii = 1:num_step
     
     if ii == 1
         % copy and save spatial coordinate vectors, created during PIV
-        output.x = reshape(piv_data.x(1, :), size(piv_data.x, 2), 1);
-        output.y = reshape(piv_data.y(:, 1), size(piv_data.y, 1), 1);
+        output.x = piv_data.x;
+        output.y = piv_data.y;
         % allocate other output variables
         % note: num_step is forced to be >= 2 b/c there is no way to have
         %   a singleton as the last dimension
