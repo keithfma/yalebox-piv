@@ -1,103 +1,82 @@
-% function cases(base_prep_param_file, base_piv_param_file, prep_cases_map, piv_cases_map)
-%
 %
 % Run a set of experiments exploring a set of prep and/or piv parameter cases
 %
 % Arguments:
-%   base_prep_param_file
-%   base_piv_param_file
-%   prep_test_params
-%   piv_test_params
+%   default_prep_param_file
+%   default_piv_param_file
+%   prep_case
+%   piv_case
 %   dest_dir
 %   test_index
-%   overwrite_prep
-%   overwrite_piv
+%   overwrite
 
-% TODO: consider running from a struct, which I could save and load
-% TODO: respect gap parameter
-% TODO: remove a lot of this_ prefixes
-% TODO: save all as fig and png (for exploration and sharing)
-% TODO: drop allcomb, just run a single case and defer looping to outside
 
 % note: not bothering to include test cases for post-processing, as there are basically
 %   no adjustable parameters at present.
 
 update_path('util', 'prep', 'piv', 'post', 'allcomb');
 
-% TEST: run as a script for now
-base_prep_param_file = './experiment/choose-fill/prep-parameters.mat';
-base_piv_param_file = './experiment/choose-fill/piv-parameters.mat';
-
-prep_test_params = struct();
-prep_test_params.fill_skin_min = {3, 5};
-prep_test_params.fill_skin_max = {10, 15, 20};
-
-piv_test_params = struct();
-
-test_index = 1;
-dest_dir = './delete_me';
-overwrite_prep = false;
-overwrite_piv = false;
-% END TEST
-
-prep_cases = get_cases(prep_test_params);
-piv_cases = get_cases(piv_test_params);
-
 PLOT_FORMATS = {'png', 'fig'};
 
-for ii = 1:length(prep_cases)
-    
-    % run prep
-    prep_case = prep_cases(ii);
-    prep_name = get_case_name(prep_case);
-    image_file = get_file_name(dest_dir, prep_name, '', '-IMAGE.mat');
-    
-    fprintf('----------------------------------\n');
-    fprintf('Prep case %d/%d: %s\n', ii, length(prep_cases), prep_name);
+% TEST: run as a script for now
+default_prep_param_file = './experiment/choose-fill/prep-parameters.mat';
+default_piv_param_file = './experiment/choose-fill/piv-parameters.mat';
+prep_case = struct();
+prep_case.fill_skin_min = 5;
+prep_case.fill_skin_max = 10;
+piv_case = struct();
+index = 1;
+dest_dir = './delete_me';
+overwrite = false;
+% END TEST
+
+% apply cases
+prep_param = update_params(default_prep_param_file, prep_case);
+prep_param.exp_files.value = prep_param.exp_files.value(index:index+piv_param.gap.value);
+piv_param = update_params(default_piv_param_file, piv_case);
+
+% run prep
+prep_name = get_case_name(prep_case);
+image_file = get_file_name(dest_dir, prep_name, '', '-IMAGE.mat');
+fpromptf('Prep: %s', prep_name);
+if need_to_run(image_file, overwrite)
+    prep(prep_param, image_file);
+end
+
+% run PIV
+piv_name = get_case_name(piv_case);
+piv_file = get_file_name(dest_dir, prep_name, piv_name, '-VELOCITY.mat');
+fpromptf('PIV: %s', piv_name);
+if need_to_run(piv_file, overwrite)
+    piv(piv_param, image_file, piv_file);
+end
+piv_result = get_single_piv_result(load(piv_file));
+
+% run strain
+this_strain_result = post_strain(piv_result.x, piv_result.y, piv_result.u, piv_result.v);
+
+% make plots
+plot_prefix = sprintf('PIV: %s; PREP: %s;', piv_name, prep_name);
+display_piv(piv_result, plot_prefix)
+for kk = 1:length(PLOT_FORMATS)
+    fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-VELOCITY.%s', PLOT_FORMATS{kk}));
+    saveas(gcf, fn);
+end
+
+display_strain(this_strain_result, piv_result.mask, plot_prefix);
+for kk = 1:length(PLOT_FORMATS)
+    fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-STRAIN.%s', PLOT_FORMATS{kk}));
+    saveas(gcf, fn);
+end
+
+
+function fpromptf(format, varargin)
+% helper function for writing a big fat prompt
+
+    fprintf('\n----------------------------------\n');
+    fprintf([format, '\n'], varargin{:});
     fprintf('----------------------------------\n\n');
-    
-    if need_to_run(image_file, overwrite_prep)
-        prep_param = update_case_params(base_prep_param_file, prep_case);
-        prep_param.exp_files.value = prep_param.exp_files.value(test_index:test_index+1);
-        prep(prep_param, image_file);
-    end
-        
-    for jj = 1:length(piv_cases)
-        
-        % run PIV
-        piv_case = piv_cases{jj};
-        piv_name = get_case_name(piv_case);
-        piv_file = get_file_name(dest_dir, prep_name, piv_name, '-VELOCITY.mat');
-       
-        fprintf('----------------------------------\n');
-        fprintf('PIV case %d/%d: %s\n', jj, length(piv_cases), piv_name);
-        fprintf('----------------------------------\n\n');
-        
-        if need_to_run(piv_file, overwrite_piv)
-            piv_param = update_case_params(base_piv_param_file, piv_case);
-            piv(piv_param, image_file, piv_file);
-        end
-        piv_result = get_single_piv_result(load(piv_file));
-        
-        % run strain
-        this_strain_result = post_strain(piv_result.x, piv_result.y, piv_result.u, piv_result.v);
-        
-        % make plots
-        plot_prefix = sprintf('PIV: %s; PREP: %s;', piv_name, prep_name);
-        display_piv(piv_result, plot_prefix)
-        for kk = 1:length(PLOT_FORMATS)
-            fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-VELOCITY.%s', PLOT_FORMATS{kk}));
-            saveas(gcf, fn);
-        end
-        
-        display_strain(this_strain_result, piv_result.mask, plot_prefix);
-        for kk = 1:length(PLOT_FORMATS)
-            fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-STRAIN.%s', PLOT_FORMATS{kk}));
-            saveas(gcf, fn);
-        end
-           
-    end
-    
+
 end
 
 
@@ -140,40 +119,7 @@ function result = get_single_piv_result(results)
 end
 
 
-function cases = get_cases(params)
-% helper function to unpack all combinations of the test parameter definitions into
-%   an array of structs with a single value for each parameter
-    
-    if isempty(fieldnames(params))
-        % handle case where no parameters are to be tested for this step (prep or piv)
-        cases = cell(1, 1);
-        cases{1} = struct();
-        return
-    end
-
-    names = fieldnames(params);
-    num_names = length(names);
-
-    values = struct2cell(params);
-
-    value_combos = allcomb(values{:});
-    num_combos = length(value_combos);
-
-    cases = cell(num_combos, 1);
-    for ii = 1:num_combos
-        this = struct();
-        for jj = 1:num_names
-            this.(names{jj}) = value_combos{ii, jj};
-        end
-        cases{ii} = this;
-    end
-
-    cases = cell2mat(cases);
-
-end
-
-
-function params = update_case_params(base_param_file, case_params)
+function params = update_params(base_param_file, case_params)
 % helper function to update base parameters for each experiment case, taking care that the
 %   parameters updated exist.
 
