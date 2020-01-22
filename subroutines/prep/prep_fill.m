@@ -1,5 +1,5 @@
-function [img_fill, mask_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
-% function [img_fill, mask_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
+function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
+% function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
 % 
 % Fill non-sand regions of the input image by mirroring across sand boundary
 %
@@ -18,7 +18,6 @@ function [img_fill, mask_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_sm
 %
 % Outputs:
 %   img_fill: 2D matrix, filled grayscale image
-%   mask_fill: 2D matrix, image mask matching size of img_fill
 % %
 
 % TODO: consider what to do about left and right side padding
@@ -130,7 +129,6 @@ end
 img_fill = img;
 [jj, ii] = meshgrid(1:nc, 1:nr); 
 img_fill(:, :) = interp2(jj, ii, img_fill(:, :), cols, rows, 'bilinear');  % FIXME: higher order interpolants introduce NaNs
-mask_fill = ~isnan(img_fill);
 
 if show
     hf = figure;

@@ -128,8 +128,8 @@ for pp = 1:np
         mfilename, pp, np, samp_len(pp), intr_len(pp));
     
     % get displacement update using normalized cross correlation
-    [uu, vv, qual, mask] = piv_displacement(...
-        img_ti, mask_ti, img_tf, mask_tf, rr, cc, uu, vv, samp_len(pp), ...
+    [uu, vv, qual] = piv_displacement(...
+        img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
         intr_len(pp), min_frac_data, min_frac_overlap);
     
     % validate displacement vectors
@@ -146,6 +146,15 @@ for pp = 1:np
     
 end
 % end multipass loop
+
+% create mask array by interpolating the image masks down to the sample grid,
+%   initial points and final points must be within the image 
+%   mask to be labled as true
+[cc_img, rr_img] = meshgrid(1:size(img_ti, 2), 1:size(img_ti, 1));
+samp_mask_ti = interp2(cc_img, rr_img, single(mask_ti), cc, rr, 'nearest'); 
+samp_mask_tf = interp2(cc_img, rr_img, single(mask_tf), cc, rr, 'nearest'); 
+mask = samp_mask_ti & samp_mask_tf;
+
 
 % convert all output variables to world coordinate system
 [xx, yy] = coord_intrinsic_to_world(rr, cc, x_img, y_img);

@@ -15,50 +15,50 @@ if nargin < 3
     prefix = '';
 end
 
-% apply mask
-Dd = strain_result.Dd; Dd(~piv_mask) = NaN;
-Dv = strain_result.Dv; Dv(~piv_mask) = NaN;
-spin = strain_result.spin; spin(~piv_mask) = NaN;
+% unpack data
+Dd = strain_result.Dd;
+Dv = strain_result.Dv;
+spin = strain_result.spin;
 
 
 % get data limits
 [xx, yy] = meshgrid(strain_result.x, strain_result.y);
 xlim = [min(xx(piv_mask)), max(xx(piv_mask))];
 ylim = [min(yy(piv_mask)), max(yy(piv_mask))];
-Ddlim = prctile(strain_result.Dd(piv_mask), [5, 95]);
-Dvlim = prctile(strain_result.Dv(piv_mask), [5, 95]);
-spinlim = prctile(strain_result.spin(piv_mask), [5, 95]);
+Ddlim = prctile(strain_result.Dd(piv_mask), [15, 85]);
+Dvlim = prctile(strain_result.Dv(piv_mask), [15, 85]);
+spinlim = prctile(strain_result.spin(piv_mask), [15, 85]);
+
+hf = figure;
 
 % plot Dd
-figure
-
 a1 = subplot(3,1,1);
-imagesc(strain_result.x, strain_result.y, Dd, ...
-    'AlphaData', ~isnan(Dd)); 
+imagesc(strain_result.x, strain_result.y, Dd); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
 caxis(Ddlim);
-title([prefix, 'Dd']);
+title([prefix, ' Dd'], 'Interpreter', 'none');
 
 % plot Dv
 a2 = subplot(3,1,2);
-imagesc(strain_result.x, strain_result.y, Dv, ...
-    'AlphaData', ~isnan(Dv)); 
+imagesc(strain_result.x, strain_result.y, Dv); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
 caxis(Dvlim);
-title([prefix, 'Dv']);
+title([prefix, ' Dv'], 'Interpreter', 'none');
 
 % plot spin
 a3 = subplot(3,1,3);
-imagesc(strain_result.x, strain_result.y, spin, ...
-    'AlphaData', ~isnan(spin)); 
+imagesc(strain_result.x, strain_result.y, spin); 
 colorbar;
 axis equal tight
 set(gca, 'YDir', 'normal', 'XLim', xlim, 'YLim', ylim);
 caxis(spinlim);
-title([prefix, 'spin']);
+title([prefix, ' spin'], 'Interpreter', 'none');
 
+% some final formatting
 linkaxes([a1, a2, a3]);
+hf.Units = 'Normalized';
+hf.OuterPosition = [0, 0, 1, 1];

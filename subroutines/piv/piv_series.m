@@ -177,6 +177,8 @@ for ii = 1:num_step
     img_fin = img(:, :, fin_idx(ii));
     mask_img_fin = mask_img(:, :, fin_idx(ii));
     
+    % FIXME: we have the wrong image here, not filled
+    
     % perform piv analysis
     piv_data = piv_step(...
         img_ini, img_fin, mask_img_ini, mask_img_fin, x_img, y_img, ...
