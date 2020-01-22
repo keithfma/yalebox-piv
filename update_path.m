@@ -17,6 +17,10 @@ for ii = 1:length(varargin)
     
     switch varargin{ii}
         
+        % core
+        case 'main'
+            addpath(base_path);
+        
         % third-party libraries
         case 'datahash'
             addpath(fullfile(dependencies, 'DataHash_20181113'));

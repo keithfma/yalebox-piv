@@ -1,15 +1,33 @@
+function run_case(default_prep_param_file, ...
+                  default_piv_param_file, ...
+                  prep_case, ...
+                  piv_case, ...
+                  dest_dir, ...
+                  index, ...
+                  overwrite)
+% function run_case(default_prep_param_file, ...
+%                   default_piv_param_file, ...
+%                   prep_case, ...
+%                   piv_case, ...
+%                   dest_dir, ...
+%                   index, ...
+%                   overwrite);
 %
-% Run a set of experiments exploring a set of prep and/or piv parameter cases
+% Run prep, piv, and postprocessing experiment by selectively modifying parameters in the
+%   default parameter files 
 %
 % Arguments:
-%   default_prep_param_file
-%   default_piv_param_file
-%   prep_case
-%   piv_case
-%   dest_dir
-%   test_index
-%   overwrite
-
+%   default_prep_param_file: complete parameter file with default values to be used (i.e., where 
+%       the input prep_case does not define replacements)
+%   default_piv_param_file: complete PIV parameter file with default values to be used (i.e.,
+%       where the input piv_case does not define replacements)
+%   prep_case: struct, fields define parameters to replace in prep parameters
+%   piv_case struct, fields define parameters to replace in piv parameters
+%   dest_dir: str, path to write output to
+%   index = int, index of the starting image to analyze for this experiment
+%   overwrite: set true to overwrite existing results, or false to skip the case (or parts 
+%       of it) if results exist
+% %
 
 % note: not bothering to include test cases for post-processing, as there are basically
 %   no adjustable parameters at present.
@@ -18,22 +36,10 @@ update_path('util', 'prep', 'piv', 'post', 'allcomb');
 
 PLOT_FORMATS = {'png', 'fig'};
 
-% TEST: run as a script for now
-default_prep_param_file = './experiment/choose-fill/prep-parameters.mat';
-default_piv_param_file = './experiment/choose-fill/piv-parameters.mat';
-prep_case = struct();
-prep_case.fill_skin_min = 5;
-prep_case.fill_skin_max = 10;
-piv_case = struct();
-index = 1;
-dest_dir = './delete_me';
-overwrite = false;
-% END TEST
-
 % apply cases
 prep_param = update_params(default_prep_param_file, prep_case);
-prep_param.exp_files.value = prep_param.exp_files.value(index:index+piv_param.gap.value);
 piv_param = update_params(default_piv_param_file, piv_case);
+prep_param.exp_files.value = prep_param.exp_files.value(index:index+piv_param.gap.value);
 
 % run prep
 prep_name = get_case_name(prep_case);
@@ -68,6 +74,11 @@ for kk = 1:length(PLOT_FORMATS)
     fn = get_file_name(dest_dir, prep_name, piv_name, sprintf('-STRAIN.%s', PLOT_FORMATS{kk}));
     saveas(gcf, fn);
 end
+
+end
+
+
+% helpers ----------
 
 
 function fpromptf(format, varargin)
@@ -185,6 +196,8 @@ function fmt_str = fmt(value)
         fmt_str = '%.3f';
     elseif ischar(value)
         fmt_str = '%s';
+    elseif islogical(value)
+        fmt_str = '%d';
     else
         error('What is this?');
     end
