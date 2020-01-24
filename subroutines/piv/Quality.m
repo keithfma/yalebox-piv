@@ -6,6 +6,8 @@ classdef Quality < uint8
         EmptySampleWindow (1)
         BelowMinOverlap (2)
         ValidationFailed (3)
+        PeakFindingFailed (4)
+        Skipped (5)
     end
     
     methods(Static)

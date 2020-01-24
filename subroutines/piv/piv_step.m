@@ -116,6 +116,14 @@ fprintf('%s: min_frac_overlap = %.3f\n', mfilename, min_frac_overlap);
 % expand grid definition vectors to reflect the number of passes
 [samp_len, intr_len] = expand_grid_def(samp_len, intr_len, num_pass);
 
+% create mask array by interpolating the image masks down to the sample grid,
+%   initial points and final points must be within the image 
+%   mask to be labled as true
+[cc_img, rr_img] = meshgrid(1:size(img_ti, 2), 1:size(img_ti, 1));
+samp_mask_ti = interp2(cc_img, rr_img, single(mask_ti), cc, rr, 'nearest'); 
+samp_mask_tf = interp2(cc_img, rr_img, single(mask_tf), cc, rr, 'nearest'); 
+mask = samp_mask_ti & samp_mask_tf;
+
 % initial guess for displacements
 uu = zeros(size(rr));
 vv = zeros(size(cc));
@@ -132,29 +140,26 @@ for pp = 1:np
         img_ti, img_tf, rr, cc, uu, vv, samp_len(pp), ...
         intr_len(pp), min_frac_data, min_frac_overlap);
     
+    if pp == 1
+        % drop fill region for initial pass
+        % note: reason is to populate a decent initial guess by interpolation
+        qual(~mask) = Quality.Skipped;
+    end
+    
     % validate displacement vectors
     [uu, vv, qual] = piv_validate_pts_nmed(...
         cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
      
     % interpolate valid vectors to full sample grid
-    % TODO: use fancy stuff again?
-    invalid = qual ~= Quality.Valid;
-    uu(invalid) = NaN;
-    vv(invalid) = NaN;
-    uu = inpaint_nans(uu, 2);
-    vv = inpaint_nans(vv, 2);
+    % option: natural neighbor
+    valid = qual == Quality.Valid;
+    interpolant = scatteredInterpolant(cc(valid), rr(valid), uu(valid), 'natural', 'nearest');
+    uu(~valid) = interpolant(cc(~valid), rr(~valid));
+    interpolant.Values = vv(valid);
+    vv(~valid) = interpolant(cc(~valid), rr(~valid));
     
 end
 % end multipass loop
-
-% create mask array by interpolating the image masks down to the sample grid,
-%   initial points and final points must be within the image 
-%   mask to be labled as true
-[cc_img, rr_img] = meshgrid(1:size(img_ti, 2), 1:size(img_ti, 1));
-samp_mask_ti = interp2(cc_img, rr_img, single(mask_ti), cc, rr, 'nearest'); 
-samp_mask_tf = interp2(cc_img, rr_img, single(mask_tf), cc, rr, 'nearest'); 
-mask = samp_mask_ti & samp_mask_tf;
-
 
 % convert all output variables to world coordinate system
 [xx, yy] = coord_intrinsic_to_world(rr, cc, x_img, y_img);

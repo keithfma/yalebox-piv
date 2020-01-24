@@ -104,6 +104,10 @@ for kk = 1:numel(uu)
     % find peak with subpixel precision
     % TODO: (re)explore alternative peak-finding algorithms
     [r_peak, c_peak] = piv_peak_gauss2d(xcr);
+    if isnan(r_peak) || isnan(c_peak)
+        qual(kk) = Quality.PeakFindingFailed;
+        continue
+    end
     
     % compute displacement
     uu(kk) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
