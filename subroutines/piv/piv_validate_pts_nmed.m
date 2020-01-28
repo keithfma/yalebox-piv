@@ -40,14 +40,12 @@ kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
 
 % iterate until converged or max iterations reached
-MAX_ITER = 10;
-iter = 0;
+MAX_ITER = 20;
 valid_count = sum(qual(:) == Quality.Valid);
 
-while iter <= MAX_ITER
+for iter = 1:MAX_ITER
     
     last_valid_count = valid_count;
-    iter = iter + 1;
     
     % check all points
     for kk = 1:numel(uu)
@@ -89,6 +87,9 @@ while iter <= MAX_ITER
     end
     
     valid_count = sum(qual(:) == Quality.Valid);
+    fprintf('%s: iteration %d of max %d, valid pixel count = %d\n', ...
+        mfilename, iter, MAX_ITER, valid_count);
+
     if valid_count == last_valid_count
         break
     end
