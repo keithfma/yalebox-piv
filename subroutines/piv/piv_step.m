@@ -151,7 +151,6 @@ for pp = 1:np
         cc, rr, uu, vv, qual, valid_radius, valid_max, valid_eps);
      
     % interpolate valid vectors to full sample grid
-    % option: natural neighbor
     valid = qual == Quality.Valid;
     interpolant = scatteredInterpolant(cc(valid), rr(valid), uu(valid), 'natural', 'nearest');
     uu(~valid) = interpolant(cc(~valid), rr(~valid));
