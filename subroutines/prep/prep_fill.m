@@ -1,5 +1,5 @@
-function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
-% function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror)
+function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror, show)
+% function [img_fill] = prep_fill(img, mask, skin_min, skin_max, bnd_smooth_window, mirror, show)
 % 
 % Fill non-sand regions of the input image by mirroring across sand boundary
 %
@@ -100,13 +100,13 @@ for jj = 1:nc
     
     % get offsets by interpolating into the offsets vector based on distance to boundary
     dist = rows(to_fill, jj) - top_row_idx(jj);
-    this_offsets = interp1(offsets_dist(1:num_fill), offsets(1:num_fill), dist);
+    this_offsets = interp1(offsets_dist, offsets, dist);
 
     rows(to_fill, jj) = top_row_idx(jj) - this_offsets;
 
 end
 
-% TODO 1111: use same method as top fill here, abstract away to a helper
+% TODO 1111: should do the same as the above..., or at least fix the badness
 
 for jj = 1:nc
     
@@ -122,6 +122,9 @@ for jj = 1:nc
     rows(1:num_fill, jj) = bot_row_idx(jj) + this_offsets(num_fill:-1:1);
     
 end
+
+% FIXME: do something with side pads, or just drop them...
+% FIXME: bilinear interpolation is including pixels from beyond the boundary, which is wrong
 
 % apply reflection by interpolating
 % black out regions with no sand at all
@@ -149,7 +152,7 @@ if show
     hax.YTick = [];
     hax.XTick = [];
     axis equal tight
-    title(sprintf('Image filled with method "%s"', method'));
+    title('Filled Image');
 end
 
 end
@@ -173,11 +176,11 @@ function [offs, offs_dist] = mirror_offsets(num_rows, min_depth, max_depth)
 depth_idx = 1;
 depths = []; 
 
-offs  = nan(num_rows, 1);
-offs_dist = 0:(num_rows-1);  % first element of the offset vector corresponds to the boundary
+offs  = nan(2*num_rows, 1);
+offs_dist = 0:(2*num_rows-1);  % first element of the offset vector corresponds to the boundary
 
 start_idx = 1;
-while start_idx < num_rows
+while start_idx < 2*num_rows
     
     if depth_idx > length(depths)
         depths =  randperm(max_depth - min_depth + 1) + min_depth -1;  % random permutation of ints in range [min_depth, max_depth], inclusive
@@ -214,7 +217,7 @@ offs_parts = cell(0);
 offs_dist_parts = cell(0);
 
 max_dist = 0;
-while max_dist < num_rows
+while max_dist < 2*num_rows
     depth = randi([min_depth, max_depth], 1);
     
     this_offs = (depth - 1):-1:0;
