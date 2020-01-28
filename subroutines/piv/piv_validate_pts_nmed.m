@@ -38,41 +38,60 @@ num_nbr = nan(size(uu));
 num_valid_init = sum(qual(:) == Quality.Valid);
 kdtree = KDTreeSearcher([cc(:), rr(:)]);
 
-% check all points
-for kk = 1:numel(uu)
+
+% iterate until converged or max iterations reached
+MAX_ITER = 20;
+valid_count = sum(qual(:) == Quality.Valid);
+
+for iter = 1:MAX_ITER
     
-    % skip if there is no observation at this point
-    if qual(kk) ~= Quality.Valid
-        continue;
+    last_valid_count = valid_count;
+    
+    % check all points
+    for kk = 1:numel(uu)
+        
+        % skip if there is no observation at this point
+        if qual(kk) ~= Quality.Valid
+            continue;
+        end
+        
+        % get (valid) neighbors
+        nbr = rangesearch(kdtree, [cc(kk), rr(kk)], radius);
+        ind_nbr = cell2mat(nbr);
+        ind_nbr(qual(ind_nbr) ~= Quality.Valid | ind_nbr == kk) = []; % drop self and invalid neighbors
+        num_nbr(kk) = length(ind_nbr);
+        unbr = uu(ind_nbr);
+        vnbr = vv(ind_nbr);
+        
+        % compute neighbor median, residual, and median residual
+        med_unbr = median(unbr);
+        res_unbr = abs(unbr-med_unbr);
+        med_res_unbr = median(res_unbr);
+        
+        med_vnbr = median(vnbr);
+        res_vnbr = abs(vnbr-med_vnbr);
+        med_res_vnbr = median(res_vnbr);
+        
+        % compute center normalized residual
+        norm_res_u = abs(uu(kk)-med_unbr)/(med_res_unbr+epsilon);
+        norm_res_v = abs(vv(kk)-med_vnbr)/(med_res_vnbr+epsilon);
+        
+        % combine vector components (max or sum)
+        norm_res = max(norm_res_u, norm_res_v);
+        
+        % set quality flag if point is invalidated by this test
+        if norm_res > max_norm_res
+            qual(kk) = Quality.ValidationFailed;
+        end
+    
     end
     
-    % get (valid) neighbors
-    nbr = rangesearch(kdtree, [cc(kk), rr(kk)], radius);
-    ind_nbr = cell2mat(nbr);
-    ind_nbr(qual(ind_nbr) ~= Quality.Valid | ind_nbr == kk) = []; % drop self and invalid neighbors
-    num_nbr(kk) = length(ind_nbr);
-    unbr = uu(ind_nbr);
-    vnbr = vv(ind_nbr);
-    
-    % compute neighbor median, residual, and median residual
-    med_unbr = median(unbr);
-    res_unbr = abs(unbr-med_unbr);
-    med_res_unbr = median(res_unbr);
-    
-    med_vnbr = median(vnbr);
-    res_vnbr = abs(vnbr-med_vnbr);
-    med_res_vnbr = median(res_vnbr);
-    
-    % compute center normalized residual
-    norm_res_u = abs(uu(kk)-med_unbr)/(med_res_unbr+epsilon);
-    norm_res_v = abs(vv(kk)-med_vnbr)/(med_res_vnbr+epsilon);
-    
-    % combine vector components (max or sum)
-    norm_res = max(norm_res_u, norm_res_v);
-    
-    % set quality flag if point is invalidated by this test
-    if norm_res > max_norm_res
-        qual(kk) = Quality.ValidationFailed;
+    valid_count = sum(qual(:) == Quality.Valid);
+    fprintf('%s: iteration %d of max %d, valid pixel count = %d\n', ...
+        mfilename, iter, MAX_ITER, valid_count);
+
+    if valid_count == last_valid_count
+        break
     end
     
 end
