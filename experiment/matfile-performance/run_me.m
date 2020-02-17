@@ -2,15 +2,19 @@
 %   and then try a few different ways to solve it
 
 NUM_STEPS = 508;
-
-
-CASE_NAME = 'all-in-memory';
-% result: runs out of memory, just as expected
-
-% some cases run in parallel, smake sure the pool ixists upfront to keep timings comparable
 gcp();
 
-if strcmp(CASE_NAME, 'all-in-memory')
+% CASE_NAME = 'all-in-memory-parallel';
+% + runs out of memory, just as expected
+
+CASE_NAME = 'all-in-memory-serial';
+% + memory goes to >90%
+% + remarkably slow for a random number generator!
+
+
+
+
+if strcmp(CASE_NAME, 'all-in-memory-parallel') % --------------------------------------------------
     
     output_file = results_file(CASE_NAME);
     
@@ -51,7 +55,54 @@ if strcmp(CASE_NAME, 'all-in-memory')
     fobj.masks_ext = masks_ext;
     
     end_case(CASE_NAME);
+
+    
+    
+elseif strcmp(CASE_NAME, 'all-in-memory-serial') % ----------------------------------------------
+    
+    
+    output_file = results_file(CASE_NAME);
+    
+    start_case(CASE_NAME);
+    
+    % init arrays
+    [nr, nc] = get_size('orig');
+    imgs = zeros(nr, nc, 3, NUM_STEPS, 'uint8');
+    masks = false(nr, nc, NUM_STEPS);
+    
+    % populate arrays
+    for ii = 1:NUM_STEPS
+        imgs(:, :, :, ii) = make_rgb('orig');
+        masks(:, :, ii) = make_mask('orig');
+    end
+    
+    % trim the arrays to data extent
+    [nr, nc] = get_size('trim');
+    imgs = imgs(1:nr, 1:nc, :, :);
+    masks = masks(1:nr, 1:nc, :);
+    
+    % init padded arrays
+    [nr, nc] = get_size('pad');
+    imgs_ext = zeros(nr, nc, NUM_STEPS, 'single');
+    masks_ext = false(nr, nc, NUM_STEPS);
+    
+    % populate padded arrays
+    for ii = 1:NUM_STEPS
+        imgs_ext(:, :, ii) = make_eql('pad');
+        masks_ext(:, :, ii) = make_mask('pad');
+    end
+       
+    % % write out to file at once
+    % % note: skipping terrifically slow write step
+    % fobj = matfile(output_file, 'Writable', true);
+    % fobj.imgs = imgs;
+    % fobj.masks = masks;
+    % fobj.imgs_ext = imgs_ext;
+    % fobj.masks_ext = masks_ext;
+    
+    end_case(CASE_NAME);
 end
+
 
 
 function start_case(name)
