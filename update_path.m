@@ -38,6 +38,8 @@ for ii = 1:length(varargin)
             addpath(fullfile(dependencies, 'export_fig'));
         case 'allcomb'
             addpath(fullfile(dependencies, 'allcomb'));
+        case 'newmatic'
+            addpath(fullfile(dependencies, 'newmatic'));
         
         % subroutines
         case 'prep'
