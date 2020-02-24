@@ -125,14 +125,13 @@ temp_queue = parallel.pool.DataQueue;
 
 function write_step_temp(data)
     % DataQueue callback function for serializing write step in parallel loop
-    temp_mat.imgs(:, :, :, data.idx) = data.img;
-    temp_mat.masks(:, :, data.idx) = data.mask;
+    data.mat.imgs(:, :, :, data.idx) = data.img;
+    data.mat.masks(:, :, data.idx) = data.mask;
 end
 
 afterEach(temp_queue, @write_step_temp);
 
-% parfor ii = 1:num_image
-parfor ii = 1:4   % DEBUG
+parfor ii = 1:num_image
     
     this_file = fullfile(image_path, image_names{ii});
     img = imread(this_file);
@@ -154,7 +153,8 @@ parfor ii = 1:4   % DEBUG
     max_col = max(max_col, max(mask_cols));    
     
     % write is handled in serial by DataQueue callback
-    send(temp_queue, struct('idx', ii, 'img', uint8(img), 'mask', mask));
+    send(temp_queue, ...
+        struct('mat', temp_mat, 'idx', ii, 'img', uint8(img), 'mask', mask));
     
 end
 
@@ -163,9 +163,6 @@ nx = max_col - min_col + 1;  % size of reduced data arrays
 ny = max_row - min_row + 1;
 xw = xw(min_col:max_col);
 yw = yw(min_row:max_row);
-
-% imgs = imgs(min_row:max_row, min_col:max_col, :, :);
-% masks = masks(min_row:max_row, min_col:max_col, :);
 
 % get size and coordinate vectors for padded/extended arrays
 [xw_ext, yw_ext, ~, ~] = prep_pad(xw, yw, ones(ny, nx), true(ny, nx), pad_num_rows, pad_num_cols);
@@ -185,16 +182,15 @@ results_queue = parallel.pool.DataQueue;
 
 function write_step_results(data)
     % DataQueue callback function for serializing write step in parallel loop
-    results_mat.img(:, :, :, data.idx)   = data.img;
-    results_mat.img_ext(:, :, data.idx)  = data.img_ext;
-    results_mat.mask(:, :, data.idx)     = data.mask;
-    results_mat.mask_ext(:, :, data.idx) = data.mask_ext;
+    data.mat.img(:, :, :, data.idx)   = data.img;
+    data.mat.img_ext(:, :, data.idx)  = data.img_ext;
+    data.mat.mask(:, :, data.idx)     = data.mask;
+    data.mat.mask_ext(:, :, data.idx) = data.mask_ext;
 end
 
 afterEach(results_queue, @write_step_results);
 
-% parfor ii = 1:num_image
-parfor ii = 1:4  % DEBUG
+parfor ii = 1:num_image
     
     fprintf('\n%s: equalize, pad, and fill image %i\n', mfilename, ii);
     
@@ -214,7 +210,7 @@ parfor ii = 1:4  % DEBUG
     img_ext = prep_equalize(img_ext, ~isnan(img_ext), equalize_len);
     
     send(results_queue, struct(...
-        'idx', ii, 'img', img, 'img_ext', img_ext, 'mask', mask, 'mask_ext', mask_ext));
+        'mat', results_mat, 'idx', ii, 'img', img, 'img_ext', img_ext, 'mask', mask, 'mask_ext', mask_ext));
   
 end
 
