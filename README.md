@@ -12,9 +12,9 @@ Processing steps are dependent, a typical workflow is:
 
  `prep` &#9658; `piv` &#9658; `post`
 
-_TODO: replace the above with a simple DAG_
+_TODO: replace the above with a simple DAG including movies_
 
-For all the details, see *Ma et al 2019 (in prep)*.
+For all the details, see *Ma et al 2021 (in prep)*.
 
 _TODO: add proper reference when ready_
 
@@ -63,3 +63,9 @@ reference above if you use this in your research.
 ## Usage: movie
 
 _TODO: movie code needs to be updated_
+
+
+## TODO
+
++ Add unit tests during final revisions
+
