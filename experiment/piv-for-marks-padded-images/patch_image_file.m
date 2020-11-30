@@ -13,13 +13,15 @@ DEST_FILE_NAME = 'images.mat';
 % note: we use the destination variable names everywhere except when accessing the source file
 % note: the RGB images in the src file are also padded, which means we must use the "extended"
 %   coordinates for all our arrays (i.e., x == x_ext)
+% note: src file has units of mm, but we use meters and so convert
 src_mat = matfile(SRC_FILE_NAME, 'Writable', false);
 ref_mat = matfile(REF_FILE_NAME, 'Writable', false);
+MM_TO_M = 1/1000;
 
-x_ext = src_mat.xPad;
+x_ext = src_mat.xPad*MM_TO_M;
 num_x_ext = length(x_ext);
 
-y_ext = src_mat.yPad;
+y_ext = src_mat.yPad*MM_TO_M;
 num_y_ext = length(y_ext);
 
 band = ref_mat.band;  % not present in src file

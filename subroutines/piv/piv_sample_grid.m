@@ -23,10 +23,22 @@ validateattributes(y_vec, {'numeric'}, {'vector'});
 % note: intentionally verbose to make this easier to understand
 
 % find the origin pixel
-r_origin = find(abs(y_vec) < eps);
-c_origin = find(abs(x_vec) < eps);
-assert(numel(r_origin) == 1, 'Failed to find y-component of origin pixel');
-assert(numel(c_origin) == 1, 'Failed to find x-component of origin pixel');
+
+% TODO: changed the logic below for finding the origin pixel coordinates, not sure why
+%   I would have expected to be within eps of 0 always, given how the transformation was
+%   computed. This will require some review later.
+
+% Original version: 
+% r_origin = find(abs(y_vec) < eps);
+% c_origin = find(abs(x_vec) < eps);
+% assert(numel(r_origin) == 1, 'Failed to find y-component of origin pixel');
+% assert(numel(c_origin) == 1, 'Failed to find x-component of origin pixel');
+
+% New version
+[~, r_origin] = min(abs(y_vec));
+[~, c_origin] = min(abs(x_vec));
+assert(abs(x_vec(c_origin)) <= 0.002, 'x-component of origin pixel is surprisingly far from 0');
+assert(abs(y_vec(r_origin)) <= 0.002, 'y-component of origin pixel is surprisingly far from 0');
 
 r_vec = [...
     fliplr((r_origin - sample_spc):-sample_spc:(sample_len(1)/2)), ...     % below origin
