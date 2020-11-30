@@ -23,7 +23,7 @@ for ii = 1:length(varargin)
         
         % third-party libraries
         case 'datahash'
-            addpath(fullfile(dependencies, 'DataHash_20181113'));
+            addpath(fullfile(dependencies, 'DataHash_20190519'));
         case 'normxcorr2_masked'
             addpath(fullfile(dependencies, 'MaskedFFTRegistrationCode'));
         case 'spline'
