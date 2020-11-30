@@ -1,5 +1,8 @@
 % Modify the prepped image file Mark created to match yalebox-piv v0.7.1 expected format
 % %
+
+% note: assumes you ran update_path('main') in the root of yalebox_piv, so that the update_path
+%   function is available to run here
 update_path('newmatic');
 
 SRC_FILE_NAME = 'images_src.mat';
