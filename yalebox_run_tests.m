@@ -1,0 +1,9 @@
+fprintf('Yalebox-PIV unit tests: \n\n');
+yalebox_test_results = runtests( ...
+    'subroutines/piv', ...   % note: could use a cell array if we need to search multiple paths
+    'IncludeSubfolders', true, ...
+    'OutputDetail', matlab.unittest.Verbosity.Concise ...
+);
+
+fprintf('Results summary:\n');
+disp(yalebox_test_results);

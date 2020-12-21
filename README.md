@@ -65,7 +65,13 @@ reference above if you use this in your research.
 _TODO: movie code needs to be updated_
 
 
-## TODO
+## Tests
 
-+ Add unit tests during final revisions
+This package includes unit tests for some core features, but test coverage is by no means complete.
+
+To run the test suite, you can just execute the `yalebox_run_tests.m` script in the root directory.
+
+When writing new tests, please use the [class-based unit tests](https://www.mathworks.com/help/matlab/class-based-unit-tests.html?)
+and make sure your new tests are in the set of directories that `yalebox_run_tests.m` searches to 
+find tests to run.
 
