@@ -84,34 +84,14 @@ for kk = 1:numel(uu)
         fin, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
     [intr_mask, ~, ~] = piv_window(...
         fin_mask, rr(kk) + vv(kk), cc(kk) + uu(kk), intrlen);
-    
-    % compute masked, normalized cross correlation
-    try
-        [xcr, overlap] = normxcorr2_masked(intr, samp, intr_mask, samp_mask);
-    catch
-        keyboard
-    end
-        
-    % skip if nowhere has enough overlapping sandy pixels
-    if max(overlap(:)) < min_overlap
-        qual(kk) = Quality.BelowMinOverlap;
-        continue
-    end
-    
-    % crop correlation plane where not enough overlapping sandy pixels
-    xcr(overlap < min_overlap) = 0;
-    
-    % find peak with subpixel precision
-    % TODO: (re)explore alternative peak-finding algorithms
-    [r_peak, c_peak] = piv_peak_gauss2d(xcr);
-    if isnan(r_peak) || isnan(c_peak)
-        qual(kk) = Quality.PeakFindingFailed;
-        continue
-    end
-    
-    % compute displacement
-    uu(kk) = c_peak - size(samp, 2) - (c_samp(1) - c_intr(1));
-    vv(kk) = r_peak - size(samp, 1) - (r_samp(1) - r_intr(1));
+
+    % get the displacement as the translation that best registers the sample window
+    %   against the interrogation window
+    [vv(kk), uu(kk), qual(kk)] = piv_register(...
+        samp, samp_mask, [r_samp(1), c_samp(1)], ...
+        intr, intr_mask, [r_intr(1), c_intr(1)], ...
+        min_overlap ...
+     ); 
     
     % NOTE: sample window may be only partially filled, which suggests the
     %   observation lies at the sample window centroid, not its center, we 
