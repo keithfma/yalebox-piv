@@ -65,6 +65,26 @@ reference above if you use this in your research.
 _TODO: movie code needs to be updated_
 
 
+## Feature flags
+
+During development, it is useful to toggle between different code pathways without either modifiying the
+code directly or passing flag parameters all the way down from the top-level interface. We use
+["feature flags"](https://www.martinfowler.com/articles/feature-toggles.html) to allow developers to 
+experiment with different methods before making a final choice. Feature flags are environment variables
+the user can set to selectively enable/disable features at runtime. For this project *all feature flags
+should be considered temporary*, we will ultimately either choose a single code path, or "promote" the 
+flag to a normal function argument.
+
+If you are adding a feature flag, please document both here and in the function where it is used, and
+use the helper function in `subroutines/util/feature_flag.m` for access and default values.
+
+Current feature flags are:
+
+| Flag name | Description |
+| --------- | ----------- |
+| YALEBOX\_PIV\_REGISTER\_METHOD | Select which image registration method to use in `piv_register.m` |
+
+
 ## Tests
 
 This package includes unit tests for some core features, but test coverage is by no means complete.
