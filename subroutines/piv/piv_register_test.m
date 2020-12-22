@@ -1,7 +1,9 @@
-% unit tests for piv_displacement
+% unit tests for piv_register()
 % %
 
-classdef piv_displacement_test < matlab.unittest.TestCase
+% TODO: parameterize over valid methods (temporary)
+
+classdef piv_register_test < matlab.unittest.TestCase
     
     methods (Test)
         
