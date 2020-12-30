@@ -1,4 +1,10 @@
+% Run all available unit tests
+% %
+
 fprintf('Yalebox-PIV unit tests: \n\n');
+
+update_path('prep', 'piv');
+
 yalebox_test_results = runtests( ...
     'subroutines/piv', ...   % note: could use a cell array if we need to search multiple paths
     'IncludeSubfolders', true, ...
@@ -6,4 +12,5 @@ yalebox_test_results = runtests( ...
 );
 
 fprintf('Results summary:\n');
+
 disp(yalebox_test_results);
