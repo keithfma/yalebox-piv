@@ -22,10 +22,25 @@ classdef piv_register_test < matlab.unittest.TestCase
             'Writable', false);
         % normalized reference image
         reference_image = piv_register_test.create_reference_image();
-        
         % row and column coordinate vectors for reference image
         reference_rows = 1:size(piv_register_test.reference_image, 1);
         reference_cols = 1:size(piv_register_test.reference_image, 2);
+    end
+    
+    properties (TestParameter)
+        
+        % dimensions of sample window
+        sample_dims = struct(...
+            'small_odd_square', [31, 31], ...
+            'large_odd_square', [121, 121]); %, ...
+            % 'small_odd_rect', [31, 41], ...  % FAILS 
+            % 'small_even_square', [30, 30], ... % FAILS    
+            % 'large_odd_rect', [121, 131], ... % FAILS
+            % 'large_even_square', [120, 120]);  % FAILS
+        sample_translation = struct(...
+            'none', [0, 0], ...
+            'small_int_pos_pos', [10, 12], ...  
+            'small_float_pos_pos', [10.1, 11.9]);
     end
     
     methods (Static)
@@ -75,18 +90,18 @@ classdef piv_register_test < matlab.unittest.TestCase
                 col_idx, ...
                 'cubic');
             
-            % DEBUG: plot reference image and resampled image on the same axes with markers for 
-            %   the corners of the resampled image
-            figure
-            imagesc(self.reference_rows([1, end]), self.reference_cols([1, end]), self.reference_image);
-            hold on
-            imagesc(rows([1, end]), cols([1, end]), image);
-            colormap('gray');
-            plot(...
-                [rows(1), rows(end), rows(end), rows(1)], ...
-                [cols(1), cols(1), cols(end), cols(end)], ...
-                'Color', 'r', 'Marker', '.', 'MarkerSize', 24, 'LineStyle', 'None');
-            % /DEBUG
+            % % DEBUG: plot reference image and resampled image on the same axes with markers for 
+            % %   the corners of the resampled image
+            % figure
+            % imagesc(self.reference_rows([1, end]), self.reference_cols([1, end]), self.reference_image);
+            % hold on
+            % imagesc(rows([1, end]), cols([1, end]), image);
+            % colormap('gray');
+            % plot(...
+            %     [rows(1), rows(end), rows(end), rows(1)], ...
+            %     [cols(1), cols(1), cols(end), cols(end)], ...
+            %     'Color', 'r', 'Marker', '.', 'MarkerSize', 24, 'LineStyle', 'None');
+            % % /DEBUG
             
             % translate image coordinates such that it would have to be translated by 'translation'
             %   to correctly register against the reference image
@@ -100,18 +115,16 @@ classdef piv_register_test < matlab.unittest.TestCase
     
     methods (Test)
         
-        function test_correct_displacement(self)
+        function test_correct_displacement(self, sample_dims, sample_translation)
             % Check if we can recover known displacement with piv_register
             
             % DEBUG: constant versions of parameters
             samp_location = [50, 50];
-            samp_dims = [31, 31];
-            samp_translation = [0, 0];
-            min_overlap = 0.8*prod(samp_dims);
+            min_overlap = 0.8*prod(sample_dims);
             % /DEBUG
             
             [sample_image, sample_rows, sample_cols] = self.create_sample_image(...
-                samp_location, samp_dims, samp_translation);
+                samp_location, sample_dims, sample_translation);
             
             sample_origin = [sample_rows(1), sample_cols(1)];
             sample_mask = true(size(sample_image));
@@ -125,9 +138,9 @@ classdef piv_register_test < matlab.unittest.TestCase
                 self.reference_image, reference_mask, reference_origin, ...
                 min_overlap); 
             
-            self.assertEqual(quality, Quality.Valid);
-            self.assertEqual(delta_row, samp_translation(1), 'AbsTol', 0.01);
-            self.assertEqual(delta_col, samp_translation(2), 'AbsTol', 0.01);
+            self.verifyEqual(quality, Quality.Valid);
+            self.verifyEqual(delta_row, sample_translation(1), 'AbsTol', 0.01);
+            self.verifyEqual(delta_col, sample_translation(2), 'AbsTol', 0.01);
             
         end
         
