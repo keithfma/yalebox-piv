@@ -1,16 +1,19 @@
 % unit tests for piv_register()
-% %
-
-% TODO: parameterize over valid methods (temporary)
-
+%
 % note: input data used by tests is stored in the file test_data.mat, which contains:
 %   + rgb_image: RGB image of sand cropped from a yalebox experiment (fault_ss_01_siden_150.jpg)
+% %
+
+
+% TODO:
+% + parameterize over valid methods by setting the YALEBOX_PIV_REGISTER_METHOD feature flag
+% %
 
 
 classdef piv_register_test < matlab.unittest.TestCase
     
     properties (Constant)
-        % TODO: document what this section is for
+        % constant parameters, load once and share for all tests
         % %
         
         % read-only matfile object containing test data
@@ -25,25 +28,31 @@ classdef piv_register_test < matlab.unittest.TestCase
     end
     
     properties (TestParameter)
-        % TODO: document what this section is for
+        % inputs for parameterized tests, test methods are run with all combinations of the
+        %   parameters defined in this section
+        %   see: https://www.mathworks.com/help/matlab/matlab_prog/use-parameters-in-class-based-tests.html
         % %        
         
-        % TODO: describe
+        % number of rows, cols to trim off the source image when creating the reference image,
+        %   allows us to check that piv_register is insensitive to reference image shape
         reference_trim = struct(...
             'square', [0, 0], ...
-            'tall_odd', [0, 20], ...
+            'tall_odd', [0, 19], ...
             'wide_even', [20, 0]);
         % location of the sample window in the source image, as a [row, column] offset relative to
-        %   the center of the source image
+        %   the center of the source image, allows us to check that the piv_register works for 
+        %   the realistic case where the sample image only approximately matches the reference
         sample_location = struct(...
             'center', [0, 0], ...
             'not_center', [-31.2, 33]);
-        % dimensions of sample window
+        % dimensions of sample window, allows us to check that piv_register does not assume a 
+        %   specific sample image shape
         sample_dims = struct(...
             'square_even', [30, 30], ...
             'square_odd', [31, 31], ...
             'rect_mixed', [30, 41]);
-        % TODO: describe
+        % expected translation, used to generate the sample image and to check the result returned
+        %   by piv_register, allows us to explore positive, negative, and float translations
         sample_translation = struct(...
             'none', [0, 0], ...
             'small_int_pos_pos', [10, 12], ... 
@@ -54,7 +63,7 @@ classdef piv_register_test < matlab.unittest.TestCase
     end
     
     methods (Static)
-        % TODO: document what this section is for
+        % helper methods for loading source data
         % %
             
         function img = load_source_image()
@@ -67,11 +76,19 @@ classdef piv_register_test < matlab.unittest.TestCase
     end
     
     methods
-        % TODO: document what this section is for
+        % helper methods for generating input data for each test case
         % %        
         
         function [image, rows, cols] = create_reference_image(self, trim)
-            % return reference image and its coordinate vectors for specified test case
+            % Create reference image and its coordinate vectors for single test case
+            %
+            % Arguments:
+            %   trim:  2-element vector specifying the number of [rows, cols] to trim off the source
+            %       image when creating the reference image
+            % 
+            %  Returns:
+            %   image: 2D array, the reference image, cropped from self.source_image
+            %   rows, cols: coordinate vectors for image
             % %
             
             validateattributes(trim, {'numeric'}, {'vector', 'integer', 'numel', 2});
@@ -89,8 +106,17 @@ classdef piv_register_test < matlab.unittest.TestCase
         end
         
         function [image, rows, cols] = create_sample_image(self, location, dimensions, translation)
-            % return sample image and its coordinate vectors for specified test case
-            % TODO: define arguments when the dust has settled
+            % Create sample image and its coordinate vectors for single test case
+            % 
+            % Arguments:
+            %   location: position of the sample window in the source image, as a [row, column]
+            %       offset relative to the center of the source image
+            %   dimensions: [num_rows, num_cols] dimensions of sample image
+            %   translation: expected translation in [rows, cols] relative to the reference image
+            %
+            % Returns:
+            %   image: 2D array, the reference image, cropped from self.source_image
+            %   rows, cols: coordinate vectors for image
             % %
             
             validateattributes(dimensions, {'numeric'}, {'vector', 'numel', 2});
@@ -138,7 +164,7 @@ classdef piv_register_test < matlab.unittest.TestCase
             % keyboard
             % /DEBUG
             
-            % translate image coordinates such that it would have to be translated by 'translation'
+            % shift image coordinates such that it would have to be translated by 'translation'
             %   to correctly register against the reference image
             rows = rows - translation(1);
             cols = cols - translation(2);
@@ -149,28 +175,29 @@ classdef piv_register_test < matlab.unittest.TestCase
        
     
     methods (Test)
-        % TODO: document what this section is for
+        % the unit tests
         % %        
         
         function test_correct_displacement(self, reference_trim, sample_location, sample_dims, sample_translation)
             % Check if we can recover known displacement with piv_register
-            % TODO: define arguments when the dust has settled
+            % See "properties (TestParameter)" section for argument details
             % %
             
             % constants
-            ABSOLUTE_TOLERANCE = 0.1;  % pixels
-            MIN_OVERLAP = 0.8*prod(sample_dims);
-            % /DEBUG
+            ABSOLUTE_TOLERANCE = 0.1;  % maximum allowed error in measured translation, pixels
+            MIN_OVERLAP = 0.8*prod(sample_dims);  % parameter to piv_register we don't care to test
             
+            % get reference and sample images for this test case
             [reference_image, reference_rows, reference_cols] = self.create_reference_image(...
                 reference_trim);
             
             [sample_image, sample_rows, sample_cols] = self.create_sample_image(...
                 sample_location, sample_dims, sample_translation);
             
+            % run piv_register
             sample_origin = [sample_rows(1), sample_cols(1)];
             sample_mask = true(size(sample_image));
-            
+
             reference_origin = [reference_rows(1), reference_cols(1)];
             reference_mask = true(size(reference_image));
                 
@@ -178,7 +205,8 @@ classdef piv_register_test < matlab.unittest.TestCase
                 sample_image, sample_mask, sample_origin, ...
                 reference_image, reference_mask, reference_origin, ...
                 MIN_OVERLAP); 
-            
+
+            % check piv_register results
             self.verifyEqual(quality, Quality.Valid);
             self.verifyEqual(delta_row, sample_translation(1), 'AbsTol', ABSOLUTE_TOLERANCE);
             self.verifyEqual(delta_col, sample_translation(2), 'AbsTol', ABSOLUTE_TOLERANCE);
